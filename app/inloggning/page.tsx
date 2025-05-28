@@ -84,58 +84,6 @@ export default function LoginPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-12" role="contentinfo">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">
-                <span className="whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
-              </h3>
-              <p className="text-gray-300 mb-4">
-                Hässleholms nyaste trafikskola med fokus på kvalitet och personlig service.
-              </p>
-              <p className="text-sm text-gray-400">Webbsidan med bokning och mer information kommer snart!</p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Kontaktinformation</h4>
-              <address className="space-y-2 text-gray-300 not-italic">
-                <p className="flex items-center space-x-2">
-                  <span>📍</span>
-                  <span>Östergatan 3a, 281 30 Hässleholm</span>
-                </p>
-                <p className="flex items-center space-x-2">
-                  <span>📞</span>
-                  <a href="tel:0760389192" className="hover:text-white transition-colors">
-                    0760-389192
-                  </a>
-                </p>
-                <p className="flex items-center space-x-2">
-                  <span>📧</span>
-                  <a href="mailto:info@dintrafikskolahlm.se" className="hover:text-white transition-colors">
-                    info@dintrafikskolahlm.se
-                  </a>
-                </p>
-              </address>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Öppettider</h4>
-              <div className="space-y-2 text-gray-300">
-                <p>Måndag - Fredag: 08:00 - 18:00</p>
-                <p>Lördag: 09:00 - 15:00</p>
-                <p className="text-sm text-yellow-400 mt-2">* Flexibla tider efter överenskommelse</p>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>
-              &copy; 2025 <span className="whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>. Alla
-              rättigheter förbehållna.
-            </p>
-          </div>
-        </div>
-      </footer>
-
       {/* Contact Form Modal */}
       <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
     </div>

@@ -128,8 +128,8 @@ export default function AboutPage() {
                       <li>• A-körkort (motorcykel)</li>
                       <li>• B-körkort (personbil)</li>
                       <li>• Bedömningslektion (500 kr)</li>
-                      <li>• BE, C, D-körkort (kontakta oss för vägledning)</li>
                       <li>• Taxiförarlegitimation</li>
+                      <li>• Övriga behörigheter: BE, C, D (kontakta oss för vägledning)</li>
                     </ul>
                   </div>
                 </Card>

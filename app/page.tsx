@@ -152,30 +152,20 @@ export default function HomePage() {
             </Card>
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="space-y-4">
-                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
-                <h3 className="text-xl font-semibold">BE-körkort</h3>
-                <p className="text-gray-600">Personbil med släp - kontakta oss för vägledning</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
-                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
-                <h3 className="text-xl font-semibold">C-körkort</h3>
-                <p className="text-gray-600">Lastbil - kontakta oss för vägledning</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
-                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
-                <h3 className="text-xl font-semibold">D-körkort</h3>
-                <p className="text-gray-600">Buss - kontakta oss för vägledning</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
                 <Clock className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">Taxiförarlegitimation</h3>
                 <p className="text-gray-600">Professionell yrkesutbildning</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center p-6 hover:shadow-lg transition-shadow lg:col-span-3">
+              <CardContent className="space-y-4">
+                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
+                <h3 className="text-xl font-semibold">Övriga behörigheter</h3>
+                <p className="text-gray-600">
+                  BE (personbil med släp), C (lastbil), D (buss)
+                  <br />
+                  Kontakta oss för vägledning med råd och tips
+                </p>
               </CardContent>
             </Card>
           </div>

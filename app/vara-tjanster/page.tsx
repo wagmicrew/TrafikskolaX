@@ -120,27 +120,19 @@ export default function ServicesPage() {
                 </Card>
 
                 <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">BE-körkort</h3>
-                  <p className="text-gray-600">Personbil med släp - kontakta oss för vägledning med råd och tips</p>
-                </Card>
-
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">C-körkort</h3>
-                  <p className="text-gray-600">Lastbil - kontakta oss för vägledning med råd och tips</p>
-                </Card>
-
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">D-körkort</h3>
-                  <p className="text-gray-600">Buss - kontakta oss för vägledning med råd och tips</p>
-                </Card>
-
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
                   <Award className="w-12 h-12 text-red-600 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Taxiförarlegitimation</h3>
                   <p className="text-gray-600">Professionell yrkesutbildning för taxiförare</p>
+                </Card>
+
+                <Card className="p-6 text-center hover:shadow-lg transition-shadow lg:col-span-3 bg-gray-50">
+                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Övriga behörigheter</h3>
+                  <p className="text-gray-600">
+                    BE (personbil med släp), C (lastbil), D (buss)
+                    <br />
+                    Kontakta oss för vägledning med råd och tips
+                  </p>
                 </Card>
               </div>
             </div>

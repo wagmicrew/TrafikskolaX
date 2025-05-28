@@ -112,22 +112,23 @@ export default function PremisesPage() {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-red-600 mb-3">Konferensrum för teoriundervisning</h3>
                   <p className="text-gray-700 mb-4">
-                    Vårt konferensrum är perfekt utformat för teoriundervisning och personliga konsultationer. Med en
-                    stor väggmonterad skärm, bekväma stolar runt ett modernt konferensbord och professionell belysning
-                    skapar vi en optimal lärmiljö. Rummet har även utmärkt akustik för tydlig kommunikation.
+                    Vårt konferensrum är perfekt utformat för teoriundervisning och personliga konsultationer. Den
+                    fräscha och funktionella miljön med bekväma stolar runt ett modernt konferensbord skapar en optimal
+                    lärmiljö. Vi erbjuder kaffe och te för att göra din teoriundervisning så bekväm som möjligt. Rummet
+                    har även utmärkt akustik för tydlig kommunikation.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      <Monitor className="w-3 h-3 mr-1" />
-                      Modern teknik
+                      <Users className="w-3 h-3 mr-1" />
+                      Teoriundervisning
                     </span>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       <Users className="w-3 h-3 mr-1" />
-                      Gruppundervisning
+                      Kaffe & Te
                     </span>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       <Lightbulb className="w-3 h-3 mr-1" />
-                      Optimal belysning
+                      Fräsch miljö
                     </span>
                   </div>
                 </CardContent>
@@ -206,8 +207,8 @@ export default function PremisesPage() {
 
                 <Card className="p-6 text-center">
                   <Monitor className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Modern teknik</h3>
-                  <p className="text-gray-600">Väggmonterade skärmar och professionell AV-utrustning</p>
+                  <h3 className="text-xl font-semibold mb-2">Teoriundervisning</h3>
+                  <p className="text-gray-600">Dedikerat utrymme för teoriundervisning med kaffe och te</p>
                 </Card>
 
                 <Card className="p-6 text-center">

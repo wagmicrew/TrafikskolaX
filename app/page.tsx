@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Phone, Mail, Car, Clock, Award } from "lucide-react"
+import { Car, Clock, Award } from "lucide-react"
 import { ContactForm } from "@/components/contact-form"
 
 export default function HomePage() {
@@ -12,64 +12,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-black text-white py-4 px-6 relative z-10 shadow-lg">
-        <div className="container mx-auto flex justify-between items-center">
-          {/* Logo with custom text */}
-          <div className="flex items-center space-x-4">
-            <img
-              src="/images/din-logo.png"
-              alt="Din Trafikskola Hässleholm - Körkort och körkortsutbildning"
-              className="h-12 sm:h-14 md:h-16 lg:h-18 w-auto"
-              width="72"
-              height="72"
-            />
-            <div className="flex flex-col">
-              <h1
-                className="text-red-600 text-xl sm:text-2xl md:text-3xl lg:text-4xl font-normal leading-tight"
-                style={{ fontFamily: 'Didot, Bodoni, "Playfair Display", serif' }}
-              >
-                Trafikskola
-              </h1>
-              <div
-                className="text-red-600 text-sm sm:text-base md:text-lg lg:text-xl font-normal leading-tight ml-6 sm:ml-8 md:ml-10 lg:ml-12 italic"
-                style={{ fontFamily: 'Didot, Bodoni, "Playfair Display", serif' }}
-              >
-                Hässleholm
-              </div>
-            </div>
-          </div>
-
-          {/* Contact info - responsive visibility */}
-          <div className="hidden lg:flex items-center space-x-6 text-sm">
-            <div className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4 text-red-500" />
-              <span>Östergatan 3a, 281 30 Hässleholm</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Phone className="w-4 h-4 text-red-500" />
-              <span>0760-389192</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Mail className="w-4 h-4 text-red-500" />
-              <span>info@dintrafikskolahlm.se</span>
-            </div>
-          </div>
-
-          {/* Mobile contact - show only phone on smaller screens */}
-          <div className="flex lg:hidden items-center space-x-4">
-            <a
-              href="tel:0760389192"
-              className="flex items-center space-x-2 text-red-500 hover:text-red-400 transition-colors"
-              aria-label="Ring Din Trafikskola Hässleholm på 0760-389192"
-            >
-              <Phone className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm">0760-389192</span>
-            </a>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section - Static Background Image Only */}
       <section className="static-hero-section relative min-h-screen flex items-center">
         {/* Static Background Image */}
@@ -338,17 +280,17 @@ export default function HomePage() {
               <h4 className="text-lg font-semibold mb-4">Kontaktinformation</h4>
               <address className="space-y-2 text-gray-300 not-italic">
                 <p className="flex items-center space-x-2">
-                  <MapPin className="w-4 h-4" aria-hidden="true" />
+                  <span>📍</span>
                   <span>Östergatan 3a, 281 30 Hässleholm</span>
                 </p>
                 <p className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4" aria-hidden="true" />
+                  <span>📞</span>
                   <a href="tel:0760389192" className="hover:text-white transition-colors">
                     0760-389192
                   </a>
                 </p>
                 <p className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" aria-hidden="true" />
+                  <span>📧</span>
                   <a href="mailto:info@dintrafikskolahlm.se" className="hover:text-white transition-colors">
                     info@dintrafikskolahlm.se
                   </a>

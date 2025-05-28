@@ -88,12 +88,13 @@ export default function HomePage() {
           <div className="container mx-auto px-6 text-center">
             {/* Main Heading */}
             <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-8 text-white drop-shadow-2xl">
-              Välkommen till <span className="text-yellow-400">Din Trafikskola Hässleholm</span>
+              Välkommen till{" "}
+              <span className="text-yellow-400 whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
             </h2>
 
             {/* Subtitle */}
             <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-12 max-w-5xl mx-auto text-white drop-shadow-xl font-medium">
-              Hässleholms nyaste trafikskola öppnar sina dörrar! Få ditt körkort med professionell utbildning och
+              Hässleholms nyaste trafikskola har öppnat sina dörrar! Få ditt körkort med professionell utbildning och
               personlig service.
             </p>
 
@@ -228,7 +229,7 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 id="why-choose-heading" className="text-3xl font-bold text-gray-800 mb-6">
-                Varför välja Din Trafikskola Hässleholm?
+                Varför välja <span className="whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>?
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
@@ -325,7 +326,9 @@ export default function HomePage() {
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">Din Trafikskola Hässleholm</h3>
+              <h3 className="text-xl font-bold mb-4">
+                <span className="whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
+              </h3>
               <p className="text-gray-300 mb-4">
                 Hässleholms nyaste trafikskola med fokus på kvalitet och personlig service.
               </p>
@@ -362,7 +365,10 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 Din Trafikskola Hässleholm. Alla rättigheter förbehållna.</p>
+            <p>
+              &copy; 2025 <span className="whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>. Alla
+              rättigheter förbehållna.
+            </p>
           </div>
         </div>
       </footer>

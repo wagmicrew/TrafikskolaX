@@ -1,0 +1,43 @@
+{
+  "name": "Din Trafikskola Hässleholm",
+  "short_name": "Din Trafikskola",
+  "description": "Hässleholms nyaste trafikskola med professionell körkortsutbildning",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#DC2626",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/din-logo-small.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/din-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "business"],
+  "lang": "sv",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "Kontakta oss",
+      "short_name": "Kontakt",
+      "description": "Kontakta Din Trafikskola direkt",
+      "url": "/?contact=true",
+      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ring oss",
+      "short_name": "Ring",
+      "description": "Ring oss direkt på 0760-389192",
+      "url": "tel:0760389192",
+      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "96x96" }]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Startsida -->
+  <url>
+    <loc>https://dintrafikskolahlm.se/</loc>
+    <lastmod>2025-05-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://dintrafikskolahlm.se/images/hero-background.jpg</image:loc>
+      <image:title>Din Trafikskola Hässleholm - Körkort och körkortsutbildning</image:title>
+      <image:caption>Hässleholms nyaste trafikskola med professionell körkortsutbildning</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://dintrafikskolahlm.se/images/din-logo.png</image:loc>
+      <image:title>Din Trafikskola Hässleholm Logotyp</image:title>
+      <image:caption>Officiell logotyp för Din Trafikskola i Hässleholm</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://dintrafikskolahlm.se/images/promo-flyer.jpg</image:loc>
+      <image:title>Bedömningslektion kampanj - Din Trafikskola</image:title>
+      <image:caption>Specialerbjudande på bedömningslektion för B-körkort och taxiförarlegitimation</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://dintrafikskolahlm.se/images/storefront.jpg</image:loc>
+      <image:title>Din Trafikskola butik Hässleholm</image:title>
+      <image:caption>Vår butik på Östergatan 3a i Hässleholm</image:caption>
+    </image:image>
+  </url>
+
+</urlset>

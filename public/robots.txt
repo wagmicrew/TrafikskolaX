@@ -1,0 +1,42 @@
+# Robots.txt för Din Trafikskola Hässleholm
+# https://dintrafikskolahlm.se/robots.txt
+
+User-agent: *
+Allow: /
+
+# Tillåt alla sökmotorer att indexera hela webbsidan
+Allow: /images/
+Allow: /_next/static/
+
+# Blockera onödiga filer och mappar
+Disallow: /_next/
+Disallow: /api/
+Disallow: /.well-known/
+Disallow: /admin/
+Disallow: /private/
+
+# Sitemap-referens
+Sitemap: https://dintrafikskolahlm.se/sitemap.xml
+
+# Crawl-delay för att vara snäll mot servern
+Crawl-delay: 1
+
+# Specifika instruktioner för Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Specifika instruktioner för Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Blockera skadliga bots
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

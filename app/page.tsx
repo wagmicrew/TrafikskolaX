@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Car, Clock } from "lucide-react"
+import { Car, Clock, Award } from "lucide-react"
 import { ContactForm } from "@/components/contact-form"
 
 export default function HomePage() {
@@ -135,14 +135,7 @@ export default function HomePage() {
             <p className="text-xl text-gray-600">Vi erbjuder professionell körkortsutbildning</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
-                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
-                <h3 className="text-xl font-semibold">A-körkort</h3>
-                <p className="text-gray-600">Motorcykel - kontakta oss för vägledning</p>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="space-y-4">
                 <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
@@ -150,6 +143,7 @@ export default function HomePage() {
                 <p className="text-gray-600">Personbil - vårt mest populära körkort</p>
               </CardContent>
             </Card>
+
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="space-y-4">
                 <Clock className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
@@ -157,12 +151,13 @@ export default function HomePage() {
                 <p className="text-gray-600">Professionell yrkesutbildning</p>
               </CardContent>
             </Card>
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow lg:col-span-3">
+
+            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="space-y-4">
-                <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
+                <Award className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">Övriga behörigheter</h3>
                 <p className="text-gray-600">
-                  BE (personbil med släp), C (lastbil), D (buss)
+                  För behörigheter såsom A BE C D
                   <br />
                   Kontakta oss för vägledning med råd och tips
                 </p>

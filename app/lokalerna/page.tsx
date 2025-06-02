@@ -173,7 +173,7 @@ export default function PremisesPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-800">Lördag:</span>
-                    <span className="text-gray-700">09:00 - 15:00</span>
+                    <span className="text-gray-700">10:00 - 14:00</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-semibold text-gray-800">Söndag:</span>
@@ -181,8 +181,7 @@ export default function PremisesPage() {
                   </div>
                   <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                     <p className="text-sm text-yellow-800">
-                      <strong>Flexibla tider:</strong> Vi erbjuder även lektioner på kvällar och helger efter
-                      överenskommelse
+                      <strong>Körlektioner:</strong> Måndag - Fredag: 08:00 - 20:00, Lördag: 10:00 - 16:00
                     </p>
                   </div>
                 </div>

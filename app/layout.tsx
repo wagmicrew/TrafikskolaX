@@ -132,7 +132,7 @@ export default function RootLayout({
                 latitude: "56.1589",
                 longitude: "13.7666",
               },
-              openingHours: ["Mo-Fr 08:00-18:00", "Sa 10:00-14:00"],
+              openingHours: ["We 16:00-18:00", "Fr 14:00-16:00", "Mo-Fr 08:00-18:00", "Sa 09:00-15:00"],
               priceRange: "500-2000 SEK",
               areaServed: {
                 "@type": "City",

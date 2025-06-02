@@ -72,6 +72,19 @@ export function Footer() {
           {/* Column 3: Opening Hours */}
           <div>
             <h3 className="text-lg font-bold text-gray-800 mb-4">Öppettider</h3>
+            <h4 className="font-medium text-gray-700 mb-2">Kontorstider:</h4>
+            <ul className="space-y-2 mb-4">
+              <li className="flex items-center">
+                <Clock className="w-4 h-4 text-red-600 mr-2" />
+                <span className="text-gray-600">Onsdag: 16:00 - 18:00</span>
+              </li>
+              <li className="flex items-center">
+                <Clock className="w-4 h-4 text-red-600 mr-2" />
+                <span className="text-gray-600">Fredag: 14:00 - 16:00</span>
+              </li>
+            </ul>
+
+            <h4 className="font-medium text-gray-700 mb-2">Körlektioner:</h4>
             <ul className="space-y-2">
               <li className="flex items-center">
                 <Clock className="w-4 h-4 text-red-600 mr-2" />
@@ -79,24 +92,9 @@ export function Footer() {
               </li>
               <li className="flex items-center">
                 <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Lördag: 10:00 - 14:00</span>
+                <span className="text-gray-600">Lördag: 09:00 - 15:00</span>
               </li>
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Söndag: Stängt</span>
-              </li>
-            </ul>
-
-            <h3 className="text-lg font-bold text-gray-800 mt-6 mb-4">Körlektioner</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Måndag - Fredag: 08:00 - 20:00</span>
-              </li>
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Lördag: 10:00 - 16:00</span>
-              </li>
+              <li className="text-sm text-yellow-600 mt-2">* Flexibla tider efter överenskommelse</li>
             </ul>
           </div>
 

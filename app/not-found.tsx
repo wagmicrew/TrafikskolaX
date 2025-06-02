@@ -178,6 +178,10 @@ export default function NotFound() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Öppettider</h4>
               <div className="space-y-2 text-gray-300">
+                <p>Kontorstider:</p>
+                <p>Onsdag: 16:00 - 18:00</p>
+                <p>Fredag: 14:00 - 16:00</p>
+                <p className="mt-2">Körlektioner:</p>
                 <p>Måndag - Fredag: 08:00 - 18:00</p>
                 <p>Lördag: 09:00 - 15:00</p>
                 <p className="text-sm text-yellow-400 mt-2">* Flexibla tider efter överenskommelse</p>

@@ -166,22 +166,38 @@ export default function PremisesPage() {
 
               <Card className="p-6">
                 <h2 className="text-2xl font-bold text-red-600 mb-4">Öppettider</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-800">Måndag - Fredag:</span>
-                    <span className="text-gray-700">08:00 - 18:00</span>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Kontorstider:</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-700">Onsdag:</span>
+                        <span className="text-gray-700">16:00 - 18:00</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-700">Fredag:</span>
+                        <span className="text-gray-700">14:00 - 16:00</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-800">Lördag:</span>
-                    <span className="text-gray-700">10:00 - 14:00</span>
+
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">Körlektioner:</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-700">Måndag - Fredag:</span>
+                        <span className="text-gray-700">08:00 - 18:00</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-700">Lördag:</span>
+                        <span className="text-gray-700">09:00 - 15:00</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-800">Söndag:</span>
-                    <span className="text-gray-700">Stängt</span>
-                  </div>
+
                   <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                     <p className="text-sm text-yellow-800">
-                      <strong>Körlektioner:</strong> Måndag - Fredag: 08:00 - 20:00, Lördag: 10:00 - 16:00
+                      <strong>*</strong> Flexibla tider efter överenskommelse
                     </p>
                   </div>
                 </div>

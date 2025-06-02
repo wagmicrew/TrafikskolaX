@@ -286,42 +286,6 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              {/* Other Training */}
-              <div className="mb-12">
-                <h3 className="text-2xl font-bold text-red-600 mb-6">Övriga utbildningar</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-2">Inskrivning inkl Teori online</h4>
-                    <p className="text-xl font-bold text-gray-800">600 kr</p>
-                  </Card>
-
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-2">Inskrivning inkl Teori böcker och online</h4>
-                    <p className="text-xl font-bold text-gray-800">1 200 kr</p>
-                  </Card>
-
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-2">Introduktionsutbildning (Handledarkurs)</h4>
-                    <p className="text-xl font-bold text-gray-800">350 kr</p>
-                  </Card>
-
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-2">Riskutbildning Del 1 (Riskettan)</h4>
-                    <p className="text-xl font-bold text-gray-800">800 kr</p>
-                  </Card>
-
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-2">Riskutbildning Del 2 (Risktvåan)</h4>
-                    <p className="text-xl font-bold text-gray-800">2 200 kr</p>
-                  </Card>
-
-                  <Card className="p-4 bg-gray-50">
-                    <h4 className="font-semibold mb-2">Övriga behörigheter</h4>
-                    <p className="text-sm text-gray-700">A, BE, C och D - kontakta oss för tips och råd</p>
-                  </Card>
-                </div>
-              </div>
-
               {/* Payment Info with Official Swish QR */}
               <div className="bg-white rounded-lg p-8 border-2 border-gray-200 shadow-lg">
                 <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">Betalning</h3>

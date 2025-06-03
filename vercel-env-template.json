@@ -1,0 +1,63 @@
+{
+  "name": "Din Trafikskola Hässleholm Environment Variables",
+  "description": "Template for setting up environment variables in Vercel",
+  "variables": [
+    {
+      "key": "DRIVING_SCHOOL_EMAIL",
+      "description": "Email address where contact form submissions will be sent",
+      "example": "info@dintrafikskolahlm.se",
+      "required": true
+    },
+    {
+      "key": "SENDGRID_FROM_EMAIL",
+      "description": "From email address for outgoing emails",
+      "example": "noreply@dintrafikskolahlm.se",
+      "required": true
+    },
+    {
+      "key": "SENDGRID_API_KEY",
+      "description": "SendGrid API key for sending emails",
+      "example": "SG.your-api-key-here",
+      "required": true
+    },
+    {
+      "key": "DATABASE_URL",
+      "description": "Main PostgreSQL database connection string",
+      "example": "postgresql://user:password@host:5432/database",
+      "required": true
+    },
+    {
+      "key": "POSTGRES_URL",
+      "description": "PostgreSQL connection string",
+      "required": true
+    },
+    {
+      "key": "POSTGRES_PRISMA_URL",
+      "description": "PostgreSQL connection string optimized for Prisma",
+      "required": true
+    },
+    {
+      "key": "JWT_SECRET",
+      "description": "Secret key for JWT token signing",
+      "example": "your-strong-secret-key-here",
+      "required": true
+    },
+    {
+      "key": "NEXT_PUBLIC_SWISH_NUMBER",
+      "description": "Swish number for payments",
+      "example": "123-273-20-71",
+      "required": true
+    },
+    {
+      "key": "CRON_SECRET",
+      "description": "Secret key for protecting cron job endpoints",
+      "required": false
+    },
+    {
+      "key": "VERCEL_URL",
+      "description": "Your domain name",
+      "example": "dintrafikskolahlm.se",
+      "required": false
+    }
+  ]
+}

@@ -13,7 +13,11 @@ export default function NotFound() {
         <div className="container mx-auto flex justify-between items-center">
           {/* Logo with custom text */}
           <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
-            <img src="/images/din-logo.png" alt="Din Trafikskola Hässleholm" className="h-12 sm:h-14 md:h-16 w-auto" />
+            <img
+              src="/placeholder.svg?height=64&width=64&text=Logo"
+              alt="Din Trafikskola Hässleholm"
+              className="h-12 sm:h-14 md:h-16 w-auto"
+            />
             <div className="flex flex-col">
               <div
                 className="text-red-600 text-xl sm:text-2xl md:text-3xl font-normal leading-tight"

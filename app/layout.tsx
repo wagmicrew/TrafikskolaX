@@ -89,7 +89,7 @@ export const metadata: Metadata = {
     "google-site-verification": "your-google-verification-code-here",
     "msvalidate.01": "your-bing-verification-code-here",
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({

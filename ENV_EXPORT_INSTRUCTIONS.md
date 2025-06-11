@@ -28,7 +28,7 @@ This document explains how to export your environment variables to a `.env` file
 ## Option 3: Using PowerShell Script (Windows)
 
 1. **Run the script**:
-   ```powershell
+   \`\`\`powershell
    .\scripts\export-env.ps1
    \`\`\`
 

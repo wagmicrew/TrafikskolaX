@@ -123,11 +123,6 @@ export function Footer() {
                 </Link>
               </li>
             </ul>
-
-            <h3 className="text-lg font-bold text-gray-800 mt-6 mb-4">Personal & Administration</h3>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">Öppettider kontor: Måndag-Fredag 08:00-18:00</p>
-            </div>
           </div>
         </div>
 

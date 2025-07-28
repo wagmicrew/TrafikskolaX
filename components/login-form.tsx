@@ -123,214 +123,246 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-screen overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2 text-2xl font-bold text-gray-800">
-            <LogIn className="w-6 h-6 text-red-600" />
-            <span>Logga in</span>
-          </DialogTitle>
-          <DialogDescription className="text-gray-600">
-            Logga in på ditt konto eller skapa ett nytt för att boka lektioner
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] xl:max-w-[750px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        {/* Glassmorphism Container */}
+        <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full max-h-[95vh] overflow-hidden">
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20 rounded-xl sm:rounded-2xl"></div>
 
-        <Tabs value={activeTab} onValueChange={(value) => {
-          setActiveTab(value)
-          resetForm()
-        }} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login" className="flex items-center space-x-2">
-              <LogIn className="w-4 h-4" />
-              <span>Logga in</span>
-            </TabsTrigger>
-            <TabsTrigger value="register" className="flex items-center space-x-2">
-              <UserPlus className="w-4 h-4" />
-              <span>Registrera</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="login" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Logga in på ditt konto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-postadress</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="din@email.se"
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Lösenord</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        placeholder="Ditt lösenord"
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-sm text-red-600">{error}</p>
-                    </div>
-                  )}
-
-                  {success && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                      <p className="text-sm text-green-600">{success}</p>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700"
-                    disabled={isLoading}
+          {/* Scrollable Content Container */}
+          <div className="relative z-10 h-full overflow-y-auto">
+            <div className="p-4 sm:p-6 md:p-8">
+              {/* Header */}
+              <DialogHeader className="relative mb-4 sm:mb-6">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="flex items-center space-x-2 text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg pr-2">
+                    <LogIn className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <span>Logga in</span>
+                  </DialogTitle>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 group flex-shrink-0"
+                    aria-label="Stäng formulär"
                   >
-                    {isLoading ? "Loggar in..." : "Logga in"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Test Users Info */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardHeader>
-                <CardTitle className="text-sm text-blue-800">Testanvändare</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-xs text-blue-700">
-                  <p><Badge className="bg-blue-600 text-white">Admin</Badge> admin@test.se - password123</p>
-                  <p><Badge className="bg-green-600 text-white">Lärare</Badge> teacher@test.se - password123</p>
-                  <p><Badge className="bg-gray-600 text-white">Elev</Badge> student@test.se - password123</p>
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <DialogDescription className="text-white/80 drop-shadow-sm text-sm sm:text-base mt-2">
+                  Logga in på ditt konto eller skapa ett nytt för att boka lektioner
+                </DialogDescription>
+                <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-3 sm:mt-4"></div>
+              </DialogHeader>
 
-          <TabsContent value="register" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Skapa nytt konto</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+              <Tabs value={activeTab} onValueChange={(value) => {
+                setActiveTab(value)
+                resetForm()
+              }} className="w-full space-y-4 sm:space-y-6">
+                <TabsList className="grid w-full grid-cols-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-1">
+                  <TabsTrigger value="login" className="flex items-center space-x-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white transition-all duration-200 rounded-md sm:rounded-lg">
+                    <LogIn className="w-4 h-4" />
+                    <span className="text-sm sm:text-base">Logga in</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="register" className="flex items-center space-x-2 text-white data-[state=active]:bg-white/20 data-[state=active]:text-white transition-all duration-200 rounded-md sm:rounded-lg">
+                    <UserPlus className="w-4 h-4" />
+                    <span className="text-sm sm:text-base">Registrera</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="login" className="space-y-4 sm:space-y-6">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <div className="mb-4 sm:mb-6">
+                      <h3 className="text-lg sm:text-xl font-semibold text-white drop-shadow-sm">Logga in på ditt konto</h3>
+                    </div>
+                    <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">E-postadress</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="din@email.se"
+                            className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                            required
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">Lösenord</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            placeholder="Ditt lösenord"
+                            className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div className="p-3 sm:p-4 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-lg sm:rounded-xl">
+                          <p className="text-sm text-red-100 font-medium drop-shadow-sm">{error}</p>
+                        </div>
+                      )}
+
+                      {success && (
+                        <div className="p-3 sm:p-4 bg-green-500/20 backdrop-blur-sm border border-green-400/30 rounded-lg sm:rounded-xl">
+                          <p className="text-sm text-green-100 font-medium drop-shadow-sm">{success}</p>
+                        </div>
+                      )}
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 sm:py-4 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-red-500/30 text-sm sm:text-base"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Loggar in...</span>
+                          </div>
+                        ) : (
+                          "Logga in"
+                        )}
+                      </Button>
+                    </form>
+                  </div>
+
+                  {/* Test Users Info */}
+                  <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <div className="mb-3">
+                      <h4 className="text-sm sm:text-base font-semibold text-blue-100 drop-shadow-sm">Testanvändare</h4>
+                    </div>
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Förnamn</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="firstName"
-                          name="firstName"
-                          type="text"
-                          placeholder="Förnamn"
-                          className="pl-10"
-                          required
-                        />
+                      <div className="text-xs sm:text-sm text-blue-100/90 space-y-1">
+                        <p className="flex items-center gap-2"><Badge className="bg-blue-600 text-white text-xs">Admin</Badge> admin@test.se - password123</p>
+                        <p className="flex items-center gap-2"><Badge className="bg-green-600 text-white text-xs">Lärare</Badge> teacher@test.se - password123</p>
+                        <p className="flex items-center gap-2"><Badge className="bg-gray-600 text-white text-xs">Elev</Badge> student@test.se - password123</p>
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Efternamn</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="lastName"
-                          name="lastName"
-                          type="text"
-                          placeholder="Efternamn"
-                          className="pl-10"
-                          required
-                        />
-                      </div>
-                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-email">E-postadress</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="reg-email"
-                        name="email"
-                        type="email"
-                        placeholder="din@email.se"
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefonnummer</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        placeholder="070-123 45 67"
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-password">Lösenord</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="reg-password"
-                        name="password"
-                        type="password"
-                        placeholder="Välj ett säkert lösenord"
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-sm text-red-600">{error}</p>
-                    </div>
-                  )}
-
-                  {success && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                      <p className="text-sm text-green-600">{success}</p>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Skapar konto..." : "Skapa konto"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
           </TabsContent>
-        </Tabs>
+
+                <TabsContent value="register" className="space-y-4 sm:space-y-6">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                    <div className="mb-4 sm:mb-6">
+                      <h3 className="text-lg sm:text-xl font-semibold text-white drop-shadow-sm">Skapa nytt konto</h3>
+                    </div>
+                    <form onSubmit={handleRegister} className="space-y-4 sm:space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">Förnamn</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                            <Input
+                              id="firstName"
+                              name="firstName"
+                              type="text"
+                              placeholder="Förnamn"
+                              className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">Efternamn</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                            <Input
+                              id="lastName"
+                              name="lastName"
+                              type="text"
+                              placeholder="Efternamn"
+                              className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-email" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">E-postadress</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                          <Input
+                            id="reg-email"
+                            name="email"
+                            type="email"
+                            placeholder="din@email.se"
+                            className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">Telefonnummer</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="070-123 45 67"
+                            className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="reg-password" className="text-white font-medium drop-shadow-sm text-sm sm:text-base">Lösenord</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-white/60" />
+                          <Input
+                            id="reg-password"
+                            name="password"
+                            type="password"
+                            placeholder="Välj ett säkert lösenord"
+                            className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg sm:rounded-xl h-10 sm:h-12 text-sm sm:text-base"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div className="p-3 sm:p-4 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-lg sm:rounded-xl">
+                          <p className="text-sm text-red-100 font-medium drop-shadow-sm">{error}</p>
+                        </div>
+                      )}
+
+                      {success && (
+                        <div className="p-3 sm:p-4 bg-green-500/20 backdrop-blur-sm border border-green-400/30 rounded-lg sm:rounded-xl">
+                          <p className="text-sm text-green-100 font-medium drop-shadow-sm">{success}</p>
+                        </div>
+                      )}
+
+                      <Button
+                        type="submit"
+                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 sm:py-4 rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border border-red-500/30 text-sm sm:text-base"
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Skapar konto...</span>
+                          </div>
+                        ) : (
+                          "Skapa konto"
+                        )}
+                      </Button>
+                    </form>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

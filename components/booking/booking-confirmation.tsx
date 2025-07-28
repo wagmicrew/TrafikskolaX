@@ -24,8 +24,8 @@ interface BookingData {
 interface BookingConfirmationProps {
   bookingData: BookingData
   user: any
-  onComplete: (data: { paymentMethod: string }) => void
-  onBack: () => void
+  onComplete: (data: { paymentMethod: string }) => void
+  onBack: () => void
 }
 
 export function BookingConfirmation({
@@ -36,7 +36,7 @@ export function BookingConfirmation({
 }: BookingConfirmationProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { isAuthed } = useAuth()
+  const { user: authUser } = useAuth()
 
   const handleConfirm = () => {
     if (!selectedPaymentMethod) return
@@ -96,7 +96,7 @@ export function BookingConfirmation({
               </div>
 
               {/* Credits */}
-              {isAuthed && user ? (
+              {authUser && user ? (
                 <div
                   className={`p-4 rounded-lg cursor-pointer transition-all border ${
                     selectedPaymentMethod === "credits" ? "border-red-600 bg-red-50" : "hover:border-red-300"

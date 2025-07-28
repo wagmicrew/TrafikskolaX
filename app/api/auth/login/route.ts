@@ -42,8 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For now, we'll skip password verification since we're integrating with Neon Auth
-    // In a full implementation, you'd verify the password here
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return NextResponse.json(
+        { error: 'Ogiltiga inloggningsuppgifter' },
+        { status: 401 }
+      );
+    }
 
     // Generate JWT token
     const token = signToken({

@@ -106,35 +106,38 @@ export default function ServicesPage() {
             {/* License Types */}
             <div className="mb-16">
               <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">Körkortsbehörigheter vi erbjuder</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">A-körkort</h3>
-                  <p className="text-gray-600">Motorcykel - kontakta oss för vägledning med råd och tips</p>
+              
+              {/* Main Services - 2 Column Layout */}
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                <Card className="p-8 text-center hover:shadow-lg transition-shadow bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+                  <Car className="w-16 h-16 text-red-600 mx-auto mb-6" />
+                  <h3 className="text-2xl font-semibold mb-4 text-red-700">B-körkort</h3>
+                  <p className="text-gray-700 text-lg">Personbil - vårt mest populära körkort för privatpersoner</p>
+                  <div className="mt-4 pt-4 border-t border-red-200">
+                    <p className="text-sm text-gray-600">Komplett utbildning med erfarna instruktörer</p>
+                  </div>
                 </Card>
 
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">B-körkort</h3>
-                  <p className="text-gray-600">Personbil - vårt mest populära körkort för privatpersoner</p>
-                </Card>
-
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow">
-                  <Award className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Taxiförarlegitimation</h3>
-                  <p className="text-gray-600">Professionell yrkesutbildning för taxiförare</p>
-                </Card>
-
-                <Card className="p-6 text-center hover:shadow-lg transition-shadow lg:col-span-3 bg-gray-50">
-                  <Car className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Övriga behörigheter</h3>
-                  <p className="text-gray-600">
-                    BE (personbil med släp), C (lastbil), D (buss)
-                    <br />
-                    Kontakta oss för vägledning med råd och tips
-                  </p>
+                <Card className="p-8 text-center hover:shadow-lg transition-shadow bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+                  <Award className="w-16 h-16 text-yellow-600 mx-auto mb-6" />
+                  <h3 className="text-2xl font-semibold mb-4 text-yellow-700">Taxiförarlegitimation</h3>
+                  <p className="text-gray-700 text-lg">Professionell yrkesutbildning för taxiförare</p>
+                  <div className="mt-4 pt-4 border-t border-yellow-200">
+                    <p className="text-sm text-gray-600">Certifierad utbildning för yrkesförare</p>
+                  </div>
                 </Card>
               </div>
+
+              {/* Other Services */}
+              <Card className="p-6 text-center hover:shadow-lg transition-shadow bg-gray-50 border-gray-200">
+                <Car className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2 text-gray-700">Övriga behörigheter</h3>
+                <p className="text-gray-600">
+                  A-körkort (motorcykel), BE (personbil med släp), C (lastbil), D (buss)
+                  <br />
+                  Kontakta oss för vägledning med råd och tips
+                </p>
+              </Card>
             </div>
 
             {/* Pricing Section */}

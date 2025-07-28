@@ -103,117 +103,119 @@ export default function BookingPage() {
               </Card>
             )}
 
-            {user ? (
-              /* Booking Form for Authenticated Users */
-              <Card>
-                <CardHeader>
-                  <CardTitle>Boka körlektion</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="lessonType">Typ av lektion</Label>
-                      <Select name="lessonType">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Välj lektionstyp" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="b_license">B-körkort</SelectItem>
-                          <SelectItem value="a_license">A-körkort</SelectItem>
-                          <SelectItem value="assessment">Bedömningslektion</SelectItem>
-                          <SelectItem value="taxi_license">Taxiförarlegitimation</SelectItem>
-                          <SelectItem value="theory">Teoriundervisning</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="date">Datum</Label>
-                        <Input id="date" name="date" type="date" />
+            {/* Booking Form - Available for Everyone */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Boka körlektion</CardTitle>
+                {!user && (
+                  <p className="text-sm text-gray-600">
+                    Du kan boka som gäst. Vi kommer att kontakta dig för bekräftelse.
+                  </p>
+                )}
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4">
+                  {/* Personal Information for Non-Authenticated Users */}
+                  {!user && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName">Förnamn</Label>
+                          <Input id="firstName" name="firstName" type="text" required />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName">Efternamn</Label>
+                          <Input id="lastName" name="lastName" type="text" required />
+                        </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="time">Tid</Label>
-                        <Select name="time">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Välj tid" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="08:00">08:00</SelectItem>
-                            <SelectItem value="09:00">09:00</SelectItem>
-                            <SelectItem value="10:00">10:00</SelectItem>
-                            <SelectItem value="11:00">11:00</SelectItem>
-                            <SelectItem value="13:00">13:00</SelectItem>
-                            <SelectItem value="14:00">14:00</SelectItem>
-                            <SelectItem value="15:00">15:00</SelectItem>
-                            <SelectItem value="16:00">16:00</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="email">E-postadress</Label>
+                        <Input id="email" name="email" type="email" required />
                       </div>
-                    </div>
-                    
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefonnummer</Label>
+                        <Input id="phone" name="phone" type="tel" required />
+                      </div>
+                      <hr className="my-4" />
+                    </>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lessonType">Typ av lektion</Label>
+                    <Select name="lessonType">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Välj lektionstyp" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="b_license">B-körkort</SelectItem>
+                        <SelectItem value="assessment">Bedömningslektion (500 kr)</SelectItem>
+                        <SelectItem value="taxi_license">Taxiförarlegitimation</SelectItem>
+                        <SelectItem value="theory">Teoriundervisning</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="duration">Varaktighet</Label>
-                      <Select name="duration">
+                      <Label htmlFor="date">Datum</Label>
+                      <Input id="date" name="date" type="date" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Tid</Label>
+                      <Select name="time">
                         <SelectTrigger>
-                          <SelectValue placeholder="Välj varaktighet" />
+                          <SelectValue placeholder="Välj tid" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="60">60 minuter</SelectItem>
-                          <SelectItem value="90">90 minuter</SelectItem>
-                          <SelectItem value="120">120 minuter</SelectItem>
+                          <SelectItem value="08:00">08:00</SelectItem>
+                          <SelectItem value="09:00">09:00</SelectItem>
+                          <SelectItem value="10:00">10:00</SelectItem>
+                          <SelectItem value="11:00">11:00</SelectItem>
+                          <SelectItem value="13:00">13:00</SelectItem>
+                          <SelectItem value="14:00">14:00</SelectItem>
+                          <SelectItem value="15:00">15:00</SelectItem>
+                          <SelectItem value="16:00">16:00</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Anteckningar (valfritt)</Label>
-                      <Input 
-                        id="notes" 
-                        name="notes" 
-                        placeholder="Speciella önskemål eller information..."
-                      />
-                    </div>
-                    
-                    <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
-                      Boka lektion
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            ) : (
-              /* Coming Soon Notice for Non-Authenticated Users */
-              <Card className="p-8 mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                <div className="text-center">
-                  <Calendar className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">Bokningssystem kommer snart!</h2>
-                  <p className="text-gray-700 mb-6">Vi utvecklar ett enkelt bokningssystem där du kommer att kunna:</p>
-                  <div className="text-left space-y-2 mb-6">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-gray-700">Boka och avboka lektioner online</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-gray-700">Se tillgängliga tider i realtid</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-gray-700">Välja instruktör och bil</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-gray-700">Betala direkt online</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="text-gray-700">Få påminnelser via SMS/e-post</span>
                     </div>
                   </div>
-                  <Badge className="bg-blue-600 text-white text-lg px-4 py-2">Lanseras inom kort</Badge>
-                </div>
-              </Card>
-            )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Varaktighet</Label>
+                    <Select name="duration">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Välj varaktighet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="40">40 minuter (standard)</SelectItem>
+                        <SelectItem value="60">60 minuter</SelectItem>
+                        <SelectItem value="90">90 minuter</SelectItem>
+                        <SelectItem value="120">120 minuter</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+                    <Input 
+                      id="notes" 
+                      name="notes" 
+                      placeholder="Speciella önskemål eller information..."
+                    />
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>📞 Bokningsprocess:</strong> Vi kommer att kontakta dig inom 24 timmar för att bekräfta din bokning och genomgå detaljer.
+                    </p>
+                  </div>
+                  
+                  <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
+                    Skicka bokningsförfrågan
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
 
             {/* Current Contact Options */}
             <Card className="p-6">

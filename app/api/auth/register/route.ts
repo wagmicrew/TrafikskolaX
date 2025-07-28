@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       .insert(users)
       .values({
         email,
+        password: hashedPassword,
         firstName,
         lastName,
         phone,

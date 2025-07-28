@@ -5,10 +5,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
+import { LoginForm } from "@/components/login-form"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X } from "lucide-react"
 
 export function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
+  const [showLoginForm, setShowLoginForm] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
 
@@ -18,8 +20,12 @@ export function Navigation() {
     { href: "/vara-tjanster", label: "Våra Tjänster", icon: Car },
     { href: "/lokalerna", label: "Lokalerna", icon: Building2 },
     { href: "/boka-korning", label: "Boka körning", icon: Calendar },
-    { href: "/inloggning", label: "Inloggning", icon: LogIn },
   ]
+
+  const handleLoginClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowLoginForm(true)
+  }
 
   return (
     <>
@@ -112,6 +118,16 @@ export function Navigation() {
                   </Link>
                 )
               })}
+              
+              {/* Login Button */}
+              <button
+                onClick={handleLoginClick}
+                className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                aria-label="Logga in"
+              >
+                <LogIn className="w-4 h-4 lg:w-5 lg:h-5" />
+                <span>Inloggning</span>
+              </button>
             </div>
           </div>
         </div>
@@ -168,6 +184,18 @@ export function Navigation() {
                 </Link>
               )
             })}
+            
+            {/* Mobile Login Button */}
+            <button
+              onClick={() => {
+                setShowLoginForm(true)
+                setMobileMenuOpen(false)
+              }}
+              className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
+            >
+              <LogIn className="w-5 h-5 text-gray-500" />
+              <span>Inloggning</span>
+            </button>
           </div>
 
           {/* Mobile Menu Footer */}
@@ -194,7 +222,7 @@ export function Navigation() {
 
         {/* Mobile Bottom Tab Bar - iOS Style */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 safe-area-pb">
-          <div className="grid grid-cols-4 h-20">
+          <div className="grid grid-cols-5 h-20">
             {menuItems.slice(0, 4).map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
@@ -212,6 +240,15 @@ export function Navigation() {
                 </Link>
               )
             })}
+            
+            {/* Mobile Login Tab */}
+            <button
+              onClick={handleLoginClick}
+              className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
+            >
+              <LogIn className="w-5 h-5 text-gray-500" />
+              <span className="text-xs font-medium">Logga</span>
+            </button>
           </div>
         </div>
 
@@ -221,6 +258,9 @@ export function Navigation() {
 
       {/* Contact Form Modal */}
       <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
+      
+      {/* Login Form Modal */}
+      <LoginForm isOpen={showLoginForm} onClose={() => setShowLoginForm(false)} />
     </>
   )
 }

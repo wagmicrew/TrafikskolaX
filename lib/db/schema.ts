@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum, time, date } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -25,6 +25,7 @@ export const users = pgTable('users', {
   dateOfBirth: timestamp('date_of_birth'),
   licenseNumber: varchar('license_number', { length: 50 }), // For teachers
   specializations: text('specializations'), // JSON array of lesson types teacher can teach
+  inskriven: boolean('inskriven').default(false), // Enrolled status for students
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -45,8 +46,8 @@ export const cars = pgTable('cars', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// Bookings table
-export const bookings = pgTable('bookings', {
+// Bookings table (updated)
+export const bookingsOld = pgTable('bookings_old', {
   id: uuid('id').primaryKey().defaultRandom(),
   studentId: uuid('student_id').references(() => users.id).notNull(),
   teacherId: uuid('teacher_id').references(() => users.id),
@@ -65,17 +66,104 @@ export const bookings = pgTable('bookings', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// User Credits table
-export const userCredits = pgTable('user_credits', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id).notNull(),
-  lessonType: lessonTypeEnum('lesson_type').notNull(),
-  credits: integer('credits').notNull().default(0),
-  purchaseDate: timestamp('purchase_date'),
-  expiryDate: timestamp('expiry_date'),
+// New bookings table structure
+export const bookings = pgTable('bookings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id),
+  lessonTypeId: uuid('lesson_type_id').notNull().references(() => lessonTypes.id),
+  scheduledDate: date('scheduled_date').notNull(),
+  startTime: time('start_time').notNull(),
+  endTime: time('end_time').notNull(),
+  durationMinutes: integer('duration_minutes').notNull(),
+  transmissionType: varchar('transmission_type', { length: 20 }),
+  teacherId: uuid('teacher_id').references(() => users.id),
+  status: varchar('status', { length: 50 }).default('on_hold'),
+  paymentStatus: varchar('payment_status', { length: 50 }).default('unpaid'),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),
   notes: text('notes'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  // Guest booking fields
+  isGuestBooking: boolean('is_guest_booking').default(false),
+  guestName: varchar('guest_name', { length: 255 }),
+  guestEmail: varchar('guest_email', { length: 255 }),
+  guestPhone: varchar('guest_phone', { length: 50 }),
+  // Tracking
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'), // For soft deletes
+});
+
+// Slot settings for booking availability
+export const slotSettings = pgTable('slot_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  dayOfWeek: integer('day_of_week').notNull(), // 0=Sunday, 1=Monday, etc.
+  timeStart: time('time_start').notNull(),
+  timeEnd: time('time_end').notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Blocked slots for specific dates
+export const blockedSlots = pgTable('blocked_slots', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  date: date('date').notNull(),
+  timeStart: time('time_start'),
+  timeEnd: time('time_end'),
+  isAllDay: boolean('is_all_day').default(false),
+  reason: text('reason'),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Lesson types
+export const lessonTypes = pgTable('lesson_types', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  durationMinutes: integer('duration_minutes').notNull().default(45),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  priceStudent: decimal('price_student', { precision: 10, scale: 2 }),
+  salePrice: decimal('sale_price', { precision: 10, scale: 2 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Packages
+export const packages = pgTable('packages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  priceStudent: decimal('price_student', { precision: 10, scale: 2 }),
+  salePrice: decimal('sale_price', { precision: 10, scale: 2 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Package contents
+export const packageContents = pgTable('package_contents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  packageId: uuid('package_id').notNull().references(() => packages.id, { onDelete: 'cascade' }),
+  lessonTypeId: uuid('lesson_type_id').references(() => lessonTypes.id, { onDelete: 'cascade' }),
+  credits: integer('credits').default(0),
+  freeText: text('free_text'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// User credits from packages
+export const userCredits = pgTable('user_credits', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  lessonTypeId: uuid('lesson_type_id').notNull().references(() => lessonTypes.id),
+  creditsRemaining: integer('credits_remaining').notNull().default(0),
+  creditsTotal: integer('credits_total').notNull().default(0),
+  packageId: uuid('package_id').references(() => packages.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // User Feedback table
@@ -115,8 +203,8 @@ export const carsRelations = relations(cars, ({ many }) => ({
 }));
 
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
-  student: one(users, {
-    fields: [bookings.studentId],
+  user: one(users, {
+    fields: [bookings.userId],
     references: [users.id],
     relationName: 'studentBookings',
   }),
@@ -125,9 +213,9 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     references: [users.id],
     relationName: 'teacherBookings',
   }),
-  car: one(cars, {
-    fields: [bookings.carId],
-    references: [cars.id],
+  lessonType: one(lessonTypes, {
+    fields: [bookings.lessonTypeId],
+    references: [lessonTypes.id],
   }),
   feedback: many(userFeedback),
 }));

@@ -70,6 +70,8 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
+    "qrcode": "^1.5.3",
+    "nodemailer": "^6.9.8",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "url": "latest",
@@ -80,6 +82,8 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/qrcode": "^1.5.5",
+    "@types/nodemailer": "^6.4.14",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

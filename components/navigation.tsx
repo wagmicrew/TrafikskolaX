@@ -29,7 +29,7 @@ export function Navigation() {
           {/* Logo with custom text */}
           <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
             <img
-              src="/placeholder.svg?height=72&width=72&text=Logo"
+              src="/images/din-logo.png"
               alt="Din Trafikskola Hässleholm - Körkort och körkortsutbildning"
               className="h-12 sm:h-14 md:h-16 lg:h-18 w-auto"
               width="72"
@@ -134,7 +134,7 @@ export function Navigation() {
           <div className="bg-red-600 text-white p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <img src="/placeholder.svg?height=32&width=32&text=Logo" alt="Din Trafikskola" className="h-8 w-8" />
+                <img src="/images/din-logo-small.png" alt="Din Trafikskola" className="h-8 w-8" />
                 <span className="font-semibold text-lg">Meny</span>
               </div>
               <button

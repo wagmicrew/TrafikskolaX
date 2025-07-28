@@ -14,7 +14,7 @@ export default function NotFound() {
           {/* Logo with custom text */}
           <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
             <img
-              src="/placeholder.svg?height=64&width=64&text=Logo"
+              src="/images/din-logo.png"
               alt="Din Trafikskola Hässleholm"
               className="h-12 sm:h-14 md:h-16 w-auto"
             />

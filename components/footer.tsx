@@ -14,7 +14,7 @@ export function Footer() {
               B-körkort i en trygg och modern miljö.
             </p>
             <div className="flex items-center">
-              <img src="/placeholder.svg?height=48&width=48&text=Logo" alt="Din Trafikskola" className="h-12" />
+              <img src="/images/din-logo-small.png" alt="Din Trafikskola" className="h-12" />
             </div>
           </div>
 

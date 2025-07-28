@@ -18,7 +18,16 @@ export default function HomePage() {
         <div
           className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: `url('/placeholder.svg?height=1080&width=1920&text=Hero+Background')`,
+            backgroundImage: `url('/images/hero-background.jpg')`,
+          }}
+        />
+        {/* Responsive hero cars image */}
+        <div 
+          className="absolute inset-0 w-full h-full bg-contain bg-center bg-no-repeat md:bg-cover"
+          style={{
+            backgroundImage: `url('/images/hero-cars.jpg')`,
+            backgroundPosition: 'center bottom',
+            opacity: 0.8
           }}
         />
 
@@ -112,7 +121,7 @@ export default function HomePage() {
               </div>
               <div className="text-center">
                 <img
-                  src="/placeholder.svg?height=300&width=400&text=Promo+Flyer"
+                  src="/images/promo-flyer.jpg"
                   alt="Bedömningslektion kampanj - BMW trafikskola bil för körkortsutbildning"
                   className="rounded-lg shadow-md max-w-full h-auto"
                   width="400"
@@ -220,7 +229,7 @@ export default function HomePage() {
             </div>
             <div className="text-center">
               <img
-                src="/placeholder.svg?height=400&width=500&text=Storefront"
+                src="/images/storefront.jpg"
                 alt="Din Trafikskola Hässleholm butik på Östergatan 3a i Hässleholm"
                 className="rounded-lg shadow-lg max-w-full h-auto"
                 width="500"

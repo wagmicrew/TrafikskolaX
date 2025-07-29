@@ -25,7 +25,6 @@ export const users = pgTable('users', {
   dateOfBirth: timestamp('date_of_birth'),
   licenseNumber: varchar('license_number', { length: 50 }), // For teachers
   specializations: text('specializations'), // JSON array of lesson types teacher can teach
-  inskriven: boolean('inskriven').default(false), // Enrolled status for students
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

@@ -6,12 +6,19 @@ import { sql } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Login request received');
+    console.log('Request method:', request.method);
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+
     let body;
     try {
-      body = await request.json();
+      const rawBody = await request.text();
+      console.log('Raw request body:', rawBody);
+      body = JSON.parse(rawBody);
+      console.log('Parsed body:', body);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('Request headers:', request.headers);
+      console.error('Request headers:', Object.fromEntries(request.headers.entries()));
       return NextResponse.json(
         { error: 'Invalid request format' },
         { status: 400 }

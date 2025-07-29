@@ -2,17 +2,20 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
 import { LoginForm } from "@/components/login-form"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X } from "lucide-react"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 export function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
   const [showLoginForm, setShowLoginForm] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, logout } = useAuth()
 
   const menuItems = [
     { href: "/", label: "Hem", icon: Home },
@@ -119,7 +122,27 @@ export function Navigation() {
                 )
               })}
               
-              {/* Login Button */}
+            {/* Dashboard/Logout Button */}
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <Link 
+                  href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'} 
+                  className="bg-red-600 text-white px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-red-700"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    router.push('/');
+                  }}
+                  className="bg-gray-700 text-white px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-gray-800"
+                  aria-label="Logga ut"
+                >
+                  Logga ut
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={handleLoginClick}
                 className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
@@ -128,6 +151,7 @@ export function Navigation() {
                 <LogIn className="w-4 h-4 lg:w-5 lg:h-5" />
                 <span>Inloggning</span>
               </button>
+            )}
             </div>
           </div>
         </div>
@@ -185,17 +209,41 @@ export function Navigation() {
               )
             })}
             
-            {/* Mobile Login Button */}
-            <button
-              onClick={() => {
-                setShowLoginForm(true)
-                setMobileMenuOpen(false)
-              }}
-              className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
-            >
-              <LogIn className="w-5 h-5 text-gray-500" />
-              <span>Inloggning</span>
-            </button>
+            {/* Mobile Login/Dashboard Button */}
+            {user ? (
+              <>
+                <Link
+                  href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+                >
+                  <User className="w-5 h-5 text-gray-500" />
+                  <span>Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    router.push('/');
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
+                >
+                  <LogIn className="w-5 h-5 text-gray-500" />
+                  <span>Logga ut</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowLoginForm(true)
+                  setMobileMenuOpen(false)
+                }}
+                className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
+              >
+                <LogIn className="w-5 h-5 text-gray-500" />
+                <span>Inloggning</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Footer */}
@@ -241,14 +289,24 @@ export function Navigation() {
               )
             })}
             
-            {/* Mobile Login Tab */}
-            <button
-              onClick={handleLoginClick}
-              className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
-            >
-              <LogIn className="w-5 h-5 text-gray-500" />
-              <span className="text-xs font-medium">Logga</span>
-            </button>
+            {/* Mobile Login/Dashboard Tab */}
+            {user ? (
+              <Link
+                href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'}
+                className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
+              >
+                <User className="w-5 h-5 text-gray-500" />
+                <span className="text-xs font-medium">Konto</span>
+              </Link>
+            ) : (
+              <button
+                onClick={handleLoginClick}
+                className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
+              >
+                <LogIn className="w-5 h-5 text-gray-500" />
+                <span className="text-xs font-medium">Logga</span>
+              </button>
+            )}
           </div>
         </div>
 

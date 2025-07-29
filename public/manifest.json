@@ -10,7 +10,7 @@
   "icons": [
     {
       "src": "/images/din-logo-small.png",
-      "sizes": "192x192",
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
@@ -30,14 +30,14 @@
       "short_name": "Kontakt",
       "description": "Kontakta Din Trafikskola direkt",
       "url": "/?contact=true",
-      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "128x128" }]
     },
     {
       "name": "Ring oss",
       "short_name": "Ring",
       "description": "Ring oss direkt på 0760-389192",
       "url": "tel:0760389192",
-      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/images/din-logo-small.png", "sizes": "128x128" }]
     }
   ]
 }

@@ -26,44 +26,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check for existing token on mount
-    const token = localStorage.getItem('auth-token');
-    if (token) {
-      // Verify token with server
-      fetch('/api/auth/verify', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          localStorage.removeItem('auth-token');
+    const checkAuth = async () => {
+      try {
+        let token = localStorage.getItem('auth-token');
+
+        // If no token in localStorage, check cookies
+        if (!token) {
+          const cookies = document.cookie.split(';');
+          const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+          if (authCookie) {
+            token = authCookie.split('=')[1];
+            // Sync with localStorage
+            localStorage.setItem('auth-token', token);
+          }
         }
-      })
-      .catch(() => {
+
+        if (token) {
+          // Verify token with server
+          const response = await fetch('/api/auth/verify', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.user) {
+            setUser(data.user);
+          } else {
+            // Token is invalid, clear it
+            localStorage.removeItem('auth-token');
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          }
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
         localStorage.removeItem('auth-token');
-      })
-      .finally(() => {
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      } finally {
         setIsLoading(false);
-      });
-    } else {
-      setIsLoading(false);
-    }
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const login = (token: string) => {
     localStorage.setItem('auth-token', token);
-    document.cookie = `auth-token=${token}; path=/; max-age=604800`; // 7 days
-    
-    // Decode token to get user info (in production, verify with server)
+    document.cookie = `auth-token=${token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
+
+    // Decode token to get user info
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       setUser(payload);
     } catch (error) {
-      console.error('Invalid token');
+      console.error('Invalid token format:', error);
     }
   };
 

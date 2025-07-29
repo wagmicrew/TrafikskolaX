@@ -7,7 +7,17 @@ import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Request headers:', request.headers);
+      return NextResponse.json(
+        { error: 'Invalid request format' },
+        { status: 400 }
+      );
+    }
     const { email, password } = body;
 
     // Validate input
@@ -76,7 +86,8 @@ export async function POST(request: NextRequest) {
         redirectUrl = '/dashboard';
     }
 
-    return NextResponse.json({
+    // Create response with cookie
+    const response = NextResponse.json({
       success: true,
       token,
       redirectUrl,
@@ -88,6 +99,17 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
       },
     });
+
+    // Set HTTP-only cookie for better security
+    response.cookies.set('auth-token', token, {
+      httpOnly: false, // Allow client-side access for now
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

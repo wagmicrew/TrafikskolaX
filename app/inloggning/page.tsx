@@ -39,10 +39,14 @@ export default function LoginPage() {
       if (data.success) {
         // Store token
         localStorage.setItem('auth-token', data.token)
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800`
-        
-        // Redirect based on role
-        router.push(data.redirectUrl)
+        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`
+
+        // Check for redirect parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectUrl = urlParams.get('redirect') || data.redirectUrl;
+
+        // Redirect to appropriate page
+        router.push(redirectUrl)
       } else {
         setError(data.error || 'Inloggning misslyckades')
       }

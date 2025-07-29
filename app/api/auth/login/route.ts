@@ -43,9 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     const user = existingUsers[0];
+    // Cast to any to access snake_case properties from database
+    const userAny = user as any;
 
     // Check if user is active
-    if (!user.isActive) {
+    if (!userAny.is_active) {
       return NextResponse.json(
         { error: 'Kontot är inaktiverat' },
         { status: 401 }
@@ -61,13 +63,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token
+    // Generate JWT token (use existing userAny variable)
     const token = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: userAny.first_name,
+      lastName: userAny.last_name,
     });
 
     // Determine redirect URL based on role
@@ -95,8 +97,8 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         email: user.email,
         role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: userAny.first_name,
+        lastName: userAny.last_name,
       },
     });
 

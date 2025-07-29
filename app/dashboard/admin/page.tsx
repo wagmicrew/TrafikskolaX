@@ -1,4 +1,7 @@
 import { requireAuth } from '@/lib/auth/server-auth';
+import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboard() {
   const user = await requireAuth('admin');
@@ -12,25 +15,25 @@ export default async function AdminDashboard() {
         <div className="bg-gradient-to-r from-green-400 to-blue-500 p-6 rounded-lg shadow-lg text-white">
           <h2 className="text-xl font-semibold mb-2">Bokningar</h2>
           <p className="text-gray-100">Hantera alla bokningar</p>
-          <button className="mt-4 bg-white text-green-700 py-2 px-4 rounded">Öppna</button>
+          <Link href="/dashboard/admin/bookings" className="inline-block mt-4 bg-white text-green-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
 
         <div className="bg-gradient-to-r from-purple-400 to-pink-500 p-6 rounded-lg shadow-lg text-white">
           <h2 className="text-xl font-semibold mb-2">Användare</h2>
           <p className="text-gray-100">Hantera elever och lärare</p>
-          <button className="mt-4 bg-white text-purple-700 py-2 px-4 rounded">Öppna</button>
+          <Link href="/dashboard/admin/users" className="inline-block mt-4 bg-white text-purple-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
 
         <div className="bg-gradient-to-r from-yellow-400 to-red-500 p-6 rounded-lg shadow-lg text-white">
           <h2 className="text-xl font-semibold mb-2">Lektioner & Paket</h2>
           <p className="text-gray-100">Hantera lektionspaket</p>
-          <button className="mt-4 bg-white text-yellow-700 py-2 px-4 rounded">Öppna</button>
+          <Link href="/dashboard/admin/lessons" className="inline-block mt-4 bg-white text-yellow-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
 
         <div className="bg-gradient-to-r from-teal-400 to-indigo-500 p-6 rounded-lg shadow-lg text-white">
           <h2 className="text-xl font-semibold mb-2">Inställningar</h2>
           <p className="text-gray-100">Konfigurera systemet</p>
-          <button className="mt-4 bg-white text-teal-700 py-2 px-4 rounded">Öppna</button>
+          <Link href="/dashboard/admin/settings" className="inline-block mt-4 bg-white text-teal-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
       </div>
     </div>

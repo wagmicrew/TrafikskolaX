@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/auth/server-auth';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminLayout({
   children,
 }: {

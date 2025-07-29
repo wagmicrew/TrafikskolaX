@@ -1,6 +1,8 @@
 import { db } from '@/lib/db/client';
 import { users } from '@/lib/db/schema';
 
+export const dynamic = 'force-dynamic';
+
 export default async function UsersPage() {
   const allUsers = await db.select().from(users).execute();
 

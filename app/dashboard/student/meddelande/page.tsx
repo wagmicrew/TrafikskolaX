@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/server-auth';
+import { requireAuth } from '@/lib/auth/server-auth';
 import { redirect } from 'next/navigation';
 import MessagesClient from './messages-client';
 

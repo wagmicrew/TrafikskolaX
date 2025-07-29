@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/server-auth';
-import { db } from '@/lib/db/drizzle';
+import { verifyToken } from '@/lib/auth/server-auth';
+import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { or, eq, ne } from 'drizzle-orm';
 

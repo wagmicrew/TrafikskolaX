@@ -1,5 +1,6 @@
+import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { bookings, users } from '@/lib/db/schema';
+import { bookings, users, lessonTypes } from '@/lib/db/schema';
 import { gte, desc, eq, and, sql } from 'drizzle-orm';
 import BookingsClient from './bookings-client';
 
@@ -10,42 +11,50 @@ export default async function BookingsPage({
 }: {
   searchParams: { user?: string; page?: string };
 }) {
+  // Ensure admin access
+  await requireAuth('admin');
+
   const page = Number(searchParams.page) || 1;
   const pageSize = 10;
   const offset = (page - 1) * pageSize;
   const selectedUserId = searchParams.user || '';
 
-  // Get today's date at midnight
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Get today's date
+  const today = new Date().toISOString().split('T')[0];
 
   // Build conditions
-  const conditions = [gte(bookings.bookingDate, today)];
+  const conditions = [gte(bookings.scheduledDate, today)];
   if (selectedUserId) {
     conditions.push(eq(bookings.userId, selectedUserId));
   }
 
-  // Fetch bookings with user information
+  // Fetch bookings with user and lesson type information
   const bookingsList = await db
     .select({
       id: bookings.id,
-      bookingDate: bookings.bookingDate,
+      scheduledDate: bookings.scheduledDate,
       startTime: bookings.startTime,
       endTime: bookings.endTime,
-      lessonType: bookings.lessonType,
+      durationMinutes: bookings.durationMinutes,
+      transmissionType: bookings.transmissionType,
       status: bookings.status,
       paymentStatus: bookings.paymentStatus,
+      paymentMethod: bookings.paymentMethod,
+      totalPrice: bookings.totalPrice,
       isCompleted: bookings.isCompleted,
+      isGuestBooking: bookings.isGuestBooking,
       createdAt: bookings.createdAt,
       userName: sql`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${bookings.guestName})`,
       userEmail: sql`COALESCE(${users.email}, ${bookings.guestEmail})`,
       userPhone: sql`COALESCE(${users.phone}, ${bookings.guestPhone})`,
       userId: bookings.userId,
+      lessonTypeName: lessonTypes.name,
     })
     .from(bookings)
     .leftJoin(users, eq(bookings.userId, users.id))
+    .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
     .where(and(...conditions))
-    .orderBy(desc(bookings.bookingDate), desc(bookings.startTime))
+    .orderBy(desc(bookings.scheduledDate), desc(bookings.startTime))
     .limit(pageSize)
     .offset(offset);
 

@@ -20,18 +20,23 @@ import {
 
 interface Booking {
   id: string;
-  bookingDate: Date;
+  scheduledDate: string;
   startTime: string;
   endTime: string;
-  lessonType: string;
-  status: string;
-  paymentStatus: string;
-  isCompleted: boolean;
+  durationMinutes: number;
+  transmissionType: string | null;
+  status: string | null;
+  paymentStatus: string | null;
+  paymentMethod: string | null;
+  totalPrice: string;
+  isCompleted: boolean | null;
+  isGuestBooking: boolean | null;
   createdAt: Date;
   userName: string;
   userEmail: string;
   userPhone: string;
   userId: string | null;
+  lessonTypeName: string;
 }
 
 interface User {
@@ -156,7 +161,7 @@ export default function BookingsClient({
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                         <div className="flex items-center gap-2 text-gray-600">
                           <Calendar className="w-4 h-4" />
-                          <span>{formatDate(booking.bookingDate)}</span>
+                          <span>{new Date(booking.scheduledDate).toLocaleDateString('sv-SE')}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-gray-600">
@@ -168,7 +173,7 @@ export default function BookingsClient({
                         
                         <div className="flex items-center gap-2 text-gray-600">
                           <Car className="w-4 h-4" />
-                          <span>{booking.lessonType}</span>
+                          <span>{booking.lessonTypeName}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-gray-600">

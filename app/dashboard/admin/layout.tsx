@@ -12,61 +12,60 @@ export default async function AdminLayout({
   await requireAuth('admin');
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold mb-8">Admin Panel</h2>
-          <nav className="space-y-2">
+    <div className="min-h-screen">
+      {/* Admin Navigation Bar */}
+      <nav className="bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap items-center justify-center py-3 gap-2">
             <Link
               href="/dashboard/admin"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
             >
-              Översikt
-            </Link>
-            <Link
-              href="/dashboard/admin/users"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
-            >
-              Användarhantering
-            </Link>
-            <Link
-              href="/dashboard/admin/lessons"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
-            >
-              Lektioner & Paket
+              🏠 Översikt
             </Link>
             <Link
               href="/dashboard/admin/bookings"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
             >
-              Bokningar
+              📅 Bokningar
+            </Link>
+            <Link
+              href="/dashboard/admin/users"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
+            >
+              👥 Användare
+            </Link>
+            <Link
+              href="/dashboard/admin/lessons"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
+            >
+              📚 Lektioner
             </Link>
             <Link
               href="/dashboard/admin/slots"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
             >
-              Tidsluckor
+              ⏰ Tidsluckor
             </Link>
             <Link
               href="/dashboard/admin/settings"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
             >
-              Inställningar
+              ⚙️ Inställningar
             </Link>
             <Link
               href="/dashboard/admin/migrate"
-              className="block px-4 py-2 rounded hover:bg-gray-800 transition-colors text-yellow-400"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base text-yellow-300"
             >
-              Databasuppdateringar
+              🔧 Databasuppdateringar
             </Link>
-          </nav>
+          </div>
         </div>
-      </aside>
+      </nav>
 
       {/* Main Content */}
-      <main className="flex-1 bg-gray-50">
-        <div className="p-8">
+      <main className="bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
           {children}
         </div>
       </main>

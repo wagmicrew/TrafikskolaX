@@ -29,7 +29,7 @@ const fs = require('fs');
       if (stmt.trim()) {
         console.log(`Executing statement ${i + 1}/${statements.length}`);
         try {
-          await sql([stmt]);
+          await sql`${stmt}`;
         } catch (stmtErr) {
           console.warn(`Statement ${i + 1} failed (might be expected):`, stmtErr.message);
         }

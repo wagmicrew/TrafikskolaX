@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum, time, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum, time, date, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
@@ -179,14 +179,26 @@ export const userCredits = pgTable('user_credits', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Booking Steps table - Swedish driving education curriculum
+export const bookingSteps = pgTable('booking_steps', {
+  id: serial('id').primaryKey(),
+  stepNumber: integer('step_number').notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  subcategory: varchar('subcategory', { length: 200 }).notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // User Feedback table
 export const userFeedback = pgTable('user_feedback', {
   id: uuid('id').primaryKey().defaultRandom(),
   bookingId: uuid('booking_id').references(() => bookings.id).notNull(),
   userId: uuid('user_id').references(() => users.id).notNull(),
-  stepIdentifier: uuid('step_identifier').notNull(), // UUID for specific feedback step
-  feedbackText: text('feedback_text').notNull(),
-  rating: integer('rating'), // 1-5 scale
+  stepIdentifier: varchar('step_identifier', { length: 50 }), // References booking step
+  feedbackText: text('feedback_text'),
+  rating: integer('rating'), // 1-5 scale for general rating
+  valuation: integer('valuation'), // 1-10 scale for teacher step assessment
   isFromTeacher: boolean('is_from_teacher').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

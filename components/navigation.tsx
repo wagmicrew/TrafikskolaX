@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
 import { LoginForm } from "@/components/login-form"
+import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -124,24 +125,7 @@ export function Navigation() {
               
             {/* Dashboard/Logout Button */}
             {user ? (
-              <div className="flex items-center space-x-2">
-                <Link 
-                  href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'} 
-                  className="bg-red-600 text-white px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-red-700"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={() => {
-                    logout();
-                    router.push('/');
-                  }}
-                  className="bg-gray-700 text-white px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:bg-gray-800"
-                  aria-label="Logga ut"
-                >
-                  Logga ut
-                </button>
-              </div>
+              <UserAvatarMenu />
             ) : (
               <button
                 onClick={handleLoginClick}

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
 import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
-import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,26 +27,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email
-    const existingUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    // Find user by email using raw SQL to avoid schema mapping issues
+    const result = await db.execute(sql`
+      SELECT id, email, password, first_name, last_name, role, is_active
+      FROM users
+      WHERE email = ${email}
+      LIMIT 1
+    `);
 
-    if (existingUsers.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json(
         { error: 'Ogiltiga inloggningsuppgifter' },
         { status: 401 }
       );
     }
 
-    const user = existingUsers[0];
-    // Cast to any to access snake_case properties from database
-    const userAny = user as any;
+    const user = result.rows[0] as any;
 
     // Check if user is active
-    if (!userAny.is_active) {
+    if (!user.is_active) {
       return NextResponse.json(
         { error: 'Kontot är inaktiverat' },
         { status: 401 }
@@ -55,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await bcrypt.compare(password, user.password as string);
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Ogiltiga inloggningsuppgifter' },
@@ -63,18 +61,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate JWT token (use existing userAny variable)
+    // Generate JWT token
     const token = signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: userAny.first_name,
-      lastName: userAny.last_name,
+      userId: user.id as string,
+      email: user.email as string,
+      role: user.role as 'student' | 'teacher' | 'admin',
+      firstName: user.first_name as string,
+      lastName: user.last_name as string,
     });
 
     // Determine redirect URL based on role
     let redirectUrl = '/dashboard';
-    switch (user.role) {
+    switch (user.role as string) {
       case 'admin':
         redirectUrl = '/dashboard/admin';
         break;
@@ -94,11 +92,11 @@ export async function POST(request: NextRequest) {
       token,
       redirectUrl,
       user: {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        firstName: userAny.first_name,
-        lastName: userAny.last_name,
+        userId: user.id as string,
+        email: user.email as string,
+        role: user.role as string,
+        firstName: user.first_name as string,
+        lastName: user.last_name as string,
       },
     });
 

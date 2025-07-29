@@ -25,6 +25,9 @@ export const users = pgTable('users', {
   dateOfBirth: timestamp('date_of_birth'),
   licenseNumber: varchar('license_number', { length: 50 }), // For teachers
   specializations: text('specializations'), // JSON array of lesson types teacher can teach
+  inskriven: boolean('inskriven').notNull().default(false),
+  customPrice: decimal('custom_price', { precision: 10, scale: 2 }),
+  inskrivenDate: timestamp('inskriven_date'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -76,6 +79,7 @@ export const bookings = pgTable('bookings', {
   durationMinutes: integer('duration_minutes').notNull(),
   transmissionType: varchar('transmission_type', { length: 20 }),
   teacherId: uuid('teacher_id').references(() => users.id),
+  carId: uuid('car_id').references(() => cars.id),
   status: varchar('status', { length: 50 }).default('on_hold'),
   paymentStatus: varchar('payment_status', { length: 50 }).default('unpaid'),
   paymentMethod: varchar('payment_method', { length: 50 }),
@@ -86,6 +90,13 @@ export const bookings = pgTable('bookings', {
   guestName: varchar('guest_name', { length: 255 }),
   guestEmail: varchar('guest_email', { length: 255 }),
   guestPhone: varchar('guest_phone', { length: 50 }),
+  // Completion and feedback
+  isCompleted: boolean('is_completed').default(false),
+  completedAt: timestamp('completed_at'),
+  feedbackReady: boolean('feedback_ready').default(false),
+  // Invoice tracking
+  invoiceNumber: varchar('invoice_number', { length: 100 }),
+  invoiceDate: timestamp('invoice_date'),
   // Tracking
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -99,6 +110,7 @@ export const slotSettings = pgTable('slot_settings', {
   timeStart: time('time_start').notNull(),
   timeEnd: time('time_end').notNull(),
   isActive: boolean('is_active').default(true),
+  adminMinutes: integer('admin_minutes').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -243,3 +255,67 @@ export const teacherAvailabilityRelations = relations(teacherAvailability, ({ on
     references: [users.id],
   }),
 }));
+
+// Site settings table
+export const siteSettings = pgTable('site_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  key: varchar('key', { length: 255 }).notNull().unique(),
+  value: text('value'),
+  description: text('description'),
+  category: varchar('category', { length: 100 }), // 'general', 'email', 'payment', 'booking'
+  isEnv: boolean('is_env').default(false), // true if it's an env variable
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Handledar sessions table
+export const handledarSessions = pgTable('handledar_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  date: date('date').notNull(),
+  startTime: time('start_time').notNull(),
+  endTime: time('end_time').notNull(),
+  maxParticipants: integer('max_participants').default(2),
+  currentParticipants: integer('current_participants').default(0),
+  teacherId: uuid('teacher_id').references(() => users.id),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Handledar bookings table
+export const handledarBookings = pgTable('handledar_bookings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id').notNull().references(() => handledarSessions.id, { onDelete: 'cascade' }),
+  studentId: uuid('student_id').references(() => users.id),
+  supervisorName: varchar('supervisor_name', { length: 255 }),
+  supervisorEmail: varchar('supervisor_email', { length: 255 }),
+  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  status: varchar('status', { length: 50 }).default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Slot overrides table
+export const slotOverrides = pgTable('slot_overrides', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  date: date('date').notNull(),
+  timeStart: time('time_start').notNull(),
+  timeEnd: time('time_end').notNull(),
+  reason: text('reason'),
+  isAvailable: boolean('is_available').default(true), // false means blocked
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Package purchases table
+export const packagePurchases = pgTable('package_purchases', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id),
+  packageId: uuid('package_id').notNull().references(() => packages.id),
+  purchaseDate: timestamp('purchase_date').defaultNow().notNull(),
+  pricePaid: decimal('price_paid', { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
+  invoiceNumber: varchar('invoice_number', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

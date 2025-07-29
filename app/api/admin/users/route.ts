@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyJWT } from '@/lib/jwt';
+import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 
 // GET all users

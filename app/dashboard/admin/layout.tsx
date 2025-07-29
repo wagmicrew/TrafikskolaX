@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { verifyAuth } from '@/lib/server-auth';
+import { requireAuth } from '@/lib/auth/server-auth';
 import Link from 'next/link';
 
 export default async function AdminLayout({
@@ -7,11 +7,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await verifyAuth();
-  
-  if (!user || user.role !== 'admin') {
-    redirect('/');
-  }
+  await requireAuth('admin');
 
   return (
     <div className="min-h-screen flex">

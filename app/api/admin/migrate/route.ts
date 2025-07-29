@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { sql } from 'drizzle-orm';
-import { verifyAuth } from '@/lib/server-auth';
+import { requireAuth } from '@/lib/auth/server-auth';
 
 export async function POST(request: NextRequest) {
   try {
     // Verify admin access
-    const user = await verifyAuth(request);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await requireAuth('admin');
 
     const results = [];
 

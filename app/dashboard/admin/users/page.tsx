@@ -1,8 +1,8 @@
 import { db } from '@/lib/db/client';
-import { UserForm } from './UserForm';
+import { users } from '@/lib/db/schema';
 
 export default async function UsersPage() {
-  const users = await db.select().from('users').execute();
+  const allUsers = await db.select().from(users).execute();
 
   return (
     <div>
@@ -19,9 +19,9 @@ export default async function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {allUsers.map((user) => (
               <tr key={user.id}>
-                <td className="border-t py-2 px-4">{user.firstName} {user.lastName}</td>
+                <td className="border-t py-2 px-4">{user.name}</td>
                 <td className="border-t py-2 px-4">{user.email}</td>
                 <td className="border-t py-2 px-4">{user.role}</td>
                 <td className="border-t py-2 px-4">{user.inskriven ? 'Ja' : 'Nej'}</td>
@@ -38,7 +38,7 @@ export default async function UsersPage() {
 
       <div className="mt-8">
         <h2 className="text-xl mb-2">Lägg till ny användare</h2>
-        <UserForm />
+        {/* User form to be implemented */}
       </div>
     </div>
   );

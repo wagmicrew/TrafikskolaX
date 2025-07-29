@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { lessonTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyJWT } from '@/lib/jwt';
+import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
 
 // GET all lesson types
 export async function GET(request: NextRequest) {

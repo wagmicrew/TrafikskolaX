@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
-import UserManagement from '@/components/Admin/UserManagement';
-import LessonManagement from '@/components/Admin/LessonManagement';
-import BookingManagement from '@/components/Admin/BookingManagement';
+import dynamic from 'next/dynamic';
+
+// Dynamic imports to avoid SSR issues with auth hooks
+const UserManagement = dynamic(() => import('@/components/Admin/UserManagement'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
+const LessonManagement = dynamic(() => import('@/components/Admin/LessonManagement'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
+const BookingManagement = dynamic(() => import('@/components/Admin/BookingManagement'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
 
 const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('users');

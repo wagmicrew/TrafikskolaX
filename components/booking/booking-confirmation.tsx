@@ -1,10 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, CheckCircle, DollarSign, List } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ArrowLeft, CheckCircle, DollarSign, List, User, CreditCard } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { useToast } from "@/hooks/use-toast"
 
 interface BookingData {
   lessonType: {
@@ -35,13 +40,96 @@ export function BookingConfirmation({
   onBack
 }: BookingConfirmationProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [selectedStudent, setSelectedStudent] = useState<string>('')
+  const [alreadyPaid, setAlreadyPaid] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [students, setStudents] = useState<any[]>([])
+  const [userCredits, setUserCredits] = useState<number>(0)
+  const [unpaidBookings, setUnpaidBookings] = useState<number>(0)
   const { user: authUser } = useAuth()
+  const { toast } = useToast()
+
+  const isAdminOrTeacher = authUser?.role === 'admin' || authUser?.role === 'teacher'
+  const isStudent = authUser?.role === 'student'
+
+  useEffect(() => {
+    if (isAdminOrTeacher) {
+      fetchStudents()
+    }
+    if (isStudent) {
+      fetchUserCredits()
+      fetchUnpaidBookings()
+    }
+  }, [isAdminOrTeacher, isStudent])
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch('/api/admin/students')
+      if (response.ok) {
+        const data = await response.json()
+        setStudents(data.students || [])
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error)
+    }
+  }
+
+  const fetchUserCredits = async () => {
+    try {
+      const response = await fetch(`/api/user/credits?lessonTypeId=${bookingData.lessonType.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserCredits(data.credits || 0)
+      }
+    } catch (error) {
+      console.error('Error fetching credits:', error)
+    }
+  }
+
+  const fetchUnpaidBookings = async () => {
+    try {
+      const response = await fetch('/api/user/unpaid-bookings')
+      if (response.ok) {
+        const data = await response.json()
+        setUnpaidBookings(data.count || 0)
+      }
+    } catch (error) {
+      console.error('Error fetching unpaid bookings:', error)
+    }
+  }
 
   const handleConfirm = () => {
     if (!selectedPaymentMethod) return
-    onComplete({ paymentMethod: selectedPaymentMethod })
+    
+    if (isAdminOrTeacher && !selectedStudent) {
+      toast({
+        title: "Fel",
+        description: "Välj en elev för bokningen",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const bookingData = {
+      paymentMethod: selectedPaymentMethod,
+      studentId: isAdminOrTeacher ? selectedStudent : undefined,
+      alreadyPaid: isAdminOrTeacher ? alreadyPaid : false,
+    }
+
+    onComplete(bookingData)
   }
+
+  const canUseCredits = isStudent && userCredits > 0
+  const canPayAtLocation = isStudent && unpaidBookings < 2
+
+  // Create Swish logo SVG component
+  const SwishLogo = () => (
+    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="45" fill="#FF5722"/>
+      <path d="M25 35h50c5.5 0 10 4.5 10 10v10c0 5.5-4.5 10-10 10H25c-5.5 0-10-4.5-10-10V45c0-5.5 4.5-10 10-10z" fill="white"/>
+      <text x="50" y="55" textAnchor="middle" fill="#FF5722" fontSize="16" fontWeight="bold">S</text>
+    </svg>
+  )
 
   return (
     <div className="space-y-6">
@@ -50,8 +138,30 @@ export function BookingConfirmation({
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Bekräfta bokning</h2>
             <p className="text-lg text-gray-600">
-              Granska din bokning och välj betalningsmetod
+              {isAdminOrTeacher ? 'Boka lektion för elev och välj betalningsmetod' : 'Granska din bokning och välj betalningsmetod'}
             </p>
+            
+            {/* Student Selection for Admin/Teacher */}
+            {isAdminOrTeacher && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <Label htmlFor="student-select" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Välj elev för bokningen *
+                </Label>
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Välj en elev..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.firstName} {student.lastName} ({student.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
             <div className="bg-gray-100 p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <span>Lektion:</span>
@@ -63,7 +173,7 @@ export function BookingConfirmation({
               </div>
               <div className="flex items-center justify-between">
                 <span>Datum:</span>
-                <span>{bookingData.selectedDate.toLocaleDateString()}</span>
+                <span>{bookingData.selectedDate.toLocaleDateString('sv-SE')}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Tid:</span>
@@ -71,9 +181,9 @@ export function BookingConfirmation({
               </div>
               <div className="flex items-center justify-between">
                 <span>Växellåda:</span>
-                <span>{bookingData.transmissionType}</span>
+                <span>{bookingData.transmissionType === 'manual' ? 'Manuell' : 'Automat'}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between font-semibold">
                 <span>Kurspris:</span>
                 <span>{bookingData.totalPrice} kr</span>
               </div>
@@ -90,13 +200,13 @@ export function BookingConfirmation({
                 onClick={() => setSelectedPaymentMethod("swish")}
               >
                 <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-red-600" />
+                  <SwishLogo />
                   <span>Swish</span>
                 </div>
               </div>
 
-              {/* Credits */}
-              {authUser && user ? (
+              {/* Credits - Only for students with credits */}
+              {canUseCredits && (
                 <div
                   className={`p-4 rounded-lg cursor-pointer transition-all border ${
                     selectedPaymentMethod === "credits" ? "border-red-600 bg-red-50" : "hover:border-red-300"
@@ -104,29 +214,68 @@ export function BookingConfirmation({
                   onClick={() => setSelectedPaymentMethod("credits")}
                 >
                   <div className="flex items-center gap-2">
-                    <List className="w-5 h-5 text-red-600" />
-                    <span>Kreditpoäng</span>
+                    <CreditCard className="w-5 h-5 text-red-600" />
+                    <span>Kreditpoäng ({userCredits} tillgängliga)</span>
                   </div>
                 </div>
-              ) : null}
+              )}
 
-              {/* Pay at location */}
-              <div
-                className={`p-4 rounded-lg cursor-pointer transition-all border ${
-                  selectedPaymentMethod === "pay_at_location" ? "border-red-600 bg-red-50" : "hover:border-red-300"
-                }`}
-                onClick={() => setSelectedPaymentMethod("pay_at_location")}
-              >
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-red-600" />
-                  <span>Betala på plats</span>
+              {/* Pay at location - Only for students with less than 2 unpaid bookings */}
+              {canPayAtLocation && (
+                <div
+                  className={`p-4 rounded-lg cursor-pointer transition-all border ${
+                    selectedPaymentMethod === "pay_at_location" ? "border-red-600 bg-red-50" : "hover:border-red-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("pay_at_location")}
+                >
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-red-600" />
+                    <span>Betala på plats</span>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Already Paid - Only for Admin/Teacher */}
+              {isAdminOrTeacher && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="already-paid" 
+                      checked={alreadyPaid} 
+                      onCheckedChange={setAlreadyPaid}
+                    />
+                    <Label htmlFor="already-paid" className="text-sm font-medium">
+                      Eleven har redan betalat (bekräftad betalning)
+                    </Label>
+                  </div>
+                  {alreadyPaid && (
+                    <p className="text-xs text-green-600 mt-2">
+                      Bokningen kommer att markeras som bekräftad och betald
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Warnings for students */}
+            {isStudent && (
+              <div className="space-y-2">
+                {!canUseCredits && (
+                  <p className="text-xs text-gray-500">
+                    Du har inga tillgängliga kreditpoäng för denna lektionstyp
+                  </p>
+                )}
+                {!canPayAtLocation && (
+                  <p className="text-xs text-red-500">
+                    Betala på plats är inte tillgängligt - du har {unpaidBookings} obetalda bokningar
+                  </p>
+                )}
+              </div>
+            )}
 
             <Button
               onClick={handleConfirm}
-              disabled={loading || !selectedPaymentMethod}
+              disabled={loading || !selectedPaymentMethod || (isAdminOrTeacher && !selectedStudent)}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
             >
               {loading ? "Bekräftar..." : "Bekräfta bokning"}

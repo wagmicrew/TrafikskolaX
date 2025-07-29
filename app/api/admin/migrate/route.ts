@@ -141,23 +141,75 @@ export async function POST(request: NextRequest) {
       results.push(`Error creating package_purchases table: ${e}`);
     }
 
+    // Add unique constraint to lesson_types name column if not exists
+    try {
+      await db.execute(sql`
+        ALTER TABLE lesson_types 
+        ADD CONSTRAINT lesson_types_name_key UNIQUE (name)
+      `);
+      results.push('Added unique constraint to lesson_types.name');
+    } catch (e) {
+      // Constraint might already exist, that's okay
+      results.push(`Unique constraint on lesson_types.name: ${e.message?.includes('already exists') ? 'Already exists' : e}`);
+    }
+
     // Update lesson types
     try {
+      // First deactivate old lesson types
       await db.execute(sql`
         UPDATE lesson_types 
         SET is_active = false 
         WHERE name NOT IN ('B-körkort', 'Taxiförarlegitimation', 'Handledarutbildning', 'Introduktion')
       `);
       
-      await db.execute(sql`
-        INSERT INTO lesson_types (name, description, duration_minutes, price, price_student, is_active)
-        VALUES 
-          ('B-körkort', 'Körlektion för B-körkort', 45, 750, 650, true),
-          ('Taxiförarlegitimation', 'Utbildning för taxiförarlegitimation', 60, 850, 750, true),
-          ('Handledarutbildning', 'Utbildning för handledare', 120, 1500, 1300, true),
-          ('Introduktion', 'Introduktionslektion', 60, 650, 550, true)
-        ON CONFLICT (name) DO NOTHING
-      `);
+    // Insert default settings for Qliro and Swish
+      const defaultSettings = [
+        { key: 'qliro_api_key', value: '', description: 'Qliro API Key for payments', category: 'payment' },
+        { key: 'qliro_secret', value: '', description: 'Qliro Secret for payments', category: 'payment' },
+        { key: 'qliro_merchant_id', value: '', description: 'Qliro Merchant ID', category: 'payment' },
+        { key: 'qliro_sandbox', value: 'true', description: 'Use Qliro sandbox environment', category: 'payment' },
+        { key: 'swish_payee_number', value: '', description: 'Swish payee number', category: 'payment' },
+        { key: 'swish_callback_url', value: '', description: 'Swish callback URL', category: 'payment' }
+      ];
+
+      for (const setting of defaultSettings) {
+        try {
+          await db.execute(sql`
+            INSERT INTO site_settings (key, value, description, category)
+            VALUES (${setting.key}, ${setting.value}, ${setting.description}, ${setting.category})
+            ON CONFLICT (key) DO NOTHING
+          `);
+        } catch (settingError) {
+          results.push(`Error inserting setting ${setting.key}: ${settingError}`);
+        }
+      }
+      results.push('Inserted default payment settings');
+
+      // Insert lesson types individually to handle conflicts better
+      const lessonTypesToInsert = [
+        { name: 'B-körkort', description: 'Körlektion för B-körkort', duration: 45, price: 750, studentPrice: 650 },
+        { name: 'Taxiförarlegitimation', description: 'Utbildning för taxiförarlegitimation', duration: 60, price: 850, studentPrice: 750 },
+        { name: 'Handledarutbildning', description: 'Utbildning för handledare', duration: 120, price: 1500, studentPrice: 1300 },
+        { name: 'Introduktion', description: 'Introduktionslektion', duration: 60, price: 650, studentPrice: 550 }
+      ];
+
+      for (const lessonType of lessonTypesToInsert) {
+        try {
+          await db.execute(sql`
+            INSERT INTO lesson_types (name, description, duration_minutes, price, price_student, is_active)
+            VALUES (${lessonType.name}, ${lessonType.description}, ${lessonType.duration}, ${lessonType.price}, ${lessonType.studentPrice}, true)
+            ON CONFLICT (name) DO UPDATE SET
+              description = EXCLUDED.description,
+              duration_minutes = EXCLUDED.duration_minutes,
+              price = EXCLUDED.price,
+              price_student = EXCLUDED.price_student,
+              is_active = true
+          `);
+        } catch (insertError) {
+          results.push(`Error inserting ${lessonType.name}: ${insertError}`);
+        }
+      }
+      
       results.push('Updated lesson types');
     } catch (e) {
       results.push(`Error updating lesson types: ${e}`);

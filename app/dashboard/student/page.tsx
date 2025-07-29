@@ -1,28 +1,89 @@
 import { requireAuth } from '@/lib/auth/server-auth';
+import { db } from '@/lib/db';
+import { bookings, users, lessonTypes, userCredits, userFeedback, packages } from '@/lib/db/schema';
+import { eq, sql, desc, and, isNull } from 'drizzle-orm';
 import Link from 'next/link';
+import StudentDashboardClient from './student-dashboard-client';
 
-export default async function StudentDashboard() {
+export default async function Studentsidan() {
   const user = await requireAuth('student');
 
+  // Fetch user's bookings with lesson type info - show current bookings (from today)
+  const today = new Date().toISOString().split('T')[0];
+  const userBookings = await db
+    .select({
+      id: bookings.id,
+      scheduledDate: bookings.scheduledDate,
+      startTime: bookings.startTime,
+      endTime: bookings.endTime,
+      status: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      totalPrice: bookings.totalPrice,
+      notes: bookings.notes,
+      isCompleted: bookings.isCompleted,
+      lessonTypeName: lessonTypes.name,
+      lessonTypePrice: lessonTypes.price,
+      createdAt: bookings.createdAt,
+      durationMinutes: bookings.durationMinutes,
+    })
+    .from(bookings)
+    .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
+    .where(and(
+      eq(bookings.userId, user.id),
+      isNull(bookings.deletedAt)
+    ))
+    .orderBy(desc(bookings.scheduledDate))
+    .limit(20);
+
+  // Fetch user's credits
+  const userCreditsData = await db
+    .select({
+      id: userCredits.id,
+      creditsRemaining: userCredits.creditsRemaining,
+      creditsTotal: userCredits.creditsTotal,
+      lessonTypeName: lessonTypes.name,
+      lessonTypeId: userCredits.lessonTypeId,
+    })
+    .from(userCredits)
+    .leftJoin(lessonTypes, eq(userCredits.lessonTypeId, lessonTypes.id))
+    .where(eq(userCredits.userId, user.id));
+
+  // Fetch recent feedback
+  const recentFeedback = await db
+    .select({
+      id: userFeedback.id,
+      feedbackText: userFeedback.feedbackText,
+      rating: userFeedback.rating,
+      isFromTeacher: userFeedback.isFromTeacher,
+      createdAt: userFeedback.createdAt,
+      bookingId: userFeedback.bookingId,
+    })
+    .from(userFeedback)
+    .where(eq(userFeedback.userId, user.id))
+    .orderBy(desc(userFeedback.createdAt))
+    .limit(5);
+
+
+  // Calculate statistics
+  const totalBookings = userBookings.length;
+  const completedBookings = userBookings.filter(b => b.isCompleted).length;
+  const upcomingBookings = userBookings.filter(b => 
+    !b.isCompleted && new Date(b.scheduledDate) >= new Date()
+  ).length;
+  const totalCredits = userCreditsData.reduce((sum, c) => sum + c.creditsRemaining, 0);
+
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-4">Elev Dashboard</h1>
-      <p className="text-lg">Välkommen, {user.firstName} {user.lastName}!</p>
-      
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Mina bokningar</h2>
-          <p className="text-gray-600 mb-4">Se och hantera dina körlektioner</p>
-          <Link href="/boka-korning" className="text-blue-600 hover:underline">
-            Boka ny lektion →
-          </Link>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Min profil</h2>
-          <p className="text-gray-600">Uppdatera dina uppgifter</p>
-        </div>
-      </div>
-    </div>
+    <StudentDashboardClient 
+      user={user}
+      bookings={userBookings}
+      credits={userCreditsData}
+      feedback={recentFeedback}
+      stats={{
+        totalBookings,
+        completedBookings,
+        upcomingBookings,
+        totalCredits
+      }}
+    />
   );
 }

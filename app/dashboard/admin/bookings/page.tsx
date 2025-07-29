@@ -9,15 +9,16 @@ export const dynamic = 'force-dynamic';
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: { user?: string; page?: string };
+  searchParams: Promise<{ user?: string; page?: string }>;
 }) {
   // Ensure admin access
   await requireAuth('admin');
 
-  const page = Number(searchParams.page) || 1;
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
   const pageSize = 10;
   const offset = (page - 1) * pageSize;
-  const selectedUserId = searchParams.user || '';
+  const selectedUserId = params.user || '';
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];

@@ -97,6 +97,8 @@ export const bookings = pgTable('bookings', {
   // Invoice tracking
   invoiceNumber: varchar('invoice_number', { length: 100 }),
   invoiceDate: timestamp('invoice_date'),
+  // Payment tracking
+  swishUUID: varchar('swish_uuid', { length: 255 }),
   // Tracking
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -189,6 +191,20 @@ export const userFeedback = pgTable('user_feedback', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Internal Messages table
+export const internalMessages = pgTable('internal_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fromUserId: uuid('from_user_id').references(() => users.id).notNull(),
+  toUserId: uuid('to_user_id').references(() => users.id).notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  isRead: boolean('is_read').notNull().default(false),
+  bookingId: uuid('booking_id').references(() => bookings.id), // Optional reference to booking
+  messageType: varchar('message_type', { length: 50 }).default('general'), // general, payment_confirmation, booking_related
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  readAt: timestamp('read_at'),
+});
+
 // Teacher Availability table (bonus)
 export const teacherAvailability = pgTable('teacher_availability', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -267,6 +283,7 @@ export const siteSettings = pgTable('site_settings', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
 
 // Handledar sessions table
 export const handledarSessions = pgTable('handledar_sessions', {

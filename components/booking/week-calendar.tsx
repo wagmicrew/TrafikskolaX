@@ -12,30 +12,35 @@ interface TimeSlot {
   available: boolean
 }
 
+interface LessonType {
+  id: string
+  name: string
+  durationMinutes: number
+}
+
 interface WeekCalendarProps {
-  selectedDate: Date | null
-  selectedTime: string | null
-  onDateTimeSelect: (date: Date, time: string) => void
-  onNext: () => void
+  lessonType: LessonType
+  transmissionType: "manual" | "automatic" | null
+  onComplete: (data: { selectedDate: Date; selectedTime: string }) => void
   onBack: () => void
-  lessonDuration: number
 }
 
 export function WeekCalendar({
-  selectedDate,
-  selectedTime,
-  onDateTimeSelect,
-  onNext,
-  onBack,
-  lessonDuration
+  lessonType,
+  transmissionType,
+  onComplete,
+  onBack
 }: WeekCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { locale: sv }))
   const [loading, setLoading] = useState(false)
   const [availableSlots, setAvailableSlots] = useState<Record<string, TimeSlot[]>>({})
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedTime, setSelectedTime] = useState<string | null>(null)
+  const [checkingSlots, setCheckingSlots] = useState(false)
 
   useEffect(() => {
     fetchAvailableSlots()
-  }, [currentWeek, lessonDuration])
+  }, [currentWeek, lessonType?.durationMinutes])
 
   const fetchAvailableSlots = async () => {
     setLoading(true)
@@ -44,7 +49,7 @@ export function WeekCalendar({
       const startDate = format(weekDates[0], 'yyyy-MM-dd')
       const endDate = format(weekDates[6], 'yyyy-MM-dd')
 
-      const response = await fetch(`/api/booking/slots?startDate=${startDate}&endDate=${endDate}&duration=${lessonDuration}`)
+      const response = await fetch(`/api/booking/slots?startDate=${startDate}&endDate=${endDate}&duration=${lessonType?.durationMinutes}`)
       const data = await response.json()
 
       if (data.success) {
@@ -69,17 +74,22 @@ export function WeekCalendar({
   })
 
   const handleDateSelect = (date: Date) => {
-    if (selectedDate && isSameDay(selectedDate, date) && selectedTime) {
-      // If clicking the same date, clear the time
-      onDateTimeSelect(date, '')
+    if (selectedDate && isSameDay(selectedDate, date)) {
+      // If clicking the same date, clear selection
+      setSelectedDate(null)
+      setSelectedTime(null)
     } else {
-      onDateTimeSelect(date, '')
+      // Select new date and clear time
+      setSelectedDate(date)
+      setSelectedTime(null)
     }
   }
 
   const handleTimeSelect = (time: string) => {
     if (selectedDate) {
-      onDateTimeSelect(selectedDate, time)
+      setSelectedTime(time)
+      // Call onComplete when both date and time are selected
+      onComplete({ selectedDate, selectedTime: time })
     }
   }
 
@@ -131,19 +141,24 @@ export function WeekCalendar({
           <div className="grid grid-cols-7 gap-2 mb-6">
             {weekDays.map((day) => {
               const isSelected = selectedDate && isSameDay(selectedDate, day.date)
-              const daySlots = availableSlots[day.dateKey] || []
-              const hasAvailableSlots = daySlots.some(slot => slot.available)
+              const daySlots = availableSlots[day.dateKey]
+              const availableCount = daySlots ? daySlots.filter(slot => slot.available).length : 0
+              const hasAvailableSlots = availableCount > 0
+              const isSlotDataLoaded = daySlots !== undefined
+              const isCurrentlyLoading = loading && !isSlotDataLoaded
 
               return (
                 <div
                   key={day.dateKey}
                   className={`
-                    p-3 rounded-lg text-center cursor-pointer transition-all
+                    p-3 rounded-lg text-center transition-all border-2
                     ${isSelected 
-                      ? 'bg-red-600 text-white' 
+                      ? 'bg-red-600 text-white border-red-600 cursor-pointer' 
                       : hasAvailableSlots
-                        ? 'bg-gray-50 hover:bg-gray-100'
-                        : 'bg-gray-100 opacity-50 cursor-not-allowed'
+                        ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-red-300 shadow-sm cursor-pointer'
+                        : isCurrentlyLoading
+                          ? 'bg-gray-50 border-gray-200 cursor-wait'
+                          : 'bg-gray-100 opacity-50 cursor-not-allowed border-gray-200'
                     }
                   `}
                   onClick={() => hasAvailableSlots && handleDateSelect(day.date)}
@@ -151,6 +166,25 @@ export function WeekCalendar({
                   <div className="text-xs font-medium mb-1">{day.dayName}</div>
                   <div className="text-lg font-bold">{day.dayNumber}</div>
                   <div className="text-xs">{day.month}</div>
+                  {isCurrentlyLoading && (
+                    <div className="text-xs mt-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                      Kontrollerar...
+                    </div>
+                  )}
+                  {!isCurrentlyLoading && hasAvailableSlots && (
+                    <div className={`text-xs mt-1 px-2 py-1 rounded-full ${
+                      isSelected 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {availableCount} {availableCount === 1 ? 'tid' : 'tider'}
+                    </div>
+                  )}
+                  {!isCurrentlyLoading && isSlotDataLoaded && !hasAvailableSlots && (
+                    <div className="text-xs mt-1 px-2 py-1 rounded-full bg-gray-200 text-gray-500">
+                      Ej tillgänglig
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -197,13 +231,18 @@ export function WeekCalendar({
             <Button variant="outline" onClick={onBack} className="flex-1">
               Tillbaka
             </Button>
-            <Button
-              onClick={onNext}
-              disabled={!canProceed}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-            >
-              Nästa
-            </Button>
+            {canProceed && (
+              <div className="flex-1 text-center">
+                <p className="text-sm text-gray-600 mb-2">
+                  Vald tid: {selectedDate && selectedTime && 
+                    `${format(selectedDate, 'EEEE d MMMM', { locale: sv })} kl ${selectedTime}`
+                  }
+                </p>
+                <p className="text-xs text-gray-500">
+                  Klicka på en tid för att fortsätta till bekräftelse
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

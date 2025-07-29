@@ -26,16 +26,21 @@ export const dynamic = 'force-dynamic';
 export default async function BookingDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  try {
+    // Await the params to get the ID
+    const { id } = await params;
+  
   // Fetch booking details with related information
   const booking = await db
     .select({
+      // Booking fields
       id: bookings.id,
-      bookingDate: bookings.bookingDate,
+      scheduledDate: bookings.scheduledDate,
       startTime: bookings.startTime,
       endTime: bookings.endTime,
-      lessonType: bookings.lessonType,
+      lessonTypeId: bookings.lessonTypeId,
       status: bookings.status,
       paymentStatus: bookings.paymentStatus,
       isCompleted: bookings.isCompleted,
@@ -45,24 +50,29 @@ export default async function BookingDetailsPage({
       invoiceDate: bookings.invoiceDate,
       createdAt: bookings.createdAt,
       updatedAt: bookings.updatedAt,
-      // User info
+      totalPrice: bookings.totalPrice,
       userId: bookings.userId,
-      userName: sql`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${bookings.guestName})`,
-      userEmail: sql`COALESCE(${users.email}, ${bookings.guestEmail})`,
-      userPhone: sql`COALESCE(${users.phone}, ${bookings.guestPhone})`,
-      // Car info
+      guestName: bookings.guestName,
+      guestEmail: bookings.guestEmail,
+      guestPhone: bookings.guestPhone,
       carId: bookings.carId,
+      // User fields
+      userFirstName: users.firstName,
+      userLastName: users.lastName,
+      userEmail: users.email,
+      userPhone: users.phone,
+      // Car fields
       carName: cars.name,
-      carRegistration: cars.registrationNumber,
-      // Lesson type info
+      carRegistration: cars.licensePlate,
+      // Lesson type fields
       lessonTypeName: lessonTypes.name,
       lessonTypePrice: lessonTypes.price,
     })
     .from(bookings)
     .leftJoin(users, eq(bookings.userId, users.id))
     .leftJoin(cars, eq(bookings.carId, cars.id))
-    .leftJoin(lessonTypes, eq(bookings.lessonType, lessonTypes.id))
-    .where(eq(bookings.id, params.id))
+    .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
+    .where(eq(bookings.id, id))
     .limit(1);
 
   if (!booking || booking.length === 0) {
@@ -71,7 +81,13 @@ export default async function BookingDetailsPage({
 
   const bookingData = booking[0];
 
-  const getStatusBadge = (status: string) => {
+  // Add null safety checks
+  if (!bookingData) {
+    notFound();
+  }
+
+  const getStatusBadge = (status: string | null | undefined) => {
+    if (!status) return null;
     switch (status) {
       case 'confirmed':
         return (
@@ -98,7 +114,8 @@ export default async function BookingDetailsPage({
     }
   };
 
-  const getPaymentBadge = (paymentStatus: string) => {
+  const getPaymentBadge = (paymentStatus: string | null | undefined) => {
+    if (!paymentStatus) return null;
     return paymentStatus === 'paid' ? (
       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
         <CreditCard className="w-4 h-4" />
@@ -183,7 +200,7 @@ export default async function BookingDetailsPage({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Datum:</span>
-                  <span className="font-medium">{formatDate(bookingData.bookingDate)}</span>
+                  <span className="font-medium">{formatDate(bookingData.scheduledDate)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tid:</span>
@@ -197,7 +214,7 @@ export default async function BookingDetailsPage({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Pris:</span>
-                  <span className="font-medium">{bookingData.lessonTypePrice} kr</span>
+                  <span className="font-medium">{bookingData.totalPrice || bookingData.lessonTypePrice} kr</span>
                 </div>
               </div>
             </div>
@@ -211,15 +228,20 @@ export default async function BookingDetailsPage({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Namn:</span>
-                  <span className="font-medium">{bookingData.userName}</span>
+                  <span className="font-medium">
+                    {bookingData.userFirstName && bookingData.userLastName 
+                      ? `${bookingData.userFirstName} ${bookingData.userLastName}`
+                      : bookingData.guestName || 'N/A'
+                    }
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">E-post:</span>
-                  <span className="font-medium">{bookingData.userEmail}</span>
+                  <span className="font-medium">{bookingData.userEmail || bookingData.guestEmail || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Telefon:</span>
-                  <span className="font-medium">{bookingData.userPhone}</span>
+                  <span className="font-medium">{bookingData.userPhone || bookingData.guestPhone || 'N/A'}</span>
                 </div>
                 {bookingData.userId && (
                   <div className="flex justify-between">
@@ -302,4 +324,8 @@ export default async function BookingDetailsPage({
       </div>
     </div>
   );
+  } catch (error) {
+    console.error('Booking details error:', error);
+    notFound();
+  }
 }

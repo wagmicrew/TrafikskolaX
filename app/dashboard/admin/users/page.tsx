@@ -9,16 +9,17 @@ export const dynamic = 'force-dynamic';
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: { role?: string; search?: string; page?: string };
+  searchParams: Promise<{ role?: string; search?: string; page?: string }>;
 }) {
   // Ensure admin access
   await requireAuth('admin');
 
-  const page = Number(searchParams.page) || 1;
+  const params = await searchParams;
+  const page = Number(params.page) || 1;
   const pageSize = 20;
   const offset = (page - 1) * pageSize;
-  const roleFilter = searchParams.role || '';
-  const searchFilter = searchParams.search || '';
+  const roleFilter = params.role || '';
+  const searchFilter = params.search || '';
 
   // Build conditions
   const conditions = [];
@@ -53,6 +54,7 @@ export default async function UsersPage({
       bookingCount: sql<number>`(
         SELECT COUNT(*) FROM ${bookings} 
         WHERE ${bookings.userId} = ${users.id}
+        AND ${bookings.scheduledDate} >= CURRENT_DATE
       )`,
     })
     .from(users)

@@ -68,6 +68,8 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<'overview' | 'bookings' | 'feedback'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dateBookings, setDateBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
     fetchTodaysBookings();
@@ -75,16 +77,18 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     fetchBookingSteps();
   }, []);
 
+  useEffect(() => {
+    fetchBookingsForDate(selectedDate);
+  }, [selectedDate]);
+
   const fetchTodaysBookings = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      console.log('Fetching today\'s bookings for:', today, 'teacher:', user.id);
       const response = await fetch(`/api/teacher/bookings?date=${today}&teacherId=${user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
       const data = await response.json();
-      console.log('Today\'s bookings response:', data);
       setTodaysBookings(data.bookings || []);
     } catch (error) {
       console.error('Failed to fetch today\'s bookings:', error);
@@ -94,35 +98,44 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
   const fetchUpcomingBookings = async () => {
     try {
-      console.log('Fetching upcoming bookings for teacher:', user.id);
       const response = await fetch(`/api/teacher/bookings?teacherId=${user.id}&upcoming=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
       const data = await response.json();
-      console.log('Upcoming bookings response:', data);
       setUpcomingBookings(data.bookings || []);
     } catch (error) {
       console.error('Failed to fetch upcoming bookings:', error);
       setUpcomingBookings([]); // Set empty array on error
     } finally {
-      console.log('Setting loading to false');
       setLoading(false);
     }
   };
 
   const fetchBookingSteps = async () => {
     try {
-      console.log('Fetching booking steps...');
       const response = await fetch('/api/booking-steps');
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
       const data = await response.json();
-      console.log('Booking steps response:', data);
       setBookingSteps(data.steps || []);
     } catch (error) {
       console.error('Failed to fetch booking steps:', error);
+    }
+  };
+
+  const fetchBookingsForDate = async (date: string) => {
+    try {
+      const response = await fetch(`/api/teacher/bookings?date=${date}&teacherId=${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      setDateBookings(data.bookings || []);
+    } catch (error) {
+      console.error(`Failed to fetch bookings for ${date}:`, error);
+      setDateBookings([]);
     }
   };
 
@@ -435,6 +448,75 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     );
   };
 
+  const renderBookingsForDate = () => (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <FaCalendarAlt className="text-red-500" />
+        Lektioner för {formatDate(selectedDate)}
+      </h2>
+      
+      {dateBookings.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <FaCalendarAlt className="text-4xl mx-auto mb-4 opacity-50" />
+          <p>Inga lektioner för detta datum</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {dateBookings.map((booking) => (
+            <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-3 h-3 rounded-full ${getStatusColor(booking.status)}`}></span>
+                    <h3 className="font-semibold text-gray-800">{booking.userName}</h3>
+                    <span className="text-2xl">{getTransmissionIcon(booking.transmissionType)}</span>
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <FaClock className="text-gray-400" />
+                      <span>{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <FaCar className="text-gray-400" />
+                      <span>{booking.lessonTypeName}</span>
+                    </div>
+
+                    {booking.userPhone && (
+                      <div className="flex items-center gap-2">
+                        <FaPhone className="text-gray-400" />
+                        <span>{booking.userPhone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => setSelectedBooking(booking)}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                  >
+                    <FaEdit className="inline mr-1" />
+                    Utbildningskort
+                  </button>
+                  
+                  <button
+                    onClick={() => unbookLesson(booking.id)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                  >
+                    <FaTrash className="inline mr-1" />
+                    Avboka
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const renderUpcomingBookings = () => (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -598,8 +680,16 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
         {activeView === 'bookings' && (
           <div className="space-y-8">
-            {renderTodaysBookings()}
-            {renderUpcomingBookings()}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Välj datum</h2>
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="p-2 border rounded-lg"
+              />
+            </div>
+            {renderBookingsForDate()}
           </div>
         )}
 

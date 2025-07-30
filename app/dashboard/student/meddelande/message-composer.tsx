@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useToast } from '@/lib/hooks/use-toast';
 
@@ -19,7 +18,18 @@ function MessageComposer() {
     setSending(true);
 
     try {
-      await axios.post('/api/messages', { recipientId, subject, message });
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recipientId, subject, message }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      
       addToast({ type: 'success', message: 'Meddelandet har skickats!' });
       setRecipientId('');
       setSubject('');

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/jwt';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { bookingSteps } from '@/lib/db/schema';
 import { asc } from 'drizzle-orm';
+import { verifyToken } from '@/lib/auth/jwt';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify admin authentication
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
@@ -15,21 +16,17 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await verifyToken(token);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Only teachers and admins can access booking steps
-    if (user.role !== 'teacher' && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
-
+    // Fetch all booking steps
     const steps = await db
       .select()
       .from(bookingSteps)
-      .orderBy(asc(bookingSteps.stepNumber), asc(bookingSteps.id));
+      .orderBy(asc(bookingSteps.stepNumber), asc(bookingSteps.category));
 
-    return NextResponse.json({ steps });
+    return NextResponse.json(steps);
   } catch (error) {
     console.error('Error fetching booking steps:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

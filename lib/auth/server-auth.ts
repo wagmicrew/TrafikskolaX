@@ -15,21 +15,14 @@ export async function getServerUser(): Promise<AuthUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get('auth-token')?.value;
 
-  console.log('=== SERVER AUTH DEBUG ===');
-  console.log('Token exists:', !!token);
-  console.log('Token length:', token?.length || 0);
-
   if (!token) {
-    console.log('No auth token found');
     return null;
   }
 
   try {
     const decoded = verifyToken(token);
-    console.log('Decoded token:', decoded);
     
     if (!decoded) {
-      console.log('Token verification failed');
       return null;
     }
 
@@ -43,7 +36,6 @@ export async function getServerUser(): Promise<AuthUser | null> {
       lastName: decoded.lastName,
     };
     
-    console.log('Final user object:', user);
     return user;
   } catch (error) {
     console.error('JWT verification error:', error);

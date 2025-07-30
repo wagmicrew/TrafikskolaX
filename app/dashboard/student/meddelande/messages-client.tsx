@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaEnvelope, FaEye, FaPaperPlane, FaInbox, FaEdit } from 'react-icons/fa';
-import axios from 'axios';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useToast } from '@/lib/hooks/use-toast';
 import { LoadingSpinner } from '@/components/loading-spinner';
@@ -48,8 +47,12 @@ function MessagesClient() {
 
   const fetchMessages = async () => {
     try {
-      const response = await axios.get('/api/messages?type=all');
-      setMessages(response.data.messages);
+      const response = await fetch('/api/messages?type=all');
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      const data = await response.json();
+      setMessages(data.messages);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
     } finally {
@@ -59,8 +62,12 @@ function MessagesClient() {
 
   const fetchTeachers = async () => {
     try {
-      const response = await axios.get('/api/teachers');
-      setTeachers(response.data.teachers);
+      const response = await fetch('/api/teachers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch teachers');
+      }
+      const data = await response.json();
+      setTeachers(data.teachers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
     }
@@ -71,7 +78,18 @@ function MessagesClient() {
     setSending(true);
 
     try {
-      await axios.post('/api/messages', { recipientId, subject, message });
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ recipientId, subject, message }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+      
       addToast({ type: 'success', message: 'Meddelandet har skickats!' });
       setRecipientId('');
       setSubject('');
@@ -88,7 +106,18 @@ function MessagesClient() {
 
   const markAsRead = async (messageId: number) => {
     try {
-      await axios.put(`/api/messages/${messageId}`, { isRead: true });
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isRead: true }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to mark message as read');
+      }
+      
       setMessages(prev => 
         prev.map(msg => 
           msg.id === messageId ? { ...msg, isRead: true } : msg

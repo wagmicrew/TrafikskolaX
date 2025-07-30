@@ -1,10 +1,31 @@
-import { requireAuth } from '@/lib/auth/server-auth';
+'use client';
+
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
-export const dynamic = 'force-dynamic';
+export default function AdminDashboard() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
 
-export default async function AdminDashboard() {
-  const user = await requireAuth('admin');
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'admin')) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -39,4 +60,3 @@ export default async function AdminDashboard() {
     </div>
   );
 }
-

@@ -28,6 +28,16 @@ export const users = pgTable('users', {
   inskriven: boolean('inskriven').notNull().default(false),
   customPrice: decimal('custom_price', { precision: 10, scale: 2 }),
   inskrivenDate: timestamp('inskriven_date'),
+  // Utbildningskort fields
+  workplace: varchar('workplace', { length: 255 }),
+  workPhone: varchar('work_phone', { length: 50 }),
+  mobilePhone: varchar('mobile_phone', { length: 50 }),
+  kkValidityDate: date('kk_validity_date'),
+  riskEducation1: date('risk_education_1'),
+  riskEducation2: date('risk_education_2'),
+  knowledgeTest: date('knowledge_test'),
+  drivingTest: date('driving_test'),
+  notes: text('notes'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

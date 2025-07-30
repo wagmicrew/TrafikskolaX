@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
+import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db/client';
 import { bookings, users, credits } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -42,7 +42,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking[0].teacherId !== user.id) {
+    if (booking[0].teacherId !== (user.userId || user.id)) {
       return NextResponse.json({ error: 'Access denied - not your booking' }, { status: 403 });
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
+import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db/client';
 import { users } from '@/lib/db/schema';
 import { or, eq } from 'drizzle-orm';
@@ -8,7 +8,7 @@ import { or, eq } from 'drizzle-orm';
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       recipientUsers = await db
         .select({
           id: users.id,
-          name: users.name,
+          name: users.firstName,
           email: users.email,
           role: users.role,
         })
@@ -43,16 +43,11 @@ export async function GET(request: NextRequest) {
       recipientUsers = await db
         .select({
           id: users.id,
-          name: users.name,
+          name: users.firstName,
           email: users.email,
           role: users.role,
         })
-        .from(users)
-        .where(
-          // Don't include self in the list
-          // Add this if you want to exclude self-messaging
-          // ne(users.id, user.id)
-        );
+        .from(users);
     }
 
     return NextResponse.json({ teachers: recipientUsers });

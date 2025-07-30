@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FaCalendarAlt, 
   FaClock, 
@@ -23,8 +23,18 @@ interface BookingDetailClientProps {
   user: any;
 }
 
+interface PlannedStep {
+  id: string;
+  stepIdentifier: string;
+  feedbackText?: string;
+  valuation?: number;
+  isFromTeacher: boolean;
+}
+
 const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user }) => {
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
+  const [plannedSteps, setPlannedSteps] = useState<PlannedStep[]>([]);
+  const [isLoadingPlannedSteps, setIsLoadingPlannedSteps] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('sv-SE', {
@@ -80,6 +90,26 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
     const message = `Körleksion ${booking.lessonTypeName} - ${formatDate(booking.scheduledDate)}`;
     return `swish://payment?phone=123456789&amount=${amount}&message=${encodeURIComponent(message)}`;
   };
+
+  const loadPlannedSteps = async () => {
+    setIsLoadingPlannedSteps(true);
+    try {
+      const response = await fetch(`/api/student/bookings/${booking.id}/feedback`);
+      if (response.ok) {
+        const data = await response.json();
+        setPlannedSteps(data);
+      }
+    } catch (error) {
+      console.error('Error loading planned steps:', error);
+    }
+    setIsLoadingPlannedSteps(false);
+  };
+
+  useEffect(() => {
+    if (booking.id) {
+      loadPlannedSteps();
+    }
+  }, [booking.id]);
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -272,8 +302,35 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
           </div>
         </div>
 
+        {/* Planned Steps and Feedback */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Planerade steg & feedback</h2>
+          {isLoadingPlannedSteps ? (
+            <p>Laddar planerade steg...</p>
+          ) : plannedSteps.length > 0 ? (
+            <div className="space-y-4">
+              {plannedSteps.map(step => (
+                <div key={step.id} className="p-4 border rounded-lg bg-gray-50">
+                  <h3 className="font-bold text-lg text-gray-800">{step.stepIdentifier}</h3>
+                  {step.feedbackText && (
+                    <p className="text-gray-700 mt-2">{step.feedbackText}</p>
+                  )}
+                  {step.valuation !== null && step.valuation !== undefined && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="font-semibold">Värdering:</span>
+                      <span className="text-blue-600 font-bold">{step.valuation}/10</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600">Inga planerade steg eller feedback för denna lektion ännu.</p>
+          )}
+        </div>
+
         {/* Action Buttons */}
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center mt-6">
           <Link
             href="/dashboard/student"
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"

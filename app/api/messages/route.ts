@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
-import { db } from '@/lib/db';
+import { verifyToken } from '@/lib/auth/jwt';
+import { db } from '@/lib/db/client';
 import { internalMessages, users } from '@/lib/db/schema';
 import { eq, or, and, desc } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,21 +26,21 @@ export async function GET(request: NextRequest) {
     
     switch (type) {
       case 'sent':
-        whereCondition = eq(internalMessages.senderId, user.id);
+        whereCondition = eq(internalMessages.fromUserId, user.userId || user.id);
         break;
       case 'received':
-        whereCondition = eq(internalMessages.recipientId, user.id);
+        whereCondition = eq(internalMessages.toUserId, user.userId || user.id);
         break;
       case 'unread':
         whereCondition = and(
-          eq(internalMessages.recipientId, user.id),
+          eq(internalMessages.toUserId, user.userId || user.id),
           eq(internalMessages.isRead, false)
         );
         break;
       default:
         whereCondition = or(
-          eq(internalMessages.senderId, user.id),
-          eq(internalMessages.recipientId, user.id)
+          eq(internalMessages.fromUserId, user.userId || user.id),
+          eq(internalMessages.toUserId, user.userId || user.id)
         );
     }
 
@@ -51,13 +51,14 @@ export async function GET(request: NextRequest) {
         message: internalMessages.message,
         isRead: internalMessages.isRead,
         createdAt: internalMessages.createdAt,
-        senderId: internalMessages.senderId,
-        recipientId: internalMessages.recipientId,
-        senderName: users.name,
+        fromUserId: internalMessages.fromUserId,
+        toUserId: internalMessages.toUserId,
+        senderFirstName: users.firstName,
+        senderLastName: users.lastName,
         senderEmail: users.email,
       })
       .from(internalMessages)
-      .leftJoin(users, eq(internalMessages.senderId, users.id))
+      .leftJoin(users, eq(internalMessages.fromUserId, users.id))
       .where(whereCondition)
       .orderBy(desc(internalMessages.createdAt));
 
@@ -102,8 +103,8 @@ export async function POST(request: NextRequest) {
     const newMessage = await db
       .insert(internalMessages)
       .values({
-        senderId: user.id,
-        recipientId,
+        fromUserId: user.userId || user.id,
+        toUserId: recipientId,
         subject,
         message,
         isRead: false,

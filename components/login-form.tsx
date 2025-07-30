@@ -240,9 +240,9 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
                     </div>
                     <div className="space-y-2">
                       <div className="text-xs sm:text-sm text-blue-100/90 space-y-1">
-                        <p className="flex items-center gap-2"><Badge className="bg-blue-600 text-white text-xs">Admin</Badge> admin@test.se - password123</p>
-                        <p className="flex items-center gap-2"><Badge className="bg-green-600 text-white text-xs">Lärare</Badge> teacher@test.se - password123</p>
-                        <p className="flex items-center gap-2"><Badge className="bg-gray-600 text-white text-xs">Elev</Badge> student@test.se - password123</p>
+                        <div className="flex items-center gap-2"><Badge className="bg-blue-600 text-white text-xs">Admin</Badge> admin@test.se - password123</div>
+                        <div className="flex items-center gap-2"><Badge className="bg-green-600 text-white text-xs">Lärare</Badge> teacher@test.se - password123</div>
+                        <div className="flex items-center gap-2"><Badge className="bg-gray-600 text-white text-xs">Elev</Badge> student@test.se - password123</div>
                       </div>
                     </div>
                   </div>

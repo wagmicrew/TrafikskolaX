@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { memo } from "react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -14,7 +14,7 @@ import {
 import { User, LogOut, LayoutDashboard } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
-export function UserAvatarMenu() {
+export const UserAvatarMenu = memo(function UserAvatarMenu() {
   const router = useRouter()
   const { user, logout } = useAuth()
 
@@ -61,7 +61,7 @@ export function UserAvatarMenu() {
           className="cursor-pointer"
         >
           <LayoutDashboard className="mr-2 h-4 w-4" />
-          <span>Dashboard</span>
+          <span>Din sida</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -77,4 +77,4 @@ export function UserAvatarMenu() {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
+})

@@ -1,89 +1,97 @@
-import { requireAuth } from '@/lib/auth/server-auth';
-import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, userFeedback, packages } from '@/lib/db/schema';
-import { eq, sql, desc, and, isNull } from 'drizzle-orm';
-import Link from 'next/link';
+'use client';
+
+import { useAuth } from '@/lib/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import StudentDashboardClient from './student-dashboard-client';
 
-export default async function Studentsidan() {
-  const user = await requireAuth('student');
+export default function Studentsidan() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  // Fetch user's bookings with lesson type info - show current bookings (from today)
-  const today = new Date().toISOString().split('T')[0];
-  const userBookings = await db
-    .select({
-      id: bookings.id,
-      scheduledDate: bookings.scheduledDate,
-      startTime: bookings.startTime,
-      endTime: bookings.endTime,
-      status: bookings.status,
-      paymentStatus: bookings.paymentStatus,
-      totalPrice: bookings.totalPrice,
-      notes: bookings.notes,
-      isCompleted: bookings.isCompleted,
-      lessonTypeName: lessonTypes.name,
-      lessonTypePrice: lessonTypes.price,
-      createdAt: bookings.createdAt,
-      durationMinutes: bookings.durationMinutes,
-    })
-    .from(bookings)
-    .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
-    .where(and(
-      eq(bookings.userId, user.id),
-      isNull(bookings.deletedAt)
-    ))
-    .orderBy(desc(bookings.scheduledDate))
-    .limit(20);
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'student')) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
 
-  // Fetch user's credits
-  const userCreditsData = await db
-    .select({
-      id: userCredits.id,
-      creditsRemaining: userCredits.creditsRemaining,
-      creditsTotal: userCredits.creditsTotal,
-      lessonTypeName: lessonTypes.name,
-      lessonTypeId: userCredits.lessonTypeId,
-    })
-    .from(userCredits)
-    .leftJoin(lessonTypes, eq(userCredits.lessonTypeId, lessonTypes.id))
-    .where(eq(userCredits.userId, user.id));
+  useEffect(() => {
+    if (user && user.role === 'student') {
+      fetchDashboardData();
+    }
+  }, [user]);
 
-  // Fetch recent feedback
-  const recentFeedback = await db
-    .select({
-      id: userFeedback.id,
-      feedbackText: userFeedback.feedbackText,
-      rating: userFeedback.rating,
-      isFromTeacher: userFeedback.isFromTeacher,
-      createdAt: userFeedback.createdAt,
-      bookingId: userFeedback.bookingId,
-    })
-    .from(userFeedback)
-    .where(eq(userFeedback.userId, user.id))
-    .orderBy(desc(userFeedback.createdAt))
-    .limit(5);
+  const fetchDashboardData = async () => {
+    try {
+      setDataLoading(true);
+      
+      // Fetch bookings
+      const bookingsRes = await fetch('/api/student/bookings');
+      const bookingsData = await bookingsRes.json();
+      
+      // Fetch credits
+      const creditsRes = await fetch('/api/user/credits');
+      const creditsData = await creditsRes.json();
+      
+      // Fetch feedback
+      const feedbackRes = await fetch('/api/student/feedback');
+      const feedbackData = await feedbackRes.json();
 
+      const bookings = bookingsData.bookings || [];
+      const totalBookings = bookings.length;
+      const completedBookings = bookings.filter((b: any) => b.isCompleted).length;
+      const upcomingBookings = bookings.filter((b: any) => 
+        !b.isCompleted && new Date(b.scheduledDate) >= new Date()
+      ).length;
+      const totalCredits = creditsData.credits?.reduce((sum: number, c: any) => sum + c.creditsRemaining, 0) || 0;
 
-  // Calculate statistics
-  const totalBookings = userBookings.length;
-  const completedBookings = userBookings.filter(b => b.isCompleted).length;
-  const upcomingBookings = userBookings.filter(b => 
-    !b.isCompleted && new Date(b.scheduledDate) >= new Date()
-  ).length;
-  const totalCredits = userCreditsData.reduce((sum, c) => sum + c.creditsRemaining, 0);
+      setDashboardData({
+        bookings,
+        credits: creditsData.credits || [],
+        feedback: feedbackData.feedback || [],
+        stats: {
+          totalBookings,
+          completedBookings,
+          upcomingBookings,
+          totalCredits
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  if (isLoading || dataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'student') {
+    return null;
+  }
+
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Kunde inte ladda dashboard data</p>
+      </div>
+    );
+  }
 
   return (
     <StudentDashboardClient 
       user={user}
-      bookings={userBookings}
-      credits={userCreditsData}
-      feedback={recentFeedback}
-      stats={{
-        totalBookings,
-        completedBookings,
-        upcomingBookings,
-        totalCredits
-      }}
+      bookings={dashboardData.bookings}
+      credits={dashboardData.credits}
+      feedback={dashboardData.feedback}
+      stats={dashboardData.stats}
     />
   );
 }

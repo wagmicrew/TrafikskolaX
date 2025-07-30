@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 
 export const useMessages = () => {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -9,8 +8,12 @@ export const useMessages = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get('/api/messages?type=unread');
-      setUnreadCount(response.data.messages.length);
+      const response = await fetch('/api/messages?type=unread');
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      const data = await response.json();
+      setUnreadCount(data.messages.length);
     } catch (error) {
       console.error('Failed to fetch unread messages:', error);
     } finally {

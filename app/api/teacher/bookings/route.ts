@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
+import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db/client';
 import { bookings, users, lessonTypes } from '@/lib/db/schema';
 import { eq, and, gte, lte, asc, desc, sql } from 'drizzle-orm';
@@ -8,7 +8,7 @@ import { eq, and, gte, lte, asc, desc, sql } from 'drizzle-orm';
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -51,17 +51,17 @@ export async function GET(request: NextRequest) {
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id));
 
     // Filter by teacher ID (only show bookings assigned to this teacher)
-    if (teacherId && teacherId === user.id) {
+    if (teacherId && teacherId === (user.userId || user.id)) {
       query = query.where(eq(bookings.teacherId, teacherId));
     } else {
-      query = query.where(eq(bookings.teacherId, user.id));
+      query = query.where(eq(bookings.teacherId, user.userId || user.id));
     }
 
     // Filter by specific date (for today's bookings)
     if (date) {
       query = query.where(and(
         eq(bookings.scheduledDate, date),
-        eq(bookings.teacherId, user.id)
+        eq(bookings.teacherId, user.userId || user.id)
       ));
     }
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       const today = new Date().toISOString().split('T')[0];
       query = query.where(and(
         gte(bookings.scheduledDate, today),
-        eq(bookings.teacherId, user.id)
+        eq(bookings.teacherId, user.userId || user.id)
       ));
       query = query.orderBy(asc(bookings.scheduledDate), asc(bookings.startTime));
     } else {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
-export function Navigation() {
+export const Navigation = memo(function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
   const [showLoginForm, setShowLoginForm] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -125,7 +125,9 @@ export function Navigation() {
               
             {/* Dashboard/Logout Button */}
             {user ? (
-              <UserAvatarMenu />
+              <div className="ml-1">
+                <UserAvatarMenu />
+              </div>
             ) : (
               <button
                 onClick={handleLoginClick}
@@ -305,4 +307,4 @@ export function Navigation() {
       <LoginForm isOpen={showLoginForm} onClose={() => setShowLoginForm(false)} />
     </>
   )
-}
+})

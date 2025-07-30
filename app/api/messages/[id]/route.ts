@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
-import { db } from '@/lib/db';
+import { verifyToken } from '@/lib/auth/jwt';
+import { db } from '@/lib/db/client';
 import { internalMessages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
@@ -11,7 +11,7 @@ export async function PUT(
 ) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,7 +32,7 @@ export async function PUT(
       .where(
         and(
           eq(internalMessages.id, parseInt(id)),
-          eq(internalMessages.recipientId, user.id)
+          eq(internalMessages.toUserId, user.userId || user.id)
         )
       )
       .returning();

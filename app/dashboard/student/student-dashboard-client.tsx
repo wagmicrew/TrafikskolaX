@@ -80,7 +80,8 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
               Meddelande
             </MessageIndicator>
             <Link href="/dashboard/student/settings" className="hover:text-yellow-300">Inställningar</Link>
-          </nav>
+              <Link href="/dashboard/utbildningskort" className="hover:text-yellow-300">Utbildningskort</Link>
+            </nav>
         </div>
       </div>
 
@@ -227,15 +228,20 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
             {feedback.length > 0 ? (
               <div className="space-y-3">
                 {feedback.slice(0, 3).map((fb) => (
-                  <div key={fb.id} className="p-3 bg-gray-50 rounded-lg">
+                  <Link 
+                    key={fb.id} 
+                    href={`/dashboard/student/bokningar/${fb.bookingId}`}
+                    className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
                     <div className="flex items-center gap-1 mb-2">
                       {renderStars(fb.rating)}
                     </div>
                     <p className="text-sm text-gray-700">{fb.feedbackText}</p>
                     <p className="text-xs text-gray-500 mt-2">
-                      {fb.isFromTeacher ? 'Från lärare' : 'Från dig'} • {formatDate(fb.createdAt)}
+                      {fb.isFromTeacher ? 'Från lärare' : 'Från dig'} • {fb.createdAt ? formatDate(fb.createdAt) : 'Okänt datum'}
                     </p>
-                  </div>
+                    <p className="text-xs text-blue-600 mt-1">Klicka för att se hela bokningen →</p>
+                  </Link>
                 ))}
               </div>
             ) : (

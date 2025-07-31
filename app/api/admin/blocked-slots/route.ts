@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { blockedSlots } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get blocked slots
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -41,7 +44,10 @@ export async function GET(request: NextRequest) {
 // POST - Create blocked slot
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const { date, timeStart, timeEnd, isAllDay = false, reason, createdBy } = body;
@@ -121,7 +127,10 @@ export async function POST(request: NextRequest) {
 // PUT - Update blocked slot
 export async function PUT(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const { id, date, timeStart, timeEnd, isAllDay = false, reason } = body;
@@ -169,7 +178,10 @@ export async function PUT(request: NextRequest) {
 // DELETE - Remove blocked slot
 export async function DELETE(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

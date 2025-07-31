@@ -7,8 +7,9 @@ import { db } from "@/lib/db"
 import { lessonTypes } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
-interface LessonType {
+interface SessionType {
   id: string
+  type: 'lesson' | 'handledar';
   name: string
   description: string | null
   durationMinutes: number
@@ -19,25 +20,60 @@ interface LessonType {
 }
 
 interface LessonSelectionProps {
-  onComplete: (data: { lessonType: LessonType }) => void
+  onComplete: (data: { sessionType: SessionType }) => void
 }
 
 export function LessonSelection({ onComplete }: LessonSelectionProps) {
-  const [lessonTypesList, setLessonTypesList] = useState<LessonType[]>([])
-  const [selectedLesson, setSelectedLesson] = useState<LessonType | null>(null)
+  const [sessionTypesList, setSessionTypesList] = useState<SessionType[]>([])
+  const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchLessonTypes()
+    fetchSessionTypes()
   }, [])
 
-  const fetchLessonTypes = async () => {
+  const fetchSessionTypes = async () => {
     try {
-      const response = await fetch('/api/lesson-types')
-      const data = await response.json()
-      setLessonTypesList(data.lessonTypes || [])
+      let allSessions = [];
+      
+      // Fetch regular lessons
+      try {
+        const lessonResponse = await fetch('/api/lesson-types')
+        if (lessonResponse.ok) {
+          const lessonData = await lessonResponse.json()
+          const lessons = (lessonData.lessonTypes || []).map(lesson => ({
+            ...lesson,
+            type: 'lesson' as const
+          }))
+          allSessions.push(...lessons);
+        }
+      } catch (lessonError) {
+        console.error("Error fetching lessons:", lessonError)
+      }
+
+      // Fetch handledar sessions (grouped view)
+      try {
+        const handledarResponse = await fetch('/api/handledar-sessions?grouped=true')
+        if (handledarResponse.ok) {
+          const handledarData = await handledarResponse.json()
+          if (handledarData.hasAvailableSessions && handledarData.sessions?.length > 0) {
+            const handledarSessions = handledarData.sessions.map(session => ({
+              ...session,
+              type: 'handledar' as const,
+              name: session.title,
+              price: session.pricePerParticipant,
+              durationMinutes: session.durationMinutes || 120
+            }))
+            allSessions.push(...handledarSessions);
+          }
+        }
+      } catch (handledarError) {
+        console.error("Error fetching handledar sessions:", handledarError)
+      }
+
+      setSessionTypesList(allSessions)
     } catch (error) {
-      console.error("Error fetching lesson types:", error)
+      console.error("Error fetching session types:", error)
     } finally {
       setLoading(false)
     }
@@ -55,11 +91,11 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     }
   }
 
-  const handleLessonSelect = (lesson: LessonType) => {
-    setSelectedLesson(lesson)
+  const handleSessionSelect = (session: SessionType) => {
+    setSelectedSession(session)
     // Auto-continue after selection
     setTimeout(() => {
-      onComplete({ lessonType: lesson })
+      onComplete({ sessionType: session })
     }, 300)
   }
 
@@ -75,40 +111,49 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj körlektion</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj session</h2>
+        <p className="text-gray-600">Välj mellan körlektioner och handledarkurser</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-        {lessonTypesList.map((lesson) => (
+        {sessionTypesList.map((session) => (
           <Card
-            key={lesson.id}
-            className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
-              selectedLesson?.id === lesson.id ? "ring-2 ring-red-600 border-red-600 bg-red-50" : "hover:border-red-300"
-            }`}
-            onClick={() => handleLessonSelect(lesson)}
+            key={`${session.type}-${session.id}`}
+            className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative ${
+              selectedSession?.id === session.id ? "ring-2 ring-red-600 border-red-600 bg-red-50" : "hover:border-red-300"
+            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}`}
+            onClick={() => handleSessionSelect(session)}
           >
+            {session.type === 'handledar' && (
+              <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                Handledarkurs
+              </div>
+            )}
             <CardContent className="p-4">
               <div className="text-center space-y-2">
-                <h3 className="font-semibold text-lg text-gray-800">{lesson.name}</h3>
+                <h3 className="font-semibold text-lg text-gray-800">{session.name}</h3>
                 <div className="flex items-center justify-center text-sm text-gray-600">
                   <Clock className="w-4 h-4 mr-1" />
-                  <span>{formatDuration(lesson.durationMinutes)}</span>
+                  <span>{formatDuration(session.durationMinutes)}</span>
                 </div>
                 <div className="space-y-1">
-                  {lesson.salePrice ? (
+                  {session.salePrice ? (
                     <>
-                      <div className="text-2xl font-bold text-red-600">{lesson.salePrice} kr</div>
-                      <div className="text-sm text-gray-500 line-through">{lesson.price} kr</div>
+                      <div className="text-2xl font-bold text-red-600">{session.salePrice} kr</div>
+                      <div className="text-sm text-gray-500 line-through">{session.price} kr</div>
                     </>
                   ) : (
-                    <div className="text-2xl font-bold text-red-600">{lesson.price} kr</div>
+                    <div className="text-2xl font-bold text-red-600">{session.price} kr</div>
                   )}
-                  {lesson.priceStudent && (
-                    <div className="text-xs text-green-600">Studentpris: {lesson.priceStudent} kr</div>
+                  {session.priceStudent && (
+                    <div className="text-xs text-green-600">Studentpris: {session.priceStudent} kr</div>
+                  )}
+                  {session.type === 'handledar' && (
+                    <div className="text-xs text-orange-600 font-medium">Per deltagare</div>
                   )}
                 </div>
-                {lesson.description && (
-                  <p className="text-xs text-gray-500 mt-2">{lesson.description}</p>
+                {session.description && (
+                  <p className="text-xs text-gray-500 mt-2">{session.description}</p>
                 )}
               </div>
             </CardContent>
@@ -116,9 +161,9 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         ))}
       </div>
 
-      {lessonTypesList.length === 0 && (
+      {sessionTypesList.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-600">Inga lektioner tillgängliga för tillfället.</p>
+          <p className="text-gray-600">Inga sessioner tillgängliga för tillfället.</p>
         </div>
       )}
     </div>

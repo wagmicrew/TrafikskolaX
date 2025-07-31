@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaEnvelope, FaPaperPlane, FaInbox, FaEdit, FaUserFriends, FaUserShield, FaUserGraduate } from 'react-icons/fa';
+import { FaEnvelope, FaPaperPlane, FaInbox, FaEdit, FaUserFriends, FaUserShield, FaUserGraduate, FaTrash } from 'react-icons/fa';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { LoadingSpinner } from '@/components/loading-spinner';
+import { refreshGlobalUnreadCount } from '@/lib/hooks/use-messages';
 
 // Simple toast implementation
 const useToast = () => {
@@ -18,20 +19,20 @@ const useToast = () => {
 };
 
 interface Message {
-  id: number;
+  id: string;
   subject: string;
   message: string;
   isRead: boolean;
   createdAt: string;
-  fromUserId: number;
-  toUserId: number;
+  fromUserId: string;
+  toUserId: string;
   senderFirstName: string;
   senderLastName: string;
   senderEmail: string;
 }
 
 interface Recipient {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -45,6 +46,7 @@ function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'inbox' | 'compose'>('inbox');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   
   // Compose form state
   const [recipientId, setRecipientId] = useState('');
@@ -61,7 +63,7 @@ function MessagesPage() {
 
   const fetchMessages = async () => {
     try {
-      const response = await fetch('/api/messages?type=all');
+      const response = await fetch('/api/messages?type=received');
       if (!response.ok) {
         throw new Error('Failed to fetch messages');
       }
@@ -118,7 +120,7 @@ function MessagesPage() {
     }
   };
 
-  const markAsRead = async (messageId: number) => {
+  const markAsRead = async (messageId: string) => {
     try {
       const response = await fetch(`/api/messages/${messageId}`,
         {
@@ -139,6 +141,9 @@ function MessagesPage() {
           msg.id === messageId ? { ...msg, isRead: true } : msg
         )
       );
+      
+      // Refresh global unread count
+      refreshGlobalUnreadCount();
     } catch (error) {
       console.error('Failed to mark message as read:', error);
     }
@@ -148,6 +153,39 @@ function MessagesPage() {
     setSelectedMessage(message);
     if (!message.isRead && message.toUserId === (user.userId || user.id)) {
       markAsRead(message.id);
+    }
+  };
+
+  const handleReply = (message: Message) => {
+    setReplyingTo(message);
+    setRecipientId(message.fromUserId);
+    setSubject(`Re: ${message.subject}`);
+    setMessage(`\n\n--- Ursprungligt meddelande ---\nFrån: ${message.senderFirstName} ${message.senderLastName}\nÄmne: ${message.subject}\n\n${message.message}`);
+    setActiveTab('compose');
+  };
+
+  const handleDelete = async (messageId: string) => {
+    if (!confirm('Är du säker på att du vill radera detta meddelande?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete message');
+      }
+      
+      addToast({ type: 'success', message: 'Meddelandet har raderats!' });
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      setSelectedMessage(null);
+      // Refresh global unread count
+      refreshGlobalUnreadCount();
+    } catch (error) {
+      addToast({ type: 'error', message: 'Kunde inte radera meddelandet.' });
+      console.error('Error deleting message:', error);
     }
   };
 
@@ -227,8 +265,12 @@ function MessagesPage() {
                           {messages.map((msg) => (
                             <li 
                               key={msg.id} 
-                              className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                              className={`relative p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
                                 selectedMessage?.id === msg.id ? 'bg-blue-50' : ''
+                              } ${
+                                !msg.isRead && msg.toUserId === (user.userId || user.id) 
+                                  ? 'border-l-4 border-l-green-500 bg-green-50' 
+                                  : 'border-l-4 border-l-gray-200'
                               }`}
                               onClick={() => handleMessageClick(msg)}
                             >
@@ -238,8 +280,11 @@ function MessagesPage() {
                                 }`}>
                                   {msg.subject}
                                 </p>
-                                <div className="ml-2 flex-shrink-0 flex">
+                                <div className="ml-2 flex-shrink-0 flex items-center gap-2">
                                   {!msg.isRead && msg.toUserId === (user.userId || user.id) && (
+                                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
+                                  )}
+                                  {msg.isRead && msg.toUserId === (user.userId || user.id) && (
                                     <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
                                   )}
                                 </div>
@@ -272,6 +317,22 @@ function MessagesPage() {
                         <div className="prose max-w-none text-gray-800">
                           <p style={{ whiteSpace: 'pre-wrap' }}>{selectedMessage.message}</p>
                         </div>
+                        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end gap-2">
+                          <button
+                            onClick={() => handleReply(selectedMessage)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center gap-2"
+                          >
+                            <FaEdit className="w-4 h-4" />
+                            Svara
+                          </button>
+                          <button
+                            onClick={() => handleDelete(selectedMessage.id)}
+                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm flex items-center gap-2"
+                          >
+                            <FaTrash className="w-4 h-4" />
+                            Radera
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -289,11 +350,28 @@ function MessagesPage() {
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-800">
-                    Skriv nytt meddelande
+                    {replyingTo ? 'Svara på meddelande' : 'Skriv nytt meddelande'}
                   </h3>
                   <p className="mt-1 text-sm text-gray-600">
-                    Skicka ett meddelande till en annan användare
+                    {replyingTo 
+                      ? `Svarar till ${replyingTo.senderFirstName} ${replyingTo.senderLastName}` 
+                      : 'Skicka ett meddelande till en annan användare'
+                    }
                   </p>
+                  {replyingTo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingTo(null);
+                        setRecipientId('');
+                        setSubject('');
+                        setMessage('');
+                      }}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      Avbryt svar - Skriv nytt meddelande istället
+                    </button>
+                  )}
                 </div>
                 <form onSubmit={handleComposeSubmit} className="space-y-6">
                   <div>
@@ -311,7 +389,7 @@ function MessagesPage() {
                       <option value="" disabled>Välj en mottagare</option>
                       {recipients.map(recipient => (
                         <option key={recipient.id} value={recipient.id}>
-                          {getRoleIcon(recipient.role)} {recipient.name} ({recipient.role})
+                          {recipient.name} ({recipient.role})
                         </option>
                       ))}
                     </select>

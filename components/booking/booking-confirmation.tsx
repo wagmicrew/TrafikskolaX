@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 interface BookingData {
   lessonType: {
     id: string
+    type?: 'lesson' | 'handledar'
     name: string
     durationMinutes: number
     price: number
@@ -46,6 +47,11 @@ export function BookingConfirmation({
   const [students, setStudents] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number>(0)
   const [unpaidBookings, setUnpaidBookings] = useState<number>(0)
+  const [supervisorName, setSupervisorName] = useState('')
+  const [supervisorEmail, setSupervisorEmail] = useState('')
+  const [supervisorPhone, setSupervisorPhone] = useState('')
+  const [participantCount, setParticipantCount] = useState(1)
+  const [maxParticipants, setMaxParticipants] = useState(1)
   const { user: authUser } = useAuth()
   const { toast } = useToast()
 
@@ -110,17 +116,36 @@ export function BookingConfirmation({
       return
     }
 
+    // Validate supervisor information for handledar sessions when not admin/teacher
+    if (isHandledarSession && !isAdminOrTeacher) {
+      if (!supervisorName || !supervisorEmail || !supervisorPhone) {
+        toast({
+          title: "Fel",
+          description: "Handledare information krävs för handledarkurs",
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     const bookingData = {
       paymentMethod: selectedPaymentMethod,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
       alreadyPaid: isAdminOrTeacher ? alreadyPaid : false,
+      // Add supervisor information for handledar sessions
+      ...(isHandledarSession && {
+        guestName: supervisorName,
+        guestEmail: supervisorEmail,
+        guestPhone: supervisorPhone,
+      }),
     }
 
     onComplete(bookingData)
   }
 
-  const canUseCredits = isStudent && userCredits > 0
-  const canPayAtLocation = isStudent && unpaidBookings < 2
+  const canUseCredits = isStudent && userCredits > 0 && bookingData.lessonType.type !== 'handledar'
+  const canPayAtLocation = isStudent && unpaidBookings < 2 && bookingData.lessonType.type !== 'handledar'
+  const isHandledarSession = bookingData.lessonType.type === 'handledar'
 
   // Create Swish logo SVG component
   const SwishLogo = () => (
@@ -164,7 +189,7 @@ export function BookingConfirmation({
             
             <div className="bg-gray-100 p-4 rounded-lg">
               <div className="flex items-center justify-between">
-                <span>Lektion:</span>
+                <span>{isHandledarSession ? 'Session:' : 'Lektion:'}</span>
                 <span>{bookingData.lessonType.name}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -179,15 +204,59 @@ export function BookingConfirmation({
                 <span>Tid:</span>
                 <span>{bookingData.selectedTime}</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Växellåda:</span>
-                <span>{bookingData.transmissionType === 'manual' ? 'Manuell' : 'Automat'}</span>
-              </div>
+              {!isHandledarSession && (
+                <div className="flex items-center justify-between">
+                  <span>Växellåda:</span>
+                  <span>{bookingData.transmissionType === 'manual' ? 'Manuell' : 'Automat'}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between font-semibold">
                 <span>Kurspris:</span>
                 <span>{bookingData.totalPrice} kr</span>
               </div>
             </div>
+
+            {/* Supervisor Information for Handledar Sessions */}
+            {isHandledarSession && !isAdminOrTeacher && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Handledare information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="supervisor-name" className="text-sm font-medium text-gray-700">Namn *</Label>
+                    <Input
+                      id="supervisor-name"
+                      type="text"
+                      value={supervisorName}
+                      onChange={(e) => setSupervisorName(e.target.value)}
+                      placeholder="För- och efternamn"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="supervisor-email" className="text-sm font-medium text-gray-700">E-post *</Label>
+                    <Input
+                      id="supervisor-email"
+                      type="email"
+                      value={supervisorEmail}
+                      onChange={(e) => setSupervisorEmail(e.target.value)}
+                      placeholder="exempel@email.com"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="supervisor-phone" className="text-sm font-medium text-gray-700">Telefon *</Label>
+                    <Input
+                      id="supervisor-phone"
+                      type="tel"
+                      value={supervisorPhone}
+                      onChange={(e) => setSupervisorPhone(e.target.value)}
+                      placeholder="070-123 45 67"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 space-y-4">
               <h3 className="text-lg font-semibold text-gray-800">Betalningsmetod</h3>
@@ -204,6 +273,21 @@ export function BookingConfirmation({
                   <span>Swish</span>
                 </div>
               </div>
+
+              {/* Qliro - Available for all handledar sessions */}
+              {isHandledarSession && (
+                <div
+                  className={`p-4 rounded-lg cursor-pointer transition-all border ${
+                    selectedPaymentMethod === "qliro" ? "border-purple-600 bg-purple-50" : "hover:border-purple-300"
+                  }`}
+                  onClick={() => setSelectedPaymentMethod("qliro")}
+                >
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-purple-600" />
+                    <span>Qliro (Kort, Klarna, Faktura)</span>
+                  </div>
+                </div>
+              )}
 
               {/* Credits - Only for students with credits */}
               {canUseCredits && (

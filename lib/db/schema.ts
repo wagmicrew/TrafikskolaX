@@ -38,6 +38,7 @@ export const users = pgTable('users', {
   knowledgeTest: date('knowledge_test'),
   drivingTest: date('driving_test'),
   notes: text('notes'),
+  sendInternalMessagesToEmail: boolean('send_internal_messages_to_email').default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -181,10 +182,12 @@ export const packageContents = pgTable('package_contents', {
 export const userCredits = pgTable('user_credits', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  lessonTypeId: uuid('lesson_type_id').notNull().references(() => lessonTypes.id),
+  lessonTypeId: uuid('lesson_type_id').references(() => lessonTypes.id),
+  handledarSessionId: uuid('handledar_session_id').references(() => handledarSessions.id),
   creditsRemaining: integer('credits_remaining').notNull().default(0),
   creditsTotal: integer('credits_total').notNull().default(0),
   packageId: uuid('package_id').references(() => packages.id),
+  creditType: varchar('credit_type', { length: 50 }).notNull().default('lesson'), // 'lesson' or 'handledar'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -310,11 +313,14 @@ export const siteSettings = pgTable('site_settings', {
 // Handledar sessions table
 export const handledarSessions = pgTable('handledar_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
   date: date('date').notNull(),
   startTime: time('start_time').notNull(),
   endTime: time('end_time').notNull(),
   maxParticipants: integer('max_participants').default(2),
   currentParticipants: integer('current_participants').default(0),
+  pricePerParticipant: decimal('price_per_participant', { precision: 10, scale: 2 }).notNull(),
   teacherId: uuid('teacher_id').references(() => users.id),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -326,11 +332,18 @@ export const handledarBookings = pgTable('handledar_bookings', {
   id: uuid('id').defaultRandom().primaryKey(),
   sessionId: uuid('session_id').notNull().references(() => handledarSessions.id, { onDelete: 'cascade' }),
   studentId: uuid('student_id').references(() => users.id),
-  supervisorName: varchar('supervisor_name', { length: 255 }),
+  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
   supervisorEmail: varchar('supervisor_email', { length: 255 }),
   supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  swishUUID: varchar('swish_uuid', { length: 255 }),
   status: varchar('status', { length: 50 }).default('pending'),
+  bookedBy: uuid('booked_by').references(() => users.id), // Who made the booking
+  reminderSent: boolean('reminder_sent').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Slot overrides table
@@ -358,3 +371,28 @@ export const packagePurchases = pgTable('package_purchases', {
   invoiceNumber: varchar('invoice_number', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Handledar sessions relations
+export const handledarSessionsRelations = relations(handledarSessions, ({ one, many }) => ({
+  teacher: one(users, {
+    fields: [handledarSessions.teacherId],
+    references: [users.id],
+  }),
+  bookings: many(handledarBookings),
+}));
+
+// Handledar bookings relations
+export const handledarBookingsRelations = relations(handledarBookings, ({ one }) => ({
+  session: one(handledarSessions, {
+    fields: [handledarBookings.sessionId],
+    references: [handledarSessions.id],
+  }),
+  student: one(users, {
+    fields: [handledarBookings.studentId],
+    references: [users.id],
+  }),
+  bookedBy: one(users, {
+    fields: [handledarBookings.bookedBy],
+    references: [users.id],
+  }),
+}));

@@ -15,6 +15,13 @@
       "when": 1753805563308,
       "tag": "0001_sticky_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1753966002299,
+      "tag": "0002_absent_warlock",
+      "breakpoints": true
     }
   ]
 }

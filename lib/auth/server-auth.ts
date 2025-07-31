@@ -43,27 +43,46 @@ export async function getServerUser(): Promise<AuthUser | null> {
   }
 }
 
-export async function requireAuth(requiredRole?: 'student' | 'teacher' | 'admin') {
+export async function requireAuth(requiredRoles?: ('student' | 'teacher' | 'admin')[] | 'student' | 'teacher' | 'admin') {
   const user = await getServerUser();
   
   if (!user) {
     redirect('/inloggning');
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on role
-    switch (user.role) {
-      case 'admin':
-        redirect('/dashboard/admin');
-        break;
-      case 'teacher':
-        redirect('/dashboard/teacher');
-        break;
-      case 'student':
-      default:
-        redirect('/dashboard/student');
-        break;
+  // Handle both single role and array of roles
+  if (requiredRoles) {
+    const allowedRoles = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    if (!allowedRoles.includes(user.role)) {
+      // Redirect to appropriate dashboard based on role
+      switch (user.role) {
+        case 'admin':
+          redirect('/dashboard/admin');
+          break;
+        case 'teacher':
+          redirect('/dashboard/teacher');
+          break;
+        case 'student':
+        default:
+          redirect('/dashboard/student');
+          break;
+      }
     }
+  }
+
+  return user;
+}
+
+// API-specific authentication that returns null instead of redirecting
+export async function requireAuthAPI(requiredRole?: 'student' | 'teacher' | 'admin'): Promise<AuthUser | null> {
+  const user = await getServerUser();
+  
+  if (!user) {
+    return null;
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    return null;
   }
 
   return user;

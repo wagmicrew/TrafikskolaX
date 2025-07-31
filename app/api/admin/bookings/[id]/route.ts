@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, users, lessonTypes, cars } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get single booking with related data
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const user = await requireAuthAPI('admin');
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     const booking = await db
       .select({
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
       .leftJoin(cars, eq(bookings.carId, cars.id))
-      .where(eq(bookings.id, params.id))
+      .where(eq(bookings.id, id))
       .limit(1);
 
     if (!booking.length) {
@@ -69,9 +73,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update booking
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const user = await requireAuthAPI('admin');
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     const body = await request.json();
     const {
@@ -121,7 +129,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updatedBooking = await db
       .update(bookings)
       .set(updateData)
-      .where(eq(bookings.id, params.id))
+      .where(eq(bookings.id, id))
       .returning();
 
     if (!updatedBooking.length) {
@@ -139,9 +147,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE - Delete booking (soft delete)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const user = await requireAuthAPI('admin');
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     // Soft delete by setting deletedAt timestamp
     const deletedBooking = await db
@@ -150,7 +162,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         deletedAt: new Date(),
         updatedAt: new Date()
       })
-      .where(eq(bookings.id, params.id))
+      .where(eq(bookings.id, id))
       .returning();
 
     if (!deletedBooking.length) {

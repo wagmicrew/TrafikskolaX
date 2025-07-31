@@ -125,7 +125,7 @@ export const Navigation = memo(function Navigation() {
               
             {/* Dashboard/Logout Button */}
             {user ? (
-              <div className="ml-1">
+              <div className="ml-4">
                 <UserAvatarMenu />
               </div>
             ) : (

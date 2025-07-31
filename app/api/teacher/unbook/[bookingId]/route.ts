@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
-import { db } from '@/lib/db/client';
-import { bookings, users, credits } from '@/lib/db/schema';
+import { db } from '@/lib/db';
+import { bookings, users, userCredits } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export async function POST(
@@ -63,16 +63,48 @@ export async function POST(
         })
         .where(eq(bookings.id, bookingId));
 
-      // Add a credit for the student
-      await tx.insert(credits).values({
-        userId: booking[0].userId,
-        bookingId: bookingId,
-        amount: booking[0].totalPrice || 0,
-        minutesValue: booking[0].durationMinutes || 0,
-        reason: 'Lektion avbokad av lärare',
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-      });
+      // Add credits for the student based on the booking duration
+      // Note: This assumes we have a lessonTypeId from the booking to add credits
+      // If the booking doesn't have lessonTypeId, we'll need to get it first
+      const bookingDetails = await tx
+        .select({ lessonTypeId: bookings.lessonTypeId })
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .limit(1);
+        
+      if (bookingDetails.length > 0 && bookingDetails[0].lessonTypeId) {
+        // Check if user already has credits for this lesson type
+        const existingCredits = await tx
+          .select()
+          .from(userCredits)
+          .where(
+            and(
+              eq(userCredits.userId, booking[0].userId!),
+              eq(userCredits.lessonTypeId, bookingDetails[0].lessonTypeId)
+            )
+          )
+          .limit(1);
+          
+        if (existingCredits.length > 0) {
+          // Update existing credits
+          await tx
+            .update(userCredits)
+            .set({
+              creditsRemaining: existingCredits[0].creditsRemaining + (booking[0].durationMinutes || 0),
+              creditsTotal: existingCredits[0].creditsTotal + (booking[0].durationMinutes || 0),
+              updatedAt: new Date(),
+            })
+            .where(eq(userCredits.id, existingCredits[0].id));
+        } else {
+          // Create new credit entry
+          await tx.insert(userCredits).values({
+            userId: booking[0].userId!,
+            lessonTypeId: bookingDetails[0].lessonTypeId,
+            creditsRemaining: booking[0].durationMinutes || 0,
+            creditsTotal: booking[0].durationMinutes || 0,
+          });
+        }
+      }
     });
 
     return NextResponse.json({ 

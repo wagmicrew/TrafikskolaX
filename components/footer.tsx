@@ -126,10 +126,20 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-200 mt-12 pt-8 text-center">
-          <p className="text-gray-600">
-            &copy; {new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
-          </p>
+        <div className="border-t border-gray-200 mt-12 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-600 mb-4 md:mb-0">
+              &copy; {new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
+            </p>
+            <div className="flex space-x-6">
+              <Link href="/kopvillkor" className="text-red-600 hover:text-red-700 text-sm">
+                Köpvillkor
+              </Link>
+              <Link href="/kopvillkor" className="text-red-600 hover:text-red-700 text-sm">
+                Integritetspolicy
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>

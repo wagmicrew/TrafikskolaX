@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, lessonTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 // POST - Create a booking for a specific user
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const {

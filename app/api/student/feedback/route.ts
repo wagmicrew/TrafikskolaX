@@ -38,39 +38,24 @@ export async function GET(request: NextRequest) {
       .where(eq(bookings.userId, user.userId || user.id))
       .orderBy(desc(userFeedback.createdAt));
 
-    // Group feedback by booking
-    const groupedFeedback = rawFeedback.reduce((acc, item) => {
-      const existingBooking = acc.find(booking => booking.bookingId === item.bookingId);
-      
-      if (existingBooking) {
-        existingBooking.feedback.push({
-          id: item.id,
-          stepIdentifier: item.stepIdentifier,
-          feedbackText: item.feedbackText,
-          valuation: item.valuation,
-          rating: item.rating
-        });
-      } else {
-        acc.push({
-          bookingId: item.bookingId,
-          scheduledDate: item.scheduledDate,
-          lessonTypeId: item.lessonTypeId,
-          lessonTypeName: 'Körlektion', // You might want to join with lessonTypes table for actual name
-          feedback: [{
-            id: item.id,
-            stepIdentifier: item.stepIdentifier,
-            feedbackText: item.feedbackText,
-            valuation: item.valuation,
-            rating: item.rating
-          }]
-        });
-      }
-      return acc;
-    }, []);
+    // Transform feedback to individual items for dashboard display
+    const feedbackItems = rawFeedback.map(item => ({
+      id: item.id,
+      bookingId: item.bookingId,
+      feedbackText: item.feedbackText,
+      rating: item.rating,
+      valuation: item.valuation,
+      stepIdentifier: item.stepIdentifier,
+      isFromTeacher: item.isFromTeacher,
+      createdAt: item.createdAt,
+      scheduledDate: item.scheduledDate,
+      lessonTypeId: item.lessonTypeId,
+      lessonTypeName: 'Körlektion' // You might want to join with lessonTypes table for actual name
+    }));
 
     return NextResponse.json({ 
-      feedback: groupedFeedback,
-      total: groupedFeedback.length 
+      feedback: feedbackItems,
+      total: feedbackItems.length 
     });
   } catch (error) {
     console.error('Error fetching student feedback:', error);

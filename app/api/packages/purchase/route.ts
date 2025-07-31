@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packages, packagePurchases, siteSettings, userCredits, packageContents, lessonTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth('student');
+    const authResult = await requireAuthAPI('student');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    const user = authResult.user;
     const { packageId, paymentMethod } = await request.json();
 
     if (!packageId || !paymentMethod) {

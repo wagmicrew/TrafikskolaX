@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/lib/hooks/use-toast';
+import toast from 'react-hot-toast';
 import { 
   Mail, 
   Globe, 
@@ -20,7 +20,10 @@ import {
   Key,
   User,
   AtSign,
-  DollarSign
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  Settings as SettingsIcon
 } from 'lucide-react';
 
 interface Settings {
@@ -39,6 +42,9 @@ interface Settings {
   swish_number: string;
   swish_enabled: boolean;
   qliro_api_key: string;
+  qliro_secret: string;
+  qliro_merchant_id: string;
+  qliro_sandbox: boolean;
   qliro_enabled: boolean;
 }
 
@@ -54,11 +60,13 @@ export default function SettingsClient() {
     swish_number: '',
     swish_enabled: false,
     qliro_api_key: '',
+    qliro_secret: '',
+    qliro_merchant_id: '',
+    qliro_sandbox: true,
     qliro_enabled: false,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { addToast } = useToast();
 
   useEffect(() => {
     fetchSettings();
@@ -70,12 +78,10 @@ export default function SettingsClient() {
       if (!response.ok) throw new Error('Failed to fetch settings');
       const data = await response.json();
       setSettings(data.settings);
+      toast.success('Inställningar hämtade');
     } catch (error) {
       console.error('Error fetching settings:', error);
-      addToast({
-        type: 'error',
-        message: 'Kunde inte hämta inställningar',
-      });
+      toast.error('Kunde inte hämta inställningar');
     } finally {
       setLoading(false);
     }
@@ -83,6 +89,8 @@ export default function SettingsClient() {
 
   const saveSettings = async () => {
     setSaving(true);
+    const loadingToast = toast.loading('Sparar inställningar...');
+    
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -94,15 +102,13 @@ export default function SettingsClient() {
 
       if (!response.ok) throw new Error('Failed to save settings');
 
-      addToast({
-        type: 'success',
-        message: 'Inställningar sparade',
+      toast.success('Inställningar sparade framgångsrikt!', {
+        id: loadingToast,
       });
     } catch (error) {
       console.error('Error saving settings:', error);
-      addToast({
-        type: 'error',
-        message: 'Kunde inte spara inställningar',
+      toast.error('Kunde inte spara inställningar', {
+        id: loadingToast,
       });
     } finally {
       setSaving(false);
@@ -330,18 +336,61 @@ export default function SettingsClient() {
                 </div>
 
                 {settings.qliro_enabled && (
-                  <div className="space-y-2 pl-4">
-                    <Label htmlFor="qliro-api-key">
-                      <Key className="w-4 h-4 inline mr-2" />
-                      Qliro API-nyckel
-                    </Label>
-                    <Input
-                      id="qliro-api-key"
-                      type="password"
-                      placeholder="Ange din Qliro API-nyckel"
-                      value={settings.qliro_api_key}
-                      onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
-                    />
+                  <div className="space-y-4 pl-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="qliro-api-key">
+                        <Key className="w-4 h-4 inline mr-2" />
+                        Qliro API-nyckel
+                      </Label>
+                      <Input
+                        id="qliro-api-key"
+                        type="password"
+                        placeholder="Ange din Qliro API-nyckel"
+                        value={settings.qliro_api_key}
+                        onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="qliro-secret">
+                        <Key className="w-4 h-4 inline mr-2" />
+                        Qliro API Secret
+                      </Label>
+                      <Input
+                        id="qliro-secret"
+                        type="password"
+                        placeholder="Ange din Qliro API Secret"
+                        value={settings.qliro_secret}
+                        onChange={(e) => updateSetting('qliro_secret', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="qliro-merchant-id">
+                        <Building className="w-4 h-4 inline mr-2" />
+                        Qliro Merchant ID
+                      </Label>
+                      <Input
+                        id="qliro-merchant-id"
+                        placeholder="Ange ditt Qliro Merchant ID"
+                        value={settings.qliro_merchant_id}
+                        onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="qliro-sandbox">Sandbox-läge</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Använd Qliro testmiljö (playground)
+                        </p>
+                      </div>
+                      <Switch
+                        id="qliro-sandbox"
+                        checked={settings.qliro_sandbox}
+                        onCheckedChange={(checked) => updateSetting('qliro_sandbox', checked)}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

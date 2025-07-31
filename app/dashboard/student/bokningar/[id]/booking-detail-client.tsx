@@ -72,7 +72,7 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
         },
         body: JSON.stringify({
           bookingId: booking.id,
-          userId: user.id,
+          userId: user.userId || user.id,
         }),
       });
 

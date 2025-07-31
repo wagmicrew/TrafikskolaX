@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userFeedback } from '@/lib/db/schema';
+import { userFeedback, bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth/jwt';
 import { cookies } from 'next/headers';
@@ -25,17 +25,28 @@ export async function GET(
 
     const { id: bookingId } = await params;
 
-    // Fetch feedback for the specific booking
-    // Students can only see feedback for their own bookings
+    // First verify that this booking belongs to the requesting user
+    const bookingCheck = await db
+      .select({ userId: bookings.userId })
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+
+    if (bookingCheck.length === 0) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    if (bookingCheck[0].userId !== user.userId) {
+      return NextResponse.json({ error: 'Unauthorized access to booking' }, { status: 404 });
+    }
+
+    // Fetch all feedback for the specific booking (both from student and teacher)
     const feedback = await db
       .select()
       .from(userFeedback)
       .where(eq(userFeedback.bookingId, bookingId));
 
-    // Filter to only show feedback for this user (security check)
-    const userFeedbackOnly = feedback.filter(fb => fb.userId === user.id);
-
-    return NextResponse.json(userFeedbackOnly);
+    return NextResponse.json(feedback);
   } catch (error) {
     console.error('Error fetching student feedback:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

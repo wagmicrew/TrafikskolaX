@@ -4,12 +4,15 @@ import { hash } from 'bcryptjs';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function POST(request: NextRequest) {
   try {
     // Ensure admin access
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
     const { userId } = await request.json();
 

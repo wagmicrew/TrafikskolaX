@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slotSettings, blockedSlots } from '@/lib/db/schema';
 import { eq, and, or, gte, lte } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get all slot settings
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'slots';
@@ -39,7 +42,10 @@ export async function GET(request: NextRequest) {
 // PUT - Update existing slot setting
 export async function PUT(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const {
@@ -95,7 +101,10 @@ export async function PUT(request: NextRequest) {
 // DELETE - Remove slot setting
 export async function DELETE(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -119,7 +128,10 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const { dayOfWeek, timeStart, timeEnd, adminMinutes = 0, isActive = true } = body;

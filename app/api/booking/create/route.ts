@@ -1,20 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+
+// Helper function to get SendGrid API key from database
+async function getSendGridApiKey(): Promise<string> {
+  try {
+    const setting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'sendgrid_api_key'))
+      .limit(1);
+    
+    if (setting.length > 0 && setting[0].value) {
+      return setting[0].value;
+    }
+    
+    // Fallback to environment variable if not in database
+    return process.env.SENDGRID_API_KEY || '';
+  } catch (error) {
+    console.error('Error fetching SendGrid API key from database:', error);
+    // Fallback to environment variable on error
+    return process.env.SENDGRID_API_KEY || '';
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const {
-      lessonTypeId,
+      sessionType,
+      sessionId,
       studentId,
       alreadyPaid,
       scheduledDate,
@@ -30,9 +53,15 @@ export async function POST(request: NextRequest) {
       guestPhone,
     } = body;
 
-    // Validate required fields
-    if (!lessonTypeId || !scheduledDate || !startTime || !endTime || !durationMinutes || !totalPrice) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // Validate required fields - different validation for handledar vs regular lessons
+    if (sessionType === 'handledar') {
+      if (!sessionId || !scheduledDate || !startTime || !durationMinutes || !totalPrice) {
+        return NextResponse.json({ error: 'Missing required fields for handledar session' }, { status: 400 });
+      }
+    } else {
+      if (!sessionId || !scheduledDate || !startTime || !endTime || !durationMinutes || !totalPrice) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
     }
 
     let userId = null;
@@ -77,89 +106,309 @@ export async function POST(request: NextRequest) {
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
       userId = studentId; // Book for the selected student
     }
-
     // Special handling for admin/teacher booking for students
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
-      // Admin or teacher booking for a student - no payment required
-      const [booking] = await db
-        .insert(bookings)
-        .values({
-          userId,
-          lessonTypeId,
-          scheduledDate,
-          startTime,
-          endTime,
-          durationMinutes,
-          transmissionType,
-          totalPrice: alreadyPaid ? totalPrice : 0, // Set price to 0 unless already paid is selected
-          status: 'confirmed',
-          paymentStatus: 'paid',
-          isGuestBooking: false,
-          guestName: null,
-          guestEmail: null,
-          guestPhone: null,
-          swishUUID: uuidv4(),
-        })
-        .returning();
+      if (sessionType === 'handledar') {
+        // Handle admin or teacher booking for handledarkurs
+        const [session] = await db
+          .select()
+          .from(handledarSessions)
+          .where(
+            and(
+              eq(handledarSessions.id, sessionId!),
+              eq(handledarSessions.isActive, true)
+            )
+          );
 
-      // Send notification to the student
-      const studentUser = await db.select().from(users).where(eq(users.id, userId));
-      if (studentUser.length > 0) {
-        await sendBookingNotification(studentUser[0].email, booking, true); // Always send as "paid" for admin bookings
-      }
+        if (!session || session.currentParticipants >= session.maxParticipants) {
+          return NextResponse.json({ error: 'No available spots for the session.' }, { status: 400 });
+        }
 
-      return NextResponse.json({ 
-        booking,
-        message: `Booking confirmed for student by ${currentUserRole}.`
-      });
-    }
+        // Update session participant count
+        await db
+          .update(handledarSessions)
+          .set({ currentParticipants: sql`${handledarSessions.currentParticipants} + 1` })
+          .where(eq(handledarSessions.id, sessionId!));
 
-    // If using credits, deduct from user's total
-    if (paymentMethod === 'credits') {
+        // Create booking
+        const [booking] = await db
+          .insert(handledarBookings)
+          .values({
+            sessionId,
+            studentId: userId,
+            supervisorName: guestName || '',
+            supervisorEmail: guestEmail || '',
+            supervisorPhone: guestPhone || '',
+            price: totalPrice,
+            paymentStatus: 'paid',
+            status: 'confirmed',
+            bookedBy: currentUserId,
+            swishUUID: uuidv4(),
+          })
+          .returning();
 
-    const userCredits = await db
-      .select()
-      .from(userCredits)
-      .where(
-        and(
-          eq(userCredits.userId, userId!),
-          eq(userCredits.lessonTypeId, lessonTypeId)
-        )
-      );
+        // Send notification
+        await sendBookingNotification(guestEmail || '', booking, true);
 
-    const totalUserCredits = userCredits ? userCredits.reduce((sum, credit) => sum + credit.creditsRemaining, 0) : 0;
-
-    if (totalUserCredits < durationMinutes) {
-      return NextResponse.json({ error: 'Not enough credits available.' }, { status: 400 });
-    }
-
-    await db.transaction(async (trx) => {
-      await trx
-        .update(userCredits)
-        .set({
-          creditsRemaining: sql`${userCredits.creditsRemaining} - ${durationMinutes}`
-        })
-        .where(
-          and(
-            eq(userCredits.userId, userId!),
-            eq(userCredits.lessonTypeId, lessonTypeId)
-          )
-        );
-
-        // Create and confirm booking
-        const [booking] = await trx
+        return NextResponse.json({ 
+          booking,
+          message: `Handledar session booking confirmed for student by ${currentUserRole}.`
+        });
+      } else {
+        // Admin or teacher booking for a student - no payment required
+        const [booking] = await db
           .insert(bookings)
           .values({
             userId,
-            lessonTypeId,
+            lessonTypeId: sessionId!,
+            scheduledDate,
+            startTime,
+            endTime,
+            durationMinutes,
+            transmissionType,
+            totalPrice: alreadyPaid ? totalPrice : 0, // Set price to 0 unless already paid is selected
+            status: 'confirmed',
+            paymentStatus: 'paid',
+            isGuestBooking: false,
+            guestName: null,
+            guestEmail: null,
+            guestPhone: null,
+            swishUUID: uuidv4(),
+          })
+          .returning();
+
+        // Send notification to the student
+        const studentUser = await db.select().from(users).where(eq(users.id, userId));
+        if (studentUser.length > 0) {
+          await sendBookingNotification(studentUser[0].email, booking, true); // Always send as "paid" for admin bookings
+        }
+
+        return NextResponse.json({ 
+          booking,
+          message: `Booking confirmed for student by ${currentUserRole}.`
+        });
+      }
+    }
+
+    // Handle different session types
+    if (sessionType === 'handledar') {
+      // Handle handledarkurs booking
+      const [session] = await db
+        .select()
+        .from(handledarSessions)
+        .where(
+          and(
+            eq(handledarSessions.id, sessionId!),
+            eq(handledarSessions.isActive, true)
+          )
+        );
+
+      if (!session || session.currentParticipants >= session.maxParticipants) {
+        return NextResponse.json({ error: 'No available spots for the session.' }, { status: 400 });
+      }
+
+      // If using credits, deduct from user's handledar credits
+      if (paymentMethod === 'credits' && userId) {
+        // If sessionId is handledarutbildning-group, ask user to select a specific session
+        if (sessionId === 'handledarutbildning-group') {
+          return NextResponse.json({
+            error: 'Select a specific session from the available options',
+            requireSessionSelection: true
+          }, { status: 400 });
+        }
+
+        const userCreditRecords = await db
+          .select()
+          .from(userCredits)
+          .where(
+            and(
+              eq(userCredits.userId, userId),
+              eq(userCredits.creditType, 'handledar')
+            )
+          );
+
+        const totalUserCredits = userCreditRecords ? userCreditRecords.reduce((sum, credit) => sum + credit.creditsRemaining, 0) : 0;
+
+        if (totalUserCredits < 1) {
+          return NextResponse.json({ error: 'Not enough handledar credits available.' }, { status: 400 });
+        }
+
+        return await db.transaction(async (trx) => {
+          // Deduct 1 credit from the first available credit record
+          const firstCreditRecord = userCreditRecords.find(record => record.creditsRemaining > 0);
+          if (firstCreditRecord) {
+            await trx
+              .update(userCredits)
+              .set({
+                creditsRemaining: firstCreditRecord.creditsRemaining - 1,
+                updatedAt: new Date()
+              })
+              .where(eq(userCredits.id, firstCreditRecord.id));
+          }
+
+          // Update session participant count
+          await trx
+            .update(handledarSessions)
+            .set({ currentParticipants: sql`${handledarSessions.currentParticipants} + 1` })
+            .where(eq(handledarSessions.id, sessionId!));
+
+          // Create booking with confirmed status
+          const [booking] = await trx
+            .insert(handledarBookings)
+            .values({
+              sessionId,
+              studentId: userId,
+              supervisorName: guestName || '',
+              supervisorEmail: guestEmail || '',
+              supervisorPhone: guestPhone || '',
+              price: totalPrice,
+              paymentStatus: 'paid',
+              status: 'confirmed',
+              bookedBy: currentUserId || userId,
+              swishUUID: uuidv4(),
+              paymentMethod: 'credits'
+            })
+            .returning();
+
+          // Send notification
+          const notificationEmail = guestEmail || (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+          if (notificationEmail) {
+            await sendBookingNotification(notificationEmail, { 
+              ...booking, 
+              scheduledDate: session.date,
+              startTime: session.startTime,
+              durationMinutes: session.endTime ? 
+                (new Date(`1970-01-01T${session.endTime}`).getTime() - new Date(`1970-01-01T${session.startTime}`).getTime()) / (1000 * 60) :
+                durationMinutes
+            }, true);
+          }
+
+          return NextResponse.json({ 
+            booking,
+            message: 'Handledar session booking confirmed and paid using credits.'
+          });
+        });
+      } else {
+        // Regular payment flow
+        // Update session participant count
+        await db
+          .update(handledarSessions)
+          .set({ currentParticipants: sql`${handledarSessions.currentParticipants} + 1` })
+          .where(eq(handledarSessions.id, sessionId!));
+
+        // Create booking
+        const [booking] = await db
+          .insert(handledarBookings)
+          .values({
+            sessionId,
+            studentId: userId,
+            supervisorName: guestName || '',
+            supervisorEmail: guestEmail || '',
+            supervisorPhone: guestPhone || '',
+            price: totalPrice,
+            paymentStatus: alreadyPaid ? 'paid' : 'pending',
+            status: alreadyPaid ? 'confirmed' : 'pending',
+            bookedBy: currentUserId || userId,
+            swishUUID: uuidv4(),
+          })
+          .returning();
+
+        // Send notification
+        const notificationEmail = guestEmail || (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+          if (notificationEmail) {
+            await sendBookingNotification(notificationEmail, { 
+              ...booking, 
+              scheduledDate: session.date,
+              startTime: session.startTime,
+              durationMinutes: session.endTime ? 
+                (new Date(`1970-01-01T${session.endTime}`).getTime() - new Date(`1970-01-01T${session.startTime}`).getTime()) / (1000 * 60) :
+                durationMinutes
+            }, alreadyPaid);
+          }
+
+          return NextResponse.json({ 
+            booking,
+            message: alreadyPaid ?
+              'Handledar session booking confirmed and marked as paid.' :
+              'Handledar session booking created. Please complete payment within 10 minutes.'
+          });
+      }
+    } else {
+      // Handle regular lesson booking
+      
+      // If using credits, deduct from user's total
+      if (paymentMethod === 'credits') {
+        const userCreditRecords = await db
+          .select()
+          .from(userCredits)
+          .where(
+            and(
+              eq(userCredits.userId, userId!),
+              eq(userCredits.lessonTypeId, sessionId!)
+            )
+          );
+
+        const totalUserCredits = userCreditRecords ? userCreditRecords.reduce((sum, credit) => sum + credit.creditsRemaining, 0) : 0;
+
+        if (totalUserCredits < durationMinutes) {
+          return NextResponse.json({ error: 'Not enough credits available.' }, { status: 400 });
+        }
+
+        await db.transaction(async (trx) => {
+          await trx
+            .update(userCredits)
+            .set({
+              creditsRemaining: sql`${userCredits.creditsRemaining} - ${durationMinutes}`
+            })
+            .where(
+              and(
+                eq(userCredits.userId, userId!),
+                eq(userCredits.lessonTypeId, sessionId!)
+              )
+            );
+
+          // Create and confirm booking
+          const [booking] = await trx
+            .insert(bookings)
+            .values({
+              userId,
+              lessonTypeId: sessionId!,
+              scheduledDate,
+              startTime,
+              endTime,
+              durationMinutes,
+              transmissionType,
+              totalPrice,
+              status: 'confirmed',
+              paymentStatus: 'paid',
+              isGuestBooking,
+              guestName: isGuestBooking ? guestName : null,
+              guestEmail: isGuestBooking ? guestEmail : null,
+              guestPhone: isGuestBooking ? guestPhone : null,
+              swishUUID: uuidv4(),
+            })
+            .returning();
+
+          return NextResponse.json({ 
+            booking,
+            message: 'Booking confirmed and paid using credits.'
+          });
+        });
+      } else {
+        // Create the booking with on_hold status
+        const [booking] = await db
+          .insert(bookings)
+          .values({
+            userId,
+            lessonTypeId: sessionId!,
             scheduledDate,
             startTime,
             endTime,
             durationMinutes,
             transmissionType,
             totalPrice,
-            status: 'confirmed',
-            paymentStatus: 'paid',
+            status: alreadyPaid ? 'confirmed' : 'on_hold',
+            paymentStatus: alreadyPaid ? 'paid' : 'unpaid',
             isGuestBooking,
             guestName: isGuestBooking ? guestName : null,
             guestEmail: isGuestBooking ? guestEmail : null,
@@ -168,50 +417,24 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
+        // Send email with booking details and payment instructions
+        if (userId) {
+          const user = await db.select().from(users).where(eq(users.id, userId));
+
+          if (user.length > 0) {
+            await sendBookingNotification(user[0].email, booking, alreadyPaid);
+          }
+        } else if (isGuestBooking && guestEmail) {
+          await sendBookingNotification(guestEmail, booking, alreadyPaid);
+        }
+
         return NextResponse.json({ 
           booking,
-          message: 'Booking confirmed and paid using credits.'
+          message: alreadyPaid ?
+            'Booking confirmed and marked as paid.' :
+            'Booking created with on_hold status. Please complete payment within 10 minutes.'
         });
-      });
-
-    } else {
-      // Create the booking with on_hold status
-      const [booking] = await db
-        .insert(bookings)
-        .values({
-          userId,
-          lessonTypeId,
-          scheduledDate,
-          startTime,
-          endTime,
-          durationMinutes,
-          transmissionType,
-          totalPrice,
-          status: alreadyPaid ? 'confirmed' : 'on_hold',
-          paymentStatus: alreadyPaid ? 'paid' : 'unpaid',
-          isGuestBooking,
-          guestName: isGuestBooking ? guestName : null,
-          guestEmail: isGuestBooking ? guestEmail : null,
-          guestPhone: isGuestBooking ? guestPhone : null,
-          swishUUID: uuidv4(),
-        })
-        .returning();
-
-      // Send email with booking details and payment instructions
-      if (userId) {
-        const user = await db.select().from(users).where(eq(users.id, userId));
-
-        if (user.length > 0) {
-          await sendBookingNotification(user[0].email, booking, alreadyPaid);
-        }
       }
-
-      return NextResponse.json({ 
-        booking,
-        message: alreadyPaid ?
-          'Booking confirmed and marked as paid.' :
-          'Booking created with on_hold status. Please complete payment within 10 minutes.'
-      });
     }
   } catch (error) {
     console.error('Error creating booking:', error);
@@ -256,24 +479,37 @@ export async function createGuestUser(email: string, name: string, phone: string
 }
 
 async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean) {
-  // Create transporter
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+  // Get SendGrid API key from database and initialize
+  const apiKey = await getSendGridApiKey();
+  if (!apiKey) {
+    console.error('SendGrid API key not found, saving message internally instead');
+    await saveInternalMessage(booking.userId, booking, alreadyPaid);
+    return;
+  }
+  sgMail.setApiKey(apiKey);
 
-  const formattedDate = format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv });
+  // Parse the date string to ensure it's valid
+  const dateValue = booking.scheduledDate;
+  let bookingDate;
+  
+  // Handle different date formats that might come from the database
+  if (typeof dateValue === 'string') {
+    // If it's already a string in YYYY-MM-DD format, parse it
+    bookingDate = new Date(dateValue + 'T00:00:00');
+  } else if (dateValue instanceof Date) {
+    bookingDate = dateValue;
+  } else {
+    // Fallback to today's date if parsing fails
+    bookingDate = new Date();
+  }
+  
+  const formattedDate = format(bookingDate, 'EEEE d MMMM yyyy', { locale: sv });
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
   try {
     if (alreadyPaid) {
       // Send confirmation email for already paid booking
-      await transporter.sendMail({
+      await sgMail.send({
       from: '"Din Trafikskola HLM" <noreply@dintrafikskolahlm.se>',
       to: email,
       subject: '✅ Bekräftelse: Din körlektion är bokad',
@@ -309,7 +545,7 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
     });
   } else {
     // Send payment request email
-    await transporter.sendMail({
+    await sgMail.send({
       from: '"Din Trafikskola HLM" <noreply@dintrafikskolahlm.se>',
       to: email,
       subject: '💳 Slutför din bokning - Betalning krävs',
@@ -392,7 +628,8 @@ Betala inom 10 minuter för att säkra din plats.`;
 
   try {
     await db.insert(internalMessages).values({
-      userId,
+      fromUserId: userId,
+      toUserId: userId, // User sends message to themselves
       subject,
       message,
       messageType: 'booking',
@@ -406,19 +643,16 @@ Betala inom 10 minuter för att säkra din plats.`;
 
 async function sendWelcomeEmail(email: string, password: string) {
   try {
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    // Get SendGrid API key from database and initialize
+    const apiKey = await getSendGridApiKey();
+    if (!apiKey) {
+      console.error('SendGrid API key not found, cannot send welcome email');
+      return;
+    }
+    sgMail.setApiKey(apiKey);
 
-    // Send email
-    await transporter.sendMail({
+    // Send email using SendGrid
+    await sgMail.send({
       from: '"Din Trafikskola HLM" <noreply@dintrafikskolahlm.se>',
       to: email,
       subject: 'Välkommen till Din Trafikskola HLM',

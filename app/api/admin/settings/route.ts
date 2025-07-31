@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { siteSettings } from '@/lib/db/schema';
 import { eq, or, inArray } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const user = await requireAuth(cookieStore);
+    const user = await requireAuthAPI('admin');
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -37,6 +35,9 @@ export async function GET(request: Request) {
       swish_number: '',
       swish_enabled: false,
       qliro_api_key: '',
+      qliro_secret: '',
+      qliro_merchant_id: '',
+      qliro_sandbox: true,
       qliro_enabled: false,
     };
 
@@ -54,10 +55,9 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const user = await requireAuth(cookieStore);
+    const user = await requireAuthAPI('admin');
 
-    if (!user || user.role !== 'admin') {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -75,6 +75,9 @@ export async function PUT(request: Request) {
       swish_number: 'payment',
       swish_enabled: 'payment',
       qliro_api_key: 'payment',
+      qliro_secret: 'payment',
+      qliro_merchant_id: 'payment',
+      qliro_sandbox: 'payment',
       qliro_enabled: 'payment',
     };
 

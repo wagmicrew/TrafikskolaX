@@ -2,20 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get single user
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const authUser = await requireAuthAPI('admin');
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     const user = await db
       .select()
       .from(users)
-      .where(eq(users.id, params.id))
+      .where(eq(users.id, id))
       .limit(1);
 
     if (!user.length) {
@@ -33,9 +37,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update user
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const authUser = await requireAuthAPI('admin');
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     const body = await request.json();
     const {
@@ -85,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updatedUser = await db
       .update(users)
       .set(updateData)
-      .where(eq(users.id, params.id))
+      .where(eq(users.id, id))
       .returning();
 
     if (!updatedUser.length) {
@@ -106,9 +114,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE - Delete user (soft delete)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth('admin');
+    const authUser = await requireAuthAPI('admin');
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { id } = await params;
     
     // Soft delete by setting isActive to false
     const deletedUser = await db
@@ -117,7 +129,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         isActive: false,
         updatedAt: new Date()
       })
-      .where(eq(users.id, params.id))
+      .where(eq(users.id, id))
       .returning();
 
     if (!deletedUser.length) {

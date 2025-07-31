@@ -7,12 +7,14 @@ import { BookingSteps } from "@/components/booking/booking-steps"
 import { LessonSelection } from "@/components/booking/lesson-selection"
 import { TransmissionSelection } from "@/components/booking/transmission-selection"
 import { WeekCalendar } from "@/components/booking/week-calendar"
+import { HandledarSessionSelection } from "@/components/booking/handledar-session-selection"
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { useAuth } from "@/hooks/use-auth"
 import { SwishPaymentDialog } from "@/components/booking/swish-payment-dialog"
 
-interface LessonType {
+interface SessionType {
   id: string
+  type: 'lesson' | 'handledar';
   name: string
   description: string | null
   durationMinutes: number
@@ -23,7 +25,7 @@ interface LessonType {
 }
 
 interface BookingData {
-  lessonType: LessonType | null
+  sessionType: SessionType | null
   transmissionType: "manual" | "automatic" | null
   selectedDate: Date | null
   selectedTime: string | null
@@ -34,7 +36,7 @@ interface BookingData {
 export default function BokaKorning() {
   const [currentStep, setCurrentStep] = useState(1)
   const [bookingData, setBookingData] = useState<BookingData>({
-    lessonType: null,
+    sessionType: null,
     transmissionType: null,
     selectedDate: null,
     selectedTime: null,
@@ -49,10 +51,14 @@ export default function BokaKorning() {
       case 1:
         setBookingData((prev) => ({
           ...prev,
-          lessonType: stepData.lessonType,
-          totalPrice: calculatePrice(stepData.lessonType, user),
+          sessionType: stepData.sessionType,
+          totalPrice: calculatePrice(stepData.sessionType, user),
         }))
-        setCurrentStep(2)
+        if (stepData.sessionType.type === 'handledar') {
+          setCurrentStep(3);
+        } else {
+          setCurrentStep(2);
+        }
         break
       case 2:
         setBookingData((prev) => ({
@@ -76,16 +82,16 @@ export default function BokaKorning() {
     }
   }
 
-  const calculatePrice = (lessonType: LessonType, user: any) => {
+  const calculatePrice = (sessionType: SessionType, user: any) => {
     // Check for sale price first
-    if (lessonType.salePrice) {
-      return Number(lessonType.salePrice)
+    if (sessionType.salePrice) {
+      return Number(sessionType.salePrice)
     }
     // Check if user is enrolled student
-    if (user?.inskriven && lessonType.priceStudent) {
-      return Number(lessonType.priceStudent)
+    if (user?.inskriven && sessionType.priceStudent) {
+      return Number(sessionType.priceStudent)
     }
-    return Number(lessonType.price)
+    return Number(sessionType.price)
   }
 
   const handleBookingComplete = async (paymentData: any) => {
@@ -97,11 +103,12 @@ export default function BokaKorning() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lessonTypeId: bookingData.lessonType?.id,
+          sessionType: bookingData.sessionType?.type,
+          sessionId: bookingData.sessionType?.id,
           scheduledDate: bookingData.selectedDate?.toISOString().split('T')[0],
           startTime: bookingData.selectedTime,
-          endTime: calculateEndTime(bookingData.selectedTime!, bookingData.lessonType!.durationMinutes),
-          durationMinutes: bookingData.lessonType?.durationMinutes,
+          endTime: bookingData.sessionType!.type === 'handledar' ? 'To be confirmed' : calculateEndTime(bookingData.selectedTime!, bookingData.sessionType!.durationMinutes),
+          durationMinutes: bookingData.sessionType!.durationMinutes,
           transmissionType: bookingData.transmissionType,
           totalPrice: bookingData.totalPrice,
           ...paymentData, // Guest info if not logged in
@@ -185,8 +192,8 @@ export default function BokaKorning() {
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2 md:mb-4">Boka körlektion</h1>
-          <p className="text-lg md:text-xl text-gray-600">Välj lektion, tid och bekräfta din bokning</p>
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2 md:mb-4">Boka SESSION</h1>
+          <p className="text-lg md:text-xl text-gray-600">Välj session, tid och bekräfta din bokning</p>
         </div>
 
         {/* Progress Steps */}
@@ -196,23 +203,31 @@ export default function BokaKorning() {
         <div className="mt-6 md:mt-8">
           {currentStep === 1 && <LessonSelection onComplete={handleStepComplete} />}
 
-          {currentStep === 2 && (
+          {currentStep === 2 && bookingData.sessionType?.type === 'lesson' && (
             <TransmissionSelection onComplete={handleStepComplete} onBack={goBack} />
           )}
 
-          {currentStep === 3 && bookingData.lessonType && (
+          {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'handledar' && (
+            <HandledarSessionSelection
+              sessionType={bookingData.sessionType}
+              onComplete={handleStepComplete}
+              onBack={goBack}
+            />
+          )}
+
+          {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'lesson' && (
             <WeekCalendar
-              lessonType={bookingData.lessonType}
+              lessonType={bookingData.sessionType} // Map sessionType to lessonType for compatibility
               transmissionType={bookingData.transmissionType}
               onComplete={handleStepComplete}
               onBack={goBack}
             />
           )}
 
-          {currentStep === 4 && bookingData.lessonType && bookingData.selectedDate && bookingData.selectedTime && (
+          {currentStep === 4 && bookingData.sessionType && bookingData.selectedDate && bookingData.selectedTime && (
             <BookingConfirmation
               bookingData={{
-                lessonType: bookingData.lessonType,
+                lessonType: bookingData.sessionType, // Map sessionType to lessonType for compatibility
                 transmissionType: bookingData.transmissionType,
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,

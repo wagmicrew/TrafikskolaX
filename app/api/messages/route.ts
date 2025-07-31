@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
         message: internalMessages.message,
         isRead: internalMessages.isRead,
         createdAt: internalMessages.createdAt,
-        fromUserId: internalMessages.fromUserId,
-        toUserId: internalMessages.toUserId,
+        senderId: internalMessages.fromUserId,
+        recipientId: internalMessages.toUserId,
         senderFirstName: users.firstName,
         senderLastName: users.lastName,
         senderEmail: users.email,
@@ -62,7 +62,21 @@ export async function GET(request: NextRequest) {
       .where(whereCondition)
       .orderBy(desc(internalMessages.createdAt));
 
-    return NextResponse.json({ messages });
+    // Transform messages to match frontend expectations
+    const transformedMessages = messages.map(msg => ({
+      id: msg.id,
+      subject: msg.subject,
+      message: msg.message,
+      isRead: msg.isRead,
+      createdAt: msg.createdAt,
+      fromUserId: msg.senderId,
+      toUserId: msg.recipientId,
+      senderFirstName: msg.senderFirstName,
+      senderLastName: msg.senderLastName,
+      senderEmail: msg.senderEmail,
+    }));
+
+    return NextResponse.json({ messages: transformedMessages });
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -72,7 +86,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

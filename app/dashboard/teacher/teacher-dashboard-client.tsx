@@ -75,6 +75,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     fetchTodaysBookings();
     fetchUpcomingBookings();
     fetchBookingSteps();
+    fetchUnassignedBookings(); // Fetch all unassigned bookings for potential assignment
   }, []);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const fetchTodaysBookings = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/teacher/bookings?date=${today}&teacherId=${user.id}`);
+      const response = await fetch(`/api/teacher/bookings?date=${today}&teacherId=${user.userId || user.id}`);
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
@@ -98,7 +99,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
   const fetchUpcomingBookings = async () => {
     try {
-      const response = await fetch(`/api/teacher/bookings?teacherId=${user.id}&upcoming=true`);
+      const response = await fetch(`/api/teacher/bookings?teacherId=${user.userId || user.id}&upcoming=true`);
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
@@ -125,9 +126,25 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     }
   };
 
+  const fetchUnassignedBookings = async () => {
+    try {
+      const response = await fetch(`/api/teacher/bookings?unassigned=true`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch');
+      }
+      const data = await response.json();
+      setUpcomingBookings(data.bookings || []);
+    } catch (error) {
+      console.error('Failed to fetch unassigned bookings:', error);
+      setUpcomingBookings([]);
+    }
+  };
+
   const fetchBookingsForDate = async (date: string) => {
     try {
-      const response = await fetch(`/api/teacher/bookings?date=${date}&teacherId=${user.id}`);
+      // If no specific date, fetch ALL bookings, otherwise fetch for specific date
+      const url = date ? `/api/teacher/bookings?date=${date}&teacherId=${user.userId || user.id}` : `/api/teacher/bookings?teacherId=${user.userId || user.id}`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch');
       }
@@ -215,6 +232,23 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     });
   };
 
+  const assignBookingToSelf = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/teacher/assign-self/${bookingId}`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to assign booking');
+      }
+      fetchTodaysBookings();
+      fetchUpcomingBookings();
+      alert('Booking assigned to you');
+    } catch (error) {
+      console.error('Failed to assign booking:', error);
+      alert('Assignment failed');
+    }
+  };
+
   const groupStepsByCategory = (steps: BookingStep[]) => {
     return steps.reduce((acc, step) => {
       if (!acc[step.category]) {
@@ -242,7 +276,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
           <button
             onClick={() => { setActiveView('overview'); setMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 p-3 rounded-lg text-left ${
-              activeView === 'overview' ? 'bg-red-500 text-white' : 'text-gray-700 hover:bg-gray-100'
+              activeView === 'overview' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
             <FaClipboardList />
@@ -252,7 +286,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
           <button
             onClick={() => { setActiveView('bookings'); setMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 p-3 rounded-lg text-left ${
-              activeView === 'bookings' ? 'bg-red-500 text-white' : 'text-gray-700 hover:bg-gray-100'
+              activeView === 'bookings' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
             <FaCalendarAlt />
@@ -262,20 +296,12 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
           <button
             onClick={() => { setActiveView('feedback'); setMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 p-3 rounded-lg text-left ${
-              activeView === 'feedback' ? 'bg-red-500 text-white' : 'text-gray-700 hover:bg-gray-100'
+              activeView === 'feedback' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'
             }`}
           >
             <FaCommentDots />
             Feedback
           </button>
-
-          <Link 
-            href="/dashboard/teacher/meddelande"
-            className="w-full flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100"
-          >
-            <FaEnvelope />
-            Meddelanden
-          </Link>
         </nav>
       </div>
     </div>
@@ -451,8 +477,8 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const renderBookingsForDate = () => (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FaCalendarAlt className="text-red-500" />
-        Lektioner för {formatDate(selectedDate)}
+        <FaCalendarAlt className="text-blue-500" />
+        {selectedDate ? `Lektioner för ${formatDate(selectedDate)}` : 'Alla bokningar'}
       </h2>
       
       {dateBookings.length === 0 ? (
@@ -552,32 +578,32 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile Menu */}
       {renderMobileMenu()}
 
       {/* Header */}
-      <div className="bg-black bg-opacity-50 backdrop-blur-sm border-b border-red-500/20">
+      <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 text-white hover:text-red-400"
+                className="lg:hidden p-2 text-gray-600 hover:text-gray-800"
               >
                 <FaBars />
               </button>
               
               <div>
-                <h1 className="text-2xl font-bold text-white">Lärare Dashboard</h1>
-                <p className="text-red-200">Välkommen, {user.firstName} {user.lastName}</p>
+                <h1 className="text-2xl font-bold text-gray-800">Lärare Dashboard</h1>
+                <p className="text-gray-600">Välkommen, {user.firstName} {user.lastName}</p>
               </div>
             </div>
 
@@ -587,8 +613,8 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 onClick={() => setActiveView('overview')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   activeView === 'overview' 
-                    ? 'bg-red-500 text-white' 
-                    : 'text-white hover:bg-white/10'
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <FaClipboardList />
@@ -599,8 +625,8 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 onClick={() => setActiveView('bookings')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   activeView === 'bookings' 
-                    ? 'bg-red-500 text-white' 
-                    : 'text-white hover:bg-white/10'
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <FaCalendarAlt />
@@ -611,21 +637,13 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 onClick={() => setActiveView('feedback')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   activeView === 'feedback' 
-                    ? 'bg-red-500 text-white' 
-                    : 'text-white hover:bg-white/10'
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <FaCommentDots />
                 Feedback
               </button>
-
-              <Link 
-                href="/dashboard/teacher/meddelande"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-white hover:bg-white/10 transition-colors"
-              >
-                <FaEnvelope />
-                Meddelanden
-              </Link>
             </nav>
           </div>
         </div>
@@ -637,35 +655,35 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
           <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg p-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-red-100">Dagens Lektioner</p>
-                    <p className="text-3xl font-bold">{todaysBookings.length}</p>
+                    <p className="text-gray-600">Dagens Lektioner</p>
+                    <p className="text-3xl font-bold text-gray-800">{todaysBookings.length}</p>
                   </div>
-                  <FaCalendarAlt className="text-4xl text-red-200" />
+                  <FaCalendarAlt className="text-4xl text-blue-500" />
                 </div>
               </div>
               
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100">Kommande</p>
-                    <p className="text-3xl font-bold">{upcomingBookings.length}</p>
+                    <p className="text-gray-600">Kommande</p>
+                    <p className="text-3xl font-bold text-gray-800">{upcomingBookings.length}</p>
                   </div>
-                  <FaClock className="text-4xl text-blue-200" />
+                  <FaClock className="text-4xl text-blue-500" />
                 </div>
               </div>
               
-              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg p-6">
+              <div className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100">Genomförda Idag</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-gray-600">Genomförda Idag</p>
+                    <p className="text-3xl font-bold text-gray-800">
                       {todaysBookings.filter(b => b.isCompleted).length}
                     </p>
                   </div>
-                  <FaUsers className="text-4xl text-green-200" />
+                  <FaUsers className="text-4xl text-blue-500" />
                 </div>
               </div>
             </div>
@@ -681,13 +699,22 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
         {activeView === 'bookings' && (
           <div className="space-y-8">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Välj datum</h2>
-              <input 
-                type="date" 
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="p-2 border rounded-lg"
-              />
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Filtrera bokningar</h2>
+              <div className="flex items-center gap-4">
+                <label className="text-gray-600">Välj datum:</label>
+                <input 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="p-2 border rounded-lg"
+                />
+                <button
+                  onClick={() => setSelectedDate('')}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Visa alla
+                </button>
+              </div>
             </div>
             {renderBookingsForDate()}
           </div>

@@ -1,3 +1,5 @@
+import { Toaster } from 'react-hot-toast';
+
 import { db } from '@/lib/db';
 import { bookings, users, cars, lessonTypes } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
@@ -82,7 +84,12 @@ export default async function BookingDetailsPage({
       notFound();
     }
 
-    return <BookingDetailsClient booking={bookingData} />;
+return (
+      <>
+        <BookingDetailsClient booking={bookingData} />
+        <Toaster position="top-right" />
+      </>
+    );
   } catch (error) {
     console.error('Booking details error:', error);
     notFound();

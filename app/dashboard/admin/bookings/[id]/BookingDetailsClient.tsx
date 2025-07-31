@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { 
   Calendar, 
   Clock, 
@@ -123,11 +124,13 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
 
   const saveFeedback = async () => {
     if (!booking.userId) {
-      alert('Kan inte spara feedback för gästbokningar');
+      toast.error('Kan inte spara feedback för gästbokningar');
       return;
     }
 
     setIsSaving(true);
+    const loadingToast = toast.loading('Sparar feedback...');
+    
     try {
       const feedbackData = selectedSteps.map(step => ({
         bookingId: booking.id,
@@ -147,15 +150,21 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       });
 
       if (response.ok) {
-        alert('Feedback sparad!');
+        toast.success('Feedback sparad framgångsrikt!', {
+          id: loadingToast,
+        });
         setSelectedSteps([]);
         loadExistingFeedback();
       } else {
-        alert('Fel vid sparande av feedback');
+        toast.error('Fel vid sparande av feedback', {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error('Error saving feedback:', error);
-      alert('Fel vid sparande av feedback');
+      toast.error('Fel vid sparande av feedback', {
+        id: loadingToast,
+      });
     }
     setIsSaving(false);
   };
@@ -179,6 +188,8 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     if (!editingFeedback) return;
 
     setIsSaving(true);
+    const loadingToast = toast.loading('Uppdaterar feedback...');
+    
     try {
       const response = await fetch(`/api/admin/bookings/${booking.id}/feedback/${editingFeedback.id}`, {
         method: 'PUT',
@@ -192,15 +203,21 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       });
 
       if (response.ok) {
-        alert('Feedback uppdaterad!');
+        toast.success('Feedback uppdaterad framgångsrikt!', {
+          id: loadingToast,
+        });
         setEditingFeedback(null);
         loadExistingFeedback();
       } else {
-        alert('Fel vid uppdatering av feedback');
+        toast.error('Fel vid uppdatering av feedback', {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error('Error updating feedback:', error);
-      alert('Fel vid uppdatering av feedback');
+      toast.error('Fel vid uppdatering av feedback', {
+        id: loadingToast,
+      });
     }
     setIsSaving(false);
   };
@@ -214,35 +231,45 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       return;
     }
 
+    const loadingToast = toast.loading('Tar bort feedback...');
+    
     try {
       const response = await fetch(`/api/admin/bookings/${booking.id}/feedback/${feedbackId}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        alert('Feedback borttagen!');
+        toast.success('Feedback borttagen framgångsrikt!', {
+          id: loadingToast,
+        });
         loadExistingFeedback();
       } else {
-        alert('Fel vid borttagning av feedback');
+        toast.error('Fel vid borttagning av feedback', {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error('Error deleting feedback:', error);
-      alert('Fel vid borttagning av feedback');
+      toast.error('Fel vid borttagning av feedback', {
+        id: loadingToast,
+      });
     }
   };
 
   const saveFreetextFeedback = async () => {
     if (!booking.userId) {
-      alert('Kan inte spara feedback för gästbokningar');
+      toast.error('Kan inte spara feedback för gästbokningar');
       return;
     }
 
     if (!freetextFeedback.feedbackText.trim()) {
-      alert('Kommentar måste fyllas i');
+      toast.error('Kommentar måste fyllas i');
       return;
     }
 
     setIsSaving(true);
+    const loadingToast = toast.loading('Sparar allmän feedback...');
+    
     try {
       const feedbackData = [{
         bookingId: booking.id,
@@ -262,15 +289,21 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       });
 
       if (response.ok) {
-        alert('Allmän feedback sparad!');
+        toast.success('Allmän feedback sparad framgångsrikt!', {
+          id: loadingToast,
+        });
         setFreetextFeedback({ feedbackText: '', valuation: 5 });
         loadExistingFeedback();
       } else {
-        alert('Fel vid sparande av feedback');
+        toast.error('Fel vid sparande av feedback', {
+          id: loadingToast,
+        });
       }
     } catch (error) {
       console.error('Error saving freetext feedback:', error);
-      alert('Fel vid sparande av feedback');
+      toast.error('Fel vid sparande av feedback', {
+        id: loadingToast,
+      });
     }
     setIsSaving(false);
   };

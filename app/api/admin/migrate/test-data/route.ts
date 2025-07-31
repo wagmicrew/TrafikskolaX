@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
 import { sql } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
     // Verify admin access
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
 
     const results = [];
 

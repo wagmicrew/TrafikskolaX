@@ -9,6 +9,7 @@ export interface JWTPayload {
   role: 'student' | 'teacher' | 'admin';
   firstName: string;
   lastName: string;
+  profileImage?: string;
   iat?: number;
   exp?: number;
 }

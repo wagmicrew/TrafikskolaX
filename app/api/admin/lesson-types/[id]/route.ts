@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { lessonTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth } from '@/lib/auth/server-auth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET - Get single lesson type
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const lessonType = await db
       .select()
@@ -31,7 +34,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // PUT - Update lesson type
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     const body = await request.json();
     const {
@@ -78,7 +84,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE - Delete lesson type (soft delete)
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAuth('admin');
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
     
     // Soft delete by setting isActive to false
     const deletedLessonType = await db

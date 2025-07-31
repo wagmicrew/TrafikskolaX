@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
-import UserDetailClient from './user-detail-client';
+import UserDetailClient from './user-detail-client-new';
 
 export const dynamic = 'force-dynamic';
 

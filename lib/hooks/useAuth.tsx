@@ -7,6 +7,7 @@ interface AuthContextType {
   user: JWTPayload | null;
   login: (token: string) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -92,8 +93,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('auth-token');
+      if (!token) return;
+
+      const response = await fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

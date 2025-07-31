@@ -7,19 +7,19 @@ import { useToast } from '@/lib/hooks/use-toast';
 import { LoadingSpinner } from '@/components/loading-spinner';
 
 interface Message {
-  id: number;
+  id: string;
   subject: string;
   message: string;
   isRead: boolean;
   createdAt: string;
-  senderId: number;
-  recipientId: number;
+  senderId: string;
+  recipientId: string;
   senderName: string;
   senderEmail: string;
 }
 
 interface Teacher {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -52,9 +52,10 @@ function MessagesClient() {
         throw new Error('Failed to fetch messages');
       }
       const data = await response.json();
-      setMessages(data.messages);
+      setMessages(data.messages || []);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
+      addToast({ type: 'error', message: 'Kunde inte hämta meddelanden.' });
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,7 @@ function MessagesClient() {
     }
   };
 
-  const markAsRead = async (messageId: number) => {
+  const markAsRead = async (messageId: string) => {
     try {
       const response = await fetch(`/api/messages/${messageId}`, {
         method: 'PUT',
@@ -132,6 +133,27 @@ function MessagesClient() {
     setSelectedMessage(message);
     if (!message.isRead) {
       markAsRead(message.id);
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete message');
+      }
+      
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      if (selectedMessage?.id === messageId) {
+        setSelectedMessage(null);
+      }
+      addToast({ type: 'success', message: 'Meddelandet har tagits bort.' });
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      addToast({ type: 'error', message: 'Kunde inte ta bort meddelandet.' });
     }
   };
 
@@ -234,18 +256,32 @@ function MessagesClient() {
             {selectedMessage ? (
               <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div className="px-4 py-5 sm:px-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    {selectedMessage.subject}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Från: {selectedMessage.senderName} • {new Date(selectedMessage.createdAt).toLocaleDateString('sv-SE', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        {selectedMessage.subject}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Från: {selectedMessage.senderName} • {new Date(selectedMessage.createdAt).toLocaleDateString('sv-SE', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Är du säker på att du vill ta bort detta meddelande?')) {
+                          deleteMessage(selectedMessage.id);
+                        }
+                      }}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Ta bort
+                    </button>
+                  </div>
                 </div>
                 <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
                   <div className="prose max-w-none">

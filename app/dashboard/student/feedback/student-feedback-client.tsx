@@ -30,8 +30,8 @@ const StudentFeedbackClient = ({ user, feedback, total }) => {
     return 'Utmärkt';
   };
 
-  const needsAttention = feedback.filter(f => f.valuation <= 3);
-  const lookingGood = feedback.filter(f => f.valuation > 7);
+  const needsAttention = feedback.filter(f => f.feedback?.some(item => item.valuation <= 3));
+  const lookingGood = feedback.filter(f => f.feedback?.some(item => item.valuation > 7));
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -87,14 +87,14 @@ const StudentFeedbackClient = ({ user, feedback, total }) => {
                   <p className="text-sm text-gray-600">{new Date(fb.scheduledDate).toLocaleDateString('sv-SE')}</p>
                 </div>
                 <div className="flex items-center">
-                  <p className="text-sm text-gray-600 mr-4">{fb.feedback.length} feedbackpunkter</p>
+                  <p className="text-sm text-gray-600 mr-4">{fb.feedback?.length || 0} feedbackpunkter</p>
                   {expandedBooking === fb.bookingId ? <FaChevronUp /> : <FaChevronDown />}
                 </div>
               </div>
               {expandedBooking === fb.bookingId && (
                 <div className="p-4 border-t border-gray-200">
                   <div className="space-y-4">
-                    {fb.feedback.map(item => (
+                    {fb.feedback?.map(item => (
                       <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-gray-800">{item.stepIdentifier}</p>

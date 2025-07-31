@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/server-auth';
+import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { or, eq, ne } from 'drizzle-orm';
@@ -21,9 +21,10 @@ export async function GET(request: NextRequest) {
 
     // Fetch all users unless student
     const availableUsersQuery = user.role !== 'student'
-      ? db.select(users).where(ne(users.id, user.id)) // optionally exclude self
+      ? db.select().from(users).where(ne(users.id, user.userId)) // optionally exclude self
       : db
-          .select(users)
+          .select()
+          .from(users)
           .where(
             or(eq(users.role, 'teacher'), eq(users.role, 'admin'))
           );

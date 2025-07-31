@@ -51,6 +51,12 @@ export default function AdminDashboard() {
           <Link href="/dashboard/admin/lessons" className="inline-block mt-4 bg-white text-yellow-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
 
+        <div className="bg-gradient-to-r from-orange-400 to-pink-600 p-6 rounded-lg shadow-lg text-white">
+          <h2 className="text-xl font-semibold mb-2">Handledarkurs</h2>
+          <p className="text-gray-100">Hantera handledarkurser & bokningar</p>
+          <Link href="/dashboard/admin/handledarkurs" className="inline-block mt-4 bg-white text-orange-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
+        </div>
+
         <div className="bg-gradient-to-r from-teal-400 to-indigo-500 p-6 rounded-lg shadow-lg text-white">
           <h2 className="text-xl font-semibold mb-2">Inställningar</h2>
           <p className="text-gray-100">Konfigurera systemet</p>

@@ -11,6 +11,7 @@ import { HandledarSessionSelection } from "@/components/booking/handledar-sessio
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { useAuth } from "@/hooks/use-auth"
 import { SwishPaymentDialog } from "@/components/booking/swish-payment-dialog"
+import { toast } from "react-hot-toast"
 
 interface SessionType {
   id: string
@@ -44,21 +45,66 @@ export default function BokaKorning() {
   })
   const [loading, setLoading] = useState(false)
   const [showSwishDialog, setShowSwishDialog] = useState(false)
-  const { user, loading: authLoading } = useAuth()
+  const [userCredits, setUserCredits] = useState<any[]>([])
+  const [hasAvailableHandledarCredits, setHasAvailableHandledarCredits] = useState(false)
+  const [showCreditSuggestion, setShowCreditSuggestion] = useState(false)
+  const { user, isLoading: authLoading } = useAuth()
+
+  useEffect(() => {
+    if (user) {
+      fetchUserCredits()
+    }
+  }, [user])
+
+  const fetchUserCredits = async () => {
+    try {
+      const userId = (user as any)?.id || (user as any)?.sub;
+      if (!userId) return;
+      
+      const response = await fetch(`/api/users/${userId}/credits`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserCredits(data.credits || [])
+        
+        // Check for available handledar credits
+        const handledarCredits = data.credits?.filter(
+          (credit: any) => credit.creditType === 'handledar' && credit.creditsRemaining > 0
+        ) || []
+        setHasAvailableHandledarCredits(handledarCredits.length > 0)
+      }
+    } catch (error) {
+      console.error('Error fetching user credits:', error)
+    }
+  }
+
+  const checkHandledarCreditsAndProceed = (sessionType: any) => {
+    if (sessionType.type === 'handledar' && hasAvailableHandledarCredits) {
+      setShowCreditSuggestion(true)
+    } else {
+      proceedWithBooking(sessionType)
+    }
+  }
+
+  const proceedWithBooking = (sessionType: any) => {
+    setBookingData((prev) => ({
+      ...prev,
+      sessionType,
+      totalPrice: calculatePrice(sessionType, user),
+    }))
+    
+    if (sessionType.type === 'handledar') {
+      setCurrentStep(3);
+    } else {
+      setCurrentStep(2);
+    }
+    
+    setShowCreditSuggestion(false)
+  }
 
   const handleStepComplete = (stepData: any) => {
     switch (currentStep) {
       case 1:
-        setBookingData((prev) => ({
-          ...prev,
-          sessionType: stepData.sessionType,
-          totalPrice: calculatePrice(stepData.sessionType, user),
-        }))
-        if (stepData.sessionType.type === 'handledar') {
-          setCurrentStep(3);
-        } else {
-          setCurrentStep(2);
-        }
+        checkHandledarCreditsAndProceed(stepData.sessionType)
         break
       case 2:
         setBookingData((prev) => ({
@@ -149,7 +195,8 @@ export default function BokaKorning() {
   }
 
   const handleCreditPayment = async (bookingId: string) => {
-    // TODO: Implement credit payment
+    // Credit payment is already handled in the booking creation
+    // Just move to success step
     setCurrentStep(5)
   }
 
@@ -244,26 +291,73 @@ export default function BokaKorning() {
               <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Bokning bekräftad!</h2>
               <p className="text-gray-600 mb-6">Din körlektion har bokats. Du kommer få en bekräftelse via e-post.</p>
-              <Button onClick={() => (window.location.href = user ? "/dashboard" : "/")} className="bg-red-600 hover:bg-red-700">
+              <Button 
+                onClick={() => window.location.href = user ? "/dashboard" : "/"} 
+                className="bg-red-600 hover:bg-red-700"
+              >
                 {user ? "Gå till Min Sida" : "Gå till startsidan"}
               </Button>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Swish Payment Dialog */}
-      {showSwishDialog && bookingData.bookingId && (
+        {/* Credit Suggestion Modal */}
+        {showCreditSuggestion && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full p-6">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Du har tillgängliga handledarkurskrediter!
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Vi har upptäckt att du har handledarkurskrediter tillgängliga. Vill du använda en av dina krediter istället för att betala?
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-gray-600">
+                    <strong>Krediter tillgängliga:</strong> {userCredits.filter(c => c.creditType === 'handledar' && c.creditsRemaining > 0).length}
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      toast.success('Du kommer att använda en handledarkurskredit')
+                      setShowCreditSuggestion(false)
+                      // Add logic to use credit for booking
+                      handleCreditPayment(bookingData.bookingId || '')
+                    }}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Använd kredit
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowCreditSuggestion(false)
+                      // Proceed with normal payment
+                      setShowSwishDialog(true)
+                    }}
+                    variant="outline"
+                  >
+                    Betala istället
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <SwishPaymentDialog
           isOpen={showSwishDialog}
           onClose={() => setShowSwishDialog(false)}
-          booking={{
-            id: bookingData.bookingId,
-            totalPrice: bookingData.totalPrice,
-          }}
           onConfirm={handleSwishConfirm}
+          booking={{
+            id: bookingData.bookingId || '',
+            totalPrice: bookingData.totalPrice
+          }}
         />
-      )}
+      </div>
     </div>
   )
 }

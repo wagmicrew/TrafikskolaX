@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { internalMessages, users } from '@/lib/db/schema';
+import { internalMessages, users, bookings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function POST(
@@ -26,7 +26,47 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get all admin and teacher users to send message to
+    // Get booking details
+    const booking = await db.query.bookings.findFirst({
+      where: eq(bookings.id, id),
+      with: {
+        lessonType: true
+      }
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+    }
+
+    // Use email template service
+    const { EmailService } = await import('@/lib/email/email-service');
+    
+    const emailContext = {
+      user: {
+        id: user[0].id,
+        email: user[0].email,
+        firstName: user[0].firstName,
+        lastName: user[0].lastName,
+        role: 'student'
+      },
+      booking: {
+        id: booking.id,
+        scheduledDate: booking.scheduledDate.toString(),
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        lessonTypeName: booking.lessonType?.name || 'Unknown',
+        totalPrice: booking.totalPrice.toString(),
+        swishUUID: booking.swishUUID || ''
+      },
+      admin: {
+        email: process.env.ADMIN_EMAIL || 'admin@dintrafikskolahlm.se'
+      }
+    };
+
+    // Send email to admins using template
+    await EmailService.sendTriggeredEmail('payment_confirmation_request', emailContext);
+
+    // Also create internal messages for all admins as backup
     const adminsAndTeachers = await db
       .select({
         id: users.id,

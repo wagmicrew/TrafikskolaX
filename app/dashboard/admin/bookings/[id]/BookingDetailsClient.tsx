@@ -24,11 +24,13 @@ import {
   Plus,
   Save,
   Star,
-  BookOpen
+  BookOpen,
+  Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 import MoveBookingModal from './MoveBookingModal';
 import DeleteBookingConfirmation from './DeleteBookingConfirmation';
+import StatusUpdatePanel from '@/components/admin/StatusUpdatePanel';
 
 interface BookingDetailsClientProps {
   booking: any;
@@ -48,6 +50,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  const [bookingData, setBookingData] = useState(booking);
   const [bookingSteps, setBookingSteps] = useState([]);
   const [existingFeedback, setExistingFeedback] = useState([]);
   const [selectedSteps, setSelectedSteps] = useState([]);
@@ -409,13 +412,23 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
               <MessageSquare className="w-5 h-5 inline-block mr-2"/>
               Feedback
             </button>
+            <button 
+              onClick={() => setActiveTab('status')} 
+              className={`py-3 px-4 text-sm font-medium transition-colors ${
+                activeTab === 'status' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-600 hover:text-blue-500'
+              }`}>
+              <Settings className="w-5 h-5 inline-block mr-2"/>
+              Status
+            </button>
           </div>
         </div>
 
         {activeTab === 'details' && (
           <div className="p-6 space-y-6">
             {/* Status Section */}
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 mb-6">
               {getStatusBadge(booking.status)}
               {getPaymentBadge(booking.paymentStatus)}
               {booking.isCompleted && (
@@ -424,6 +437,17 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
                   Genomförd
                 </span>
               )}
+            </div>
+
+            {/* Quick Status Update Panel - Always Visible */}
+            <div className="mb-6">
+              <StatusUpdatePanel 
+                booking={bookingData} 
+                onStatusUpdate={() => {
+                  // Refresh booking data after status update
+                  window.location.reload();
+                }} 
+              />
             </div>
             
             {/* Main Information */}
@@ -760,9 +784,21 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
             </div>
           </div>
         )}
+
+        {activeTab === 'status' && (
+          <div className="p-6">
+            <StatusUpdatePanel 
+              booking={bookingData} 
+              onStatusUpdate={() => {
+                // Refresh booking data after status update
+                window.location.reload();
+              }} 
+            />
+          </div>
+        )}
       </div>
 
-      <MoveBookingModal 
+      <MoveBookingModal
         isOpen={showMoveModal} 
         onClose={() => setShowMoveModal(false)} 
         bookingId={booking.id} 

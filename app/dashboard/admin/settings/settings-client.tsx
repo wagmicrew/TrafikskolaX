@@ -30,6 +30,12 @@ interface Settings {
   // Email settings
   use_sendgrid: boolean;
   sendgrid_api_key: string;
+  use_smtp: boolean;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_secure: boolean;
   from_name: string;
   from_email: string;
   reply_to: string;
@@ -48,12 +54,27 @@ interface Settings {
   qliro_enabled: boolean;
 }
 
+interface TestResult {
+  endpoint: string;
+  method: string;
+  status: number;
+  success: boolean;
+  data: any;
+  error?: string;
+}
+
 export default function SettingsClient() {
   const [settings, setSettings] = useState<Settings>({
     use_sendgrid: false,
     sendgrid_api_key: '',
+    use_smtp: false,
+    smtp_host: 'mailcluster.loopia.se',
+    smtp_port: 587,
+    smtp_username: 'admin@dintrafikskolahlm.se',
+    smtp_password: '',
+    smtp_secure: false,
     from_name: 'Din Trafikskola Hässleholm',
-    from_email: 'noreply@dintrafikskolahlm.se',
+    from_email: 'admin@dintrafikskolahlm.se',
     reply_to: 'info@dintrafikskolahlm.se',
     site_domain: '',
     site_name: 'Din Trafikskola Hässleholm',
@@ -67,6 +88,9 @@ export default function SettingsClient() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
 
   useEffect(() => {
     fetchSettings();
@@ -119,6 +143,155 @@ export default function SettingsClient() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const runTests = async () => {
+    setTesting(true);
+    setTestResults([]);
+    const loadingToast = toast.loading('Kör krediteringstester...');
+    
+    console.log('=== Credits API Test Started ===');
+    console.log('Test User ID:', testUserId);
+
+    const apiBase = `/api/admin/users/${testUserId}/credits`;
+    
+    // First, get a real lesson type ID
+    let realLessonTypeId = null;
+    try {
+      const lessonTypesResponse = await fetch('/api/lesson-types');
+      if (lessonTypesResponse.ok) {
+        const lessonTypesData = await lessonTypesResponse.json();
+        if (lessonTypesData.length > 0) {
+          realLessonTypeId = lessonTypesData[0].id;
+          console.log('Using real lesson type ID:', realLessonTypeId);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch lesson types:', error);
+    }
+    
+    const tests = [
+      { 
+        name: 'GET credits',
+        method: 'GET', 
+        endpoint: apiBase 
+      },
+      { 
+        name: 'POST lesson credits',
+        method: 'POST', 
+        endpoint: apiBase,
+        body: { 
+          creditType: 'lesson', 
+          lessonTypeId: realLessonTypeId, 
+          amount: 5 
+        }
+      },
+      { 
+        name: 'POST handledar credits',
+        method: 'POST', 
+        endpoint: apiBase,
+        body: { 
+          creditType: 'handledar', 
+          handledarSessionId: null, 
+          amount: 3 
+        }
+      }
+    ];
+
+    const results: TestResult[] = [];
+
+    for (const test of tests) {
+      try {
+        console.log(`\n=== Running ${test.name} ===`);
+        console.log('Endpoint:', test.endpoint);
+        console.log('Method:', test.method);
+        if (test.body) {
+          console.log('Body:', JSON.stringify(test.body, null, 2));
+        }
+        
+        const options: RequestInit = {
+          method: test.method,
+          headers: { 'Content-Type': 'application/json' },
+        };
+        
+        if (test.body) {
+          options.body = JSON.stringify(test.body);
+        }
+
+        const response = await fetch(test.endpoint, options);
+        const data = await response.json();
+        
+        console.log('Response status:', response.status);
+        console.log('Response data:', data);
+        
+        const result = {
+          endpoint: test.endpoint,
+          method: test.method,
+          status: response.status,
+          success: response.ok,
+          data
+        };
+        
+        results.push(result);
+        
+        // Show individual test results as toasts
+        if (response.ok) {
+          toast.success(`${test.name}: Success!`);
+        } else {
+          toast.error(`${test.name}: Failed (${response.status})`);
+        }
+        
+      } catch (error: any) {
+        console.error(`Error in ${test.name}:`, error);
+        const result = {
+          endpoint: test.endpoint,
+          method: test.method,
+          status: 0,
+          success: false,
+          data: null,
+          error: error.message
+        };
+        results.push(result);
+        toast.error(`${test.name}: Network error`);
+      }
+    }
+
+    console.log('=== All tests completed ===');
+    console.log('Results:', results);
+    
+    setTestResults(results);
+    setTesting(false);
+    toast.success('Alla tester slutförda!', { id: loadingToast });
+  };
+  
+  const testSendGridEmail = async () => {
+    if (!testUserId) {
+      toast.error('Ange ett användar-ID först');
+      return;
+    }
+    
+    const loadingToast = toast.loading('Skickar test-email...');
+    
+    try {
+      const response = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: testUserId }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.details || 'Failed to send test email');
+      }
+      
+      toast.success('Test-email skickat framgångsrikt!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('SendGrid test error:', error);
+      toast.error(`SendGrid test misslyckades: ${error.message}`, { id: loadingToast });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -130,7 +303,7 @@ export default function SettingsClient() {
   return (
     <div className="max-w-6xl mx-auto">
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
             E-postinställningar
@@ -142,6 +315,10 @@ export default function SettingsClient() {
           <TabsTrigger value="payment" className="flex items-center gap-2">
             <CreditCard className="w-4 h-4" />
             Betalningsinställningar
+          </TabsTrigger>
+          <TabsTrigger value="troubleshoot" className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Felsökning
           </TabsTrigger>
         </TabsList>
 
@@ -159,13 +336,33 @@ export default function SettingsClient() {
                 <div className="space-y-0.5">
                   <Label htmlFor="use-sendgrid">Använd SendGrid</Label>
                   <p className="text-sm text-muted-foreground">
-                    Aktivera SendGrid för e-postutskick. Om avaktiverat används endast interna meddelanden.
+                    Aktivera SendGrid för e-postutskick.
                   </p>
                 </div>
                 <Switch
                   id="use-sendgrid"
                   checked={settings.use_sendgrid}
-                  onCheckedChange={(checked) => updateSetting('use_sendgrid', checked)}
+                  onCheckedChange={(checked) => {
+                    updateSetting('use_sendgrid', checked);
+                    if (checked) updateSetting('use_smtp', false);
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="use-smtp">Använd SMTP</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Aktivera SMTP för e-postutskick.
+                  </p>
+                </div>
+                <Switch
+                  id="use-smtp"
+                  checked={settings.use_smtp}
+                  onCheckedChange={(checked) => {
+                    updateSetting('use_smtp', checked);
+                    if (checked) updateSetting('use_sendgrid', false);
+                  }}
                 />
               </div>
 
@@ -182,6 +379,78 @@ export default function SettingsClient() {
                       placeholder="SG.xxxxxxxxxxxxxxxxxxxxxx"
                       value={settings.sendgrid_api_key}
                       onChange={(e) => updateSetting('sendgrid_api_key', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {settings.use_smtp && (
+                <div className="space-y-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-host">
+                      <Building className="w-4 h-4 inline mr-2" />
+                      SMTP Server
+                    </Label>
+                    <Input
+                      id="smtp-host"
+                      placeholder="mailcluster.loopia.se"
+                      value={settings.smtp_host}
+                      onChange={(e) => updateSetting('smtp_host', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-port">
+                      <Key className="w-4 h-4 inline mr-2" />
+                      SMTP Port
+                    </Label>
+                    <Input
+                      id="smtp-port"
+                      type="number"
+                      placeholder="587"
+                      value={settings.smtp_port}
+                      onChange={(e) => updateSetting('smtp_port', parseInt(e.target.value) || 587)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-username">
+                      <User className="w-4 h-4 inline mr-2" />
+                      SMTP Användare
+                    </Label>
+                    <Input
+                      id="smtp-username"
+                      placeholder="admin@dintrafikskolahlm.se"
+                      value={settings.smtp_username}
+                      onChange={(e) => updateSetting('smtp_username', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-password">
+                      <Key className="w-4 h-4 inline mr-2" />
+                      SMTP Lösenord
+                    </Label>
+                    <Input
+                      id="smtp-password"
+                      type="password"
+                      placeholder="Ditt SMTP lösenord"
+                      value={settings.smtp_password}
+                      onChange={(e) => updateSetting('smtp_password', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="smtp-secure">SMTP Secure (TLS/SSL)</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Aktivera säker anslutning för SMTP
+                      </p>
+                    </div>
+                    <Switch
+                      id="smtp-secure"
+                      checked={settings.smtp_secure}
+                      onCheckedChange={(checked) => updateSetting('smtp_secure', checked)}
                     />
                   </div>
                 </div>
@@ -394,6 +663,84 @@ export default function SettingsClient() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Troubleshooting Tab */}
+        <TabsContent value="troubleshoot">
+          <Card>
+            <CardHeader>
+              <CardTitle>API Felsökning</CardTitle>
+              <CardDescription>Testa krediterings-API för diagnostik</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="test-user-id">Test Användar-ID</Label>
+                <Input
+                  id="test-user-id"
+                  value={testUserId}
+                  onChange={(e) => setTestUserId(e.target.value)}
+                  placeholder="Ange användar-ID för test"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={runTests}
+                  disabled={testing}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {testing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Kör test...
+                    </>
+                  ) : (
+                    'Kör krediterings-API-test'
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={testSendGridEmail}
+                  disabled={testing || !testUserId}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Testa SendGrid
+                </Button>
+              </div>
+              
+              <div className="text-sm text-muted-foreground p-4 bg-gray-50 rounded">
+                <p><strong>Observera:</strong></p>
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li>Krediterings-testet kontrollerar att API:et fungerar korrekt</li>
+                  <li>SendGrid-testet skickar en e-post till användarens e-postadress</li>
+                  <li>Se konsolen för detaljerade loggmeddelanden</li>
+                  <li>Toast-notifieringar visar testresultat</li>
+                </ul>
+              </div>
+              {testResults.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="font-semibold">Test Resultat:</h4>
+                  {testResults.map((result, index) => (
+                    <div key={index} className={`p-4 border rounded ${result.success ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <strong>{result.method} {result.endpoint}</strong>
+                        <span className={`px-2 py-1 rounded text-sm ${result.success ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {result.status} {result.success ? 'OK' : 'Fel'}
+                        </span>
+                      </div>
+                      <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
+                        {JSON.stringify(result.data, null, 2)}
+                      </pre>
+                      {result.error && (
+                        <p className="mt-2 text-red-600">Error: {result.error}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

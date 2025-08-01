@@ -5,6 +5,7 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/lib/hooks/useAuth"
+import { Toaster } from "react-hot-toast"
 
 const inter = Inter({ subsets: ["latin"] })
 const playfair = Playfair_Display({ subsets: ["latin"] })
@@ -211,6 +212,7 @@ export default function RootLayout({
           <Navigation />
           {children}
           <Footer />
+          <Toaster position="top-right" />
         </AuthProvider>
       </body>
     </html>

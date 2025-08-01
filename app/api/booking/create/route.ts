@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, or, ne } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import sgMail from '@sendgrid/mail';
 import { v4 as uuidv4 } from 'uuid';
@@ -233,11 +233,11 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Not enough handledar credits available.' }, { status: 400 });
         }
 
-        return await db.transaction(async (trx) => {
+        // Process handledar booking actions without using transaction
           // Deduct 1 credit from the first available credit record
           const firstCreditRecord = userCreditRecords.find(record => record.creditsRemaining > 0);
           if (firstCreditRecord) {
-            await trx
+            await db
               .update(userCredits)
               .set({
                 creditsRemaining: firstCreditRecord.creditsRemaining - 1,
@@ -247,13 +247,13 @@ export async function POST(request: NextRequest) {
           }
 
           // Update session participant count
-          await trx
+          await db
             .update(handledarSessions)
             .set({ currentParticipants: sql`${handledarSessions.currentParticipants} + 1` })
             .where(eq(handledarSessions.id, sessionId!));
 
           // Create booking with confirmed status
-          const [booking] = await trx
+          const [booking] = await db
             .insert(handledarBookings)
             .values({
               sessionId,
@@ -287,7 +287,6 @@ export async function POST(request: NextRequest) {
             booking,
             message: 'Handledar session booking confirmed and paid using credits.'
           });
-        });
       } else {
         // Regular payment flow
         // Update session participant count
@@ -338,37 +337,47 @@ export async function POST(request: NextRequest) {
       
       // If using credits, deduct from user's total
       if (paymentMethod === 'credits') {
+        // Check for credits - if lessonTypeId is null, check for handledar credits
         const userCreditRecords = await db
           .select()
           .from(userCredits)
           .where(
             and(
               eq(userCredits.userId, userId!),
-              eq(userCredits.lessonTypeId, sessionId!)
+              or(
+                eq(userCredits.lessonTypeId, sessionId!),
+                and(
+                  eq(userCredits.lessonTypeId, null),
+                  eq(userCredits.creditType, 'handledar')
+                )
+              )
             )
           );
 
         const totalUserCredits = userCreditRecords ? userCreditRecords.reduce((sum, credit) => sum + credit.creditsRemaining, 0) : 0;
 
-        if (totalUserCredits < durationMinutes) {
+        if (totalUserCredits < 1) {
           return NextResponse.json({ error: 'Not enough credits available.' }, { status: 400 });
         }
 
-        await db.transaction(async (trx) => {
-          await trx
+        // Process booking actions without using transaction
+          // Deduct 1 credit from the first available credit record
+          const firstCreditRecord = userCreditRecords.find(record => record.creditsRemaining > 0);
+          if (firstCreditRecord) {
+          await db
             .update(userCredits)
             .set({
-              creditsRemaining: sql`${userCredits.creditsRemaining} - ${durationMinutes}`
+              creditsRemaining: firstCreditRecord.creditsRemaining - 1,
+              updatedAt: new Date()
             })
-            .where(
-              and(
-                eq(userCredits.userId, userId!),
-                eq(userCredits.lessonTypeId, sessionId!)
-              )
-            );
+            .where(eq(userCredits.id, firstCreditRecord.id));
+          }
+
+          // Find available teacher for this time slot
+          const availableTeacher = await findAvailableTeacher(db, scheduledDate, startTime, endTime);
 
           // Create and confirm booking
-          const [booking] = await trx
+          const [booking] = await db
             .insert(bookings)
             .values({
               userId,
@@ -386,14 +395,21 @@ export async function POST(request: NextRequest) {
               guestEmail: isGuestBooking ? guestEmail : null,
               guestPhone: isGuestBooking ? guestPhone : null,
               swishUUID: uuidv4(),
+              teacherId: availableTeacher?.id,
+              paymentMethod: 'credits'
             })
             .returning();
+
+          // Send email notification
+          const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+          if (userEmail) {
+            await sendBookingNotification(userEmail, booking, true);
+          }
 
           return NextResponse.json({ 
             booking,
             message: 'Booking confirmed and paid using credits.'
           });
-        });
       } else {
         // Create the booking with on_hold status
         const [booking] = await db
@@ -478,12 +494,66 @@ export async function createGuestUser(email: string, name: string, phone: string
   }
 }
 
-async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean) {
-  // Get SendGrid API key from database and initialize
+async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean, isHandledar: boolean = false) {
+  // Always save internal message
+  await saveInternalMessage(booking.userId, booking, alreadyPaid, isHandledar);
+  
+  // Use new email template service
+  const { EmailService } = await import('@/lib/email/email-service');
+  
+  // Get user details for email context
+  let userDetails = null;
+  if (booking.userId) {
+    const [user] = await db.select().from(users).where(eq(users.id, booking.userId)).limit(1);
+    userDetails = user;
+  }
+  
+  // Get lesson type details
+  const [lessonType] = await db.select().from(lessonTypes).where(eq(lessonTypes.id, booking.lessonTypeId)).limit(1);
+  
+  const emailContext = {
+    user: userDetails ? {
+      id: userDetails.id,
+      email: userDetails.email,
+      firstName: userDetails.firstName,
+      lastName: userDetails.lastName,
+      role: userDetails.role
+    } : {
+      id: '',
+      email: email,
+      firstName: booking.guestName?.split(' ')[0] || 'Guest',
+      lastName: booking.guestName?.split(' ').slice(1).join(' ') || '',
+      role: 'student'
+    },
+    booking: {
+      id: booking.id,
+      scheduledDate: format(new Date(booking.scheduledDate), 'yyyy-MM-dd'),
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      lessonTypeName: lessonType?.name || 'Unknown',
+      totalPrice: booking.totalPrice.toString(),
+      swishUUID: booking.swishUUID
+    },
+    customData: {
+      swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890'
+    }
+  };
+  
+  // Send appropriate email based on payment status
+  if (alreadyPaid) {
+    await EmailService.sendTriggeredEmail('payment_confirmed', emailContext);
+  } else {
+    await EmailService.sendTriggeredEmail('new_booking', emailContext);
+    // Also send payment reminder
+    await EmailService.sendTriggeredEmail('payment_reminder', emailContext);
+  }
+  
+  return;
+  
+  // Keep the old implementation as fallback
   const apiKey = await getSendGridApiKey();
   if (!apiKey) {
-    console.error('SendGrid API key not found, saving message internally instead');
-    await saveInternalMessage(booking.userId, booking, alreadyPaid);
+    console.error('SendGrid API key not found');
     return;
   }
   sgMail.setApiKey(apiKey);
@@ -505,6 +575,12 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   
   const formattedDate = format(bookingDate, 'EEEE d MMMM yyyy', { locale: sv });
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
+  
+  // Get the current domain from request headers or environment
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+  const bookingUrl = isHandledar ? 
+    `${baseUrl}/dashboard/student` : 
+    `${baseUrl}/dashboard/student/bookings/${booking.id}`;
   
   try {
     if (alreadyPaid) {
@@ -531,9 +607,9 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" 
+              <a href="${bookingUrl}" 
                  style="background-color: #dc2626; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);">
-                📚 Gå till Min Sida
+                📚 Visa min bokning
               </a>
             </div>
             
@@ -605,18 +681,26 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
 }
 
 // Internal message backup
-async function saveInternalMessage(userId: string | null, booking: any, alreadyPaid: boolean) {
+async function saveInternalMessage(userId: string | null, booking: any, alreadyPaid: boolean, isHandledar: boolean = false) {
   if (!userId) return; // Can't save internal message for guest users
   
   const formattedDate = format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv });
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
+  
+  // Get the current domain from environment
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+  const bookingUrl = isHandledar ? 
+    `${baseUrl}/dashboard/student` : 
+    `${baseUrl}/dashboard/student/bookings/${booking.id}`;
   
   const subject = alreadyPaid ? 
     '✅ Din körlektion är bekräftad!' : 
     '💳 Betalning krävs för din körlektion';
     
   const message = alreadyPaid ?
-    `Din körlektion ${formattedDate} kl ${booking.startTime} är bekräftad och betald. Vi ser fram emot att träffa dig!` :
+    `Din körlektion ${formattedDate} kl ${booking.startTime} är bekräftad och betald. Vi ser fram emot att träffa dig!
+    
+Se din bokning här: ${bookingUrl}` :
     `Din körlektion ${formattedDate} kl ${booking.startTime} väntar på betalning. 
     
 Swish-betalning:
@@ -624,7 +708,9 @@ Swish-betalning:
 • Belopp: ${booking.totalPrice} kr
 • Meddelande: ${booking.swishUUID}
 
-Betala inom 10 minuter för att säkra din plats.`;
+Betala inom 10 minuter för att säkra din plats.
+
+Se din bokning här: ${bookingUrl}`;
 
   try {
     await db.insert(internalMessages).values({
@@ -670,5 +756,149 @@ async function sendWelcomeEmail(email: string, password: string) {
   } catch (error) {
     console.error('Welcome email failed:', error);
     // For welcome emails, we don't have a fallback since it's for new users
+  }
+}
+
+// Helper function to find available teacher for a time slot
+async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: string, endTime: string) {
+  try {
+    // Get day of week (0-6 where 0 is Sunday)
+    const date = new Date(scheduledDate);
+    const dayOfWeek = date.getDay();
+    
+    // Convert time strings to minutes for comparison
+    const timeToMinutes = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    
+    // Find all teachers
+    const teachers = await trx
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.role, 'teacher'),
+          eq(users.isActive, true)
+        )
+      );
+    
+    if (teachers.length === 0) {
+      return null;
+    }
+    
+    // If only one teacher, assign to them
+    if (teachers.length === 1) {
+      return teachers[0];
+    }
+    
+    // Find teachers available for this time slot
+    const availableTeachers = [];
+    
+    for (const teacher of teachers) {
+      // Check teacher availability schedule
+      const availability = await trx
+        .select()
+        .from(teacherAvailability)
+        .where(
+          and(
+            eq(teacherAvailability.teacherId, teacher.id),
+            eq(teacherAvailability.dayOfWeek, dayOfWeek),
+            eq(teacherAvailability.isActive, true)
+          )
+        );
+      
+      // Check if teacher has availability for this day and time
+      const isAvailable = availability.some(slot => {
+        const slotStartMinutes = timeToMinutes(slot.startTime);
+        const slotEndMinutes = timeToMinutes(slot.endTime);
+        return startMinutes >= slotStartMinutes && endMinutes <= slotEndMinutes;
+      });
+      
+      if (isAvailable) {
+        // Check if teacher has conflicting bookings
+        const conflictingBookings = await trx
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.teacherId, teacher.id),
+              eq(bookings.scheduledDate, scheduledDate),
+              or(
+                and(
+                  sql`${bookings.startTime} < ${endTime}`,
+                  sql`${bookings.endTime} > ${startTime}`
+                )
+              ),
+              ne(bookings.status, 'cancelled')
+            )
+          );
+        
+        if (conflictingBookings.length === 0) {
+          availableTeachers.push(teacher);
+        }
+      }
+    }
+    
+    // If no teachers are available based on schedule, try to find one without conflicts
+    if (availableTeachers.length === 0) {
+      for (const teacher of teachers) {
+        const conflictingBookings = await trx
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.teacherId, teacher.id),
+              eq(bookings.scheduledDate, scheduledDate),
+              or(
+                and(
+                  sql`${bookings.startTime} < ${endTime}`,
+                  sql`${bookings.endTime} > ${startTime}`
+                )
+              ),
+              ne(bookings.status, 'cancelled')
+            )
+          );
+        
+        if (conflictingBookings.length === 0) {
+          availableTeachers.push(teacher);
+        }
+      }
+    }
+    
+    if (availableTeachers.length === 0) {
+      return null;
+    }
+    
+    // Find teacher with least bookings for load balancing
+    let selectedTeacher = availableTeachers[0];
+    let minBookings = Infinity;
+    
+    for (const teacher of availableTeachers) {
+      const bookingCount = await trx
+        .select({ count: sql`count(*)` })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.teacherId, teacher.id),
+            eq(bookings.scheduledDate, scheduledDate),
+            ne(bookings.status, 'cancelled')
+          )
+        );
+      
+      const count = Number(bookingCount[0]?.count || 0);
+      if (count < minBookings) {
+        minBookings = count;
+        selectedTeacher = teacher;
+      }
+    }
+    
+    return selectedTeacher;
+  } catch (error) {
+    console.error('Error finding available teacher:', error);
+    return null;
   }
 }

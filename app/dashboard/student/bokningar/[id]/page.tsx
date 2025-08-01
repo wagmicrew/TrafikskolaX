@@ -18,6 +18,7 @@ export default async function BookingDetailPage({ params }: BookingDetailPagePro
     .select({
       id: bookings.id,
       userId: bookings.userId,
+      lessonTypeId: bookings.lessonTypeId,
       scheduledDate: bookings.scheduledDate,
       startTime: bookings.startTime,
       endTime: bookings.endTime,

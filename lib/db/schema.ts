@@ -1,6 +1,9 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum, time, date, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
+// Export email template schema
+export * from './schema/email-templates';
+
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'admin']);
 export const transmissionEnum = pgEnum('transmission', ['manual', 'automatic']);

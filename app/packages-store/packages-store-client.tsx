@@ -1,32 +1,73 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, ReactElement } from 'react';
 import {
   FaShoppingCart,
-  FaEuroSign,
   FaCheck,
   FaStar,
   FaGift,
   FaPercent,
   FaCreditCard,
   FaMobileAlt,
-  FaSpinner
+  FaSpinner,
+  FaCopy,
+  FaCheckCircle,
+  FaEuroSign
 } from 'react-icons/fa';
+
+interface Package {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  priceStudent?: number;
+  salePrice?: number;
+  isPopular: boolean;
+  features: string[];
+  credits: number;
+  image: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
-const PackagesStoreClient = ({ user, packages }) => {
-  const [selectedPackage, setSelectedPackage] = useState(null);
+interface PackagesStoreClientProps {
+  user: User;
+  packages: Package[];
+}
+
+const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): ReactElement => {
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('swish');
   const [loading, setLoading] = useState(false);
+  const [showSwishDialog, setShowSwishDialog] = useState(false);
+  const [swishPaymentData, setSwishPaymentData] = useState({
+    amount: 0,
+    message: '',
+    swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231',
+    purchaseId: ''
+  });
 
-  const getEffectivePrice = (pkg) => {
-    if (pkg.salePrice) return pkg.salePrice;
-    if (user.role === 'student' && pkg.priceStudent) return pkg.priceStudent;
+  const getEffectivePrice = (pkg: Package): number => {
+    if (pkg.salePrice !== undefined) return pkg.salePrice;
+    if (user.role === 'student' && pkg.priceStudent !== undefined) return pkg.priceStudent;
     return pkg.price;
   };
 
-  const getSavingsPercentage = (pkg) => {
+  const getPricePerCredit = (pkg: Package): string => {
+    const effectivePrice = getEffectivePrice(pkg);
+    const pricePerCredit = (effectivePrice / pkg.credits).toFixed(2);
+    return pricePerCredit;
+  };
+
+  const getSavingsPercentage = (pkg: Package): number => {
     const originalPrice = pkg.price;
     const effectivePrice = getEffectivePrice(pkg);
     if (effectivePrice < originalPrice) {
@@ -35,9 +76,10 @@ const PackagesStoreClient = ({ user, packages }) => {
     return 0;
   };
 
-  const handlePurchase = async (packageId) => {
+  const handlePurchase = async (packageId: string): Promise<void> => {
     setLoading(true);
     try {
+      // First, create the package purchase record
       const response = await fetch('/api/packages/purchase', {
         method: 'POST',
         headers: {
@@ -53,34 +95,113 @@ const PackagesStoreClient = ({ user, packages }) => {
 
       if (response.ok) {
         if (paymentMethod === 'swish') {
-          // Handle Swish payment
-          window.open(data.swishUrl, '_blank');
-          toast.success('Swish betalning initierad!');
+          // Set up Swish payment dialog
+          const pkg = packages.find((p: Package) => p.id === packageId);
+          if (!pkg) {
+            throw new Error('Paketet kunde inte hittas');
+          }
+          
+          const effectivePrice = getEffectivePrice(pkg);
+          
+          setSwishPaymentData({
+            amount: effectivePrice,
+            message: `Paket: ${pkg.name}`,
+            purchaseId: data.purchaseId,
+            swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231'
+          });
+          
+          setShowSwishDialog(true);
+          
         } else if (paymentMethod === 'qliro') {
-          // Handle Qliro checkout
+          // For Qliro, redirect to their checkout
           window.location.href = data.checkoutUrl;
         }
       } else {
-        toast.error(data.error || 'Något gick fel');
+        toast.error(data.error || 'Något gick fel vid skapande av köp');
       }
     } catch (error) {
-      toast.error('Nätverksfel vid betalning');
+      console.error('Payment error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid behandling av din betalning';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleSwishConfirm = async (purchaseId: string): Promise<void> => {
+    try {
+      const statusResponse = await fetch('/api/packages/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseId }),
+      });
+      
+      if (statusResponse.ok) {
+        toast.success('Tack för din betalning! Dina krediter kommer att aktiveras så snart vi bekräftar betalningen.');
+      } else {
+        const errorData = await statusResponse.json();
+        throw new Error(errorData.error || 'Kunde inte bekräfta betalningen');
+      }
+    } catch (error) {
+      console.error('Payment confirmation error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid bekräftelse av betalning';
+      toast.error(errorMessage);
     }
   };
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-purple-50 to-pink-100">
+      {/* Swish Payment Dialog */}
+      <SwishPaymentDialog
+        isOpen={showSwishDialog}
+        onClose={() => setShowSwishDialog(false)}
+        booking={{
+          id: swishPaymentData.purchaseId,
+          totalPrice: swishPaymentData.amount
+        }}
+        onConfirm={() => handleSwishConfirm(swishPaymentData.purchaseId)}
+      />
+      
+      {/* Main Content */}
       {/* Header */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-5xl font-bold text-gray-800 mb-4">
           <FaShoppingCart className="inline-block mr-4 text-purple-600" />
           Paketbutik
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
           Välj mellan våra populära paket och spara pengar på dina körlektioner!
         </p>
+        
+        {/* Payment Method Selector - Moved to top */}
+        <div className="bg-white p-6 rounded-xl shadow-lg mb-12 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Välj betalningsmetod</h2>
+          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+            <button
+              onClick={() => setPaymentMethod('swish')}
+              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
+                paymentMethod === 'swish'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}
+            >
+              <FaMobileAlt className="text-2xl" />
+              <span className="font-medium">Swish</span>
+            </button>
+            
+            <button
+              onClick={() => setPaymentMethod('qliro')}
+              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
+                paymentMethod === 'qliro'
+                  ? 'border-purple-500 bg-purple-50 text-purple-700'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+            >
+              <FaCreditCard className="text-2xl" />
+              <span className="font-medium">Qliro</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Packages Grid */}
@@ -127,7 +248,6 @@ const PackagesStoreClient = ({ user, packages }) => {
                 {/* Price */}
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <FaEuroSign className="text-2xl text-green-600" />
                     <span className="text-4xl font-bold text-gray-800">{effectivePrice}</span>
                     <span className="text-xl text-gray-600">kr</span>
                   </div>
@@ -144,50 +264,30 @@ const PackagesStoreClient = ({ user, packages }) => {
 
                 {/* Package Contents */}
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Ingår i paketet:</h4>
+                  <h4 className="font-semibold text-gray-800 mb-3">Innehåller:</h4>
                   <ul className="space-y-2">
-                    {pkg.contents.map((content) => (
-                      <li key={content.id} className="flex items-center gap-2 text-sm">
+                    {pkg.features.map((feature: string, index: number) => (
+                      <li key={index} className="flex items-center gap-2 text-sm">
                         <FaCheck className="text-green-500 flex-shrink-0" />
-                        <span>
-                          {content.lessonTypeName && content.credits 
-                            ? `${content.credits}x ${content.lessonTypeName}`
-                            : content.freeText
-                          }
-                        </span>
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                {/* Payment Methods */}
-                <div className="mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Betalningsmetod:</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setPaymentMethod('swish')}
-                      className={`p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                        paymentMethod === 'swish'
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <FaMobileAlt />
-                      <span className="font-medium">Swish</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setPaymentMethod('qliro')}
-                      className={`p-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
-                        paymentMethod === 'qliro'
-                          ? 'border-purple-500 bg-purple-50 text-purple-700'
-                          : 'border-gray-200 hover:border-purple-300'
-                      }`}
-                    >
-                      <FaCreditCard />
-                      <span className="font-medium">Qliro</span>
-                    </button>
-                  </div>
+                {/* Payment Method Indicator */}
+                <div className="mb-6 flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  {paymentMethod === 'swish' ? (
+                    <>
+                      <FaMobileAlt className="text-blue-500" />
+                      <span className="font-medium text-gray-700">Betalas med Swish</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCreditCard className="text-purple-500" />
+                      <span className="font-medium text-gray-700">Betalas med Qliro</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Purchase Button */}
@@ -236,7 +336,7 @@ const PackagesStoreClient = ({ user, packages }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaEuroSign className="text-2xl text-green-600" />
+              <span className="text-2xl text-green-600">kr</span>
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">Spara Pengar</h3>
             <p className="text-gray-600">

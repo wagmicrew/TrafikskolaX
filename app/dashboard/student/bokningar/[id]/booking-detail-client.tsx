@@ -17,6 +17,7 @@ import {
 } from 'react-icons/fa';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'react-hot-toast';
 
 interface BookingDetailClientProps {
   booking: any;
@@ -35,6 +36,8 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [plannedSteps, setPlannedSteps] = useState<PlannedStep[]>([]);
   const [isLoadingPlannedSteps, setIsLoadingPlannedSteps] = useState(false);
+  const [userCredits, setUserCredits] = useState<any[]>([]);
+  const [isProcessingCredit, setIsProcessingCredit] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('sv-SE', {
@@ -85,6 +88,39 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
     }
   };
 
+  const handleCreditPayment = async () => {
+    if (isProcessingCredit) return;
+    
+    setIsProcessingCredit(true);
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}/pay-with-credits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          userId: user.userId || user.id,
+          lessonTypeId: booking.lessonTypeId,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Betalning med krediter lyckades!');
+        // Reload the page to show updated payment status
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte behandla kreditbetalning');
+      }
+    } catch (error) {
+      console.error('Error processing credit payment:', error);
+      toast.error('Ett fel inträffade vid betalning med krediter');
+    } finally {
+      setIsProcessingCredit(false);
+    }
+  };
+
   const generateSwishURL = () => {
     const amount = booking.totalPrice;
     const message = `Körleksion ${booking.lessonTypeName} - ${formatDate(booking.scheduledDate)}`;
@@ -105,11 +141,26 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
     setIsLoadingPlannedSteps(false);
   };
 
+  const loadUserCredits = async () => {
+    try {
+      const response = await fetch('/api/user/credits');
+      if (response.ok) {
+        const data = await response.json();
+        setUserCredits(data.credits || []);
+      }
+    } catch (error) {
+      console.error('Error loading user credits:', error);
+    }
+  };
+
   useEffect(() => {
     if (booking.id) {
       loadPlannedSteps();
     }
-  }, [booking.id]);
+    if (user.id && booking.paymentStatus === 'unpaid') {
+      loadUserCredits();
+    }
+  }, [booking.id, user.id, booking.paymentStatus]);
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -219,12 +270,35 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
 
             {/* Payment Section */}
             <div>
-              {booking.paymentStatus === 'unpaid' && (
+{booking.paymentStatus === 'unpaid' && (
                 <div className="border-l-4 border-red-500 pl-4 mb-6">
                   <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <FaExclamationCircle className="text-red-600" />
                     Betalning krävs
                   </h2>
+
+                  {/* Offer Credit Payment Option First */}
+                  {userCredits.find(c => c.lessonTypeId === booking.lessonTypeId && c.creditsRemaining > 0) && (
+                    <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                          <FaCoins className="text-yellow-600" />
+                          Du har krediter tillgängliga!
+                        </h3>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Du har {userCredits.find(c => c.lessonTypeId === booking.lessonTypeId)?.creditsRemaining || 0} krediter kvar för {booking.lessonTypeName}.
+                      </p>
+                      <button
+                        onClick={handleCreditPayment}
+                        disabled={isProcessingCredit}
+                        className="w-full bg-yellow-600 text-white py-3 px-6 rounded-lg hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FaCoins />
+                        {isProcessingCredit ? 'Bearbetar...' : 'Betala med 1 kredit'}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Swish Payment Information */}
                   <div className="bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 backdrop-blur-xl border border-blue-500/20 rounded-xl p-6 mb-4">

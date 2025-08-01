@@ -82,10 +82,30 @@ export function BookingConfirmation({
 
   const fetchUserCredits = async () => {
     try {
-      const response = await fetch(`/api/user/credits?lessonTypeId=${bookingData.lessonType.id}`)
+      // Check if this is Handledarutbildning - if so, fetch handledar credits
+      const isHandledarutbildning = bookingData.lessonType.name === 'Handledarutbildning' || 
+                                    bookingData.lessonType.name?.toLowerCase().includes('handledarutbildning')
+      
+      let response;
+      if (isHandledarutbildning) {
+        // Fetch handledar credits (generic ones without specific session ID)
+        response = await fetch('/api/user/credits?creditType=handledar')
+      } else {
+        // Fetch lesson credits for the specific lesson type
+        response = await fetch(`/api/user/credits?lessonTypeId=${bookingData.lessonType.id}`)
+      }
+      
       if (response.ok) {
         const data = await response.json()
-        setUserCredits(data.credits || 0)
+        if (isHandledarutbildning && data.credits) {
+          // Sum up all generic handledar credits (where handledarSessionId is null)
+          const genericHandledarCredits = data.credits
+            .filter((credit: any) => !credit.handledarSessionId)
+            .reduce((sum: number, credit: any) => sum + credit.creditsRemaining, 0)
+          setUserCredits(genericHandledarCredits)
+        } else {
+          setUserCredits(data.credits || 0)
+        }
       }
     } catch (error) {
       console.error('Error fetching credits:', error)
@@ -143,7 +163,9 @@ export function BookingConfirmation({
     onComplete(bookingData)
   }
 
-  const canUseCredits = isStudent && userCredits > 0 && bookingData.lessonType.type !== 'handledar'
+  const isHandledarutbildning = bookingData.lessonType.name === 'Handledarutbildning' || 
+                                bookingData.lessonType.name?.toLowerCase().includes('handledarutbildning')
+  const canUseCredits = isStudent && userCredits > 0 && (bookingData.lessonType.type !== 'handledar' || isHandledarutbildning)
   const canPayAtLocation = isStudent && unpaidBookings < 2 && bookingData.lessonType.type !== 'handledar'
   const isHandledarSession = bookingData.lessonType.type === 'handledar'
 

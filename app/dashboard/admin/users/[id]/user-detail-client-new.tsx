@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Calendar, CreditCard, Key, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
 import TestEmailButton from '@/components/admin/TestEmailButton';
+import UserCreditsPanel from '@/components/admin/UserCreditsPanel';
 
 interface UserDetailProps {
   user: {
@@ -409,6 +410,9 @@ export default function UserDetailClient({ user }: UserDetailProps) {
           rows={4}
         />
       </div>
+
+      {/* Credit Management Section */}
+      <UserCreditsPanel userId={user.id} />
 
       {/* Save Button - Only shows when there are changes */}
       {hasChanges && (

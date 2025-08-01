@@ -54,6 +54,12 @@ export default async function AdminLayout({
               ⚙️ Inställningar
             </Link>
             <Link
+              href="/dashboard/admin/email-templates"
+              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
+            >
+              ✉️ E-postmallar
+            </Link>
+            <Link
               href="/dashboard/admin/migrate"
               className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base text-yellow-300"
             >

@@ -35,9 +35,25 @@ export default async function PackagesStorePage() {
         .leftJoin(lessonTypes, eq(packageContents.lessonTypeId, lessonTypes.id))
         .where(eq(packageContents.packageId, pkg.id));
 
+      // Transform contents into features array and calculate total credits
+      const features = contents.map(content => {
+        if (content.freeText) {
+          return content.freeText;
+        }
+        if (content.lessonTypeName) {
+          return `${content.credits} krediter för ${content.lessonTypeName}`;
+        }
+        return `${content.credits} krediter`;
+      });
+
+      const totalCredits = contents.reduce((sum, content) => sum + (content.credits || 0), 0);
+
       return {
         ...pkg,
-        contents,
+        features: features.length > 0 ? features : ['Inga funktioner angivna'],
+        credits: totalCredits,
+        image: '', // Add a default image path if needed
+        isPopular: false, // You can add logic to determine this
       };
     })
   );

@@ -286,9 +286,17 @@ return (
 
     {/* Utbildningskort B Section */}
     <div className="p-4 bg-white shadow-lg rounded-lg mt-8">
-      <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-        <CreditCard className="w-6 h-6 text-blue-500" /> Utbildningskort B
-      </h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold flex items-center gap-2">
+          <CreditCard className="w-6 h-6 text-blue-500" /> Utbildningskort B
+        </h3>
+        <button
+          onClick={() => router.push(`/dashboard/admin/users/${user.id}/credits`)}
+          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+        >
+          <CreditCard className="w-5 h-5" /> Hantera Krediter
+        </button>
+      </div>
       
       {/* User Info with Avatar */}
       <div className="flex items-center mb-8 p-4 bg-gray-50 rounded-lg">

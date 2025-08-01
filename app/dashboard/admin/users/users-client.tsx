@@ -13,6 +13,7 @@ import {
   X,
   UserCheck,
   Calendar,
+  CreditCard,
 } from 'lucide-react';
 
 interface User {
@@ -196,13 +197,22 @@ export default function UsersClient({
                   )}
                 </td>
                 <td className="px-4 py-2">
-                  <Link href={`/dashboard/admin/users/${user.id}`} className="text-blue-600 hover:underline">
-                    Hantera
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/dashboard/admin/users/${user.id}`} className="text-blue-600 hover:underline">
+                      Hantera
+                    </Link>
+                    
+                    <Link 
+                      href={`/dashboard/admin/users/${user.id}/credits`} 
+                      className="text-green-600 hover:underline flex items-center gap-1"
+                    >
+                      <CreditCard className="w-4 h-4" /> Krediter
+                    </Link>
 
-                  <button className="ml-2 text-red-600 hover:underline">
-                    <Trash className="w-5 h-5 inline" /> Radera
-                  </button>
+                    <button className="text-red-600 hover:underline">
+                      <Trash className="w-5 h-5 inline" /> Radera
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

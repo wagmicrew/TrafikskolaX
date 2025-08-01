@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   FaCalendarAlt, 
   FaCheckCircle, 
@@ -18,8 +18,10 @@ import {
 } from 'react-icons/fa';
 import Link from 'next/link';
 import MessageIndicator from '@/components/message-indicator';
+import { toast } from 'react-hot-toast';
 
 const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) => {
+  const [processingCreditPayment, setProcessingCreditPayment] = useState({});
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'text-green-600 bg-green-100';
@@ -51,6 +53,43 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
     return Array.from({ length: 5 }, (_, i) => (
       <FaStar key={i} className={i < rating ? 'text-yellow-400' : 'text-gray-300'} />
     ));
+  };
+
+  const handleCreditPayment = async (bookingId, lessonTypeId) => {
+    if (processingCreditPayment[bookingId]) return;
+    
+    setProcessingCreditPayment(prev => ({ ...prev, [bookingId]: true }));
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/pay-with-credits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId,
+          userId: user.id,
+          lessonTypeId,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Betalning med krediter lyckades!');
+        // Reload the page to show updated payment status
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte behandla kreditbetalning');
+      }
+    } catch (error) {
+      console.error('Error processing credit payment:', error);
+      toast.error('Ett fel inträffade vid betalning med krediter');
+    } finally {
+      setProcessingCreditPayment(prev => ({ ...prev, [bookingId]: false }));
+    }
+  };
+
+  const hasCreditsForLesson = (lessonTypeId) => {
+    return credits.some(c => c.lessonTypeId === lessonTypeId && c.creditsRemaining > 0);
   };
 
   return (
@@ -90,7 +129,7 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
         <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Totala Lektioner</p>
+              <p className="text-sm font-medium text-gray-600">Totalt Lektioner</p>
               <p className="text-3xl font-bold text-blue-600">{stats.totalBookings}</p>
             </div>
             <FaBookOpen className="text-4xl text-blue-500" />
@@ -120,7 +159,7 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
         <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Tillgängliga Credits</p>
+              <p className="text-sm font-medium text-gray-600">Tillgängliga Krediter</p>
               <p className="text-3xl font-bold text-purple-600">{stats.totalCredits}</p>
             </div>
             <FaCoins className="text-4xl text-purple-500" />
@@ -175,12 +214,24 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
                          booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
                       </span>
                     </div>
-                    <Link 
-                      href={`/dashboard/student/bokningar/${booking.id}`}
-                      className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                    >
-                      Visa bokning
-                    </Link>
+                    <div className="flex gap-2">
+                      {booking.paymentStatus === 'unpaid' && hasCreditsForLesson(booking.lessonTypeId) && (
+                        <button
+                          onClick={() => handleCreditPayment(booking.id, booking.lessonTypeId)}
+                          disabled={processingCreditPayment[booking.id]}
+                          className="px-3 py-1 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          <FaCoins className="text-xs" />
+                          {processingCreditPayment[booking.id] ? 'Bearbetar...' : 'Betala med kredit'}
+                        </button>
+                      )}
+                      <Link 
+                        href={`/dashboard/student/bokningar/${booking.id}`}
+                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
+                      >
+                        Visa bokning
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -201,20 +252,22 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
               <FaCoins className="text-yellow-500" />
-              Dina Credits
+              Dina Krediter
             </h3>
             
             {credits.length > 0 ? (
               <div className="space-y-3">
                 {credits.map((credit) => (
                   <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium">{credit.lessonTypeName}</span>
+                    <span className="text-sm font-medium">
+                      {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                    </span>
                     <span className="font-bold text-purple-600">{credit.creditsRemaining}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">Inga credits ännu</p>
+              <p className="text-gray-500 text-center py-4">Inga krediter ännu</p>
             )}
           </div>
 

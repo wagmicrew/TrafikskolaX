@@ -4,6 +4,7 @@ import { users } from '@/lib/db/schema';
 import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
+import { EmailService } from '@/lib/email/email-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +51,22 @@ export async function POST(request: NextRequest) {
       .returning();
 
     const user = newUser[0];
+
+    // Send welcome email to new user
+    try {
+      await EmailService.sendTriggeredEmail('new_user', {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail the registration if email fails
+    }
 
     // Generate JWT token
     const token = signToken({

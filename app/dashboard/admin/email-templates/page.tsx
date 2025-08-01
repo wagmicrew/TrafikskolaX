@@ -364,7 +364,14 @@ export default function EmailTemplatesPage() {
     preview = preview.replace(/\{\{schoolName\}\}/g, 'Din Trafikskola HLM');
     preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
 
-    return preview;
+return `
+      <div style="background-color: black; color: red; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto;">
+          <img src="https://dintrafikskolahlm.se/logo.png" alt="Logo" style="display: block; width: 150px; margin: 0 auto 20px;" />
+          ${preview}
+        </div>
+      </div>
+    `;
   };
 
   if (isLoading) {

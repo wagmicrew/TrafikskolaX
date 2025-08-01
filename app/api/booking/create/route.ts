@@ -484,8 +484,24 @@ export async function createGuestUser(email: string, name: string, phone: string
       })
       .returning();
 
-    // Send email with login credentials
-    await sendWelcomeEmail(email, password);
+    // Send welcome email to new guest user
+    const { EmailService } = await import('@/lib/email/email-service');
+    try {
+      await EmailService.sendTriggeredEmail('new_user', {
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role
+        },
+        customData: {
+          temporaryPassword: password
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email to guest:', emailError);
+    }
 
     return newUser;
   } catch (error) {

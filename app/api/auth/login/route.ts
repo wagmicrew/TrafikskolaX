@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { sql } from 'drizzle-orm';
+import { EmailService } from '@/lib/email/email-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,6 +77,24 @@ export async function POST(request: NextRequest) {
       firstName: user.first_name as string,
       lastName: user.last_name as string,
     });
+
+    // Send login notification email (optional - uncomment if needed)
+    /*
+    try {
+      await EmailService.sendTriggeredEmail('user_login', {
+        user: {
+          id: user.id as string,
+          email: user.email as string,
+          firstName: user.first_name as string,
+          lastName: user.last_name as string,
+          role: user.role as string
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send login notification:', emailError);
+      // Don't fail the login if email fails
+    }
+    */
 
     // Determine redirect URL based on role
     let redirectUrl = '/dashboard';

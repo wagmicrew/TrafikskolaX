@@ -52,6 +52,18 @@ interface EmailContext {
   customData?: Record<string, any>;
 }
 
+function applyRedTemplate(htmlContent: string): string {
+  // Wrap the content in a div with class for red theme
+  return `
+    <div style="background-color: black; color: red; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <img src="https://dintrafikskolahlm.se/logo.png" alt="Logo" style="display: block; width: 150px; margin: 0 auto 20px;" />
+        ${htmlContent}
+      </div>
+    </div>
+  `;
+}
+
 export class EmailService {
   /**
    * Send email based on trigger type
@@ -93,7 +105,7 @@ export class EmailService {
 
       // Process template with context data
       const processedSubject = this.processTemplate(emailTemplate.subject, context);
-      const processedHtml = this.processTemplate(emailTemplate.htmlContent, context);
+const processedHtml = this.processTemplate(applyRedTemplate(emailTemplate.htmlContent), context);
 
       // Send email to each receiver
       const sendPromises = receivers.map(async (receiver) => {

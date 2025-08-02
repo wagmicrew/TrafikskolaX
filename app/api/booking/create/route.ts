@@ -99,6 +99,20 @@ export async function POST(request: NextRequest) {
       if (!guestName || !guestEmail || !guestPhone) {
         return NextResponse.json({ error: 'Guest information required' }, { status: 400 });
       }
+      
+      // Check if email already exists
+      const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
+      if (existingUser.length > 0) {
+        return NextResponse.json({
+          error: 'Email already exists. Would you like to connect this booking to your account or use a different email?',
+          userExists: true,
+          existingEmail: guestEmail
+        }, { status: 400 });
+      }
+      
+      // Create a guest user account
+      const newUser = await createGuestUser(guestEmail, guestName, guestPhone);
+      userId = newUser.id;
       isGuestBooking = true;
     }
 
@@ -438,10 +452,10 @@ export async function POST(request: NextRequest) {
           const user = await db.select().from(users).where(eq(users.id, userId));
 
           if (user.length > 0) {
-            await sendBookingNotification(user[0].email, booking, alreadyPaid);
+            await sendBookingNotification(user[0].email, booking, alreadyPaid, false, paymentMethod);
           }
         } else if (isGuestBooking && guestEmail) {
-          await sendBookingNotification(guestEmail, booking, alreadyPaid);
+          await sendBookingNotification(guestEmail, booking, alreadyPaid, false, paymentMethod);
         }
 
         return NextResponse.json({ 
@@ -510,7 +524,7 @@ export async function createGuestUser(email: string, name: string, phone: string
   }
 }
 
-async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean, isHandledar: boolean = false) {
+async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean, isHandledar: boolean = false, paymentMethod?: string) {
   // Always save internal message
   await saveInternalMessage(booking.userId, booking, alreadyPaid, isHandledar);
   
@@ -524,8 +538,11 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
     userDetails = user;
   }
   
-  // Get lesson type details
-  const [lessonType] = await db.select().from(lessonTypes).where(eq(lessonTypes.id, booking.lessonTypeId)).limit(1);
+  // Get lesson type details if not handledar
+  let lessonType = null;
+  if (booking.lessonTypeId) {
+    [lessonType] = await db.select().from(lessonTypes).where(eq(lessonTypes.id, booking.lessonTypeId)).limit(1);
+  }
   
   const emailContext = {
     user: userDetails ? {
@@ -546,21 +563,25 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
       scheduledDate: format(new Date(booking.scheduledDate), 'yyyy-MM-dd'),
       startTime: booking.startTime,
       endTime: booking.endTime,
-      lessonTypeName: lessonType?.name || 'Unknown',
-      totalPrice: booking.totalPrice.toString(),
-      swishUUID: booking.swishUUID
+      lessonTypeName: lessonType?.name || 'Handledarutbildning',
+      totalPrice: booking.totalPrice?.toString() || booking.price?.toString() || '0',
+      swishUUID: booking.swishUUID,
+      paymentMethod: paymentMethod || booking.paymentMethod
     },
     customData: {
       swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890'
     }
   };
   
-  // Send appropriate email based on payment status
+  // Send appropriate email based on payment status and method
   if (alreadyPaid) {
     await EmailService.sendTriggeredEmail('payment_confirmed', emailContext);
+    await EmailService.sendTriggeredEmail('booking_confirmed', emailContext);
+  } else if (paymentMethod === 'swish' || booking.paymentMethod === 'swish') {
+    await EmailService.sendTriggeredEmail('new_booking', emailContext);
+    await EmailService.sendTriggeredEmail('awaiting_school_confirmation', emailContext);
   } else {
     await EmailService.sendTriggeredEmail('new_booking', emailContext);
-    // Also send payment reminder
     await EmailService.sendTriggeredEmail('payment_reminder', emailContext);
   }
   

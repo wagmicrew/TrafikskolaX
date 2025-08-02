@@ -10,6 +10,7 @@ export const emailTriggerEnum = pgEnum('email_trigger_type', [
   'moved_booking',
   'cancelled_booking',
   'booking_reminder',
+  'booking_confirmed',
   'credits_reminder',
   'payment_reminder',
   'payment_confirmation_request',
@@ -17,7 +18,9 @@ export const emailTriggerEnum = pgEnum('email_trigger_type', [
   'payment_declined',
   'feedback_received',
   'teacher_daily_bookings',
-  'teacher_feedback_reminder'
+  'teacher_feedback_reminder',
+  'awaiting_school_confirmation',
+  'pending_school_confirmation'
 ]);
 
 // Email receiver types enum

@@ -125,7 +125,14 @@ export function BookingConfirmation({
   }
 
   const handleConfirm = () => {
-    if (!selectedPaymentMethod) return
+    if (!selectedPaymentMethod) {
+      toast({
+        title: "Välj betalningsmetod",
+        description: "Vänligen välj en betalningsmetod för att fortsätta",
+        variant: "destructive",
+      })
+      return
+    }
     
     if (isAdminOrTeacher && !selectedStudent) {
       toast({
@@ -141,11 +148,21 @@ export function BookingConfirmation({
       if (!supervisorName || !supervisorEmail || !supervisorPhone) {
         toast({
           title: "Fel",
-          description: "Handledare information krävs för handledarkurs",
+          description: "Handledarinformation krävs för handledarutbildning",
           variant: "destructive",
         })
         return
       }
+    }
+
+    // If using credits for handledarutbildning, ensure they have enough credits
+    if (selectedPaymentMethod === 'credits' && isHandledarutbildning && userCredits < 1) {
+      toast({
+        title: "Otillräckligt med krediter",
+        description: "Du har inte tillräckligt med krediter för denna handledarutbildning",
+        variant: "destructive",
+      })
+      return
     }
 
     const bookingData = {
@@ -165,9 +182,10 @@ export function BookingConfirmation({
 
   const isHandledarutbildning = bookingData.lessonType.name === 'Handledarutbildning' || 
                                 bookingData.lessonType.name?.toLowerCase().includes('handledarutbildning')
+  const isHandledarSession = bookingData.lessonType.type === 'handledar'
+  const hasHandledarCredits = isStudent && userCredits > 0 && isHandledarutbildning
   const canUseCredits = isStudent && userCredits > 0 && (bookingData.lessonType.type !== 'handledar' || isHandledarutbildning)
   const canPayAtLocation = isStudent && unpaidBookings < 2 && bookingData.lessonType.type !== 'handledar'
-  const isHandledarSession = bookingData.lessonType.type === 'handledar'
 
   // Create Swish logo SVG component
   const SwishLogo = () => (
@@ -280,8 +298,47 @@ export function BookingConfirmation({
               </div>
             )}
 
-            <div className="mt-4 space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Betalningsmetod</h3>
+            <div className="mt-8 space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Välj betalningsmetod</h3>
+              
+              {hasHandledarCredits && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg mb-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-green-800">
+                        Du har {userCredits} handledarkredit{userCredits > 1 ? 'er' : ''} tillgängliga!
+                      </p>
+                      <p className="text-sm text-green-700 mt-1">
+                        Du kan använda dina krediter för denna handledarutbildning.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {canUseCredits && (
+                <div 
+                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  onClick={() => setSelectedPaymentMethod('credits')}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-500' : 'border-gray-400'}`}>
+                      {selectedPaymentMethod === 'credits' && <CheckCircle className="w-4 h-4 text-white" />}
+                    </div>
+                    <div>
+                      <p className="font-medium">Använd mina krediter</p>
+                      <p className="text-sm text-gray-500">
+                        {hasHandledarCredits 
+                          ? `Använd ${userCredits} kredit${userCredits > 1 ? 'er' : ''} för denna handledarutbildning`
+                          : `Du har ${userCredits} kredit${userCredits !== 1 ? 'er' : ''} kvar`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Swish */}
               <div

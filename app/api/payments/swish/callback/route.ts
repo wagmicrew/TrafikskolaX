@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packagePurchases, userCredits, packageContents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from '@/lib/mailer/universal-mailer';
 
 // Verify Swish signature
 function verifySwishSignature(signature: string, body: string, certificate: string): boolean {
@@ -87,34 +85,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send confirmation email to user
-    await resend.emails.send({
-      from: 'info@trafikskolax.se',
-      to: purchase[0].userEmail,
-      subject: 'Bekräftelse på betalning',
-      html: `
-        <h1>Tack för din betalning!</h1>
-        <p>Din Swish-betalning har mottagits och dina krediter har aktiverats.</p>
-        <p>Köp-ID: ${paymentReference}</p>
-        <p>Betalningsreferens: ${event.paymentReference || 'Ej tillgänglig'}</p>
-        <p>Du kan nu boka dina lektioner i din dashboard.</p>
-      `
-    });
+  // Send confirmation email to user
+    try {
+      await sendEmail({
+        to: purchase[0].userEmail,
+        subject: 'Bekräftelse på betalning',
+        html: `
+          <h1>Tack för din betalning!</h1>
+          <p>Din Swish-betalning har mottagits och dina krediter har aktiverats.</p>
+          <p>Köp-ID: ${paymentReference}</p>
+          <p>Betalningsreferens: ${event.paymentReference || 'Ej tillgänglig'}</p>
+          <p>Du kan nu boka dina lektioner i din dashboard.</p>
+        `,
+        messageType: 'payment_confirmation',
+      });
+    } catch(error) {
+      console.error('Error sending confirmation email:', error);
+    }
 
-    // Notify admin
-    await resend.emails.send({
-      from: 'noreply@trafikskolax.se',
-      to: 'admin@trafikskolax.se',
-      subject: 'Ny Swish-betalning mottagen',
-      html: `
-        <h1>Ny Swish-betalning mottagen</h1>
-        <p>En betalning har genomförts via Swish.</p>
-        <p>Kund: ${purchase[0].userEmail}</p>
-        <p>Köp-ID: ${paymentReference}</p>
-        <p>Belopp: ${purchase[0].pricePaid} kr</p>
-        <p>Betalningsreferens: ${event.paymentReference || 'Ej tillgänglig'}</p>
-      `
-    });
+  // Notify admin
+    try {
+      await sendEmail({
+        to: 'admin@trafikskolax.se',
+        subject: 'Ny Swish-betalning mottagen',
+        html: `
+          <h1>Ny Swish-betalning mottagen</h1>
+          <p>En betalning har genomförts via Swish.</p>
+          <p>Kund: ${purchase[0].userEmail}</p>
+          <p>Köp-ID: ${paymentReference}</p>
+          <p>Belopp: ${purchase[0].pricePaid} kr</p>
+          <p>Betalningsreferens: ${event.paymentReference || 'Ej tillgänglig'}</p>
+        `,
+        messageType: 'payment_confirmation',
+      });
+    } catch(error) {
+      console.error('Error notifying admin:', error);
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { userCredits, users, lessonTypes, handledarSessions } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt';
 import { cookies } from 'next/headers';

@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If booking for a student as Admin or Teacher
-    if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
+    if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
       userId = studentId; // Book for the selected student
     }
     // Special handling for admin/teacher booking for students
@@ -206,6 +206,10 @@ export async function POST(request: NextRequest) {
 
     // Handle different session types
     if (sessionType === 'handledar') {
+      // Ensure guests can't book handledar sessions
+      if (isGuestBooking) {
+        return NextResponse.json({ error: 'Guests must register to book handledar sessions.' }, { status: 400 });
+      }
       // Handle handledarkurs booking
       const [session] = await db
         .select()

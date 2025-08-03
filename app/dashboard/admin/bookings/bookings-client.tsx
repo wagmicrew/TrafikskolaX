@@ -51,6 +51,7 @@ interface BookingsClientProps {
   currentPage: number;
   totalPages: number;
   selectedUserId: string;
+  showPast: boolean;
 }
 
 export default function BookingsClient({
@@ -59,19 +60,20 @@ export default function BookingsClient({
   currentPage,
   totalPages,
   selectedUserId,
+  showPast,
 }: BookingsClientProps) {
   const router = useRouter();
 
   const handleUserChange = (userId: string) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
     if (userId) params.set('user', userId);
+    else params.delete('user');
     params.set('page', '1');
     router.push(`/dashboard/admin/bookings?${params.toString()}`);
   };
 
   const handlePageChange = (page: number) => {
-    const params = new URLSearchParams();
-    if (selectedUserId) params.set('user', selectedUserId);
+    const params = new URLSearchParams(window.location.search);
     params.set('page', page.toString());
     router.push(`/dashboard/admin/bookings?${params.toString()}`);
   };
@@ -128,9 +130,30 @@ export default function BookingsClient({
                 {user.name} ({user.email})
               </option>
             ))}
-          </select>
+            </select>
+            
+            <button
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                if (showPast) {
+                  params.delete('showPast');
+                } else {
+                  params.set('showPast', 'true');
+                }
+                params.set('page', '1');
+                router.push(`/dashboard/admin/bookings?${params.toString()}`);
+              }}
+              className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                showPast 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              {showPast ? 'Visa endast framtida' : 'Visa alla bokningar'}
+            </button>
+          </div>
         </div>
-      </div>
 
       {bookings.length === 0 ? (
         <div className="text-center py-12">

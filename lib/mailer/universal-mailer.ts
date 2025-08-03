@@ -1,7 +1,8 @@
 import { db } from '@/lib/db';
-import { siteSettings, internalMessages, users } from '@/lib/db/schema';
+import { siteSettings, internalMessages, users, emailTemplates } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 
 export interface EmailOptions {
   to: string;
@@ -16,7 +17,12 @@ export interface EmailOptions {
 }
 
 interface MailerConfig {
-  useSendgrid: boolean;
+  emailMethod: 'smtp' | 'sendgrid' | 'internal';
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPassword?: string;
   sendgridApiKey?: string;
   fromName: string;
   fromEmail: string;
@@ -35,8 +41,21 @@ async function getMailerConfig(): Promise<MailerConfig> {
     return acc;
   }, {} as Record<string, string | null>);
 
+  // Determine email method from settings
+  let emailMethod: 'smtp' | 'sendgrid' | 'internal' = 'internal';
+  if (settingsMap['email_method'] === 'smtp') {
+    emailMethod = 'smtp';
+  } else if (settingsMap['email_method'] === 'sendgrid' || settingsMap['use_sendgrid'] === 'true') {
+    emailMethod = 'sendgrid';
+  }
+
   return {
-    useSendgrid: settingsMap['use_sendgrid'] === 'true',
+    emailMethod,
+    smtpHost: settingsMap['smtp_host'] || undefined,
+    smtpPort: settingsMap['smtp_port'] ? parseInt(settingsMap['smtp_port']) : undefined,
+    smtpSecure: settingsMap['smtp_secure'] === 'true',
+    smtpUser: settingsMap['smtp_user'] || undefined,
+    smtpPassword: settingsMap['smtp_password'] || undefined,
     sendgridApiKey: settingsMap['sendgrid_api_key'] || undefined,
     fromName: settingsMap['from_name'] || 'Din Trafikskola Hässleholm',
     fromEmail: settingsMap['from_email'] || 'noreply@dintrafikskolahlm.se',
@@ -96,8 +115,47 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
     const config = await getMailerConfig();
 
-    // If SendGrid is enabled and configured
-    if (config.useSendgrid && config.sendgridApiKey) {
+    // Use SMTP if configured
+    if (config.emailMethod === 'smtp' && config.smtpHost) {
+      try {
+        const transporter = nodemailer.createTransporter({
+          host: config.smtpHost,
+          port: config.smtpPort || 587,
+          secure: config.smtpSecure || false,
+          auth: config.smtpUser && config.smtpPassword ? {
+            user: config.smtpUser,
+            pass: config.smtpPassword,
+          } : undefined,
+        });
+
+        const mailOptions = {
+          from: `"${options.fromName || config.fromName}" <${config.fromEmail}>`,
+          to: options.to,
+          subject: options.subject,
+          text: options.text,
+          html: options.html || options.text,
+          replyTo: options.replyTo || config.replyTo,
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Email sent via SMTP to ${options.to}`);
+        return true;
+      } catch (smtpError) {
+        console.error('SMTP error:', smtpError);
+        // Fall back to internal messaging
+        await saveInternalMessage(
+          options.to,
+          options.subject,
+          options.html || options.text || '',
+          options.bookingId,
+          options.messageType
+        );
+        return false;
+      }
+    }
+    
+    // Use SendGrid if configured
+    else if (config.emailMethod === 'sendgrid' && config.sendgridApiKey) {
       try {
         sgMail.setApiKey(config.sendgridApiKey);
 
@@ -130,7 +188,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       }
     }
 
-    // Fall back to internal messaging if SendGrid is not enabled
+    // Use internal messaging as default or fallback
     await saveInternalMessage(
       options.to,
       options.subject,
@@ -138,6 +196,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       options.bookingId,
       options.messageType
     );
+    console.log(`Email saved as internal message for ${options.to}`);
     return true;
   } catch (error) {
     console.error('Error in sendEmail:', error);
@@ -145,7 +204,71 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 }
 
+// Base email template function
+function createEmailTemplate(content: string): string {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #dc2626; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Din Trafikskola Hässleholm</h1>
+      </div>
+      
+      <div style="padding: 20px; background-color: #f9fafb;">
+        ${content}
+        
+        <div style="text-align: center; margin: 30px 0; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 5px 0;">
+            <strong>Din Trafikskola Hässleholm</strong>
+          </p>
+          <p style="color: #6b7280; margin: 5px 0;">
+            Östergatan 3a, 281 30 Hässleholm
+          </p>
+          <p style="color: #6b7280; margin: 5px 0;">
+            Telefon: 0760-38 91 92
+          </p>
+          <p style="color: #6b7280; margin: 5px 0;">
+            E-post: info@dintrafikskolahlm.se
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // Helper function to send booking confirmation email
+// Function to test send templates with mock data
+export async function testSendTemplate(toEmail: string, templateId: string) {
+  const mockData = {
+    lessonType: 'Körlektion',
+    date: '2025-08-15',
+    time: '14:30',
+    price: 495,
+    userName: 'Användarnamn',
+    userNumber: 'DTS0003',
+    loginUrl: 'http://example.com/login',
+  };
+
+  const emailTemplate = await db.select().from(emailTemplates).where(eq(emailTemplates.id, templateId)).limit(1);
+
+  if (!emailTemplate.length) {
+    console.error('Template not found');
+    return false;
+  }
+
+  const html = emailTemplate[0].htmlContent
+    .replace('{{userName}}', mockData.userName)
+    .replace('{{userNumber}}', mockData.userNumber)
+    .replace('{{loginUrl}}', mockData.loginUrl);
+
+  const subject = emailTemplate[0].subject;
+
+  return sendEmail({
+    to: toEmail,
+    subject,
+    html,
+    messageType: 'test',
+  });
+}
+
 export async function sendBookingConfirmation(
   toEmail: string,
   bookingDetails: {
@@ -159,38 +282,40 @@ export async function sendBookingConfirmation(
 ) {
   const subject = 'Bokningsbekräftelse - Din Trafikskola Hässleholm';
   
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1 style="color: #ef4444;">Bokningsbekräftelse</h1>
-      <p>Tack för din bokning!</p>
-      
-      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">Bokningsdetaljer</h2>
-        <p><strong>Lektionstyp:</strong> ${bookingDetails.lessonType}</p>
-        <p><strong>Datum:</strong> ${bookingDetails.date}</p>
-        <p><strong>Tid:</strong> ${bookingDetails.time}</p>
-        <p><strong>Pris:</strong> ${bookingDetails.price} kr</p>
+  const content = `
+    <h2 style="color: #dc2626;">Bokningsbekräftelse</h2>
+    <p>Tack för din bokning!</p>
+    
+    <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #dc2626; margin-top: 0;">Bokningsdetaljer</h3>
+      <p><strong>Lektionstyp:</strong> ${bookingDetails.lessonType}</p>
+      <p><strong>Datum:</strong> ${bookingDetails.date}</p>
+      <p><strong>Tid:</strong> ${bookingDetails.time}</p>
+      <p><strong>Pris:</strong> ${bookingDetails.price} kr</p>
+    </div>
+    
+    ${bookingDetails.swishUUID ? `
+      <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h4 style="color: #1e40af; margin-top: 0;">Betalning med Swish</h4>
+        <p>Swish-nummer: <strong>123 456 7890</strong></p>
+        <p>Belopp: <strong>${bookingDetails.price} kr</strong></p>
+        <p>Meddelande: <strong>${bookingDetails.swishUUID}</strong></p>
+        <p style="color: #dc2626;"><strong>OBS!</strong> Ange meddelandet exakt som ovan för att din betalning ska registreras korrekt.</p>
       </div>
-      
-      ${bookingDetails.swishUUID ? `
-        <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3>Betalning med Swish</h3>
-          <p>Swish-nummer: <strong>123 456 7890</strong></p>
-          <p>Belopp: <strong>${bookingDetails.price} kr</strong></p>
-          <p>Meddelande: <strong>${bookingDetails.swishUUID}</strong></p>
-          <p style="color: #dc2626;"><strong>OBS!</strong> Ange meddelandet exakt som ovan för att din betalning ska registreras korrekt.</p>
-        </div>
-      ` : ''}
-      
-      ${bookingDetails.paymentLink ? `
-        <a href="${bookingDetails.paymentLink}" style="display: inline-block; background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+    ` : ''}
+    
+    ${bookingDetails.paymentLink ? `
+      <p style="text-align: center; margin: 20px 0;">
+        <a href="${bookingDetails.paymentLink}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
           Bekräfta betalning
         </a>
-      ` : ''}
-      
-      <p>Med vänliga hälsningar,<br>Din Trafikskola Hässleholm</p>
-    </div>
+      </p>
+    ` : ''}
+    
+    <p>Vi ser fram emot att träffa dig!</p>
   `;
+
+  const html = createEmailTemplate(content);
 
   return sendEmail({
     to: toEmail,
@@ -213,29 +338,28 @@ export async function sendCancellationNotification(
 ) {
   const subject = 'Avbokning - Din Trafikskola Hässleholm';
   
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1 style="color: #ef4444;">Avbokning</h1>
-      
-      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">Avbokad lektion</h2>
-        <p><strong>Lektionstyp:</strong> ${details.lessonType}</p>
-        <p><strong>Datum:</strong> ${details.date}</p>
-        <p><strong>Tid:</strong> ${details.time}</p>
-        <p><strong>Anledning:</strong> ${details.reason}</p>
-      </div>
-      
-      ${details.creditAdded ? `
-        <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p>En kredit har lagts till på ditt konto som du kan använda för framtida bokningar.</p>
-        </div>
-      ` : ''}
-      
-      <p>Om du har några frågor, kontakta oss gärna.</p>
-      
-      <p>Med vänliga hälsningar,<br>Din Trafikskola Hässleholm</p>
+  const content = `
+    <h2 style="color: #dc2626;">Avbokning</h2>
+    
+    <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #dc2626; margin-top: 0;">Avbokad lektion</h3>
+      <p><strong>Lektionstyp:</strong> ${details.lessonType}</p>
+      <p><strong>Datum:</strong> ${details.date}</p>
+      <p><strong>Tid:</strong> ${details.time}</p>
+      <p><strong>Anledning:</strong> ${details.reason}</p>
     </div>
+    
+    ${details.creditAdded ? `
+      <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h4 style="color: #1e40af; margin-top: 0;">Kredit tillagd</h4>
+        <p>En kredit har lagts till på ditt konto som du kan använda för framtida bokningar.</p>
+      </div>
+    ` : ''}
+    
+    <p>Om du har några frågor, kontakta oss gärna.</p>
   `;
+
+  const html = createEmailTemplate(content);
 
   return sendEmail({
     to: toEmail,
@@ -259,31 +383,27 @@ export async function sendRescheduleNotification(
 ) {
   const subject = 'Ombokning - Din Trafikskola Hässleholm';
   
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h1 style="color: #ef4444;">Ombokning</h1>
+  const content = `
+    <h2 style="color: #dc2626;">Ombokning</h2>
+    
+    <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #dc2626; margin-top: 0;">Din lektion har flyttats</h3>
+      <p><strong>Lektionstyp:</strong> ${details.lessonType}</p>
       
-      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h2 style="margin-top: 0;">Din lektion har flyttats</h2>
-        <p><strong>Lektionstyp:</strong> ${details.lessonType}</p>
-        
-        <div style="margin: 10px 0;">
-          <p style="text-decoration: line-through; color: #6b7280;">
-            <strong>Tidigare:</strong> ${details.oldDate} ${details.oldTime}
-          </p>
-          <p style="color: #059669;">
-            <strong>Ny tid:</strong> ${details.newDate} ${details.newTime}
-          </p>
-        </div>
-        
-        <p><strong>Anledning:</strong> ${details.reason}</p>
-      </div>
+      <p style="text-decoration: line-through; color: #6b7280;">
+        <strong>Tidigare:</strong> ${details.oldDate} ${details.oldTime}
+      </p>
+      <p style="color: #059669;">
+        <strong>Ny tid:</strong> ${details.newDate} ${details.newTime}
+      </p>
       
-      <p>Om den nya tiden inte passar dig, vänligen kontakta oss så snart som möjligt.</p>
-      
-      <p>Med vänliga hälsningar,<br>Din Trafikskola Hässleholm</p>
+      <p><strong>Anledning:</strong> ${details.reason}</p>
     </div>
+    
+    <p>Om den nya tiden inte passar dig, vänligen kontakta oss så snart som möjligt.</p>
   `;
+
+  const html = createEmailTemplate(content);
 
   return sendEmail({
     to: toEmail,

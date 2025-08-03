@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function BookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ user?: string; page?: string }>;
+  searchParams: Promise<{ user?: string; page?: string; showPast?: string }>;
 }) {
   // Ensure admin access
   await requireAuth('admin');
@@ -19,12 +19,19 @@ export default async function BookingsPage({
   const pageSize = 10;
   const offset = (page - 1) * pageSize;
   const selectedUserId = params.user || '';
+  const showPast = params.showPast === 'true';
 
   // Get today's date
   const today = new Date().toISOString().split('T')[0];
 
   // Build conditions
-  const conditions = [gte(bookings.scheduledDate, today)];
+  const conditions = [];
+  
+  // Only filter by date if not showing past bookings
+  if (!showPast) {
+    conditions.push(gte(bookings.scheduledDate, today));
+  }
+  
   if (selectedUserId) {
     conditions.push(eq(bookings.userId, selectedUserId));
   }
@@ -54,7 +61,7 @@ export default async function BookingsPage({
     .from(bookings)
     .leftJoin(users, eq(bookings.userId, users.id))
     .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
-    .where(and(...conditions))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(bookings.scheduledDate), desc(bookings.startTime))
     .limit(pageSize)
     .offset(offset);
@@ -63,7 +70,7 @@ export default async function BookingsPage({
   const totalCount = await db
     .select({ count: sql`count(*)` })
     .from(bookings)
-    .where(and(...conditions))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .then((result) => Number(result[0].count));
 
   // Fetch all users for the filter
@@ -83,6 +90,7 @@ export default async function BookingsPage({
       currentPage={page}
       totalPages={Math.ceil(totalCount / pageSize)}
       selectedUserId={selectedUserId}
+      showPast={showPast}
     />
   );
 }

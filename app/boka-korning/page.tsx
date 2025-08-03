@@ -140,7 +140,10 @@ export default function BokaKorning() {
     return Number(sessionType.price)
   }
 
-  const handleBookingComplete = async (paymentData: any) => {
+const handleBookingComplete = async (paymentData: any) => {
+    if (user?.role === 'admin' && paymentData.userHasPaid) {
+      paymentData.paymentMethod = 'already_paid';
+    }
     try {
       setLoading(true)
       
@@ -216,12 +219,18 @@ export default function BokaKorning() {
     }
   }
 
-  const steps = [
-    { number: 1, title: "Välj lektion" },
-    { number: 2, title: "Växellåda" },
-    { number: 3, title: "Välj datum & tid" },
-    { number: 4, title: "Bekräfta" },
-  ]
+  const steps = bookingData.sessionType?.type === 'handledar' 
+    ? [
+        { number: 1, title: "Välj lektion" },
+        { number: 3, title: "Välj datum & tid" },
+        { number: 4, title: "Bekräfta" },
+      ]
+    : [
+        { number: 1, title: "Välj lektion" },
+        { number: 2, title: "Växellåda" },
+        { number: 3, title: "Välj datum & tid" },
+        { number: 4, title: "Bekräfta" },
+      ]
 
   if (authLoading) {
     return (

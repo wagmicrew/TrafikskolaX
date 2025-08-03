@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { handledarBookings, handledarSessions } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 

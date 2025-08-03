@@ -3,9 +3,7 @@ import { db } from '@/lib/db';
 import { packagePurchases, userCredits, packageContents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from '@/lib/mailer/universal-mailer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +25,7 @@ export async function POST(request: NextRequest) {
       .where(and(
         eq(packagePurchases.id, purchaseId),
         eq(packagePurchases.paymentStatus, 'pending')
-      )
+      ))
       .limit(1);
 
     if (!purchase.length) {
@@ -64,20 +62,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send confirmation email to user
-    await resend.emails.send({
-      from: 'info@trafikskolax.se',
-      to: purchase[0].userEmail,
-      subject: 'Bekräftelse på betalning',
-      html: `
-        <h1>Tack för ditt köp!</h1>
-        <p>Din betalning har mottagits och dina krediter har aktiverats.</p>
-        <p>Köp-ID: ${purchaseId}</p>
-        <p>Belopp: ${purchase[0].pricePaid} kr</p>
-        <p>Betalningsmetod: ${purchase[0].paymentMethod}</p>
-        <p>Du kan nu boka dina lektioner i din dashboard.</p>
-      `
-    });
+// Send confirmation email to user
+    try {
+      await sendEmail({
+        to: purchase[0].userEmail,
+        subject: 'Bekräftelse på betalning',
+        html: `
+          <h1>Tack för ditt köp!</h1>
+          <p>Din betalning har mottagits och dina krediter har aktiverats.</p>
+          <p>Köp-ID: ${purchaseId}</p>
+          <p>Belopp: ${purchase[0].pricePaid} kr</p>
+          <p>Betalningsmetod: ${purchase[0].paymentMethod}</p>
+          <p>Du kan nu boka dina lektioner i din dashboard.</p>
+        `,
+        messageType: 'payment_confirmation',
+      });
+    } catch (error) {
+      console.error('Failed to send confirmation email:', error);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

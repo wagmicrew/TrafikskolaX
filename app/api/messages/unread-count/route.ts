@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { internalMessages } from '@/lib/db/schema';
 import { eq, and, count } from 'drizzle-orm';
 

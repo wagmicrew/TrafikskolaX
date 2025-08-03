@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   FaCalendarAlt, 
   FaCheckCircle, 
@@ -14,48 +15,130 @@ import {
   FaBookOpen,
   FaGraduationCap,
   FaStore,
-  FaEnvelope
+  FaEnvelope,
+  FaPlusCircle
 } from 'react-icons/fa';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookingsTable } from '@/components/bookings/bookings-table';
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { sv } from 'date-fns/locale';
 import MessageIndicator from '@/components/message-indicator';
-import { toast } from 'react-hot-toast';
 
-const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) => {
-  const [processingCreditPayment, setProcessingCreditPayment] = useState({});
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'confirmed': return 'text-green-600 bg-green-100';
-      case 'pending': return 'text-yellow-600 bg-yellow-100';
-      case 'on_hold': return 'text-orange-600 bg-orange-100';
-      case 'cancelled': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+interface Booking {
+  id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  paymentStatus: 'paid' | 'unpaid' | 'partial';
+  studentName: string;
+  instructorName?: string;
+  price: number;
+  paidAmount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Credit {
+  id: string;
+  type: string;
+  amount: number;
+  expiresAt?: string;
+  used: number;
+  remaining: number;
+  lessonTypeId?: string;
+  lessonTypeName?: string | null;
+  creditsRemaining?: number;
+}
+
+interface Feedback {
+  id: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
+interface Stats {
+  totalLessons?: number;
+  completedLessons?: number;
+  upcomingLessons?: number;
+  credits?: number;
+  totalBookings: number;
+  completedBookings: number;
+  upcomingBookings: number;
+  totalCredits: number;
+}
+
+interface User {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+  phone?: string;
+  avatar?: string;
+}
+
+interface StudentDashboardClientProps {
+  user: User;
+  bookings: Booking[];
+  credits: Credit[];
+  feedback: Feedback[];
+  stats: Stats;
+}
+
+const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({ 
+  user, 
+  bookings: initialBookings, 
+  credits, 
+  feedback, 
+  stats 
+}) => {
+  const router = useRouter();
+  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [processingCreditPayment, setProcessingCreditPayment] = useState<Record<string, boolean>>({});
+
+  const upcomingBookings = bookings.filter(
+    (booking) => booking.status !== 'cancelled' && booking.status !== 'completed'
+  );
+
+  const pastBookings = bookings.filter(
+    (booking) => booking.status === 'cancelled' || booking.status === 'completed'
+  );
+
+  const refreshBookings = async () => {
+    try {
+      setIsRefreshing(true);
+      const response = await fetch('/api/bookings/my-bookings');
+      if (!response.ok) {
+        throw new Error('Kunde inte hämta bokningar');
+      }
+      const data = await response.json();
+      setBookings(data);
+    } catch (error) {
+      console.error('Error refreshing bookings:', error);
+      toast.error('Kunde inte uppdatera bokningar');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
-  const getPaymentStatusColor = (status) => {
-    switch (status) {
-      case 'paid': return 'text-green-600 bg-green-100';
-      case 'unpaid': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('sv-SE', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const renderStars = (rating) => {
+  const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <FaStar key={i} className={i < rating ? 'text-yellow-400' : 'text-gray-300'} />
     ));
   };
 
-  const handleCreditPayment = async (bookingId, lessonTypeId) => {
+  const handleCreditPayment = async (bookingId: string, lessonTypeId: string) => {
     if (processingCreditPayment[bookingId]) return;
     
     setProcessingCreditPayment(prev => ({ ...prev, [bookingId]: true }));
@@ -88,8 +171,8 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
     }
   };
 
-  const hasCreditsForLesson = (lessonTypeId) => {
-    return credits.some(c => c.lessonTypeId === lessonTypeId && c.creditsRemaining > 0);
+  const hasCreditsForLesson = (lessonTypeId: string) => {
+    return credits.some((c: any) => c.lessonTypeId === lessonTypeId && c.creditsRemaining > 0);
   };
 
   return (
@@ -119,8 +202,8 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
               Meddelande
             </MessageIndicator>
             <Link href="/dashboard/student/settings" className="hover:text-yellow-300">Inställningar</Link>
-              <Link href="/dashboard/utbildningskort" className="hover:text-yellow-300">Utbildningskort</Link>
-            </nav>
+            <Link href="/dashboard/utbildningskort" className="hover:text-yellow-300">Utbildningskort</Link>
+          </nav>
         </div>
       </div>
 
@@ -167,163 +250,116 @@ const StudentDashboardClient = ({ user, bookings, credits, feedback, stats }) =>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Bookings */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <FaCalendarAlt className="text-blue-600" />
-                Mina Bokningar
-              </h2>
-              <Link 
-                href="/boka-korning" 
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Boka Ny Lektion
-              </Link>
-            </div>
-            
-            <div className="space-y-4">
-              {bookings.slice(0, 5).map((booking) => (
-                <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{booking.lessonTypeName}</h3>
-                      <p className="text-sm text-gray-600">{formatDate(booking.scheduledDate)}</p>
-                      <p className="text-sm text-gray-600">{booking.startTime} - {booking.endTime}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FaCoins className="text-sm text-gray-500" />
-                        <span className="font-semibold">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                        {booking.status === 'confirmed' ? 'Bekräftad' : 
-                         booking.status === 'pending' ? 'Väntande' : 
-                         booking.status === 'on_hold' ? 'Pausad' : 
-                         booking.status === 'cancelled' ? 'Avbokad' : booking.status}
-                      </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                        {booking.paymentStatus === 'paid' ? 'Betald' : 
-                         booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      {booking.paymentStatus === 'unpaid' && hasCreditsForLesson(booking.lessonTypeId) && (
-                        <button
-                          onClick={() => handleCreditPayment(booking.id, booking.lessonTypeId)}
-                          disabled={processingCreditPayment[booking.id]}
-                          className="px-3 py-1 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                        >
-                          <FaCoins className="text-xs" />
-                          {processingCreditPayment[booking.id] ? 'Bearbetar...' : 'Betala med kredit'}
-                        </button>
-                      )}
-                      <Link 
-                        href={`/dashboard/student/bokningar/${booking.id}`}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium"
-                      >
-                        Visa bokning
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {bookings.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <FaCalendarAlt className="text-4xl mx-auto mb-4 opacity-50" />
-                  <p>Inga bokningar än. Boka din första lektion!</p>
-                </div>
-              )}
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">Hej, {user.name}!</h2>
+          <div className="flex items-center space-x-4">
+            <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing}>
+              {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
+            </Button>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Credits */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <FaCoins className="text-yellow-500" />
-              Dina Krediter
-            </h3>
-            
-            {credits.length > 0 ? (
-              <div className="space-y-3">
-                {credits.map((credit) => (
-                  <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium">
-                      {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
-                    </span>
-                    <span className="font-bold text-purple-600">{credit.creditsRemaining}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Mina bokningar</CardTitle>
+            <CardDescription>
+              Hantera dina kommande och tidigare lektioner
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="upcoming" onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="upcoming">Kommande lektioner</TabsTrigger>
+                <TabsTrigger value="past">Tidigare lektioner</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upcoming" className="space-y-4">
+                {upcomingBookings.length > 0 ? (
+                  <BookingsTable 
+                    bookings={upcomingBookings} 
+                    userRole={user.role} 
+                    onRefresh={refreshBookings}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Inga kommande lektioner hittades</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => router.push('/book')}
+                    >
+                      Boka lektion nu
+                    </Button>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">Inga krediter ännu</p>
-            )}
-          </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="past" className="space-y-4">
+                {pastBookings.length > 0 ? (
+                  <BookingsTable 
+                    bookings={pastBookings} 
+                    userRole={user.role}
+                    onRefresh={refreshBookings}
+                  />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Inga tidigare lektioner hittades</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
 
-          {/* Recent Feedback */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <FaCommentDots className="text-blue-500" />
-              Senaste Feedback
-            </h3>
-            
-            {feedback.length > 0 ? (
-              <div className="space-y-3">
-                {feedback.slice(0, 3).map((fb) => (
-                  <Link 
-                    key={fb.id} 
-                    href={`/dashboard/student/bokningar/${fb.bookingId}`}
-                    className="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1 mb-2">
-                      {renderStars(fb.rating)}
-                    </div>
-                    <p className="text-sm text-gray-700">{fb.feedbackText}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {fb.isFromTeacher ? 'Från lärare' : 'Från dig'} • {fb.createdAt ? formatDate(fb.createdAt) : 'Okänt datum'}
-                    </p>
-                    <p className="text-xs text-blue-600 mt-1">Klicka för att se hela bokningen →</p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">Ingen feedback ännu</p>
-            )}
-          </div>
+        {/* Credits */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+            <FaCoins className="text-yellow-500" />
+            Dina Krediter
+          </h3>
+          
+          {credits.length > 0 ? (
+            <div className="space-y-3">
+              {credits.map((credit) => (
+                <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm font-medium">
+                    {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                  </span>
+                  <span className="font-bold text-purple-600">{credit.creditsRemaining || credit.remaining}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600">Inga krediter tillgängliga</p>
+          )}
+        </div>
 
-          {/* Packages CTA */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl shadow-lg p-6">
+        {/* Packages CTA */}
+        <Card className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+          <CardContent className="pt-6">
             <div className="text-center">
               <FaTrophy className="text-4xl mx-auto mb-4 text-yellow-300" />
               <h3 className="text-xl font-bold mb-2">Köp Paket & Spara!</h3>
               <p className="text-sm opacity-90 mb-4">
                 Upptäck våra fantastiska paket och få mer för pengarna
               </p>
-              <Link 
-                href="/packages-store" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors"
+              <Button 
+                asChild
+                variant="secondary"
+                className="gap-2 font-bold hover:bg-gray-100"
               >
-                <FaShoppingCart />
-                Se Alla Paket
-              </Link>
+                <Link href="/packages-store">
+                  <FaShoppingCart />
+                  Se Alla Paket
+                </Link>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
 export default StudentDashboardClient;
-

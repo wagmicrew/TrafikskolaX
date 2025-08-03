@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/client';
+import { db } from '@/lib/db';
 import { bookings, users, lessonTypes } from '@/lib/db/schema';
 import { eq, desc, isNull } from 'drizzle-orm';
 import { verifyToken as verifyJWT } from '@/lib/auth/jwt';

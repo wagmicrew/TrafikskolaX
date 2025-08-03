@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -204,21 +204,14 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       
       const result = await response.json();
       
-      toast({
-        title: 'Success',
-        description: editingPackage ? 'Package updated successfully' : 'Package created successfully',
-      });
+      toast.success(editingPackage ? 'Package updated successfully' : 'Package created successfully');
       
       // Refresh the packages list
       router.refresh();
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error saving package:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to save package');
     } finally {
       setIsLoading(false);
     }
@@ -239,20 +232,13 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
         throw new Error('Failed to delete package');
       }
       
-      toast({
-        title: 'Success',
-        description: 'Package deleted successfully',
-      });
+      toast.success('Package deleted successfully');
       
       // Refresh the packages list
       router.refresh();
     } catch (error) {
       console.error('Error deleting package:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete package',
-        variant: 'destructive',
-      });
+      toast.error('Failed to delete package');
     }
   };
 
@@ -288,11 +274,7 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       router.refresh();
     } catch (error) {
       console.error('Error updating package status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update package status',
-        variant: 'destructive',
-      });
+      toast.error('Failed to update package status');
     }
   };
 

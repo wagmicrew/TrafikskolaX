@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, Mail, Calendar, CreditCard, Key, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
-import TestEmailButton from '@/components/admin/TestEmailButton';
-import UserCreditsPanel from '@/components/admin/UserCreditsPanel';
+import TestEmailButton from '@/components/Admin/TestEmailButton';
+import UserCreditsPanel from '@/components/Admin/UserCreditsPanel';
 
 interface UserDetailProps {
   user: {

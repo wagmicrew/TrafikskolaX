@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
-import { DeleteLessonDialog } from '@/components/admin/delete-lesson-dialog';
+import { DeleteLessonDialog } from '@/components/Admin/delete-lesson-dialog';
 
 interface LessonType {
   id: string;

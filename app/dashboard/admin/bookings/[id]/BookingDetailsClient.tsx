@@ -30,7 +30,7 @@ import {
 import { format } from 'date-fns';
 import MoveBookingModal from './MoveBookingModal';
 import DeleteBookingConfirmation from './DeleteBookingConfirmation';
-import StatusUpdatePanel from '@/components/admin/StatusUpdatePanel';
+import StatusUpdatePanel from '@/components/Admin/StatusUpdatePanel';
 
 interface BookingDetailsClientProps {
   booking: any;

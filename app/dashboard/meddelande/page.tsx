@@ -315,7 +315,11 @@ function MessagesPage() {
                       </div>
                       <div className="p-4">
                         <div className="prose max-w-none text-gray-800">
-                          <p style={{ whiteSpace: 'pre-wrap' }}>{selectedMessage.message}</p>
+                          <div 
+                            dangerouslySetInnerHTML={{ __html: selectedMessage.message }}
+                            style={{ whiteSpace: 'pre-wrap' }}
+                            className="message-content"
+                          />
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end gap-2">
                           <button

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { bookings, users, lessonTypes, packages } from '@/lib/db/schema';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, ne } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +22,15 @@ export async function GET(request: NextRequest) {
     console.log('Student bookings API - User from token:', user);
     console.log('Student bookings API - User ID:', user.id, 'or userId:', user.userId);
 
-    // Fetch all bookings for the student
+    // Clean up any temporary bookings for this user first
+    await db
+      .delete(bookings)
+      .where(and(
+        eq(bookings.userId, user.userId || user.id),
+        eq(bookings.status, 'temp')
+      ));
+
+    // Fetch all bookings for the student (excluding temp status)
     const studentBookings = await db
       .select({
         id: bookings.id,
@@ -49,9 +57,10 @@ export async function GET(request: NextRequest) {
       .leftJoin(users, eq(bookings.teacherId, users.id))
       .where(and(
         eq(bookings.userId, user.userId || user.id),
-        isNull(bookings.deletedAt)
+        isNull(bookings.deletedAt),
+        ne(bookings.status, 'temp')
       ))
-      .orderBy(desc(bookings.scheduledDate), desc(bookings.startTime));
+      .orderBy(bookings.scheduledDate, bookings.startTime);
 
     // Format the bookings for the frontend
     const formattedBookings = studentBookings.map(booking => ({

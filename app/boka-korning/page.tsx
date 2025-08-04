@@ -364,7 +364,8 @@ const handleBookingComplete = async (paymentData: any) => {
                 transmissionType: bookingData.transmissionType,
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,
-                totalPrice: bookingData.totalPrice
+                totalPrice: bookingData.totalPrice,
+                tempBookingId: bookingData.tempBookingId // Pass the temp booking ID
               }}
               user={user}
               onComplete={handleStepComplete}

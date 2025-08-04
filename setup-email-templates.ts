@@ -5,18 +5,55 @@ import { eq } from 'drizzle-orm';
 const templates = [
   {
     triggerType: 'new_user' as const,
-    subject: 'Välkommen till Din Trafikskola HLM - Dina inloggningsuppgifter',
+    subject: 'Välkommen till Din Trafikskola Hässleholm!',
     htmlContent: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #dc2626;">Välkommen till Din Trafikskola HLM!</h1>
-        <p>Ditt konto har skapats framgångsrikt. Här är dina inloggningsuppgifter:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>E-post:</strong> {{user.email}}</p>
-          <p><strong>Tillfälligt lösenord:</strong> {{customData.temporaryPassword}}</p>
+        <div style="background-color: #dc2626; color: white; padding: 20px; text-align: center;">
+          <h1>Din Trafikskola Hässleholm</h1>
+          <h2>Välkommen!</h2>
         </div>
-        <p>Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
-        <p><a href="{{baseUrl}}/inloggning" style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Logga in här</a></p>
-        <p>Med vänliga hälsningar,<br>Din Trafikskola HLM</p>
+       
+        <div style="padding: 20px; background-color: #f9fafb;">
+          <p>Hej {{user.firstName}} {{user.lastName}},</p>
+         
+          <p>Välkommen till Din Trafikskola Hässleholm! Vi är glada att ha dig som elev.</p>
+         
+          <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #dc2626; margin-top: 0;">Ditt kundnummer</h3>
+            <p style="font-size: 18px; font-weight: bold;">{{user.customerNumber}}</p>
+            <p>Använd detta kundnummer när du kontaktar oss.</p>
+          </div>
+         
+          <div style="background-color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #dc2626; margin-top: 0;">Logga in på din elevsida</h3>
+            <p>Du kan nu logga in på din elevsida med din e-postadress och det lösenord du angav vid registreringen.</p>
+            <p style="text-align: center; margin: 20px 0;">
+              <a href="{{baseUrl}}/inloggning" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+                Logga in här
+              </a>
+            </p>
+          </div>
+         
+          <div style="background-color: #dbeafe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="color: #1e40af; margin-top: 0;">Nästa steg:</h4>
+            <ul style="color: #1e40af;">
+              <li>Logga in på din elevsida på vår hemsida</li>
+              <li>Komplettera din profil med kontaktuppgifter</li>
+              <li>Boka din första körlektion</li>
+              <li>Kontakta oss om du har några frågor</li>
+            </ul>
+          </div>
+         
+          <div style="text-align: center; margin: 30px 0;">
+            <p>Vi ser fram emot att hjälpa dig få ditt körkort!</p>
+            <p style="color: #6b7280;">
+              <strong>Din Trafikskola Hässleholm</strong><br>
+              Östergatan 3a, 281 30 Hässleholm<br>
+              Telefon: 0760-38 91 92<br>
+              E-post: johaswe@gmail.com
+            </p>
+          </div>
+        </div>
       </div>
     `,
     receiverType: 'student' as const

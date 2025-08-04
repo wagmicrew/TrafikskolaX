@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, Smartphone, Copy, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -41,35 +41,68 @@ export function SwishPaymentDialog({
 
   const generateQRCode = async () => {
     try {
-      // Swish QR format
-      const swishData = {
-        version: 1,
-        payee: {
-          value: swishNumber.replace(/\s/g, ''),
-          editable: false
+      // Prepare request payload for official Swish QR API
+      const requestPayload = {
+        payee: swishNumber.replace(/\s/g, ''),
+        amount: amount.toString(),
+        message: message,
+        format: 'png',
+        size: 256,
+        transparent: false,
+        border: 2
+      };
+      
+      // Call our API endpoint to generate QR code using official Swish API
+      const response = await fetch('/api/payments/swish/qr-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        amount: {
-          value: amount,
-          editable: false
-        },
-        message: {
-          value: message,
-          editable: false
-        }
+        body: JSON.stringify(requestPayload),
+      });
+      
+      if (response.ok) {
+        // Get the image blob and create object URL
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setQrCodeUrl(objectUrl);
+      } else {
+        throw new Error('Failed to generate QR code from API');
       }
-
-      const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishData))}`
-      const qrUrl = await QRCode.toDataURL(swishUrl, {
-        width: 256,
-        margin: 2,
-        color: {
-          dark: '#1f2937',
-          light: '#ffffff'
-        }
-      })
-      setQrCodeUrl(qrUrl)
     } catch (error) {
-      console.error("Failed to generate QR code:", error)
+      console.error("Failed to generate QR code:", error);
+      
+      // Fallback to local generation
+      try {
+        const swishData = {
+          version: 1,
+          payee: {
+            value: swishNumber.replace(/\s/g, ''),
+            editable: false
+          },
+          amount: {
+            value: amount,
+            editable: false
+          },
+          message: {
+            value: message,
+            editable: false
+          }
+        };
+
+        const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishData))}`;
+        const qrUrl = await QRCode.toDataURL(swishUrl, {
+          width: 256,
+          margin: 2,
+          color: {
+            dark: '#1f2937',
+            light: '#ffffff'
+          }
+        });
+        setQrCodeUrl(qrUrl);
+      } catch (fallbackError) {
+        console.error("Fallback QR generation also failed:", fallbackError);
+      }
     }
   }
 
@@ -155,7 +188,8 @@ export function SwishPaymentDialog({
             // Check for specific error
             const errorData = await response.json();
             if (errorData.error === 'Email already exists') {
-              setShowEmailDialog(true);
+              // Handle email conflict - could show a dialog or redirect
+              console.warn('Email already exists for booking');
             } else {
               throw new Error(errorData.error || 'Failed to confirm payment')
             }
@@ -183,6 +217,10 @@ export function SwishPaymentDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] md:max-w-[600px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Swish betalning</DialogTitle>
+          <DialogDescription>Betala din körlektion med Swish genom att scanna QR-koden eller ange betalningsinformation manuellt</DialogDescription>
+        </DialogHeader>
         <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full max-h-[95vh] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 rounded-xl sm:rounded-2xl"></div>
           
@@ -217,6 +255,9 @@ export function SwishPaymentDialog({
                 </div>
                 <div className="text-sm text-white/70">
                   {message}
+                </div>
+                <div className="text-xs text-white/60 mt-2">
+                  Boknings-ID: {booking.id}
                 </div>
               </div>
 

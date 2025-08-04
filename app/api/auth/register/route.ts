@@ -5,6 +5,7 @@ import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { EmailService } from '@/lib/email/email-service';
+import { generateCustomerNumber } from '@/lib/utils/customer-number';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,12 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Generate customer number for student users
+    let customerNumber = null;
+    if (role === 'student') {
+      customerNumber = await generateCustomerNumber();
+    }
+
     // Create user
     const newUser = await db
       .insert(users)
@@ -47,6 +54,7 @@ export async function POST(request: NextRequest) {
         phone,
         personalNumber,
         role: role as 'student' | 'teacher' | 'admin',
+        customerNumber,
       })
       .returning();
 
@@ -60,7 +68,8 @@ export async function POST(request: NextRequest) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role
+          role: user.role,
+          customerNumber: user.customerNumber
         }
       });
     } catch (emailError) {

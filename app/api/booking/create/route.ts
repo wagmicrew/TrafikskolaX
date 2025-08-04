@@ -94,11 +94,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If not logged in, validate guest fields
+    // If not logged in, validate guest fields (allow placeholders for temporary bookings)
     if (!userId) {
       if (!guestName || !guestEmail || !guestPhone) {
         return NextResponse.json({ error: 'Guest information required' }, { status: 400 });
       }
+      
+      // Check if this is a temporary booking with placeholders
+      const isPlaceholderBooking = guestEmail === 'guest@example.com' && guestName === 'Guest';
+      
+      if (!isPlaceholderBooking) {
       
       // Check if email already exists
       const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
@@ -110,10 +115,14 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
       
-      // Create a guest user account
-      const newUser = await createGuestUser(guestEmail, guestName, guestPhone);
-      userId = newUser.id;
-      isGuestBooking = true;
+        // Create a guest user account
+        const newUser = await createGuestUser(guestEmail, guestName, guestPhone);
+        userId = newUser.id;
+        isGuestBooking = true;
+      } else {
+        // For placeholder bookings, skip user creation and set as guest
+        isGuestBooking = true;
+      }
     }
 
     // If booking for a student as Admin or Teacher

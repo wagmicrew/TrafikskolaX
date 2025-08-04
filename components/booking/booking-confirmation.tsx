@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import QRCode from 'qrcode'
 import { SwishPaymentDialog } from './swish-payment-dialog'
+import { QliroPaymentDialog } from './qliro-payment-dialog'
 import { EmailConflictDialog } from './email-conflict-dialog'
 
 interface LessonType {
@@ -95,6 +96,9 @@ export function BookingConfirmation({
   const [qliroCheckoutUrl, setQliroCheckoutUrl] = useState('')
   const [showEmailConflictDialog, setShowEmailConflictDialog] = useState(false)
   const [conflictingEmail, setConflictingEmail] = useState('')
+  const [emailValidationStatus, setEmailValidationStatus] = useState<'idle' | 'checking' | 'available' | 'exists'>('idle')
+  const [existingUserName, setExistingUserName] = useState('')
+  const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const { user: authUser } = useAuth()
   
   // Toast notification helper function
@@ -113,6 +117,81 @@ export function BookingConfirmation({
         toast.info(`${title}: ${message}`)
     }
   }
+
+  // Email validation helper
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
+
+  // Debounced email existence check
+  const checkEmailExists = async (email: string) => {
+    if (!validateEmail(email)) {
+      setEmailValidationStatus('idle')
+      return
+    }
+
+    setEmailValidationStatus('checking')
+    try {
+      const response = await fetch('/api/users/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.exists) {
+          setEmailValidationStatus('exists')
+          setExistingUserName(data.userName || 'okänd användare')
+          setConflictingEmail(email)
+          setShowEmailConflictDialog(true)
+        } else {
+          setEmailValidationStatus('available')
+        }
+      } else {
+        setEmailValidationStatus('idle')
+      }
+    } catch (error) {
+      console.error('Error checking email:', error)
+      setEmailValidationStatus('idle')
+    }
+  }
+
+  // Handle email input changes with debouncing
+  const handleEmailChange = (email: string, isGuestEmail: boolean = true) => {
+    if (isGuestEmail) {
+      setGuestEmail(email)
+    } else {
+      setSupervisorEmail(email)
+    }
+
+    // Only check for guests (not logged in users)
+    if (!authUser && validateEmail(email)) {
+      // Clear existing timeout
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout)
+      }
+
+      // Set new timeout for debounced check
+      const timeout = setTimeout(() => {
+        checkEmailExists(email)
+      }, 800) // 800ms delay
+
+      setEmailCheckTimeout(timeout)
+    } else {
+      setEmailValidationStatus('idle')
+    }
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout)
+      }
+    }
+  }, [emailCheckTimeout])
 
   const isAdminOrTeacher = authUser?.role === 'admin' || authUser?.role === 'teacher'
   const isStudent = authUser?.role === 'student'
@@ -256,6 +335,31 @@ export function BookingConfirmation({
       return
     }
 
+    // Update temporary booking with guest information if we have one
+    if (bookingData.tempBookingId && !authUser && (guestName || guestEmail || guestPhone)) {
+      try {
+        const updateResponse = await fetch('/api/booking/update-guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: bookingData.tempBookingId,
+            guestName: isHandledarutbildning ? supervisorName : guestName,
+            guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
+            guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone
+          })
+        })
+        
+        if (!updateResponse.ok) {
+          const errorData = await updateResponse.json()
+          console.error('Failed to update guest information:', errorData.error)
+          // Continue anyway, the error might not be critical
+        }
+      } catch (error) {
+        console.error('Error updating guest information:', error)
+        // Continue anyway
+      }
+    }
+
     // Prepare the base booking data
     const bookingPayload = {
       paymentMethod: selectedPaymentMethod,
@@ -267,6 +371,12 @@ export function BookingConfirmation({
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
       alreadyPaid: isAdminOrTeacher ? alreadyPaid : false
     }
+
+  // Log selected payment method and booking data for troubleshooting
+  console.log('Selected payment method:', selectedPaymentMethod)
+  console.log('Booking data tempBookingId:', bookingData.tempBookingId)
+  console.log('Booking data id:', bookingData.id)
+  console.log('Full booking data:', bookingData)
 
     // Handle Swish payment
     if (selectedPaymentMethod === 'swish') {
@@ -367,6 +477,12 @@ export function BookingConfirmation({
     // Redirect to login page with return URL
     const returnUrl = encodeURIComponent(window.location.href)
     window.location.href = `/inloggning?redirect=${returnUrl}`
+  }
+
+  const handleLoginSuccess = () => {
+    // After successful login, close the dialog and continue with booking
+    setShowEmailConflictDialog(false)
+    // The page will reload automatically from the dialog component
   }
 
   const handleUseNewEmail = (newEmail: string) => {
@@ -522,14 +638,41 @@ export function BookingConfirmation({
                   </div>
                   <div>
                     <Label htmlFor="guest-email" className="text-sm font-medium text-gray-700">E-post *</Label>
-                    <Input
-                      id="guest-email"
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      placeholder="exempel@email.com"
-                      className="mt-1"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="guest-email"
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => handleEmailChange(e.target.value, true)}
+                        placeholder="exempel@email.com"
+                        className={`mt-1 ${
+                          emailValidationStatus === 'checking' ? 'border-yellow-400' :
+                          emailValidationStatus === 'exists' ? 'border-red-400' :
+                          emailValidationStatus === 'available' ? 'border-green-400' : ''
+                        }`}
+                      />
+                      {emailValidationStatus === 'checking' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+                        </div>
+                      )}
+                      {emailValidationStatus === 'available' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                      {emailValidationStatus === 'exists' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        </div>
+                      )}
+                    </div>
+                    {emailValidationStatus === 'available' && (
+                      <p className="text-xs text-green-600 mt-1">E-postadressen är tillgänglig</p>
+                    )}
+                    {emailValidationStatus === 'exists' && (
+                      <p className="text-xs text-red-600 mt-1">E-postadressen är redan registrerad</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="guest-phone" className="text-sm font-medium text-gray-700">Telefon *</Label>
@@ -570,14 +713,41 @@ export function BookingConfirmation({
                   </div>
                   <div>
                     <Label htmlFor="supervisor-email" className="text-sm font-medium text-gray-700">E-post *</Label>
-                    <Input
-                      id="supervisor-email"
-                      type="email"
-                      value={supervisorEmail}
-                      onChange={(e) => setSupervisorEmail(e.target.value)}
-                      placeholder="exempel@email.com"
-                      className="mt-1"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="supervisor-email"
+                        type="email"
+                        value={supervisorEmail}
+                        onChange={(e) => handleEmailChange(e.target.value, false)}
+                        placeholder="exempel@email.com"
+                        className={`mt-1 ${
+                          emailValidationStatus === 'checking' ? 'border-yellow-400' :
+                          emailValidationStatus === 'exists' ? 'border-red-400' :
+                          emailValidationStatus === 'available' ? 'border-green-400' : ''
+                        }`}
+                      />
+                      {emailValidationStatus === 'checking' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
+                        </div>
+                      )}
+                      {emailValidationStatus === 'available' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </div>
+                      )}
+                      {emailValidationStatus === 'exists' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        </div>
+                      )}
+                    </div>
+                    {emailValidationStatus === 'available' && (
+                      <p className="text-xs text-green-600 mt-1">E-postadressen är tillgänglig</p>
+                    )}
+                    {emailValidationStatus === 'exists' && (
+                      <p className="text-xs text-red-600 mt-1">E-postadressen är redan registrerad</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="supervisor-phone" className="text-sm font-medium text-gray-700">Telefon *</Label>
@@ -636,37 +806,16 @@ export function BookingConfirmation({
                 </div>
               )}
 
+              {/* Booking ID */}
+              {bookingData.tempBookingId && (
+                <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg mb-4">
+                  <strong>Boknings-ID:</strong> {bookingData.tempBookingId}
+                </div>
+              )}
+
               {/* Payment Methods */}
               <div className="space-y-4">
                 <h3 className="font-medium">Välj betalningssätt</h3>
-                
-                {/* Credits Option */}
-                {canUseCredits && (
-                  <div 
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                      selectedPaymentMethod === 'credits' 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => setSelectedPaymentMethod('credits')}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
-                        selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-500' : 'border-gray-400'
-                      }`}>
-                        {selectedPaymentMethod === 'credits' && <CheckCircle className="w-4 h-4 text-white" />}
-                      </div>
-                      <div>
-                        <p className="font-medium">Använd mina krediter</p>
-                        <p className="text-sm text-gray-500">
-                          {isHandledarutbildning
-                            ? `Använd ${userCredits} kredit${userCredits > 1 ? 'er' : ''} för denna handledarutbildning`
-                            : `Du har ${userCredits} kredit${userCredits !== 1 ? 'er' : ''} kvar`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Swish Option */}
                 <div 
@@ -807,7 +956,7 @@ export function BookingConfirmation({
         isOpen={showSwishDialog}
         onClose={() => setShowSwishDialog(false)}
         booking={{
-          id: bookingData.id || 'temp-id',
+          id: bookingData.tempBookingId || bookingData.id || `temp-${Date.now()}`,
           totalPrice: bookingData.totalPrice
         }}
         bookingData={{
@@ -828,6 +977,20 @@ export function BookingConfirmation({
         }}
       />
 
+      {/* Qliro Payment Dialog */}
+      <QliroPaymentDialog
+        isOpen={showQliroDialog}
+        onClose={() => setShowQliroDialog(false)}
+        purchaseId={`booking-${Date.now()}`}
+        amount={bookingData.totalPrice}
+        checkoutUrl={qliroCheckoutUrl}
+        onConfirm={() => {
+          setShowQliroDialog(false)
+          // Redirect to confirmation page
+          window.location.href = '/booking/success'
+        }}
+      />
+
       {/* Email Conflict Dialog */}
       <EmailConflictDialog
         isOpen={showEmailConflictDialog}
@@ -835,6 +998,7 @@ export function BookingConfirmation({
         existingEmail={conflictingEmail}
         onUseExistingAccount={handleUseExistingAccount}
         onUseNewEmail={handleUseNewEmail}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   )

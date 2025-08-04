@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Plus, X, Check, Package as PackageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import PackageBuilderPopover from '@/components/PackageBuilderPopover';
 
 interface Package {
   id: string;
@@ -28,17 +28,107 @@ interface PackageStats {
 interface PackagesClientProps {
   packages: Package[];
   lessonTypes: any[];
+  handledarSessions: any[];
   stats: PackageStats;
 }
 
-export default function PackagesClient({ packages: initialPackages, lessonTypes, stats }: PackagesClientProps) {
+export default function PackagesClient({ packages: initialPackages, lessonTypes, handledarSessions, stats }: PackagesClientProps) {
   const router = useRouter();
   const [packages, setPackages] = useState<Package[]>(initialPackages);
   const [showInactive, setShowInactive] = useState<boolean>(false);
+  const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
+  const [currentPackage, setCurrentPackage] = useState<Package | undefined>(undefined);
 
   const filteredPackages = showInactive 
     ? packages.filter(pkg => !pkg.isActive)
     : packages.filter(pkg => pkg.isActive);
+
+  const handleSavePackage = async (packageData: any) => {
+    try {
+      const response = await fetch('/api/admin/packages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(packageData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save package');
+      }
+
+      const savedPackage = await response.json();
+      setPackages(prev => [...prev, savedPackage]);
+      setIsPopoverOpen(false);
+      toast.success('Paket sparat!');
+    } catch (error) {
+      console.error('Error saving package:', error);
+      toast.error(error instanceof Error ? error.message : 'Fel vid sparning av paket');
+    }
+  };
+
+  const handleUpdatePackage = async (packageData: any) => {
+    try {
+      const response = await fetch('/api/admin/packages', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(packageData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update package');
+      }
+
+      const updatedPackage = await response.json();
+      setPackages(prev => prev.map(pkg => 
+        pkg.id === updatedPackage.id ? updatedPackage : pkg
+      ));
+      setIsPopoverOpen(false);
+      toast.success('Paket uppdaterat!');
+    } catch (error) {
+      console.error('Error updating package:', error);
+      toast.error(error instanceof Error ? error.message : 'Fel vid uppdatering av paket');
+    }
+  };
+
+  const handleDeletePackage = async (packageId: string) => {
+    try {
+      const response = await fetch(`/api/admin/packages?id=${packageId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete package');
+      }
+
+      const result = await response.json();
+      
+      if (result.message) {
+        // Package was deactivated instead of deleted
+        setPackages(prev => prev.map(pkg => 
+          pkg.id === packageId ? { ...pkg, isActive: false } : pkg
+        ));
+        toast.success('Paket inaktiverat');
+      } else {
+        // Package was actually deleted
+        setPackages(prev => prev.filter(pkg => pkg.id !== packageId));
+        toast.success('Paket borttaget!');
+      }
+    } catch (error) {
+      console.error('Error deleting package:', error);
+      toast.error(error instanceof Error ? error.message : 'Fel vid borttagning av paket');
+    }
+  };
+
+  const handleEditPackage = (pkg: Package) => {
+    setCurrentPackage(pkg);
+    setIsPopoverOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -53,7 +143,10 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
           </p>
         </div>
         
-        <Button>
+        <Button onClick={() => {
+          setCurrentPackage(undefined);
+          setIsPopoverOpen(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Nytt Paket
         </Button>
@@ -85,6 +178,22 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
         </Card>
       </div>
 
+      {/* Package Builder Popover */}
+      {isPopoverOpen && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <PackageBuilderPopover 
+              lessonTypes={lessonTypes}
+              handledarSessions={handledarSessions}
+              initialPackage={currentPackage}
+              onSave={handleSavePackage}
+              onUpdate={handleUpdatePackage}
+              onClose={() => setIsPopoverOpen(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Packages List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -115,6 +224,48 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
                         {pkg.description || 'Ingen beskrivning tillgänglig'}
                       </CardDescription>
                     </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditPackage(pkg)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          if (confirm('Är du säker på att du vill ta bort detta paket?')) {
+                            handleDeletePackage(pkg.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Glassmorphism Container for Package Details */}
+                  <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl text-sm mt-4 p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Pris:</span>
+                      <div className="text-right">
+                        <span className="font-bold">{pkg.price} SEK</span>
+                        {pkg.salePrice && (
+                          <div className="text-green-500 text-xs">
+                            ({pkg.salePrice} SEK på rea)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {pkg.contents && pkg.contents.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/10">
+                        <span className="text-xs text-gray-600">
+                          {pkg.contents.length} innehållsdelar
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
               </Card>

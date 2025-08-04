@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const LessonManagement = () => {
   const { user, token } = useAuth();
@@ -30,7 +40,7 @@ const LessonManagement = () => {
 
   const handleDeleteLesson = async (lessonId) => {
     try {
-      await fetcher(`/api/admin/lesson-types?id=${lessonId}`, {
+      await fetcher(`/api/admin/lesson-types/${lessonId}`, {
         method: 'DELETE',
       });
       setLessonTypes(prev => prev.filter(lt => lt.id !== lessonId));
@@ -39,11 +49,47 @@ const LessonManagement = () => {
     }
   };
 
+  const handleEditLesson = lesson => {
+    // Logic to populate form with existing lesson data
+  };
+
   if (loading) return <div>Loading...</div>;
 
   return (
     <div>
       <h2>Lesson Management</h2>
+
+      {/* Edit Lesson Popover */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            Add/Edit Lesson
+          </button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Lesson Type</DialogTitle>
+            <DialogDescription>
+              Make changes to the lesson type here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          {/* Form fields for editing */}
+          <form id="edit-lesson-form">
+            {/* Add form fields here */}
+          </form>
+          <DialogFooter>
+            <button type="submit" form="edit-lesson-form" className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+              Save Changes
+            </button>
+            <DialogClose asChild>
+              <button className="px-4 py-2 bg-red-600 text-white rounded-lg">
+                Cancel
+              </button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <table>
         <thead>
           <tr>

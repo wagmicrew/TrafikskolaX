@@ -106,13 +106,17 @@ export function WeekCalendar({
             durationMinutes: lessonType.durationMinutes,
             transmissionType: transmissionType,
             totalPrice: totalPrice, // Use the calculated price from parent
-            paymentMethod: 'swish' // Default payment method
+            paymentMethod: 'swish', // Default payment method
+            guestName: 'Guest',
+            guestEmail: 'guest@example.com',
+            guestPhone: '1234567890' // Placeholder guest info to be updated on confirmation.
           })
         })
 
         const data = await response.json()
         
         if (response.ok && data.booking) {
+          console.log('Temporary booking created:', data.booking)
           // Pass booking ID to parent component
           onComplete({ 
             selectedDate, 

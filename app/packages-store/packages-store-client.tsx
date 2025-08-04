@@ -35,6 +35,7 @@ interface User {
   role: string;
 }
 import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
+import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -48,11 +49,17 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   const [paymentMethod, setPaymentMethod] = useState('swish');
   const [loading, setLoading] = useState(false);
   const [showSwishDialog, setShowSwishDialog] = useState(false);
+  const [showQliroDialog, setShowQliroDialog] = useState(false);
   const [swishPaymentData, setSwishPaymentData] = useState({
     amount: 0,
     message: '',
     swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231',
     purchaseId: ''
+  });
+  const [qliroPaymentData, setQliroPaymentData] = useState({
+    amount: 0,
+    purchaseId: '',
+    checkoutUrl: ''
   });
 
   const getEffectivePrice = (pkg: Package): number => {
@@ -113,8 +120,21 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           setShowSwishDialog(true);
           
         } else if (paymentMethod === 'qliro') {
-          // For Qliro, redirect to their checkout
-          window.location.href = data.checkoutUrl;
+          // Set up Qliro payment dialog
+          const pkg = packages.find((p: Package) => p.id === packageId);
+          if (!pkg) {
+            throw new Error('Paketet kunde inte hittas');
+          }
+          
+          const effectivePrice = getEffectivePrice(pkg);
+          
+          setQliroPaymentData({
+            amount: effectivePrice,
+            purchaseId: data.purchaseId,
+            checkoutUrl: data.checkoutUrl
+          });
+          
+          setShowQliroDialog(true);
         }
       } else {
         toast.error(data.error || 'Något gick fel vid skapande av köp');
@@ -149,6 +169,11 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
     }
   };
 
+  const handleQliroConfirm = async (): Promise<void> => {
+    setShowQliroDialog(false);
+    toast.success('Du omdirigeras till Qliro för att slutföra betalningen.');
+  };
+
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-purple-50 to-pink-100">
       {/* Swish Payment Dialog */}
@@ -160,6 +185,16 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           totalPrice: swishPaymentData.amount
         }}
         onConfirm={() => handleSwishConfirm(swishPaymentData.purchaseId)}
+      />
+      
+      {/* Qliro Payment Dialog */}
+      <QliroPaymentDialog
+        isOpen={showQliroDialog}
+        onClose={() => setShowQliroDialog(false)}
+        purchaseId={qliroPaymentData.purchaseId}
+        amount={qliroPaymentData.amount}
+        checkoutUrl={qliroPaymentData.checkoutUrl}
+        onConfirm={handleQliroConfirm}
       />
       
       {/* Main Content */}

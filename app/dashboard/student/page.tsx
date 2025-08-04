@@ -39,16 +39,43 @@ export default function Studentsidan() {
       const feedbackRes = await fetch('/api/student/feedback');
       const feedbackData = await feedbackRes.json();
 
-      const bookings = bookingsData.bookings || [];
-      const totalBookings = bookings.length;
-      const completedBookings = bookings.filter((b: any) => b.isCompleted).length;
-      const upcomingBookings = bookings.filter((b: any) => 
-        !b.isCompleted && new Date(b.scheduledDate) >= new Date()
-      ).length;
+      const rawBookings = bookingsData.bookings || [];
+      
+      // Transform API data to match BookingsTable interface
+      const bookings = rawBookings.map((b: any) => ({
+        id: b.id,
+        date: b.scheduledDate,
+        time: b.startTime,
+        type: b.lessonTypeName,
+        status: b.status,
+        paymentStatus: b.paymentStatus,
+        studentName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+        instructorName: b.teacherName,
+        price: b.totalPrice || 0,
+        paidAmount: b.totalPrice || 0,
+        notes: b.notes,
+        createdAt: b.createdAt,
+        updatedAt: b.createdAt
+      }));
+      
+      // Sort bookings for better display
+      const now = new Date();
+      const sortedBookings = bookings.sort((a: any, b: any) => {
+        const dateA = new Date(`${a.date}T${a.time}`);
+        const dateB = new Date(`${b.date}T${b.time}`);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      const totalBookings = sortedBookings.length;
+      const completedBookings = sortedBookings.filter((b: any) => b.status === 'completed').length;
+      const upcomingBookings = sortedBookings.filter((b: any) => {
+        const bookingDate = new Date(`${b.date}T${b.time}`);
+        return b.status !== 'completed' && b.status !== 'cancelled' && bookingDate >= now;
+      }).length;
       const totalCredits = creditsData.credits?.reduce((sum: number, c: any) => sum + c.creditsRemaining, 0) || 0;
 
       setDashboardData({
-        bookings,
+        bookings: sortedBookings,
         credits: creditsData.credits || [],
         feedback: feedbackData.feedback || [],
         stats: {

@@ -79,9 +79,12 @@ export async function POST(request: NextRequest) {
       if (contents && Array.isArray(contents)) {
         const packageContentsData = contents.map((content: any) => ({
           packageId: newPackage.id,
-          lessonTypeId: content.lessonTypeId,
+          lessonTypeId: content.lessonTypeId || null,
+          handledarSessionId: content.handledarSessionId || null,
           credits: content.credits || 0,
+          contentType: content.contentType || 'lesson',
           freeText: content.freeText || null,
+          sortOrder: content.sortOrder || 0,
         }));
 
         if (packageContentsData.length > 0) {
@@ -163,9 +166,12 @@ export async function PUT(request: NextRequest) {
       if (contents && Array.isArray(contents)) {
         const packageContentsData = contents.map((content: any) => ({
           packageId: id,
-          lessonTypeId: content.lessonTypeId,
+          lessonTypeId: content.lessonTypeId || null,
+          handledarSessionId: content.handledarSessionId || null,
           credits: content.credits || 0,
+          contentType: content.contentType || 'lesson',
           freeText: content.freeText || null,
+          sortOrder: content.sortOrder || 0,
         }));
 
         if (packageContentsData.length > 0) {

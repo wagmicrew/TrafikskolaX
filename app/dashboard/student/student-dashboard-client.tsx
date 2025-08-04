@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   FaCalendarAlt, 
@@ -157,7 +157,6 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
 
       if (response.ok) {
         toast.success('Betalning med krediter lyckades!');
-        // Reload the page to show updated payment status
         setTimeout(() => window.location.reload(), 1500);
       } else {
         const data = await response.json();
@@ -176,9 +175,8 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-8 px-6 rounded-xl shadow-lg mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12 px-6 shadow-lg mb-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold flex items-center gap-3">
@@ -193,7 +191,6 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
           </div>
         </div>
 
-        {/* Horizontal Navigation Menu */}
         <div className="mt-4">
           <nav className="flex justify-center gap-4 text-lg font-semibold">
             <Link href="/dashboard/student" className="hover:text-yellow-300">Bokningar</Link>
@@ -207,156 +204,157 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Totalt Lektioner</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.totalBookings}</p>
+              </div>
+              <FaBookOpen className="text-4xl text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Genomförda</p>
+                <p className="text-3xl font-bold text-green-600">{stats.completedBookings}</p>
+              </div>
+              <FaCheckCircle className="text-4xl text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Kommande</p>
+                <p className="text-3xl font-bold text-yellow-600">{stats.upcomingBookings}</p>
+              </div>
+              <FaClock className="text-4xl text-yellow-500" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tillgängliga Krediter</p>
+                <p className="text-3xl font-bold text-purple-600">{stats.totalCredits}</p>
+              </div>
+              <FaCoins className="text-4xl text-purple-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Totalt Lektioner</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.totalBookings}</p>
-            </div>
-            <FaBookOpen className="text-4xl text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Genomförda</p>
-              <p className="text-3xl font-bold text-green-600">{stats.completedBookings}</p>
-            </div>
-            <FaCheckCircle className="text-4xl text-green-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Kommande</p>
-              <p className="text-3xl font-bold text-yellow-600">{stats.upcomingBookings}</p>
-            </div>
-            <FaClock className="text-4xl text-yellow-500" />
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Tillgängliga Krediter</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.totalCredits}</p>
-            </div>
-            <FaCoins className="text-4xl text-purple-500" />
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold tracking-tight">Hej, {user.name}!</h2>
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing}>
-              {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
-            </Button>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Mina bokningar</CardTitle>
-            <CardDescription>
-              Hantera dina kommande och tidigare lektioner
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="upcoming" onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="upcoming">Kommande lektioner</TabsTrigger>
-                <TabsTrigger value="past">Tidigare lektioner</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="upcoming" className="space-y-4">
-                {upcomingBookings.length > 0 ? (
-                  <BookingsTable 
-                    bookings={upcomingBookings} 
-                    userRole={user.role} 
-                    onRefresh={refreshBookings}
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Inga kommande lektioner hittades</p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => router.push('/book')}
-                    >
-                      Boka lektion nu
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="past" className="space-y-4">
-                {pastBookings.length > 0 ? (
-                  <BookingsTable 
-                    bookings={pastBookings} 
-                    userRole={user.role}
-                    onRefresh={refreshBookings}
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">Inga tidigare lektioner hittades</p>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Credits */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-            <FaCoins className="text-yellow-500" />
-            Dina Krediter
-          </h3>
-          
-          {credits.length > 0 ? (
-            <div className="space-y-3">
-              {credits.map((credit) => (
-                <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-sm font-medium">
-                    {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
-                  </span>
-                  <span className="font-bold text-purple-600">{credit.creditsRemaining || credit.remaining}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600">Inga krediter tillgängliga</p>
-          )}
-        </div>
-
-        {/* Packages CTA */}
-        <Card className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <FaTrophy className="text-4xl mx-auto mb-4 text-yellow-300" />
-              <h3 className="text-xl font-bold mb-2">Köp Paket & Spara!</h3>
-              <p className="text-sm opacity-90 mb-4">
-                Upptäck våra fantastiska paket och få mer för pengarna
-              </p>
-              <Button 
-                asChild
-                variant="secondary"
-                className="gap-2 font-bold hover:bg-gray-100"
-              >
-                <Link href="/packages-store">
-                  <FaShoppingCart />
-                  Se Alla Paket
-                </Link>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Översikt av dina lektioner</h2>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing}>
+                {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-white border-b border-gray-100 rounded-t-xl">
+              <CardTitle className="text-2xl font-bold text-gray-900">Mina Bokningar</CardTitle>
+              <CardDescription className="text-lg text-gray-600">
+                Hantera dina kommande och tidigare lektioner smidigt och enkelt
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <Tabs defaultValue="upcoming" onValueChange={setActiveTab}>
+                <TabsList className="flex-nowrap overflow-x-auto">
+                  <TabsTrigger value="upcoming">Kommande</TabsTrigger>
+                  <TabsTrigger value="past">Tidigare</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upcoming">
+                  {upcomingBookings.length > 0 ? (
+                    <BookingsTable 
+                      bookings={upcomingBookings} 
+                      userRole={user.role} 
+                      onRefresh={refreshBookings}
+                      compact={true}
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Inga kommande lektioner hittades</p>
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => router.push('/book')}
+                      >
+                        Boka lektion nu
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="past">
+                  {pastBookings.length > 0 ? (
+                    <BookingsTable 
+                      bookings={pastBookings} 
+                      userRole={user.role}
+                      onRefresh={refreshBookings}
+                      compact={true}
+                    />
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Inga tidigare lektioner hittades</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+              <FaCoins className="text-yellow-500" />
+              Dina Krediter
+            </h3>
+            
+            {credits.length > 0 ? (
+              <div className="space-y-3">
+                {credits.map((credit) => (
+                  <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium">
+                      {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                    </span>
+                    <span className="font-bold text-purple-600">{credit.creditsRemaining || credit.remaining}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600">Inga krediter tillgängliga</p>
+            )}
+          </div>
+
+          <Card className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <FaTrophy className="text-4xl mx-auto mb-4 text-yellow-300" />
+                <h3 className="text-xl font-bold mb-2">Köp Paket & Spara!</h3>
+                <p className="text-sm opacity-90 mb-4">
+                  Upptäck våra fantastiska paket och få mer för pengarna
+                </p>
+                <Button 
+                  asChild
+                  variant="secondary"
+                  className="gap-2 font-bold hover:bg-gray-100"
+                >
+                  <Link href="/packages-store">
+                    <FaShoppingCart />
+                    Se Alla Paket
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db/client';
-import { packages, packageContents, lessonTypes } from '@/lib/db/schema';
+import { packages, packageContents, lessonTypes, handledarSessions } from '@/lib/db/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import PackagesClient from './packages-client';
 
@@ -24,7 +24,14 @@ export default async function PackagesPage() {
 
   // Get all lesson types for the package builder
   const allLessonTypes = await db.query.lessonTypes.findMany({
+    where: eq(lessonTypes.isActive, true),
     orderBy: (types, { asc }) => [asc(types.name)]
+  });
+
+  // Get all handledar sessions for the package builder
+  const allHandledarSessions = await db.query.handledarSessions.findMany({
+    where: eq(handledarSessions.isActive, true),
+    orderBy: (sessions, { asc }) => [asc(sessions.title)]
   });
 
   // Calculate package statistics
@@ -36,7 +43,8 @@ export default async function PackagesPage() {
   return (
     <PackagesClient 
       packages={packagesList} 
-      lessonTypes={allLessonTypes} 
+      lessonTypes={allLessonTypes}
+      handledarSessions={allHandledarSessions}
       stats={packageStats} 
     />
   );

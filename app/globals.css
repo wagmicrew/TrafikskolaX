@@ -134,11 +134,20 @@
   background: rgba(0, 0, 0, 0.6) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  z-index: 100 !important;
+  z-index: 9999 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 101 !important;
+  z-index: 10000 !important;
+}
+
+/* Ensure all dialog elements are on top */
+.dialog-glassmorphism {
+  z-index: 10001 !important;
+}
+
+.dialog-glassmorphism * {
+  z-index: 10002 !important;
 }
 
 /* Ensure hero buttons don't interfere with navigation */

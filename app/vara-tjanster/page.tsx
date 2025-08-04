@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { User, Clock, Mail, Car, Award, Building2 } from "lucide-react"
 import Link from "next/link"
 import { ContactForm } from "@/components/contact-form"
+import SwishQR from "@/components/SwishQR"
 
 export default function ServicesPage() {
   const [showContactForm, setShowContactForm] = useState(false)
@@ -331,14 +332,19 @@ export default function ServicesPage() {
                   </div>
 
                   <div className="text-center">
-                    <img
-                      src="/images/swish-qr-large.png"
-                      alt="Betala med Swish - QR-kod för betalning till Din Trafikskola Hässleholm, nummer 123-273 20 71"
-                      className="w-full max-w-sm mx-auto rounded-lg shadow-lg"
-                      width="400"
-                      height="500"
+                    {/* Real Swish QR Code */}
+                    <SwishQR 
+                      phoneNumber="123 273 20 71" 
+                      className="mb-4"
                     />
-                    <p className="text-sm text-gray-600 mt-3">Scanna QR-koden med Swish-appen för snabb betalning</p>
+                    <div className="mt-4">
+                      <a 
+                        href="swish://payment?data=1232732071&amount=&message=&callback="
+                        className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                      >
+                        📱 Öppna Swish-appen
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

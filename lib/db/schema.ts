@@ -23,6 +23,7 @@ export const users = pgTable('users', {
   postalCode: varchar('postal_code', { length: 10 }),
   city: varchar('city', { length: 100 }),
   role: userRoleEnum('role').notNull().default('student'),
+  customerNumber: varchar('customer_number', { length: 20 }).unique(),
   isActive: boolean('is_active').notNull().default(true),
   profileImage: text('profile_image'),
   dateOfBirth: timestamp('date_of_birth'),
@@ -176,8 +177,11 @@ export const packageContents = pgTable('package_contents', {
   id: uuid('id').defaultRandom().primaryKey(),
   packageId: uuid('package_id').notNull().references(() => packages.id, { onDelete: 'cascade' }),
   lessonTypeId: uuid('lesson_type_id').references(() => lessonTypes.id, { onDelete: 'cascade' }),
+  handledarSessionId: uuid('handledar_session_id').references(() => handledarSessions.id, { onDelete: 'cascade' }),
   credits: integer('credits').default(0),
+  contentType: varchar('content_type', { length: 50 }).notNull().default('lesson'), // 'lesson', 'handledar', 'text'
   freeText: text('free_text'),
+  sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -398,4 +402,45 @@ export const handledarBookingsRelations = relations(handledarBookings, ({ one })
     fields: [handledarBookings.bookedBy],
     references: [users.id],
   }),
+}));
+
+// Package relations
+export const packagesRelations = relations(packages, ({ many }) => ({
+  contents: many(packageContents),
+  purchases: many(packagePurchases),
+}));
+
+// Package contents relations
+export const packageContentsRelations = relations(packageContents, ({ one }) => ({
+  package: one(packages, {
+    fields: [packageContents.packageId],
+    references: [packages.id],
+  }),
+  lessonType: one(lessonTypes, {
+    fields: [packageContents.lessonTypeId],
+    references: [lessonTypes.id],
+  }),
+  handledarSession: one(handledarSessions, {
+    fields: [packageContents.handledarSessionId],
+    references: [handledarSessions.id],
+  }),
+}));
+
+// Package purchases relations
+export const packagePurchasesRelations = relations(packagePurchases, ({ one }) => ({
+  user: one(users, {
+    fields: [packagePurchases.userId],
+    references: [users.id],
+  }),
+  package: one(packages, {
+    fields: [packagePurchases.packageId],
+    references: [packages.id],
+  }),
+}));
+
+// Lesson types relations
+export const lessonTypesRelations = relations(lessonTypes, ({ many }) => ({
+  bookings: many(bookings),
+  packageContents: many(packageContents),
+  credits: many(userCredits),
 }));

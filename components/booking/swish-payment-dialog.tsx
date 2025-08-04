@@ -14,6 +14,7 @@ interface SwishPaymentDialogProps {
     id: string
     totalPrice: number
   }
+  bookingData?: any // Full booking data for creating the booking
   onConfirm: () => void
 }
 
@@ -21,6 +22,7 @@ export function SwishPaymentDialog({
   isOpen, 
   onClose, 
   booking,
+  bookingData,
   onConfirm 
 }: SwishPaymentDialogProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
@@ -82,25 +84,77 @@ export function SwishPaymentDialog({
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
     try {
-      const response = await fetch('/api/booking/confirm-swish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: booking.id }),
-      })
+      // If we have booking data, create the booking first
+      if (bookingData) {
+        const createBookingPayload = {
+          sessionType: bookingData.lessonType?.type || 'lesson',
+          sessionId: bookingData.lessonType?.id,
+          scheduledDate: bookingData.selectedDate?.toISOString().split('T')[0],
+          startTime: bookingData.selectedTime,
+          endTime: bookingData.selectedTime, // Will be calculated on backend
+          durationMinutes: bookingData.lessonType?.durationMinutes,
+          transmissionType: bookingData.transmissionType,
+          totalPrice: bookingData.totalPrice,
+          paymentMethod: 'swish',
+          guestName: bookingData.guestName,
+          guestEmail: bookingData.guestEmail,
+          guestPhone: bookingData.guestPhone,
+          studentId: bookingData.studentId,
+          alreadyPaid: false
+        }
 
-      if (response.ok) {
-        toast({
-          title: "Betalning registrerad",
-          description: "Vi kommer att bekräfta din betalning inom kort",
+        const createResponse = await fetch('/api/booking/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(createBookingPayload)
         })
-        onConfirm()
+
+        if (createResponse.ok) {
+          const result = await createResponse.json()
+          // Store booking details for success page
+          localStorage.setItem('recentBooking', JSON.stringify({
+            id: result.booking.id,
+            lessonType: bookingData.lessonType?.name,
+            date: bookingData.selectedDate?.toISOString().split('T')[0],
+            time: bookingData.selectedTime,
+            duration: bookingData.lessonType?.durationMinutes,
+            price: bookingData.totalPrice,
+            paymentMethod: 'swish',
+            status: 'pending'
+          }))
+          
+          toast({
+            title: "Bokning skapad",
+            description: "Din bokning har skapats och väntar på betalningsbekräftelse",
+          })
+          onConfirm()
+        } else {
+          const error = await createResponse.json()
+          throw new Error(error.error || 'Failed to create booking')
+        }
       } else {
-        throw new Error('Failed to confirm payment')
+        // Legacy flow - just confirm existing booking
+        const response = await fetch('/api/booking/confirm-swish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: booking.id }),
+        })
+
+        if (response.ok) {
+          toast({
+            title: "Betalning registrerad",
+            description: "Vi kommer att bekräfta din betalning inom kort",
+          })
+          onConfirm()
+        } else {
+          throw new Error('Failed to confirm payment')
+        }
       }
     } catch (error) {
+      console.error('Payment confirmation error:', error)
       toast({
         title: "Fel",
-        description: "Något gick fel. Försök igen.",
+        description: error instanceof Error ? error.message : "Något gick fel. Försök igen.",
         variant: "destructive",
       })
     } finally {

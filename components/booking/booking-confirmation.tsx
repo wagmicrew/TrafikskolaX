@@ -1,59 +1,70 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import React, { useState, useEffect } from 'react'
-import { ArrowLeft, CheckCircle, DollarSign, List, User, CreditCard, AlertCircle } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { AlertCircle, CreditCard, DollarSign, Loader2, User, Mail, Phone } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
-import { useToast } from '@/hooks/use-toast'
+import { toast, Toaster } from 'sonner'
+import { CheckCircle, ArrowLeft } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import QRCode from 'qrcode'
+import { SwishPaymentDialog } from './swish-payment-dialog'
+
+interface LessonType {
+  id: string
+  type?: 'lesson' | 'handledar'
+  name: string
+  durationMinutes: number
+  price: number
+  priceStudent?: number
+  salePrice?: number
+}
+
+interface Instructor {
+  id: string
+  name: string
+}
+
+interface Vehicle {
+  id: string
+  name: string
+}
 
 interface BookingData {
-  lessonType: {
-    id: string
-    type?: 'lesson' | 'handledar'
-    name: string
-    durationMinutes: number
-    price: number
-    priceStudent?: number
-    salePrice?: number
-  }
-  transmissionType?: "manual" | "automatic" | null
+  lessonType: LessonType
   selectedDate: Date
   selectedTime: string
+  instructor: Instructor | null
+  vehicle: Vehicle | null
   totalPrice: number
+  isStudent: boolean
+  isHandledarutbildning: boolean
+  transmissionType?: "manual" | "automatic" | null
   [key: string]: any // Allow additional properties
 }
 
 interface BookingCompletionData {
-  paymentMethod: string
-  totalPrice: number
-  lessonType: {
-    id: string
-    name: string
-    durationMinutes: number
-    price: number
-    priceStudent?: number
-    salePrice?: number
-    type?: 'lesson' | 'handledar'
-  }
   guestName?: string
   guestEmail?: string
   guestPhone?: string
+  paymentMethod: string
   studentId?: string
-  alreadyPaid?: boolean
+  alreadyPaid: boolean
+  totalPrice: number
+  lessonType: LessonType
 }
 
 interface BookingConfirmationProps {
   bookingData: BookingData
   user: any
   onComplete: (data: BookingCompletionData) => void
-  paymentMethod: string
   onBack: () => void
 }
 
@@ -82,13 +93,29 @@ export function BookingConfirmation({
   const [showQliroDialog, setShowQliroDialog] = useState(false)
   const [qliroCheckoutUrl, setQliroCheckoutUrl] = useState('')
   const { user: authUser } = useAuth()
-  const { toast } = useToast()
+  
+  // Toast notification helper function
+  const showNotification = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    switch (type) {
+      case 'success':
+        toast.success(`${title}: ${message}`)
+        break
+      case 'error':
+        toast.error(`${title}: ${message}`)
+        break
+      case 'warning':
+        toast.warning(`${title}: ${message}`)
+        break
+      default:
+        toast.info(`${title}: ${message}`)
+    }
+  }
 
   const isAdminOrTeacher = authUser?.role === 'admin' || authUser?.role === 'teacher'
   const isStudent = authUser?.role === 'student'
   const isGuest = !authUser
-  const isHandledarutbildning = bookingData?.lessonType?.name === 'Handledarutbildning' || 
-                              bookingData?.lessonType?.name?.toLowerCase().includes('handledarutbildning')
+  const isHandledarutbildning = bookingData && (bookingData.lessonType.name === 'Handledarutbildning' || 
+                              bookingData.lessonType.name.toLowerCase().includes('handledarutbildning'))
 
   useEffect(() => {
     if (isAdminOrTeacher) {
@@ -156,15 +183,73 @@ export function BookingConfirmation({
   }
 
   const handleSubmit = async () => {
-    // Skip payment method check if admin is booking and has marked as already paid
+    // Admin/Teacher validation first
+    if (isAdminOrTeacher && !selectedStudent) {
+      showNotification('Fel', 'Välj en elev för bokningen', 'error')
+      return
+    }
+
+    // Check if admin has marked as already paid - if so, create booking directly
     if (isAdminOrTeacher && alreadyPaid) {
-      setSelectedPaymentMethod('already_paid')
-    } else if (!selectedPaymentMethod) {
-      toast({
-        title: "Välj betalningssätt",
-        description: "Vänligen välj ett betalningssätt för att fortsätta",
-        variant: "destructive",
-      })
+      setLoading(true)
+      try {
+        const bookingPayload = {
+          sessionType: bookingData.lessonType.type || 'lesson',
+          sessionId: bookingData.lessonType.id,
+          studentId: selectedStudent,
+          alreadyPaid: true,
+          scheduledDate: bookingData.selectedDate.toISOString().split('T')[0],
+          startTime: bookingData.selectedTime,
+          endTime: bookingData.selectedTime, // Will be calculated on backend
+          durationMinutes: bookingData.lessonType.durationMinutes,
+          transmissionType: bookingData.transmissionType,
+          totalPrice: bookingData.totalPrice,
+          paymentMethod: 'already_paid',
+          guestName: isHandledarutbildning ? supervisorName : undefined,
+          guestEmail: isHandledarutbildning ? supervisorEmail : undefined,
+          guestPhone: isHandledarutbildning ? supervisorPhone : undefined
+        }
+
+        const response = await fetch('/api/booking/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingPayload)
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          showNotification('Bokad!', 'Bokningen har skapats och markeras som betald', 'success')
+          // Store booking details for success page
+          localStorage.setItem('recentBooking', JSON.stringify({
+            id: result.booking.id,
+            lessonType: bookingData.lessonType.name,
+            date: bookingData.selectedDate.toISOString().split('T')[0],
+            time: bookingData.selectedTime,
+            duration: bookingData.lessonType.durationMinutes,
+            price: bookingData.totalPrice,
+            paymentMethod: 'already_paid',
+            status: 'confirmed'
+          }))
+          // Redirect to success page
+          window.location.href = '/booking/success'
+          return
+        } else {
+          const error = await response.json()
+          showNotification('Fel', error.error || 'Kunde inte skapa bokningen', 'error')
+          return
+        }
+      } catch (error) {
+        console.error('Booking creation error:', error)
+        showNotification('Fel', 'Ett oväntat fel uppstod', 'error')
+        return
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Regular flow - check payment method selection
+    if (!selectedPaymentMethod) {
+      showNotification('Välj betalningssätt', 'Vänligen välj ett betalningssätt för att fortsätta', 'error')
       return
     }
 
@@ -177,7 +262,7 @@ export function BookingConfirmation({
       guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
       guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? !!alreadyPaid : false
+      alreadyPaid: isAdminOrTeacher ? alreadyPaid : false
     }
 
     // Handle Swish payment
@@ -208,11 +293,7 @@ export function BookingConfirmation({
         setShowQliroDialog(true)
       } catch (error) {
         console.error('Qliro error:', error)
-        toast({
-          title: "Ett fel uppstod",
-          description: "Kunde inte starta Qliro-checkout. Försök igen senare.",
-          variant: "destructive",
-        })
+        showNotification('Ett fel uppstod', 'Kunde inte starta Qliro-checkout. Försök igen senare.', 'error')
       } finally {
         setLoading(false)
       }
@@ -222,57 +303,33 @@ export function BookingConfirmation({
     // Guest validation if not logged in
     if (!authUser && !isAdminOrTeacher) {
       if (!guestName || !guestEmail || !guestPhone) {
-        toast({
-          title: "Information saknas",
-          description: "Vänligen fyll i alla kontaktuppgifter",
-          variant: "destructive",
-        })
+        showNotification('Information saknas', 'Vänligen fyll i alla kontaktuppgifter', 'error')
         return
       }
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(guestEmail)) {
-        toast({
-          title: "Ogiltig e-postadress",
-          description: "Vänligen ange en giltig e-postadress",
-          variant: "destructive",
-        })
+        showNotification('Ogiltig e-postadress', 'Vänligen ange en giltig e-postadress', 'error')
         return
       }
     }
     
-    if (isAdminOrTeacher && !selectedStudent) {
-      toast({
-        title: "Fel",
-        description: "Välj en elev för bokningen",
-        variant: "destructive",
-      })
-      return
-    }
 
     // Validate supervisor information for handledar sessions when not admin/teacher
     if (isHandledarutbildning && !isAdminOrTeacher) {
       if (!supervisorName || !supervisorEmail || !supervisorPhone) {
-        toast({
-          title: "Fel",
-          description: "Handledarinformation krävs för handledarutbildning",
-          variant: "destructive",
-        })
+        showNotification('Fel', 'Handledarinformation krävs för handledarutbildning', 'error')
         return
       }
     }
 
     // If using credits for handledarutbildning, ensure they have enough credits
     if (selectedPaymentMethod === 'credits' && isHandledarutbildning && userCredits < 1) {
-      toast({
-        title: "Otillräckligt med krediter",
-        description: "Du har inte tillräckligt med krediter för denna handledarutbildning",
-        variant: "destructive",
-      })
+      showNotification('Otillräckligt med krediter', 'Du har inte tillräckligt med krediter för denna handledarutbildning', 'error')
       return
     }
 
-    const bookingData = {
+    const completionData = {
       paymentMethod: selectedPaymentMethod,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
       alreadyPaid: isAdminOrTeacher ? alreadyPaid : false,
@@ -290,7 +347,7 @@ export function BookingConfirmation({
       }),
     }
 
-    onComplete(bookingData)
+    onComplete(completionData)
   }
 
   const isHandledarSession = bookingData.lessonType.type === 'handledar'
@@ -346,59 +403,15 @@ export function BookingConfirmation({
     ].filter(method => method.available)
   }, [bookingData.lessonType, isStudent, userCredits, unpaidBookings])
 
-  // Handle payment confirmation
-  const confirmBooking = (paymentMethod: string) => {
-    if (!bookingData) {
-      toast({
-        title: "Fel",
-        description: "Bokningsinformation saknas",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const bookingPayload: BookingCompletionData = {
-      paymentMethod,
-      totalPrice: bookingData.totalPrice,
-      lessonType: {
-        id: bookingData.lessonType?.id || '',
-        name: bookingData.lessonType?.name || '',
-        durationMinutes: bookingData.lessonType?.durationMinutes || 0,
-        price: bookingData.lessonType?.price || 0,
-        priceStudent: bookingData.lessonType?.priceStudent,
-        salePrice: bookingData.lessonType?.salePrice,
-        type: bookingData.lessonType?.type
-      },
-      guestName: isHandledarutbildning ? supervisorName : guestName,
-      guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
-      guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
-      studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? (alreadyPaid === true) : false
-    }
-    onComplete(bookingPayload)
-  }
-
-  // Handle Swish payment confirmation
-  const handleSwishConfirm = () => {
-    setShowSwishDialog(false)
-    confirmBooking('swish')
-  }
-
-  // Handle Qliro redirect
-  const handleQliroRedirect = () => {
-    if (qliroCheckoutUrl) {
-      window.location.href = qliroCheckoutUrl
-    }
-  }
-
   // Show warning if user has too many unpaid bookings
   const showUnpaidWarning = isStudent && unpaidBookings >= 2 && 
-                          (selectedPaymentMethod === 'pay_at_location' || !selectedPaymentMethod)
+                          (selectedPaymentMethod === 'pay_at_location' || !selectedPaymentMethod);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardContent className="p-6">
-        <CardContent>
+    <div className="relative">
+      <Toaster position="top-right" richColors />
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-6">
           <div className="text-center space-y-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Bekräfta bokning</h2>
             <p className="text-lg text-gray-600">
@@ -415,7 +428,7 @@ export function BookingConfirmation({
                   <SelectTrigger>
                     <SelectValue placeholder="Välj en elev..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
                     {students.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
                         {student.firstName} {student.lastName} ({student.email})
@@ -743,7 +756,7 @@ export function BookingConfirmation({
 
             <Button
               onClick={handleSubmit}
-              disabled={loading || !selectedPaymentMethod || (isAdminOrTeacher && !selectedStudent)}
+              disabled={loading || (isAdminOrTeacher && !selectedStudent) || (!isAdminOrTeacher && !selectedPaymentMethod && !alreadyPaid)}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
             >
               {loading ? "Bekräftar..." : "Bekräfta bokning"}
@@ -754,80 +767,33 @@ export function BookingConfirmation({
             </Button>
           </div>
         </CardContent>
-      </CardContent>
+      </Card>
 
-      {/* Swish Payment Dialog */}
-      <Dialog open={showSwishDialog} onOpenChange={setShowSwishDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Bekräfta Swish-betalning</DialogTitle>
-            <DialogDescription>
-              Öppna Swish-appen på din telefon för att slutföra betalningen.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col items-center py-6">
-            <div className="bg-gray-100 p-4 rounded-lg mb-4">
-              <SwishLogo />
-            </div>
-            <p className="text-lg font-semibold">{bookingData.totalPrice} SEK</p>
-            <p className="text-sm text-gray-500 mb-4">Trafikskola X AB</p>
-            
-            <div className="w-full space-y-4">
-              <Button 
-                className="w-full bg-green-600 hover:bg-green-700"
-                onClick={handleSwishConfirm}
-              >
-                Jag har betalat
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowSwishDialog(false)}
-              >
-                Avbryt
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Qliro Payment Dialog */}
-      <Dialog open={showQliroDialog} onOpenChange={setShowQliroDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Qliro Checkout</DialogTitle>
-            <DialogDescription>
-              Du kommer nu att skickas till Qliros säkra betalningssida.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="flex flex-col items-center py-6 space-y-4">
-            <div className="bg-purple-100 p-4 rounded-lg mb-4">
-              <CreditCard className="w-16 h-16 text-purple-600 mx-auto" />
-            </div>
-            <p className="text-lg font-semibold">{bookingData.totalPrice} SEK</p>
-            <p className="text-sm text-gray-500 mb-4">Välj betalningssätt hos Qliro</p>
-            
-            <div className="w-full space-y-2">
-              <Button 
-                className="w-full bg-purple-600 hover:bg-purple-700"
-                onClick={handleQliroRedirect}
-                disabled={!qliroCheckoutUrl}
-              >
-                {qliroCheckoutUrl ? 'Fortsätt till Qliro' : 'Laddar...'}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setShowQliroDialog(false)}
-              >
-                Avbryt
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
+      {/* Use the proper Swish Payment Dialog component */}
+      <SwishPaymentDialog
+        isOpen={showSwishDialog}
+        onClose={() => setShowSwishDialog(false)}
+        booking={{
+          id: bookingData.id || 'temp-id',
+          totalPrice: bookingData.totalPrice
+        }}
+        bookingData={{
+          lessonType: bookingData.lessonType,
+          selectedDate: bookingData.selectedDate,
+          selectedTime: bookingData.selectedTime,
+          totalPrice: bookingData.totalPrice,
+          transmissionType: bookingData.transmissionType,
+          guestName: isHandledarutbildning ? supervisorName : guestName,
+          guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
+          guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
+          studentId: isAdminOrTeacher ? selectedStudent : undefined
+        }}
+        onConfirm={() => {
+          setShowSwishDialog(false)
+          // Redirect to confirmation page
+          window.location.href = '/booking/success'
+        }}
+      />
+    </div>
   )
 }

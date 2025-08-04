@@ -73,17 +73,17 @@ export async function requireAuth(requiredRoles?: ('student' | 'teacher' | 'admi
   return user;
 }
 
-// API-specific authentication that returns null instead of redirecting
-export async function requireAuthAPI(requiredRole?: 'student' | 'teacher' | 'admin'): Promise<AuthUser | null> {
+// API-specific authentication that returns result object
+export async function requireAuthAPI(requiredRole?: 'student' | 'teacher' | 'admin'): Promise<{ success: true; user: AuthUser } | { success: false; error: string; status: number }> {
   const user = await getServerUser();
   
   if (!user) {
-    return null;
+    return { success: false, error: 'Authentication required', status: 401 };
   }
 
   if (requiredRole && user.role !== requiredRole) {
-    return null;
+    return { success: false, error: 'Insufficient permissions', status: 403 };
   }
 
-  return user;
+  return { success: true, user };
 }

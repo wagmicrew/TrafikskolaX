@@ -55,6 +55,14 @@ export async function GET(request: NextRequest) {
         // Process slots for this day
         const timeSlots = [];
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const now = new Date();
+        const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Skip past dates entirely
+        if (dateStr < today) {
+          continue;
+        }
 
         for (const slot of daySlots) {
           // Check if entire day is blocked
@@ -84,10 +92,15 @@ export async function GET(request: NextRequest) {
             );
           });
 
+          // Check if this slot is within 3 hours from now
+          const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
+          const isWithinThreeHours = slotDateTime <= threeHoursFromNow;
+          
           // Add slot to available times
           timeSlots.push({
             time: slot.timeStart,
-            available: !hasBooking
+            available: !hasBooking && !isWithinThreeHours,
+            callForAvailability: isWithinThreeHours && !hasBooking
           });
         }
 

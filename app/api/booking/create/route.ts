@@ -429,7 +429,10 @@ export async function POST(request: NextRequest) {
             message: 'Booking confirmed and paid using credits.'
           });
       } else {
-        // Create the booking with on_hold status
+        // Find available teacher for this time slot
+        const availableTeacher = await findAvailableTeacher(db, scheduledDate, startTime, endTime);
+        
+        // Create the booking with temporary status
         const [booking] = await db
           .insert(bookings)
           .values({
@@ -441,32 +444,52 @@ export async function POST(request: NextRequest) {
             durationMinutes,
             transmissionType,
             totalPrice,
-            status: alreadyPaid ? 'confirmed' : 'on_hold',
-            paymentStatus: alreadyPaid ? 'paid' : 'unpaid',
+            status: 'temp', // Always create as temporary
+            paymentStatus: 'unpaid',
+            paymentMethod,
             isGuestBooking,
             guestName: isGuestBooking ? guestName : null,
             guestEmail: isGuestBooking ? guestEmail : null,
             guestPhone: isGuestBooking ? guestPhone : null,
             swishUUID: uuidv4(),
+            teacherId: availableTeacher?.id,
           })
           .returning();
 
-        // Send email with booking details and payment instructions
-        if (userId) {
-          const user = await db.select().from(users).where(eq(users.id, userId));
-
-          if (user.length > 0) {
-            await sendBookingNotification(user[0].email, booking, alreadyPaid, false, paymentMethod);
+        // For admin bookings marked as already paid, update status immediately
+        if (alreadyPaid && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
+          await db
+            .update(bookings)
+            .set({
+              status: 'confirmed',
+              paymentStatus: 'paid',
+              updatedAt: new Date()
+            })
+            .where(eq(bookings.id, booking.id));
+          
+          booking.status = 'confirmed';
+          booking.paymentStatus = 'paid';
+          
+          // Send confirmation email for already paid bookings
+          if (userId) {
+            const user = await db.select().from(users).where(eq(users.id, userId));
+            if (user.length > 0) {
+              await sendBookingNotification(user[0].email, booking, true);
+            }
+          } else if (isGuestBooking && guestEmail) {
+            await sendBookingNotification(guestEmail, booking, true);
           }
-        } else if (isGuestBooking && guestEmail) {
-          await sendBookingNotification(guestEmail, booking, alreadyPaid, false, paymentMethod);
+          
+          return NextResponse.json({ 
+            booking,
+            message: 'Booking confirmed and marked as paid.'
+          });
         }
 
+        // For regular bookings, don't send email notification yet - wait for payment
         return NextResponse.json({ 
           booking,
-          message: alreadyPaid ?
-            'Booking confirmed and marked as paid.' :
-            'Booking created with on_hold status. Please complete payment within 10 minutes.'
+          message: 'Temporary booking created. Please complete payment to confirm.'
         });
       }
     }

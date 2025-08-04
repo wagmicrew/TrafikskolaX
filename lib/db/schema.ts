@@ -94,7 +94,7 @@ export const bookings = pgTable('bookings', {
   transmissionType: varchar('transmission_type', { length: 20 }),
   teacherId: uuid('teacher_id').references(() => users.id),
   carId: uuid('car_id').references(() => cars.id),
-  status: varchar('status', { length: 50 }).default('on_hold'),
+  status: varchar('status', { length: 50 }).default('temp'), // temp, on_hold, confirmed, cancelled
   paymentStatus: varchar('payment_status', { length: 50 }).default('unpaid'),
   paymentMethod: varchar('payment_method', { length: 50 }),
   totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),

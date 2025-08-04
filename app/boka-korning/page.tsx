@@ -32,6 +32,7 @@ interface BookingData {
   selectedTime: string | null
   totalPrice: number
   bookingId?: string
+  tempBookingId?: string // Track temporary booking for cleanup
 }
 
 export default function BokaKorning() {
@@ -55,6 +56,46 @@ export default function BokaKorning() {
       fetchUserCredits()
     }
   }, [user])
+
+  const cleanupTempBooking = async () => {
+    if (bookingData.tempBookingId) {
+      try {
+        await fetch(`/api/booking/cleanup?bookingId=${bookingData.tempBookingId}&sessionType=${bookingData.sessionType?.type}`, {
+          method: 'DELETE'
+        })
+        setBookingData(prev => ({ ...prev, tempBookingId: undefined, bookingId: undefined }))
+      } catch (error) {
+        console.error('Error cleaning up temporary booking:', error)
+      }
+    }
+  }
+
+  // Cleanup temporary booking on page unload or navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (bookingData.tempBookingId) {
+        // Use sendBeacon for reliable cleanup on page unload
+        navigator.sendBeacon(
+          `/api/booking/cleanup?bookingId=${bookingData.tempBookingId}&sessionType=${bookingData.sessionType?.type}`,
+          JSON.stringify({ method: 'DELETE' })
+        )
+      }
+    }
+
+    const handlePageHide = async () => {
+      if (bookingData.tempBookingId) {
+        await cleanupTempBooking()
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handlePageHide)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handlePageHide)
+    }
+  }, [bookingData.tempBookingId, bookingData.sessionType?.type, cleanupTempBooking])
 
   const fetchUserCredits = async () => {
     try {
@@ -165,11 +206,21 @@ const handleBookingComplete = async (paymentData: any) => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create booking')
+        const errorData = await response.json()
+        if (errorData.userExists && errorData.existingEmail) {
+          setConflictingEmail(errorData.existingEmail)
+          setShowEmailConflictDialog(true)
+          return
+        }
+        throw new Error(errorData.error || 'Failed to create booking')
       }
 
       const data = await response.json()
-      setBookingData(prev => ({ ...prev, bookingId: data.booking.id }))
+      setBookingData(prev => ({ 
+        ...prev, 
+        bookingId: data.booking.id,
+        tempBookingId: data.booking.status === 'temp' ? data.booking.id : undefined
+      }))
 
       // Show payment dialog based on selected method
       if (paymentData.paymentMethod === 'swish') {
@@ -213,8 +264,12 @@ const handleBookingComplete = async (paymentData: any) => {
     setCurrentStep(5)
   }
 
-  const goBack = () => {
+  const goBack = async () => {
     if (currentStep > 1) {
+      // If going back from step 5 (success) or if we have a temp booking, clean it up
+      if (currentStep === 5 || bookingData.tempBookingId) {
+        await cleanupTempBooking()
+      }
       setCurrentStep(currentStep - 1)
     }
   }

@@ -133,21 +133,39 @@ export function SwishPaymentDialog({
           throw new Error(error.error || 'Failed to create booking')
         }
       } else {
-        // Legacy flow - just confirm existing booking
-        const response = await fetch('/api/booking/confirm-swish', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId: booking.id }),
-        })
-
-        if (response.ok) {
-          toast({
-            title: "Betalning registrerad",
-            description: "Vi kommer att bekräfta din betalning inom kort",
+        try {
+          // Confirm existing temporary booking
+          const response = await fetch('/api/booking/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              bookingId: booking.id,
+              sessionType: 'lesson', // Default to lesson for backward compatibility
+              paymentMethod: 'swish'
+            }),
           })
-          onConfirm()
-        } else {
-          throw new Error('Failed to confirm payment')
+  
+          if (response.ok) {
+            toast({
+              title: "Betalning registrerad",
+              description: "Vi kommer att bekräfta din betalning inom kort",
+            })
+            onConfirm()
+          } else {
+            // Check for specific error
+            const errorData = await response.json();
+            if (errorData.error === 'Email already exists') {
+              setShowEmailDialog(true);
+            } else {
+              throw new Error(errorData.error || 'Failed to confirm payment')
+            }
+          }
+        } catch(error) {
+          toast({
+            title: "Fel",
+            description: error instanceof Error ? error.message : "Något gick fel. Försök igen.",
+            variant: "destructive",
+          })
         }
       }
     } catch (error) {

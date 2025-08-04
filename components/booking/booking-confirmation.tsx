@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import QRCode from 'qrcode'
 import { SwishPaymentDialog } from './swish-payment-dialog'
+import { EmailConflictDialog } from './email-conflict-dialog'
 
 interface LessonType {
   id: string
@@ -92,6 +93,8 @@ export function BookingConfirmation({
   const [showSwishDialog, setShowSwishDialog] = useState(false)
   const [showQliroDialog, setShowQliroDialog] = useState(false)
   const [qliroCheckoutUrl, setQliroCheckoutUrl] = useState('')
+  const [showEmailConflictDialog, setShowEmailConflictDialog] = useState(false)
+  const [conflictingEmail, setConflictingEmail] = useState('')
   const { user: authUser } = useAuth()
   
   // Toast notification helper function
@@ -347,7 +350,37 @@ export function BookingConfirmation({
       }),
     }
 
-    onComplete(completionData)
+    // Handle email conflict by showing dialog
+    try {
+      onComplete(completionData)
+    } catch (error: any) {
+      if (error?.userExists && error?.existingEmail) {
+        setConflictingEmail(error.existingEmail)
+        setShowEmailConflictDialog(true)
+        return
+      }
+      throw error
+    }
+  }
+
+  const handleUseExistingAccount = () => {
+    // Redirect to login page with return URL
+    const returnUrl = encodeURIComponent(window.location.href)
+    window.location.href = `/inloggning?redirect=${returnUrl}`
+  }
+
+  const handleUseNewEmail = (newEmail: string) => {
+    // Update the appropriate email field based on context
+    if (isHandledarutbildning) {
+      setSupervisorEmail(newEmail)
+    } else {
+      setGuestEmail(newEmail)
+    }
+    
+    // Try submitting again with the new email
+    setTimeout(() => {
+      handleSubmit()
+    }, 100)
   }
 
   const isHandledarSession = bookingData.lessonType.type === 'handledar'
@@ -793,6 +826,15 @@ export function BookingConfirmation({
           // Redirect to confirmation page
           window.location.href = '/booking/success'
         }}
+      />
+
+      {/* Email Conflict Dialog */}
+      <EmailConflictDialog
+        isOpen={showEmailConflictDialog}
+        onClose={() => setShowEmailConflictDialog(false)}
+        existingEmail={conflictingEmail}
+        onUseExistingAccount={handleUseExistingAccount}
+        onUseNewEmail={handleUseNewEmail}
       />
     </div>
   )

@@ -21,13 +21,15 @@ interface LessonType {
 interface WeekCalendarProps {
   lessonType: LessonType
   transmissionType: "manual" | "automatic" | null
-  onComplete: (data: { selectedDate: Date; selectedTime: string }) => void
+  totalPrice?: number
+  onComplete: (data: { selectedDate: Date; selectedTime: string; bookingId?: string }) => void
   onBack: () => void
 }
 
 export function WeekCalendar({
   lessonType,
   transmissionType,
+  totalPrice = 0,
   onComplete,
   onBack
 }: WeekCalendarProps) {
@@ -85,12 +87,57 @@ export function WeekCalendar({
     }
   }
 
-  const handleTimeSelect = (time: string) => {
+  const handleTimeSelect = async (time: string) => {
     if (selectedDate) {
       setSelectedTime(time)
-      // Call onComplete when both date and time are selected
-      onComplete({ selectedDate, selectedTime: time })
+      setLoading(true)
+
+      try {
+        // Create temporary booking
+        const response = await fetch('/api/booking/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionType: 'lesson',
+            sessionId: lessonType.id,
+            scheduledDate: selectedDate.toISOString().split('T')[0],
+            startTime: time,
+            endTime: calculateEndTime(time, lessonType.durationMinutes),
+            durationMinutes: lessonType.durationMinutes,
+            transmissionType: transmissionType,
+            totalPrice: totalPrice, // Use the calculated price from parent
+            paymentMethod: 'swish' // Default payment method
+          })
+        })
+
+        const data = await response.json()
+        
+        if (response.ok && data.booking) {
+          // Pass booking ID to parent component
+          onComplete({ 
+            selectedDate, 
+            selectedTime: time, 
+            bookingId: data.booking.id 
+          })
+        } else {
+          console.error('Booking creation failed:', data.error)
+          alert('Ett fel uppstod vid bokning. Försök igen.')
+        }
+      } catch (error) {
+        console.error('Error creating booking:', error)
+        alert('Ett fel uppstod vid bokning. Försök igen.')
+      } finally {
+        setLoading(false)
+      }
     }
+  }
+
+  const calculateEndTime = (startTime: string, duration: number) => {
+    const [hours, minutes] = startTime.split(':').map(Number)
+    const totalMinutes = hours * 60 + minutes + duration
+    const endHours = Math.floor(totalMinutes / 60)
+    const endMinutes = totalMinutes % 60
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`
   }
 
   const handleNextWeek = () => {

@@ -159,6 +159,7 @@ export default function BokaKorning() {
           ...prev,
           selectedDate: stepData.selectedDate,
           selectedTime: stepData.selectedTime,
+          tempBookingId: stepData.bookingId || prev.tempBookingId
         }))
         setCurrentStep(4)
         break
@@ -185,10 +186,35 @@ const handleBookingComplete = async (paymentData: any) => {
     if (user?.role === 'admin' && paymentData.userHasPaid) {
       paymentData.paymentMethod = 'already_paid';
     }
+    
+    // If we already have a temporary booking, just update it with payment
+    if (bookingData.tempBookingId) {
+      try {
+        setLoading(true)
+        
+        // Show payment dialog based on selected method
+        if (paymentData.paymentMethod === 'swish') {
+          setShowSwishDialog(true)
+        } else if (paymentData.paymentMethod === 'credits') {
+          // Handle credit payment
+          await handleCreditPayment(bookingData.tempBookingId)
+        } else if (paymentData.paymentMethod === 'pay_at_location') {
+          // Handle pay at location
+          await handlePayAtLocation(bookingData.tempBookingId)
+        }
+      } catch (error) {
+        console.error('Error completing booking:', error)
+        alert('Ett fel uppstod. Försök igen.')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+    
     try {
       setLoading(true)
       
-      // Create booking
+      // Create booking (fallback if no temp booking exists)
       const response = await fetch('/api/booking/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -207,11 +233,6 @@ const handleBookingComplete = async (paymentData: any) => {
 
       if (!response.ok) {
         const errorData = await response.json()
-        if (errorData.userExists && errorData.existingEmail) {
-          setConflictingEmail(errorData.existingEmail)
-          setShowEmailConflictDialog(true)
-          return
-        }
         throw new Error(errorData.error || 'Failed to create booking')
       }
 
@@ -330,6 +351,7 @@ const handleBookingComplete = async (paymentData: any) => {
             <WeekCalendar
               lessonType={bookingData.sessionType} // Map sessionType to lessonType for compatibility
               transmissionType={bookingData.transmissionType}
+              totalPrice={bookingData.totalPrice}
               onComplete={handleStepComplete}
               onBack={goBack}
             />

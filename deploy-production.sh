@@ -1,31 +1,156 @@
 #!/bin/bash
 
-# Production Deployment Script for Din Trafikskola Hässleholm
+# Enhanced Production Deployment Script for Din Trafikskola Hässleholm
 # Run this script on your server (95.217.143.89)
+# This script handles existing installations and provides comprehensive checks
 
-echo "🚀 Starting production deployment for Din Trafikskola Hässleholm..."
+set -e  # Exit on any error
 
-# Update dev environment first
-echo "📦 Updating development environment..."
-cd /var/www/dintrafikskolax_dev
-git pull origin master
-npm install
+echo "🚀 Starting enhanced production deployment for Din Trafikskola Hässleholm..."
+echo "📅 Deployment started at: $(date)"
+echo "🖥️  Server: $(hostname -I | awk '{print $1}')"
+echo ""
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to kill PM2 processes safely
+kill_pm2_process() {
+    local process_name="$1"
+    if pm2 list | grep -q "$process_name"; then
+        echo "🔴 Stopping existing $process_name process..."
+        pm2 delete "$process_name" || true
+    fi
+}
+
+# Function to test URL with retries
+test_url() {
+    local url="$1"
+    local expected_code="${2:-200}"
+    local max_attempts=5
+    local attempt=1
+    
+    echo "🧪 Testing $url (expecting $expected_code)..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        local response_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
+        
+        if [ "$response_code" = "$expected_code" ]; then
+            echo "✅ $url responded with $response_code (attempt $attempt/$max_attempts)"
+            return 0
+        else
+            echo "⚠️  $url responded with $response_code, expected $expected_code (attempt $attempt/$max_attempts)"
+            if [ $attempt -lt $max_attempts ]; then
+                echo "   Retrying in 3 seconds..."
+                sleep 3
+            fi
+        fi
+        
+        ((attempt++))
+    done
+    
+    echo "❌ $url failed after $max_attempts attempts"
+    return 1
+}
+
+# Stop all existing PM2 processes for clean restart
+echo "🛑 Cleaning up existing PM2 processes..."
+kill_pm2_process "dintrafikskolax-dev"
+kill_pm2_process "dintrafikskolax-prod"
+pm2 save
+
+# Update/setup development environment
+echo "📦 Setting up development environment..."
+if [ -d "/var/www/dintrafikskolax_dev" ]; then
+    echo "📁 Development directory exists, updating..."
+    cd /var/www/dintrafikskolax_dev
+    git fetch origin
+    git reset --hard origin/master
+    npm install
+else
+    echo "📁 Creating new development directory..."
+    cd /var/www
+    git clone https://github.com/wagmicrew/TrafikskolaX.git dintrafikskolax_dev
+    cd dintrafikskolax_dev
+    npm install
+fi
+
+# Create/update dev .env file
+echo "⚙️ Setting up development environment file..."
+cat > .env.local << 'EOF'
+NODE_ENV=development
+PORT=3000
+NEXT_PUBLIC_SITE_URL=http://dev.dintrafikskolahlm.se
+
+# Database Configuration
+DATABASE_URL="postgres://johsusers_owner:****@ep-twilight-paper-a2zj1loj.eu-central-1.aws.neon.tech/johsusers?sslmode=require"
+
+# Email Configuration (Brevo/Sendgrid)
+BREVO_API_KEY=your_brevo_api_key_here
+SENDGRID_API_KEY=your_sendgrid_api_key_here
+EMAIL_FROM=info@dintrafikskolahlm.se
+
+# Qliro Payment Configuration (Test)
+QLIRO_MERCHANT_API_KEY=your_qliro_test_api_key_here
+QLIRO_CHECKOUT_URL=https://checkout-api-stage.qliro.com
+QLIRO_ADMIN_URL=https://admin-api-stage.qliro.com
+
+# NextAuth Configuration
+NEXTAUTH_URL=http://dev.dintrafikskolahlm.se
+NEXTAUTH_SECRET=dev_nextauth_secret_here
+
+# JWT Configuration
+JWT_SECRET=dev_jwt_secret_here
+EOF
+
+# Create PM2 ecosystem file for development
+cat > ecosystem.dev.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'dintrafikskolax-dev',
+      script: 'npm',
+      args: 'run dev',
+      cwd: '/var/www/dintrafikskolax_dev',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      env: {
+        NODE_ENV: 'development',
+        PORT: 3000
+      },
+      error_file: '/var/log/pm2/dintrafikskolax-dev-error.log',
+      out_file: '/var/log/pm2/dintrafikskolax-dev-out.log',
+      log_file: '/var/log/pm2/dintrafikskolax-dev.log'
+    }
+  ]
+};
+EOF
+
 npm run build
-pm2 restart dintrafikskolax-dev
+echo "✅ Development environment ready!"
 
-echo "✅ Development environment updated!"
-
-# Create production directory
+# Setup/update production environment
 echo "🏗️ Setting up production environment..."
-cd /var/www
-sudo mkdir -p dintrafikskolax_prod
-sudo chown -R root:root dintrafikskolax_prod
-cd dintrafikskolax_prod
+if [ -d "/var/www/dintrafikskolax_prod" ]; then
+    echo "📁 Production directory exists, updating..."
+    cd /var/www/dintrafikskolax_prod
+    git fetch origin
+    git reset --hard origin/master
+    npm install
+else
+    echo "📁 Creating new production directory..."
+    cd /var/www
+    mkdir -p dintrafikskolax_prod
+    chown -R $(whoami):$(whoami) dintrafikskolax_prod
+    cd dintrafikskolax_prod
+    git clone https://github.com/wagmicrew/TrafikskolaX.git .
+    npm install
+fi
 
-# Clone repository for production
-echo "📥 Cloning repository for production..."
-git clone https://github.com/wagmicrew/TrafikskolaX.git .
-npm install
 npm run build
 
 # Create production .env file

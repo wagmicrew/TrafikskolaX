@@ -29,6 +29,13 @@
       "when": 1754118133557,
       "tag": "0003_silly_hercules",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1754388200873,
+      "tag": "0004_rapid_mister_fear",
+      "breakpoints": true
     }
   ]
 }

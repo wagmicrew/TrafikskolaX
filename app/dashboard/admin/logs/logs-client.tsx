@@ -468,106 +468,162 @@ export default function LogsClient() {
         </TabsContent>
 
         <TabsContent value="stats" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Total Files
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {logStats?.totalFiles || 0}
-                </div>
-              </CardContent>
-            </Card>
+          {logStats && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Log Statistics
+                  </CardTitle>
+                  <CardDescription>
+                    Overview of log files and categories
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{logStats.totalFiles}</div>
+                      <div className="text-sm text-gray-600">Total Log Files</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{Object.keys(logStats.categories).length}</div>
+                      <div className="text-sm text-gray-600">Categories</div>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">{formatFileSize(logStats.totalSize)}</div>
+                      <div className="text-sm text-gray-600">Total Size</div>
+                    </div>
+                  </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
-                  Total Size
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {logStats ? formatFileSize(logStats.totalSize) : '0 B'}
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Category Breakdown</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(logStats.categories).map(([category, count]) => {
+                        const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons] || Settings;
+                        return (
+                          <div key={category} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <CategoryIcon className="w-4 h-4 text-gray-600" />
+                              <span className="capitalize text-sm font-medium">{category}</span>
+                            </div>
+                            <Badge variant="secondary">{count} files</Badge>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Categories
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {logStats?.categories && Object.entries(logStats.categories).map(([category, count]) => {
-                    const CategoryIcon = categoryIcons[category as keyof typeof categoryIcons];
-                    return (
-                      <div key={category} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CategoryIcon className="w-4 h-4" />
-                          <span className="capitalize">{category}</span>
-                        </div>
-                        <Badge variant="secondary">{count}</Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                  <CardDescription>
+                    Manage log files by category
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.keys(logStats.categories).map(category => (
+                      <Button
+                        key={category}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => clearLogs(category)}
+                        className="flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear {category}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Auto Refresh Settings</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Log Settings
+              </CardTitle>
               <CardDescription>
-                Configure automatic log refreshing
+                Configure logging behavior and auto-refresh settings
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="refresh-interval">Refresh Interval (seconds)</Label>
-                <Input
-                  id="refresh-interval"
-                  type="number"
-                  value={refreshInterval / 1000}
-                  onChange={(e) => setRefreshInterval((parseInt(e.target.value) || 5) * 1000)}
-                  min="1"
-                  max="60"
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="refresh-interval">Auto-refresh Interval (seconds)</Label>
+                  <Input
+                    id="refresh-interval"
+                    type="number"
+                    value={refreshInterval / 1000}
+                    onChange={(e) => setRefreshInterval(parseInt(e.target.value) * 1000 || 5000)}
+                    min="1"
+                    max="60"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    How often to refresh logs when auto-refresh is enabled
+                  </p>
+                </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Log Management</CardTitle>
-              <CardDescription>
-                Manage log files and categories
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <h4 className="font-medium">Clear Logs by Category</h4>
+                <div>
+                  <Label htmlFor="default-max-lines">Default Max Lines</Label>
+                  <Input
+                    id="default-max-lines"
+                    type="number"
+                    value={maxLines}
+                    onChange={(e) => setMaxLines(parseInt(e.target.value) || 100)}
+                    min="10"
+                    max="10000"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Default number of lines to load from log files
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-medium mb-3">Quick Actions</h4>
                 <div className="flex flex-wrap gap-2">
-                  {Object.keys(categoryIcons).map(category => (
-                    <Button
-                      key={category}
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => clearLogs(category)}
-                    >
-                      Clear {category}
-                    </Button>
-                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadLogFiles}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh File List
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadLogs}
+                    disabled={filteredLogs.length === 0}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Current View
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-medium mb-3">System Information</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <div>Log Directory: <code className="bg-gray-100 px-1 rounded">./logs/</code></div>
+                  <div>Max File Size: <code className="bg-gray-100 px-1 rounded">10MB</code></div>
+                  <div>Max Files per Category: <code className="bg-gray-100 px-1 rounded">5</code></div>
+                  <div>Auto-rotation: <code className="bg-gray-100 px-1 rounded">Enabled</code></div>
                 </div>
               </div>
             </CardContent>

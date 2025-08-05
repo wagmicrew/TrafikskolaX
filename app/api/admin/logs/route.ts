@@ -9,6 +9,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
+    // Log the admin access for audit trail
+    logger.info('system', 'Admin accessed logs interface', {
+      userId: authResult.user?.id,
+      userEmail: authResult.user?.email
+    });
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const category = searchParams.get('category');

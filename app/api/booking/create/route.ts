@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       durationMinutes,
       transmissionType,
       totalPrice,
-      paymentMethod, // swish, credits, pay_at_location
+      paymentMethod, // swish, credits, pay_at_location, qliro
       // Guest fields
       guestName,
       guestEmail,
@@ -495,6 +495,43 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        // For Qliro payment method, create checkout session
+        if (paymentMethod === 'qliro') {
+          try {
+            // Create Qliro checkout for the booking
+            const qliroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payments/qliro/create-checkout`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                amount: totalPrice,
+                reference: `booking_${booking.id}`, // Prefix to distinguish from package purchases
+                description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
+                returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bookings/${booking.id}`,
+              }),
+            });
+
+            if (!qliroResponse.ok) {
+              throw new Error('Failed to create Qliro checkout');
+            }
+
+            const qliroData = await qliroResponse.json();
+            
+            return NextResponse.json({ 
+              booking,
+              qliroCheckout: {
+                checkoutId: qliroData.checkoutId,
+                checkoutUrl: qliroData.checkoutUrl,
+              },
+              message: 'Booking created. Complete payment through Qliro to confirm.'
+            });
+          } catch (error) {
+            console.error('Error creating Qliro checkout:', error);
+            // Continue with regular response if Qliro fails
+          }
+        }
+        
         // For regular bookings, don't send email notification yet - wait for payment
         return NextResponse.json({ 
           booking,

@@ -45,6 +45,11 @@ interface Settings {
   site_domain: string;
   site_name: string;
   
+// Qliro API URLs
+  qliro_dev_api_url: string;
+  qliro_prod_api_url: string;
+  qliro_use_prod_env: boolean;
+
   // Payment settings
   swish_number: string;
   swish_enabled: boolean;
@@ -53,6 +58,9 @@ interface Settings {
   qliro_merchant_id: string;
   qliro_sandbox: boolean;
   qliro_enabled: boolean;
+  qliro_prod_enabled: boolean;
+  qliro_prod_merchant_id: string;
+  qliro_prod_api_key: string;
 }
 
 interface TestResult {
@@ -74,6 +82,9 @@ export default function SettingsClient() {
     smtp_username: 'admin@dintrafikskolahlm.se',
     smtp_password: '',
     smtp_secure: false,
+qliro_dev_api_url: 'https://playground.qliro.com',
+    qliro_prod_api_url: 'https://api.qliro.com',
+    qliro_use_prod_env: false,
     from_name: 'Din Trafikskola Hässleholm',
     from_email: 'admin@dintrafikskolahlm.se',
     reply_to: 'info@dintrafikskolahlm.se',
@@ -86,12 +97,15 @@ export default function SettingsClient() {
     qliro_merchant_id: '',
     qliro_sandbox: true,
     qliro_enabled: false,
+    qliro_prod_enabled: false,
+    qliro_prod_merchant_id: '',
+    qliro_prod_api_key: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-const [testResults, setTestResults] = useState<TestResult[]>([]);
-const [qliroTestOpen, setQliroTestOpen] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [qliroTestOpen, setQliroTestOpen] = useState(false);
   const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
 
   useEffect(() => {
@@ -145,34 +159,45 @@ const [qliroTestOpen, setQliroTestOpen] = useState(false);
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-const testQliroPayment = async () => {
-  setQliroTestOpen(true);
-  const loadingToast = toast.loading('Testing Qliro payment...');
-  try {
-    const response = await fetch('/api/packages/purchase', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        packageId: 'test-package-id',  // Dummy ID for testing
-        paymentMethod: 'qliro',
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to test Qliro payment');
+  const testQliroPayment = async () => {
+    setQliroTestOpen(true);
+    const loadingToast = toast.loading('Testing Qliro payment...');
+    try {
+      // First, get a real package ID
+      const packagesResponse = await fetch('/api/packages');
+      if (!packagesResponse.ok) {
+        throw new Error('Failed to fetch packages');
+      }
+      const packagesData = await packagesResponse.json();
+      if (packagesData.length === 0) {
+        throw new Error('No packages available for testing');
+      }
+      const testPackageId = packagesData[0].id;
+      
+      const response = await fetch('/api/packages/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packageId: testPackageId,  // Use real package ID
+          paymentMethod: 'qliro',
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to test Qliro payment');
+      }
+      toast.success('Qliro payment test initiated successfully!', { id: loadingToast });
+    } catch (error) {
+      console.error('Qliro test error:', error);
+      toast.error(`Qliro test failed: ${error.message}`, { id: loadingToast });
+    } finally {
+      setQliroTestOpen(false);
     }
-    toast.success('Qliro payment test initiated successfully!', { id: loadingToast });
-  } catch (error) {
-    console.error('Qliro test error:', error);
-    toast.error(`Qliro test failed: ${error.message}`, { id: loadingToast });
-  } finally {
-    setQliroTestOpen(false);
-  }
-};
+  };
 
-const runTests = async () => {
+  const runTests = async () => {
     setTesting(true);
     setTestResults([]);
     const loadingToast = toast.loading('Kör krediteringstester...');
@@ -635,58 +660,119 @@ const runTests = async () => {
 
                 {settings.qliro_enabled && (
                   <div className="space-y-4 pl-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="qliro-api-key">
-                        <Key className="w-4 h-4 inline mr-2" />
-                        Qliro API-nyckel
-                      </Label>
-                      <Input
-                        id="qliro-api-key"
-                        type="password"
-                        placeholder="Ange din Qliro API-nyckel"
-                        value={settings.qliro_api_key}
-                        onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
-                      />
+                    {/* Environment Selection */}
+                    <div className="bg-blue-50 p-4 rounded-lg border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="qliro-use-prod">Produktionsmiljö</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Växla mellan utvecklings- och produktionsmiljö
+                          </p>
+                        </div>
+                        <Switch
+                          id="qliro-use-prod"
+                          checked={settings.qliro_use_prod_env}
+                          onCheckedChange={(checked) => updateSetting('qliro_use_prod_env', checked)}
+                        />
+                      </div>
+                      
+                      <div className="text-sm font-medium text-blue-800">
+                        Aktuell miljö: {settings.qliro_use_prod_env ? 'Produktion' : 'Utveckling/Sandbox'}
+                      </div>
+                    </div>
+
+                    {/* API URLs Configuration */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-gray-800">API-konfiguration</h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="qliro-dev-api-url">
+                          <Globe className="w-4 h-4 inline mr-2" />
+                          Utvecklings-API URL
+                        </Label>
+                        <Input
+                          id="qliro-dev-api-url"
+                          placeholder="https://playground.qliro.com"
+                          value={settings.qliro_dev_api_url}
+                          onChange={(e) => updateSetting('qliro_dev_api_url', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="qliro-prod-api-url">
+                          <Globe className="w-4 h-4 inline mr-2" />
+                          Produktions-API URL
+                        </Label>
+                        <Input
+                          id="qliro-prod-api-url"
+                          placeholder="https://api.qliro.com"
+                          value={settings.qliro_prod_api_url}
+                          onChange={(e) => updateSetting('qliro_prod_api_url', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Credentials */}
+                    <div className="space-y-4 border-t pt-4">
+                      <h4 className="font-medium text-gray-800">
+                        {settings.qliro_use_prod_env ? 'Produktions-kredentialer' : 'Utvecklings-kredentialer'}
+                      </h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="qliro-api-key">
+                          <Key className="w-4 h-4 inline mr-2" />
+                          Qliro API-nyckel
+                        </Label>
+                        <Input
+                          id="qliro-api-key"
+                          type="password"
+                          placeholder="Ange din Qliro API-nyckel"
+                          value={settings.qliro_api_key}
+                          onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="qliro-secret">
+                          <Key className="w-4 h-4 inline mr-2" />
+                          Qliro API Secret
+                        </Label>
+                        <Input
+                          id="qliro-secret"
+                          type="password"
+                          placeholder="Ange din Qliro API Secret"
+                          value={settings.qliro_secret}
+                          onChange={(e) => updateSetting('qliro_secret', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="qliro-merchant-id">
+                          <Building className="w-4 h-4 inline mr-2" />
+                          Qliro Merchant ID
+                        </Label>
+                        <Input
+                          id="qliro-merchant-id"
+                          placeholder="Ange ditt Qliro Merchant ID"
+                          value={settings.qliro_merchant_id}
+                          onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
+                        />
+                      </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="qliro-secret">
-                        <Key className="w-4 h-4 inline mr-2" />
-                        Qliro API Secret
-                      </Label>
-                      <Input
-                        id="qliro-secret"
-                        type="password"
-                        placeholder="Ange din Qliro API Secret"
-                        value={settings.qliro_secret}
-                        onChange={(e) => updateSetting('qliro_secret', e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="qliro-merchant-id">
-                        <Building className="w-4 h-4 inline mr-2" />
-                        Qliro Merchant ID
-                      </Label>
-                      <Input
-                        id="qliro-merchant-id"
-                        placeholder="Ange ditt Qliro Merchant ID"
-                        value={settings.qliro_merchant_id}
-                        onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
+                    {/* Legacy Sandbox Toggle - kept for compatibility */}
+                    <div className="flex items-center justify-between opacity-50">
                       <div className="space-y-0.5">
-                        <Label htmlFor="qliro-sandbox">Sandbox-läge</Label>
+                        <Label htmlFor="qliro-sandbox">Legacy Sandbox-läge</Label>
                         <p className="text-sm text-muted-foreground">
-                          Använd Qliro testmiljö (playground)
+                          (Använd miljöväxlaren ovan istället)
                         </p>
                       </div>
                       <Switch
                         id="qliro-sandbox"
                         checked={settings.qliro_sandbox}
                         onCheckedChange={(checked) => updateSetting('qliro_sandbox', checked)}
+                        disabled
                       />
                     </div>
                   </div>

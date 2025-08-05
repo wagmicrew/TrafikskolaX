@@ -122,7 +122,23 @@ class Logger {
   }
 
   public getLogFiles(): string[] {
-    return fs.readdirSync(this.logDir).filter(file => file.endsWith('.log'));
+    try {
+      if (!fs.existsSync(this.logDir)) {
+        this.ensureLogDirectory();
+        return [];
+      }
+      return fs.readdirSync(this.logDir)
+        .filter(file => file.endsWith('.log'))
+        .sort((a, b) => {
+          // Sort by date (newest first)
+          const statA = fs.statSync(path.join(this.logDir, a));
+          const statB = fs.statSync(path.join(this.logDir, b));
+          return statB.mtime.getTime() - statA.mtime.getTime();
+        });
+    } catch (error) {
+      console.error('Error reading log directory:', error);
+      return [];
+    }
   }
 
   public readLogFile(filename: string, lines?: number): LogEntry[] {
@@ -131,15 +147,33 @@ class Logger {
       return [];
     }
 
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const logLines = content.trim().split('\n').filter(line => line.length > 0);
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const logLines = content.trim().split('\n').filter(line => line.length > 0);
 
-    if (lines) {
-      const startIndex = Math.max(0, logLines.length - lines);
-      return logLines.slice(startIndex).map(line => JSON.parse(line));
+      let parsedLogs: LogEntry[] = [];
+      
+      // Parse each line safely
+      for (const line of logLines) {
+        try {
+          const parsed = JSON.parse(line);
+          parsedLogs.push(parsed);
+        } catch (parseError) {
+          // Skip malformed lines but log the error
+          console.warn(`Malformed log line in ${filename}: ${line}`);
+        }
+      }
+
+      if (lines && lines > 0) {
+        const startIndex = Math.max(0, parsedLogs.length - lines);
+        return parsedLogs.slice(startIndex);
+      }
+
+      return parsedLogs;
+    } catch (error) {
+      console.error(`Error reading log file ${filename}:`, error);
+      return [];
     }
-
-    return logLines.map(line => JSON.parse(line));
   }
 
   public clearLogs(category?: string) {
@@ -158,16 +192,23 @@ class Logger {
     const stats = {
       totalFiles: files.length,
       categories: {} as Record<string, number>,
-      totalSize: 0
+      totalSize: 0,
+      lastUpdated: new Date().toISOString()
     };
 
-    for (const file of files) {
-      const filePath = path.join(this.logDir, file);
-      const fileStats = fs.statSync(filePath);
-      stats.totalSize += fileStats.size;
+    try {
+      for (const file of files) {
+        const filePath = path.join(this.logDir, file);
+        if (fs.existsSync(filePath)) {
+          const fileStats = fs.statSync(filePath);
+          stats.totalSize += fileStats.size;
 
-      const category = file.split('-')[0];
-      stats.categories[category] = (stats.categories[category] || 0) + 1;
+          const category = file.split('-')[0];
+          stats.categories[category] = (stats.categories[category] || 0) + 1;
+        }
+      }
+    } catch (error) {
+      console.error('Error calculating log stats:', error);
     }
 
     return stats;

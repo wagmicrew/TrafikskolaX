@@ -429,43 +429,88 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label className="text-white/90 text-sm">Lektionstyp</Label>
-                            <select
-                              value={content.lessonTypeId || ''}
-                              onChange={(e) => updateContent(content.id, 'lessonTypeId', e.target.value)}
-                              className="w-full bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-lg px-3 py-2 text-sm focus:bg-white/20 focus:border-white/50"
-                            >
-                              <option value="" className="bg-gray-800 text-white">Välj lektionstyp</option>
-                              {(() => {
-                                const availableTypes = getAvailableLessonTypes(content.id);
-                                const allOptions = [];
-                                
-                                // Add currently selected option if it exists
-                                if (content.lessonTypeId) {
-                                  const currentType = lessonTypes.find(lt => lt.id === content.lessonTypeId);
-                                  if (currentType) {
-                                    allOptions.push(
-                                      <option key={currentType.id} value={currentType.id} className="bg-gray-800 text-white">
-                                        {currentType.name}
-                                      </option>
-                                    );
+                            <Label className="text-white/90 text-sm">
+                              {content.contentType === 'handledar' ? 'Handledarutbildning' : 'Lektionstyp'}
+                            </Label>
+                            {content.contentType === 'lesson' ? (
+                              <select
+                                value={content.lessonTypeId || ''}
+                                onChange={(e) => updateContent(content.id, 'lessonTypeId', e.target.value)}
+                                className="w-full bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-lg px-3 py-2 text-sm focus:bg-white/20 focus:border-white/50"
+                              >
+                                <option value="" className="bg-gray-800 text-white">Välj lektionstyp</option>
+                                {(() => {
+                                  const availableTypes = getAvailableLessonTypes(content.id);
+                                  const allOptions = [];
+                                  
+                                  // Add currently selected option if it exists
+                                  if (content.lessonTypeId) {
+                                    const currentType = lessonTypes.find(lt => lt.id === content.lessonTypeId);
+                                    if (currentType) {
+                                      allOptions.push(
+                                        <option key={currentType.id} value={currentType.id} className="bg-gray-800 text-white">
+                                          {currentType.name}
+                                        </option>
+                                      );
+                                    }
                                   }
-                                }
-                                
-                                // Add available types
-                                if (availableTypes && Array.isArray(availableTypes)) {
-                                  availableTypes.forEach(type => {
-                                    allOptions.push(
-                                      <option key={type.id} value={type.id} className="bg-gray-800 text-white">
-                                        {type.name}
-                                      </option>
-                                    );
-                                  });
-                                }
-                                
-                                return allOptions;
-                              })()}
-                            </select>
+                                  
+                                  // Add available types
+                                  if (availableTypes && Array.isArray(availableTypes)) {
+                                    availableTypes.forEach(type => {
+                                      allOptions.push(
+                                        <option key={type.id} value={type.id} className="bg-gray-800 text-white">
+                                          {type.name}
+                                        </option>
+                                      );
+                                    });
+                                  }
+                                  
+                                  return allOptions;
+                                })()}
+                              </select>
+                            ) : content.contentType === 'handledar' ? (
+                              <select
+                                value={content.handledarSessionId || ''}
+                                onChange={(e) => updateContent(content.id, 'handledarSessionId', e.target.value)}
+                                className="w-full bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-lg px-3 py-2 text-sm focus:bg-white/20 focus:border-white/50"
+                              >
+                                <option value="" className="bg-gray-800 text-white">Välj handledarutbildning</option>
+                                {(() => {
+                                  const availableSessions = getAvailableHandledarSessions(content.id);
+                                  const allOptions = [];
+                                  
+                                  // Add currently selected option if it exists
+                                  if (content.handledarSessionId) {
+                                    const currentSession = handledarSessions.find(hs => hs.id === content.handledarSessionId);
+                                    if (currentSession) {
+                                      allOptions.push(
+                                        <option key={currentSession.id} value={currentSession.id} className="bg-gray-800 text-white">
+                                          {currentSession.title}
+                                        </option>
+                                      );
+                                    }
+                                  }
+                                  
+                                  // Add available sessions
+                                  if (availableSessions && Array.isArray(availableSessions)) {
+                                    availableSessions.forEach(session => {
+                                      allOptions.push(
+                                        <option key={session.id} value={session.id} className="bg-gray-800 text-white">
+                                          {session.title}
+                                        </option>
+                                      );
+                                    });
+                                  }
+                                  
+                                  return allOptions;
+                                })()}
+                              </select>
+                            ) : (
+                              <div className="text-white/60 text-sm p-2 bg-white/5 rounded border border-white/20">
+                                Fritextfält - ingen val krävs
+                              </div>
+                            )}
                           </div>
                           <div>
                             <Label className="text-white/90 text-sm">Antal krediter</Label>

@@ -101,6 +101,11 @@ export function BookingConfirmation({
   const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const { user: authUser } = useAuth()
   
+  // Qliro availability state
+  const [qliroAvailable, setQliroAvailable] = useState<boolean>(true)
+  const [qliroStatusMessage, setQliroStatusMessage] = useState<string>('')
+  const [qliroStatusLoading, setQliroStatusLoading] = useState<boolean>(true)
+  
   // Toast notification helper function
   const showNotification = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
     switch (type) {
@@ -198,6 +203,32 @@ export function BookingConfirmation({
   const isGuest = !authUser
   const isHandledarutbildning = bookingData && (bookingData.lessonType.name === 'Handledarutbildning' || 
                               bookingData.lessonType.name.toLowerCase().includes('handledarutbildning'))
+
+  // Check Qliro availability on component mount
+  useEffect(() => {
+    const checkQliroStatus = async () => {
+      try {
+        setQliroStatusLoading(true)
+        const response = await fetch('/api/payments/qliro/status')
+        if (response.ok) {
+          const data = await response.json()
+          setQliroAvailable(data.available)
+          setQliroStatusMessage(data.message || '')
+        } else {
+          setQliroAvailable(false)
+          setQliroStatusMessage('Kunde inte kontrollera Qliro-status')
+        }
+      } catch (error) {
+        console.error('Failed to check Qliro status:', error)
+        setQliroAvailable(false)
+        setQliroStatusMessage('Qliro-tjänsten är för närvarande inte tillgänglig')
+      } finally {
+        setQliroStatusLoading(false)
+      }
+    }
+
+    checkQliroStatus()
+  }, [])
 
   useEffect(() => {
     if (isAdminOrTeacher) {
@@ -529,9 +560,11 @@ export function BookingConfirmation({
       {
         id: 'qliro',
         label: 'Qliro',
-        description: 'Kort, Klarna, Faktura, Delbetalning',
+        description: qliroAvailable 
+          ? 'Kort, Klarna, Faktura, Delbetalning' 
+          : qliroStatusMessage || 'Tillfälligt otillgänglig',
         icon: <CreditCard className="w-5 h-5 text-purple-600" />,
-        available: isHandledar
+        available: isHandledar && qliroAvailable
       },
       {
         id: 'credits',
@@ -841,12 +874,15 @@ export function BookingConfirmation({
 
                 {/* Qliro Option */}
                 <div 
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                  className={`border rounded-lg p-4 ${qliroAvailable 
+                    ? 'cursor-pointer transition-colors' 
+                    : 'cursor-not-allowed opacity-60'
+                  } ${
                     selectedPaymentMethod === 'qliro' 
                       ? 'border-purple-500 bg-purple-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedPaymentMethod('qliro')}
+                  onClick={() => qliroAvailable && setSelectedPaymentMethod('qliro')}
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
@@ -854,9 +890,17 @@ export function BookingConfirmation({
                     }`}>
                       {selectedPaymentMethod === 'qliro' && <CheckCircle className="w-4 h-4 text-white" />}
                     </div>
-                    <div>
-                      <p className="font-medium">Qliro</p>
-                      <p className="text-sm text-gray-500">Kort, Klarna, Faktura, Delbetalning</p>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <p className={`font-medium ${!qliroAvailable ? 'text-gray-500' : ''}`}>Qliro</p>
+                        {qliroStatusLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>}
+                      </div>
+                      <p className={`text-sm ${!qliroAvailable ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {qliroAvailable 
+                          ? 'Kort, Klarna, Faktura, Delbetalning' 
+                          : qliroStatusMessage || 'Tillfälligt otillgänglig'
+                        }
+                      </p>
                     </div>
                   </div>
                 </div>

@@ -38,6 +38,7 @@ import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
 
 interface PackagesStoreClientProps {
   user: User;
@@ -50,6 +51,11 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   const [loading, setLoading] = useState(false);
   const [showSwishDialog, setShowSwishDialog] = useState(false);
   const [showQliroDialog, setShowQliroDialog] = useState(false);
+  
+  // Qliro availability state
+  const [qliroAvailable, setQliroAvailable] = useState<boolean>(true);
+  const [qliroStatusMessage, setQliroStatusMessage] = useState<string>('');
+  const [qliroStatusLoading, setQliroStatusLoading] = useState<boolean>(true);
   const [swishPaymentData, setSwishPaymentData] = useState({
     amount: 0,
     message: '',
@@ -61,6 +67,32 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
     purchaseId: '',
     checkoutUrl: ''
   });
+
+  // Check Qliro availability on component mount
+  useEffect(() => {
+    const checkQliroStatus = async () => {
+      try {
+        setQliroStatusLoading(true);
+        const response = await fetch('/api/payments/qliro/status');
+        if (response.ok) {
+          const data = await response.json();
+          setQliroAvailable(data.available);
+          setQliroStatusMessage(data.message || '');
+        } else {
+          setQliroAvailable(false);
+          setQliroStatusMessage('Kunde inte kontrollera Qliro-status');
+        }
+      } catch (error) {
+        console.error('Failed to check Qliro status:', error);
+        setQliroAvailable(false);
+        setQliroStatusMessage('Qliro-tjänsten är för närvarande inte tillgänglig');
+      } finally {
+        setQliroStatusLoading(false);
+      }
+    };
+
+    checkQliroStatus();
+  }, []);
 
   const getEffectivePrice = (pkg: Package): number => {
     if (pkg.salePrice !== undefined) return pkg.salePrice;
@@ -84,6 +116,12 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   };
 
   const handlePurchase = async (packageId: string): Promise<void> => {
+    // Check if trying to purchase with Qliro when it's unavailable
+    if (paymentMethod === 'qliro' && !qliroAvailable) {
+      toast.error(qliroStatusMessage || 'Qliro är för närvarande inte tillgänglig. Välj Swish istället.');
+      return;
+    }
+
     setLoading(true);
     try {
       // First, create the package purchase record
@@ -175,8 +213,8 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-purple-50 to-pink-100">
-      {/* Swish Payment Dialog */}
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 to-gray-800">
+      {/* Payment Dialogs */}
       <SwishPaymentDialog
         isOpen={showSwishDialog}
         onClose={() => setShowSwishDialog(false)}
@@ -187,7 +225,6 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
         onConfirm={() => handleSwishConfirm(swishPaymentData.purchaseId)}
       />
       
-      {/* Qliro Payment Dialog */}
       <QliroPaymentDialog
         isOpen={showQliroDialog}
         onClose={() => setShowQliroDialog(false)}
@@ -197,27 +234,35 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
         onConfirm={handleQliroConfirm}
       />
       
+      {/* Glassmorphism Container */}
+      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl max-w-7xl mx-auto">
+        {/* Background gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-transparent to-pink-500/20 rounded-2xl"></div>
+        
+        {/* Content Container */}
+        <div className="relative z-10 p-8">
+      
       {/* Main Content */}
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-5xl font-bold text-gray-800 mb-4">
-          <FaShoppingCart className="inline-block mr-4 text-purple-600" />
+        <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
+          <FaShoppingCart className="inline-block mr-4 text-purple-300" />
           Paketbutik
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8 drop-shadow-sm">
           Välj mellan våra populära paket och spara pengar på dina körlektioner!
         </p>
         
-        {/* Payment Method Selector - Moved to top */}
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-12 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Välj betalningsmetod</h2>
+        {/* Payment Method Selector with glassmorphism */}
+        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 mb-12 max-w-2xl mx-auto">
+          <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-sm">Välj betalningsmetod</h2>
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
             <button
               onClick={() => setPaymentMethod('swish')}
               className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
                 paymentMethod === 'swish'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-blue-300'
+                  ? 'border-blue-400/50 bg-blue-500/20 text-blue-100'
+                  : 'border-white/20 hover:border-blue-300/50 text-white/80 hover:text-white'
               }`}
             >
               <FaMobileAlt className="text-2xl" />
@@ -225,15 +270,25 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
             </button>
             
             <button
-              onClick={() => setPaymentMethod('qliro')}
-              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
-                paymentMethod === 'qliro'
-                  ? 'border-purple-500 bg-purple-50 text-purple-700'
-                  : 'border-gray-200 hover:border-purple-300'
+              onClick={() => qliroAvailable && setPaymentMethod('qliro')}
+              disabled={!qliroAvailable}
+              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 relative ${
+                !qliroAvailable 
+                  ? 'border-white/10 bg-gray-500/20 text-gray-400 cursor-not-allowed opacity-60'
+                  : paymentMethod === 'qliro'
+                  ? 'border-purple-400/50 bg-purple-500/20 text-purple-100'
+                  : 'border-white/20 hover:border-purple-300/50 text-white/80 hover:text-white'
               }`}
+              title={!qliroAvailable ? qliroStatusMessage : 'Välj Qliro som betalningsmetod'}
             >
-              <FaCreditCard className="text-2xl" />
+              <div className="flex items-center gap-1">
+                <FaCreditCard className="text-2xl" />
+                {qliroStatusLoading && <FaSpinner className="text-sm animate-spin" />}
+              </div>
               <span className="font-medium">Qliro</span>
+              {!qliroAvailable && (
+                <span className="text-xs text-center mt-1">Otillgänglig</span>
+              )}
             </button>
           </div>
         </div>
@@ -398,6 +453,8 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
               Samma höga kvalitet på alla våra lektioner
             </p>
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>

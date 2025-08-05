@@ -15,7 +15,8 @@ export default async function PackagesPage() {
     with: {
       contents: {
         with: {
-          lessonType: true
+          lessonType: true,
+          handledarSession: true
         }
       }
     },

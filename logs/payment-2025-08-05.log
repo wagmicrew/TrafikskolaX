@@ -1,0 +1,6 @@
+{"timestamp":"2025-08-05T09:24:57.476Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754385895466","amount":750,"description":"Bokning: B-körkort"}}
+{"timestamp":"2025-08-05T09:24:57.479Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-05T09:24:57.507Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-05T09:24:57.509Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754385895466","amount":750,"environment":"sandbox"}}
+{"timestamp":"2025-08-05T09:24:57.585Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754385895466"}}
+{"timestamp":"2025-08-05T09:24:57.587Z","level":"error","category":"payment","message":"Failed to create Qliro checkout session","data":{"error":"fetch failed"}}

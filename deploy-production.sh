@@ -180,6 +180,10 @@ module.exports = {
 EOF
 
 npm run build
+
+# Start development application with PM2
+echo "🚀 Starting development application..."
+pm2 start ecosystem.dev.config.js
 echo "✅ Development environment ready!"
 
 # Setup/update production environment
@@ -257,8 +261,70 @@ module.exports = {
 EOF
 
 # Start production application
+echo "🚀 Starting production application..."
 pm2 start ecosystem.config.js
 pm2 save
+
+echo "🌐 Setting up Nginx for development..."
+# Create Nginx configuration for development
+cat > /etc/nginx/sites-available/dintrafikskolahlm-dev << 'EOF'
+server {
+    listen 80;
+    server_name dev.dintrafikskolahlm.se;
+    client_max_body_size 100M;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Forwarded-Host $server_name;
+        
+        # Timeout settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Static files caching
+    location /_next/static/ {
+        proxy_pass http://localhost:3000;
+        proxy_cache_valid 200 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Handle Next.js API routes
+    location /api/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Error and access logs
+    access_log /var/log/nginx/dintrafikskolahlm-dev-access.log;
+    error_log /var/log/nginx/dintrafikskolahlm-dev-error.log;
+}
+EOF
+
+# Enable the development site
+ln -sf /etc/nginx/sites-available/dintrafikskolahlm-dev /etc/nginx/sites-enabled/
 
 echo "🌐 Setting up Nginx for production..."
 # Create Nginx configuration for production
@@ -338,9 +404,46 @@ else
     exit 1
 fi
 
+# Wait a moment for applications to start
+echo "⏳ Waiting for applications to start..."
+sleep 10
+
 # Check if applications are running
 echo "🔍 Checking application status..."
 pm2 status
+
+# Test if sites are reachable
+echo ""
+echo "🌍 Testing site availability..."
+echo "Testing development site..."
+test_url "http://localhost:3000" 200 || echo "⚠️  Development site not responding on localhost:3000"
+
+echo "Testing production site..."
+test_url "http://localhost:3001" 200 || echo "⚠️  Production site not responding on localhost:3001"
+
+# Test domain accessibility if configured
+echo "Testing domain accessibility..."
+if command_exists "host"; then
+    DEV_IP=$(host dev.dintrafikskolahlm.se 2>/dev/null | grep "has address" | awk '{print $4}' | head -1)
+    PROD_IP=$(host www.dintrafikskolahlm.se 2>/dev/null | grep "has address" | awk '{print $4}' | head -1)
+    SERVER_IP=$(hostname -I | awk '{print $1}')
+    
+    if [ "$DEV_IP" = "$SERVER_IP" ]; then
+        echo "Testing dev.dintrafikskolahlm.se..."
+        test_url "http://dev.dintrafikskolahlm.se" 200 || echo "⚠️  Development domain not accessible"
+    else
+        echo "ℹ️  dev.dintrafikskolahlm.se not pointing to this server yet"
+    fi
+    
+    if [ "$PROD_IP" = "$SERVER_IP" ]; then
+        echo "Testing www.dintrafikskolahlm.se..."
+        test_url "http://www.dintrafikskolahlm.se" 200 || echo "⚠️  Production domain not accessible"
+    else
+        echo "ℹ️  www.dintrafikskolahlm.se not pointing to this server yet"
+    fi
+else
+    echo "ℹ️  'host' command not available, skipping domain tests"
+fi
 
 # Show final status
 echo ""

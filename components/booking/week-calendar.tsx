@@ -33,7 +33,10 @@ export function WeekCalendar({
   onComplete,
   onBack
 }: WeekCalendarProps) {
-  const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { locale: sv }))
+  const [currentWeek, setCurrentWeek] = useState(() => {
+    // Start of week in Sweden is Monday (weekStartsOn: 1)
+    return startOfWeek(new Date(), { weekStartsOn: 1 })
+  })
   const [loading, setLoading] = useState(false)
   const [availableSlots, setAvailableSlots] = useState<Record<string, TimeSlot[]>>({})
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -145,11 +148,13 @@ export function WeekCalendar({
   }
 
   const handleNextWeek = () => {
-    setCurrentWeek(addWeeks(currentWeek, 1))
+    const nextWeek = addWeeks(currentWeek, 1)
+    setCurrentWeek(startOfWeek(nextWeek, { weekStartsOn: 1 }))
   }
 
   const handlePrevWeek = () => {
-    setCurrentWeek(addWeeks(currentWeek, -1))
+    const prevWeek = addWeeks(currentWeek, -1)
+    setCurrentWeek(startOfWeek(prevWeek, { weekStartsOn: 1 }))
   }
 
   const canProceed = selectedDate && selectedTime

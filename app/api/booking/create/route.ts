@@ -56,11 +56,11 @@ export async function POST(request: NextRequest) {
     // Validate required fields - different validation for handledar vs regular lessons
     if (sessionType === 'handledar') {
       if (!sessionId || !scheduledDate || !startTime || !durationMinutes || !totalPrice) {
-        return NextResponse.json({ error: 'Missing required fields for handledar session' }, { status: 400 });
+        return NextResponse.json({ error: 'Obligatoriska fält saknas för handledarutbildning' }, { status: 400 });
       }
     } else {
       if (!sessionId || !scheduledDate || !startTime || !endTime || !durationMinutes || !totalPrice) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        return NextResponse.json({ error: 'Obligatoriska fält saknas' }, { status: 400 });
       }
     }
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     // If not logged in, validate guest fields (allow placeholders for temporary bookings)
     if (!userId) {
       if (!guestName || !guestEmail || !guestPhone) {
-        return NextResponse.json({ error: 'Guest information required' }, { status: 400 });
+        return NextResponse.json({ error: 'Kontaktuppgifter krävs' }, { status: 400 });
       }
       
       // Check if this is a temporary booking with placeholders
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
       if (existingUser.length > 0) {
         return NextResponse.json({
-          error: 'Email already exists. Would you like to connect this booking to your account or use a different email?',
+          error: 'E-postadressen finns redan. Vill du koppla denna bokning till ditt konto eller använda en annan e-postadress?',
           userExists: true,
           existingEmail: guestEmail
         }, { status: 400 });
@@ -132,6 +132,14 @@ export async function POST(request: NextRequest) {
     // Special handling for admin/teacher booking for students
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
       if (sessionType === 'handledar') {
+        // Check if sessionId is the group placeholder
+        if (sessionId === 'handledarutbildning-group') {
+          return NextResponse.json({
+            error: 'Välj en specifik handledarutbildning från de tillgängliga alternativen',
+            requireSessionSelection: true
+          }, { status: 400 });
+        }
+        
         // Handle admin or teacher booking for handledarkurs
         const [session] = await db
           .select()
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest) {
           );
 
         if (!session || session.currentParticipants >= session.maxParticipants) {
-          return NextResponse.json({ error: 'No available spots for the session.' }, { status: 400 });
+          return NextResponse.json({ error: 'Inga lediga platser för denna utbildning.' }, { status: 400 });
         }
 
         // Update session participant count
@@ -175,7 +183,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ 
           booking,
-          message: `Handledar session booking confirmed for student by ${currentUserRole}.`
+          message: `Handledarutbildning bokad för elev av ${currentUserRole === 'admin' ? 'administratör' : 'lärare'}.`
         });
       } else {
         // Admin or teacher booking for a student - no payment required
@@ -208,7 +216,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ 
           booking,
-          message: `Booking confirmed for student by ${currentUserRole}.`
+          message: `Bokning bekräftad för elev av ${currentUserRole === 'admin' ? 'administratör' : 'lärare'}.`
         });
       }
     }
@@ -217,8 +225,17 @@ export async function POST(request: NextRequest) {
     if (sessionType === 'handledar') {
       // Ensure guests can't book handledar sessions
       if (isGuestBooking) {
-        return NextResponse.json({ error: 'Guests must register to book handledar sessions.' }, { status: 400 });
+        return NextResponse.json({ error: 'Du måste registrera dig för att boka handledarutbildning.' }, { status: 400 });
       }
+      
+      // Check if sessionId is the group placeholder
+      if (sessionId === 'handledarutbildning-group') {
+        return NextResponse.json({
+          error: 'Välj en specifik handledarutbildning från de tillgängliga alternativen',
+          requireSessionSelection: true
+        }, { status: 400 });
+      }
+      
       // Handle handledarkurs booking
       const [session] = await db
         .select()
@@ -231,7 +248,7 @@ export async function POST(request: NextRequest) {
         );
 
       if (!session || session.currentParticipants >= session.maxParticipants) {
-        return NextResponse.json({ error: 'No available spots for the session.' }, { status: 400 });
+        return NextResponse.json({ error: 'Inga lediga platser för denna utbildning.' }, { status: 400 });
       }
 
       // If using credits, deduct from user's handledar credits
@@ -239,7 +256,7 @@ export async function POST(request: NextRequest) {
         // If sessionId is handledarutbildning-group, ask user to select a specific session
         if (sessionId === 'handledarutbildning-group') {
           return NextResponse.json({
-            error: 'Select a specific session from the available options',
+            error: 'Välj en specifik utbildning från de tillgängliga alternativen',
             requireSessionSelection: true
           }, { status: 400 });
         }

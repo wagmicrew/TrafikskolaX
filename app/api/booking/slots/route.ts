@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
-import { eq, and, gte, lte, or } from 'drizzle-orm';
+import { eq, and, gte, lte, or, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,52 +17,111 @@ export async function GET(request: NextRequest) {
     const slotsForWeek = {};
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const today = new Date().toISOString().split('T')[0];
+    const blockUntilDate = '2025-08-18'; // Block all days until this date
 
+    // Generate array of all dates in the range
+    const dateArray = [];
     let current = new Date(start);
-
+    
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0];
-      const dayOfWeek = current.getDay();
+      
+      // Skip past dates and dates before block date
+      if (dateStr < today || dateStr < blockUntilDate) {
+        slotsForWeek[dateStr] = [];
+        current.setDate(current.getDate() + 1);
+        continue;
+      }
+      
+      dateArray.push({
+        dateStr,
+        dayOfWeek: current.getDay()
+      });
+      current.setDate(current.getDate() + 1);
+    }
 
+    if (dateArray.length === 0) {
+      // All dates are blocked or in the past
+      return NextResponse.json({ 
+        success: true, 
+        slots: slotsForWeek 
+      });
+    }
+
+    // Fetch all slot settings for the week's days in one query
+    const uniqueDaysOfWeek = [...new Set(dateArray.map(d => d.dayOfWeek))];
+    const allSlotSettings = await db
+      .select()
+      .from(slotSettings)
+      .where(and(
+        inArray(slotSettings.dayOfWeek, uniqueDaysOfWeek),
+        eq(slotSettings.isActive, true)
+      ));
+
+    // Fetch all bookings for the date range in one query
+    const dateStrings = dateArray.map(d => d.dateStr);
+    const allBookings = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          inArray(bookings.scheduledDate, dateStrings),
+          or(
+            eq(bookings.status, 'on_hold'), 
+            eq(bookings.status, 'booked'), 
+            eq(bookings.status, 'confirmed')
+          )
+        )
+      );
+
+    // Fetch all blocked slots for the date range in one query
+    const allBlockedSlots = await db
+      .select()
+      .from(blockedSlots)
+      .where(inArray(blockedSlots.date, dateStrings));
+
+    // Pre-compute time-based constants
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const now = new Date();
+    const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+
+    // Group data by date for efficient lookup
+    const slotSettingsByDay = {};
+    allSlotSettings.forEach(slot => {
+      if (!slotSettingsByDay[slot.dayOfWeek]) {
+        slotSettingsByDay[slot.dayOfWeek] = [];
+      }
+      slotSettingsByDay[slot.dayOfWeek].push(slot);
+    });
+
+    const bookingsByDate = {};
+    allBookings.forEach(booking => {
+      const dateKey = booking.scheduledDate;
+      if (!bookingsByDate[dateKey]) {
+        bookingsByDate[dateKey] = [];
+      }
+      bookingsByDate[dateKey].push(booking);
+    });
+
+    const blockedSlotsByDate = {};
+    allBlockedSlots.forEach(blocked => {
+      const dateKey = blocked.date;
+      if (!blockedSlotsByDate[dateKey]) {
+        blockedSlotsByDate[dateKey] = [];
+      }
+      blockedSlotsByDate[dateKey].push(blocked);
+    });
+
+    // Process each date
+    for (const { dateStr, dayOfWeek } of dateArray) {
       try {
-        // Get slot settings for the day
-        const daySlots = await db
-          .select()
-          .from(slotSettings)
-          .where(and(eq(slotSettings.dayOfWeek, dayOfWeek), eq(slotSettings.isActive, true)));
-
-        // Get existing bookings for the date
-        const existingBookings = await db
-          .select()
-          .from(bookings)
-          .where(
-            and(
-              eq(bookings.scheduledDate, dateStr),
-              or(
-                eq(bookings.status, 'on_hold'), 
-                eq(bookings.status, 'booked'), 
-                eq(bookings.status, 'confirmed')
-              )
-            )
-          );
-
-        // Get blocked slots for the date
-        const blockedSlotsList = await db
-          .select()
-          .from(blockedSlots)
-          .where(eq(blockedSlots.date, dateStr));
+        const daySlots = slotSettingsByDay[dayOfWeek] || [];
+        const existingBookings = bookingsByDate[dateStr] || [];
+        const blockedSlotsList = blockedSlotsByDate[dateStr] || [];
 
         // Process slots for this day
         const timeSlots = [];
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const now = new Date();
-        const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Skip past dates entirely
-        if (dateStr < today) {
-          continue;
-        }
 
         for (const slot of daySlots) {
           // Check if entire day is blocked
@@ -110,9 +169,6 @@ export async function GET(request: NextRequest) {
         console.error(`Error processing date ${dateStr}:`, dayError);
         slotsForWeek[dateStr] = [];
       }
-
-      // Move to next day
-      current.setDate(current.getDate() + 1);
     }
 
     return NextResponse.json({ 

@@ -49,42 +49,74 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { triggerType, subject, htmlContent, receivers } = body;
 
-    // Create email template
-    const [newTemplate] = await db
-      .insert(emailTemplates)
-      .values({
-        triggerType,
-        subject,
-        htmlContent,
-        isActive: true,
-      })
-      .returning();
+    // Check if template already exists
+    const existingTemplate = await db
+      .select()
+      .from(emailTemplates)
+      .where(eq(emailTemplates.triggerType, triggerType))
+      .limit(1);
 
-    // Create receivers
+    let template;
+    
+    if (existingTemplate.length > 0) {
+      // Update existing template
+      const [updatedTemplate] = await db
+        .update(emailTemplates)
+        .set({
+          subject,
+          htmlContent,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(emailTemplates.triggerType, triggerType))
+        .returning();
+      
+      template = updatedTemplate;
+      
+      // Update receivers - delete existing and recreate
+      await db
+        .delete(emailReceivers)
+        .where(eq(emailReceivers.templateId, template.id));
+    } else {
+      // Create new template
+      const [newTemplate] = await db
+        .insert(emailTemplates)
+        .values({
+          triggerType,
+          subject,
+          htmlContent,
+          isActive: true,
+        })
+        .returning();
+      
+      template = newTemplate;
+      
+      // Create trigger (only for new templates)
+      await db.insert(emailTriggers).values({
+        templateId: template.id,
+        triggerType,
+        description: `Auto-generated trigger for ${triggerType}`,
+        isActive: true,
+      });
+    }
+
+    // Create/recreate receivers
     if (receivers && receivers.length > 0) {
       const receiverValues = receivers.map((receiverType: string) => ({
-        templateId: newTemplate.id,
+        templateId: template.id,
         receiverType,
       }));
 
       await db.insert(emailReceivers).values(receiverValues);
     }
 
-    // Create trigger
-    await db.insert(emailTriggers).values({
-      templateId: newTemplate.id,
-      triggerType,
-      description: `Auto-generated trigger for ${triggerType}`,
-      isActive: true,
-    });
-
     return NextResponse.json({ 
-      message: 'Email template created successfully',
-      template: newTemplate 
+      message: existingTemplate.length > 0 ? 'Email template updated successfully' : 'Email template created successfully',
+      template 
     });
   } catch (error) {
-    console.error('Error creating email template:', error);
-    return NextResponse.json({ error: 'Failed to create email template' }, { status: 500 });
+    console.error('Error creating/updating email template:', error);
+    return NextResponse.json({ error: 'Failed to create/update email template' }, { status: 500 });
   }
 }
 

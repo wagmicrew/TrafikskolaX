@@ -12,7 +12,9 @@ import {
   Eye,
   EyeOff,
   Copy,
-  Plus
+  Plus,
+  Send,
+  TestTube
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -258,6 +260,9 @@ export default function EmailTemplatesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [editedTemplate, setEditedTemplate] = useState<EmailTemplate | null>(null);
+  const [showEmailTest, setShowEmailTest] = useState(false);
+  const [testEmail, setTestEmail] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -315,6 +320,37 @@ export default function EmailTemplatesPage() {
     setSelectedTemplate(template);
     setEditedTemplate({ ...template });
     setShowPreview(false);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!selectedTemplate?.id) return;
+    setIsSendingTest(true);
+    try {
+      const response = await fetch('/api/admin/email-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          testEmail
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message);
+        setShowEmailTest(false);
+      } else {
+        toast.error(data.error || 'Misslyckades med att skicka test-e-post');
+      }
+    } catch (error) {
+      console.error('Test email error:', error);
+      toast.error('Ett oväntat fel uppstod vid skickandet av test-e-post');
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   const handleSave = async () => {
@@ -381,18 +417,18 @@ export default function EmailTemplatesPage() {
     preview = preview.replace(/\{\{schoolName\}\}/g, 'Din Trafikskola HLM');
     preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
 
-return `
-    <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
-      <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
-        <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
-          ${preview}
-        </div>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
-          <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
-          <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+    return `
+      <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
+          <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
+            ${preview}
+          </div>
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
+            <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
+            <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+          </div>
         </div>
       </div>
-    </div>
     `;
   };
 
@@ -418,6 +454,38 @@ return `
             </h1>
             <p className="text-gray-600 mt-2">Hantera e-postmallar för automatiska utskick</p>
           </div>
+
+          {/* Email Test Modal */}
+          {showEmailTest && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+              <div className="bg-white p-6 rounded shadow-lg w-96">
+                <h2 className="text-xl font-semibold mb-4">Skicka test-e-post</h2>
+                <input
+                  type="email"
+                  placeholder="Ange e-postadress"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg mb-4"
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setShowEmailTest(false)}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
+                  >
+                    Avbryt
+                  </button>
+                  <button
+                    onClick={handleSendTestEmail}
+                    disabled={isSendingTest}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    {isSendingTest ? 'Skickar...' : 'Skicka test'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex h-[calc(100vh-200px)]">
             {/* Template List */}
@@ -572,7 +640,18 @@ return `
                     </div>
                   </div>
 
-                  {/* Save Button */}
+                  {/* Test Email Button */}
+                  <div className="mb-6">
+                    <button
+                      onClick={() => setShowEmailTest(true)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-2"
+                    >
+                      <TestTube className="w-4 h-4" />
+                      Skicka test-e-post
+                    </button>
+                  </div>
+
+                  {/* Save Buttons */}
                   <div className="flex justify-end gap-4">
                     <button
                       onClick={() => {

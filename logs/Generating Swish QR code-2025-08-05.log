@@ -1,0 +1,2 @@
+{"timestamp":"2025-08-05T11:46:39.826Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"1500","message":"Körlektion temp-175...","format":"png","size":256}}
+{"timestamp":"2025-08-05T12:33:39.723Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion e22f5c73...","format":"png","size":256}}

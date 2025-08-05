@@ -204,7 +204,7 @@ const handleBookingComplete = async (paymentData: any) => {
         }
       } catch (error) {
         console.error('Error completing booking:', error)
-        alert('Ett fel uppstod. Försök igen.')
+        toast.error('Ett fel uppstod. Försök igen.')
       } finally {
         setLoading(false)
       }
@@ -255,7 +255,7 @@ const handleBookingComplete = async (paymentData: any) => {
       }
     } catch (error) {
       console.error('Error completing booking:', error)
-      alert('Ett fel uppstod. Försök igen.')
+      toast.error('Ett fel uppstod. Försök igen.')
     } finally {
       setLoading(false)
     }

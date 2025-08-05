@@ -69,14 +69,18 @@ class Logger {
   }
 
   private writeLog(entry: LogEntry) {
-    const logFile = this.getLogFileName(entry.category);
-    
-    if (this.shouldRotateFile(logFile)) {
-      this.rotateFile(logFile);
-    }
+    try {
+      const logFile = this.getLogFileName(entry.category);
+      
+      if (this.shouldRotateFile(logFile)) {
+        this.rotateFile(logFile);
+      }
 
-    const logLine = JSON.stringify(entry) + '\n';
-    fs.appendFileSync(logFile, logLine);
+      const logLine = JSON.stringify(entry) + '\n';
+      fs.appendFileSync(logFile, logLine, 'utf8');
+    } catch (error) {
+      console.error('Failed to write log entry:', error);
+    }
   }
 
   public log(
@@ -212,6 +216,32 @@ class Logger {
     }
 
     return stats;
+  }
+
+  public formatFileSize(bytes: number): string {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  public getRecentLogs(maxLogs: number = 100): LogEntry[] {
+    const files = this.getLogFiles();
+    const allLogs: LogEntry[] = [];
+
+    // Read logs from most recent files first
+    for (const file of files) {
+      if (allLogs.length >= maxLogs) break;
+      
+      const logs = this.readLogFile(file);
+      allLogs.push(...logs);
+    }
+
+    // Sort by timestamp (newest first) and limit
+    return allLogs
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, maxLogs)
+      .map((log, index) => ({ ...log, id: `log-${index}` }));
   }
 }
 

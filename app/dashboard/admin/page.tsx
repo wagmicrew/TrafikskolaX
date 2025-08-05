@@ -62,6 +62,11 @@ export default function AdminDashboard() {
           <p className="text-gray-100">Konfigurera systemet</p>
           <Link href="/dashboard/admin/settings" className="inline-block mt-4 bg-white text-teal-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
         </div>
+        <div className="bg-gradient-to-r from-blue-400 to-indigo-500 p-6 rounded-lg shadow-lg text-white">
+          <h2 className="text-xl font-semibold mb-2">Debug & Logging</h2>
+          <p className="text-gray-100">View system logs and debug information</p>
+          <Link href="/dashboard/admin/logging" className="inline-block mt-4 bg-white text-blue-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Open</Link>
+        </div>
       </div>
     </div>
   );

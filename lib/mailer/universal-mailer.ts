@@ -1,8 +1,11 @@
+export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  return EnhancedEmailService.sendEmail(options);
+}
+
 import { db } from '@/lib/db';
 import { siteSettings, internalMessages, users, emailTemplates } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import sgMail from '@sendgrid/mail';
-import nodemailer from 'nodemailer';
+import { EnhancedEmailService } from '@/lib/email/enhanced-email-service';
 
 export interface EmailOptions {
   to: string;
@@ -29,39 +32,6 @@ interface MailerConfig {
   replyTo: string;
 }
 
-async function getMailerConfig(): Promise<MailerConfig> {
-  // Fetch email settings from database
-  const settings = await db
-    .select()
-    .from(siteSettings)
-    .where(eq(siteSettings.category, 'email'));
-
-  const settingsMap = settings.reduce((acc, setting) => {
-    acc[setting.key] = setting.value;
-    return acc;
-  }, {} as Record<string, string | null>);
-
-  // Determine email method from settings
-  let emailMethod: 'smtp' | 'sendgrid' | 'internal' = 'internal';
-  if (settingsMap['email_method'] === 'smtp') {
-    emailMethod = 'smtp';
-  } else if (settingsMap['email_method'] === 'sendgrid' || settingsMap['use_sendgrid'] === 'true') {
-    emailMethod = 'sendgrid';
-  }
-
-  return {
-    emailMethod,
-    smtpHost: settingsMap['smtp_host'] || undefined,
-    smtpPort: settingsMap['smtp_port'] ? parseInt(settingsMap['smtp_port']) : undefined,
-    smtpSecure: settingsMap['smtp_secure'] === 'true',
-    smtpUser: settingsMap['smtp_user'] || undefined,
-    smtpPassword: settingsMap['smtp_password'] || undefined,
-    sendgridApiKey: settingsMap['sendgrid_api_key'] || undefined,
-    fromName: settingsMap['from_name'] || 'Din Trafikskola Hässleholm',
-    fromEmail: settingsMap['from_email'] || 'noreply@dintrafikskolahlm.se',
-    replyTo: settingsMap['reply_to'] || 'info@dintrafikskolahlm.se',
-  };
-}
 
 async function saveInternalMessage(
   toEmail: string,
@@ -111,98 +81,6 @@ async function saveInternalMessage(
   }
 }
 
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  try {
-    const config = await getMailerConfig();
-
-    // Use SMTP if configured
-    if (config.emailMethod === 'smtp' && config.smtpHost) {
-      try {
-        const transporter = nodemailer.createTransporter({
-          host: config.smtpHost,
-          port: config.smtpPort || 587,
-          secure: config.smtpSecure || false,
-          auth: config.smtpUser && config.smtpPassword ? {
-            user: config.smtpUser,
-            pass: config.smtpPassword,
-          } : undefined,
-        });
-
-        const mailOptions = {
-          from: `"${options.fromName || config.fromName}" <${config.fromEmail}>`,
-          to: options.to,
-          subject: options.subject,
-          text: options.text,
-          html: options.html || options.text,
-          replyTo: options.replyTo || config.replyTo,
-        };
-
-        await transporter.sendMail(mailOptions);
-        console.log(`Email sent via SMTP to ${options.to}`);
-        return true;
-      } catch (smtpError) {
-        console.error('SMTP error:', smtpError);
-        // Fall back to internal messaging
-        await saveInternalMessage(
-          options.to,
-          options.subject,
-          options.html || options.text || '',
-          options.bookingId,
-          options.messageType
-        );
-        return false;
-      }
-    }
-    
-    // Use SendGrid if configured
-    else if (config.emailMethod === 'sendgrid' && config.sendgridApiKey) {
-      try {
-        sgMail.setApiKey(config.sendgridApiKey);
-
-        const msg = {
-          to: options.to,
-          from: {
-            email: config.fromEmail,
-            name: options.fromName || config.fromName,
-          },
-          replyTo: options.replyTo || config.replyTo,
-          subject: options.subject,
-          text: options.text,
-          html: options.html || options.text,
-        };
-
-        await sgMail.send(msg);
-        console.log(`Email sent via SendGrid to ${options.to}`);
-        return true;
-      } catch (sendgridError) {
-        console.error('SendGrid error:', sendgridError);
-        // Fall back to internal messaging
-        await saveInternalMessage(
-          options.to,
-          options.subject,
-          options.html || options.text || '',
-          options.bookingId,
-          options.messageType
-        );
-        return false;
-      }
-    }
-
-    // Use internal messaging as default or fallback
-    await saveInternalMessage(
-      options.to,
-      options.subject,
-      options.html || options.text || '',
-      options.bookingId,
-      options.messageType
-    );
-    console.log(`Email saved as internal message for ${options.to}`);
-    return true;
-  } catch (error) {
-    console.error('Error in sendEmail:', error);
-    return false;
-  }
-}
 
 // Base email template function
 function createEmailTemplate(content: string): string {

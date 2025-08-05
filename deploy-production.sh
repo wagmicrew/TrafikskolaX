@@ -2,14 +2,38 @@
 
 # Enhanced Production Deployment Script for Din Trafikskola Hässleholm
 # Run this script on your server (95.217.143.89)
-# This script handles existing installations and provides comprehensive checks
+# This script handles existing installations, database migrations, and provides comprehensive checks
 
 set -e  # Exit on any error
+
+# Configuration
+DEV_DATABASE_URL=""
+PROD_DATABASE_URL=""
 
 echo "🚀 Starting enhanced production deployment for Din Trafikskola Hässleholm..."
 echo "📅 Deployment started at: $(date)"
 echo "🖥️  Server: $(hostname -I | awk '{print $1}')"
 echo ""
+
+# Function to prompt for database URLs
+get_database_urls() {
+    if [ -z "$DEV_DATABASE_URL" ]; then
+        echo "🔑 Please provide the development database connection string:"
+        read -p "Dev DATABASE_URL: " DEV_DATABASE_URL
+    fi
+    
+    if [ -z "$PROD_DATABASE_URL" ]; then
+        echo "🔑 Please provide the production database connection string:"
+        read -p "Prod DATABASE_URL: " PROD_DATABASE_URL
+    fi
+    
+    if [ -z "$DEV_DATABASE_URL" ] || [ -z "$PROD_DATABASE_URL" ]; then
+        echo "❌ Database URLs are required for deployment!"
+        exit 1
+    fi
+
+    echo "✅ Database URLs configured"
+}
 
 # Function to check if command exists
 command_exists() {
@@ -61,6 +85,31 @@ kill_pm2_process "dintrafikskolax-dev"
 kill_pm2_process "dintrafikskolax-prod"
 pm2 save
 
+get_database_urls
+
+# Clone/update a temporary directory for migrations
+echo "📂 Setting up temporary directory for migrations..."
+if [ -d "/tmp/trafikskolax-migration" ]; then
+    rm -rf /tmp/trafikskolax-migration
+fi
+
+cd /tmp
+git clone https://github.com/wagmicrew/TrafikskolaX.git trafikskolax-migration
+cd trafikskolax-migration
+npm install
+
+# Migrate databases
+echo "🔄 Running database migrations for development..."
+DATABASE_URL="$DEV_DATABASE_URL" npm run db:migrate
+
+echo "🔄 Running database migrations for production..."
+DATABASE_URL="$PROD_DATABASE_URL" npm run db:migrate
+
+# Clean up migration directory
+cd /
+rm -rf /tmp/trafikskolax-migration
+echo "✅ Database migrations completed"
+
 # Update/setup development environment
 echo "📦 Setting up development environment..."
 if [ -d "/var/www/dintrafikskolax_dev" ]; then
@@ -79,13 +128,13 @@ fi
 
 # Create/update dev .env file
 echo "⚙️ Setting up development environment file..."
-cat > .env.local << 'EOF'
+cat > .env.local << EOF
 NODE_ENV=development
 PORT=3000
 NEXT_PUBLIC_SITE_URL=http://dev.dintrafikskolahlm.se
 
 # Database Configuration
-DATABASE_URL="postgres://johsusers_owner:****@ep-twilight-paper-a2zj1loj.eu-central-1.aws.neon.tech/johsusers?sslmode=require"
+DATABASE_URL="$DEV_DATABASE_URL"
 
 # Email Configuration (Brevo/Sendgrid)
 BREVO_API_KEY=your_brevo_api_key_here
@@ -155,13 +204,13 @@ npm run build
 
 # Create production .env file
 echo "⚙️ Creating production environment file..."
-cat > .env.local << 'EOF'
+cat > .env.local << EOF
 NODE_ENV=production
 PORT=3001
 NEXT_PUBLIC_SITE_URL=https://www.dintrafikskolahlm.se
 
 # Database Configuration
-DATABASE_URL="postgres://johsusers_owner:****@ep-twilight-paper-a2zj1loj.eu-central-1.aws.neon.tech/johsusers?sslmode=require"
+DATABASE_URL="$PROD_DATABASE_URL"
 
 # Email Configuration (Brevo/Sendgrid)
 BREVO_API_KEY=your_brevo_api_key_here

@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { emailTemplates, emailTriggers, emailReceivers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
+import { logger } from '@/lib/logging/logger';
 
 export type EmailTriggerType = 
   | 'user_login'
@@ -18,7 +19,8 @@ export type EmailTriggerType =
   | 'payment_declined'
   | 'feedback_received'
   | 'teacher_daily_bookings'
-  | 'teacher_feedback_reminder';
+  | 'teacher_feedback_reminder'
+  | 'new_password';
 
 export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
 
@@ -53,12 +55,17 @@ interface EmailContext {
 }
 
 function applyRedTemplate(htmlContent: string): string {
-  // Wrap the content in a div with class for red theme
+  // Wrap the content in a div with class for red theme (logo removed as requested)
   return `
-    <div style="background-color: black; color: red; padding: 20px;">
-      <div style="max-width: 600px; margin: 0 auto;">
-        <img src="https://dintrafikskolahlm.se/logo.png" alt="Logo" style="display: block; width: 150px; margin: 0 auto 20px;" />
-        ${htmlContent}
+    <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
+        <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
+          ${htmlContent}
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
+          <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
+          <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+        </div>
       </div>
     </div>
   `;
@@ -125,7 +132,14 @@ const processedHtml = this.processTemplate(applyRedTemplate(emailTemplate.htmlCo
       });
 
       const results = await Promise.all(sendPromises);
-      return results.every(result => result === true);
+const allSuccess = results.every(result => result === true);
+      const logLevel = allSuccess ? 'info' : 'error';
+      logger[logLevel]('email',
+        `Emails sent for trigger: ${triggerType}`,
+        { results },
+        context.user?.id
+      );
+      return allSuccess;
     } catch (error) {
       console.error('Error sending triggered email:', error);
       return false;
@@ -224,6 +238,7 @@ const processedHtml = this.processTemplate(applyRedTemplate(emailTemplate.htmlCo
       feedback_received: 'general',
       teacher_daily_bookings: 'general',
       teacher_feedback_reminder: 'general',
+      new_password: 'general',
     };
 
     return mappings[triggerType] || 'general';

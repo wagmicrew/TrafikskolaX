@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import { Switch } from '@/components/ui/switch';
 import toast from 'react-hot-toast';
 import { 
@@ -89,7 +90,8 @@ export default function SettingsClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
+const [testResults, setTestResults] = useState<TestResult[]>([]);
+const [qliroTestOpen, setQliroTestOpen] = useState(false);
   const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
 
   useEffect(() => {
@@ -143,7 +145,34 @@ export default function SettingsClient() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  const runTests = async () => {
+const testQliroPayment = async () => {
+  setQliroTestOpen(true);
+  const loadingToast = toast.loading('Testing Qliro payment...');
+  try {
+    const response = await fetch('/api/packages/purchase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        packageId: 'test-package-id',  // Dummy ID for testing
+        paymentMethod: 'qliro',
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to test Qliro payment');
+    }
+    toast.success('Qliro payment test initiated successfully!', { id: loadingToast });
+  } catch (error) {
+    console.error('Qliro test error:', error);
+    toast.error(`Qliro test failed: ${error.message}`, { id: loadingToast });
+  } finally {
+    setQliroTestOpen(false);
+  }
+};
+
+const runTests = async () => {
     setTesting(true);
     setTestResults([]);
     const loadingToast = toast.loading('Kör krediteringstester...');
@@ -667,7 +696,17 @@ export default function SettingsClient() {
           </Card>
         </TabsContent>
 
-        {/* Troubleshooting Tab */}
+{/* Qliro Test Dialog */}
+<QliroPaymentDialog
+  isOpen={qliroTestOpen}
+  onClose={() => setQliroTestOpen(false)}
+  purchaseId="test-purchase-id"
+  amount={100}  // Dummy amount for testing
+  checkoutUrl="https://qliro.mock.checkout"  // Dummy URL for testing
+  onConfirm={() => toast.success('Qliro Test Payment Confirmed')}
+/>
+
+{/* Troubleshooting Tab */}
         <TabsContent value="troubleshoot">
           <Card>
             <CardHeader>
@@ -700,7 +739,16 @@ export default function SettingsClient() {
                     'Kör krediterings-API-test'
                   )}
                 </Button>
-                
+
+                <Button
+                  onClick={testQliroPayment}
+                  disabled={testing || !testUserId}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Test Qliro Payment
+                </Button>
+
                 <Button
                   onClick={testSendGridEmail}
                   disabled={testing || !testUserId}

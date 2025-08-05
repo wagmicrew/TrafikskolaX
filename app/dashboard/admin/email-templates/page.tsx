@@ -31,7 +31,8 @@ type EmailTriggerType =
   | 'payment_declined'
   | 'feedback_received'
   | 'teacher_daily_bookings'
-  | 'teacher_feedback_reminder';
+  | 'teacher_feedback_reminder'
+  | 'new_password';
 
 type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
 
@@ -61,7 +62,8 @@ const triggerTypeLabels: Record<EmailTriggerType, string> = {
   payment_declined: 'Betalning avvisad',
   feedback_received: 'Feedback mottagen',
   teacher_daily_bookings: 'Dagliga bokningar för lärare',
-  teacher_feedback_reminder: 'Feedbackpåminnelse för lärare'
+  teacher_feedback_reminder: 'Feedbackpåminnelse för lärare',
+  new_password: 'Nytt lösenord'
 };
 
 const receiverTypeLabels: Record<EmailReceiverType, string> = {
@@ -228,9 +230,24 @@ const defaultTemplates: Partial<Record<EmailTriggerType, { subject: string; html
       </ul>
       <p>{{feedbackText}}</p>
       <p><a href="{{appUrl}}/dashboard/admin/bookings/{{booking.id}}">Se feedback</a></p>
-      <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
     `,
     receivers: ['teacher', 'admin']
+  },
+  new_password: {
+    subject: 'Nytt lösenord - {{schoolName}}',
+    htmlContent: `
+      <h1>Ditt lösenord har uppdaterats</h1>
+      <p>Hej {{user.firstName}},</p>
+      <p>En administratör har genererat ett nytt lösenord för ditt konto.</p>
+      <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p><strong>Ditt nya tillfälliga lösenord:</strong></p>
+        <p style="font-family: monospace; font-size: 18px; font-weight: bold; color: #dc2626;">{{temporaryPassword}}</p>
+      </div>
+      <p><strong>Viktigt:</strong> Vänligen logga in och ändra ditt lösenord så snart som möjligt.</p>
+      <p><a href="{{appUrl}}/login" style="display: inline-block; background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Logga in här</a></p>
+      <p style="margin-top: 20px; color: #666666; font-size: 14px;">Om du inte begärde denna ändring, kontakta oss omedelbart.</p>
+    `,
+    receivers: ['student']
   }
 };
 
@@ -365,12 +382,17 @@ export default function EmailTemplatesPage() {
     preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
 
 return `
-      <div style="background-color: black; color: red; padding: 20px;">
-        <div style="max-width: 600px; margin: 0 auto;">
-          <img src="https://dintrafikskolahlm.se/logo.png" alt="Logo" style="display: block; width: 150px; margin: 0 auto 20px;" />
+    <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
+        <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
           ${preview}
         </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
+          <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
+          <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+        </div>
       </div>
+    </div>
     `;
   };
 

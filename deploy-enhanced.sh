@@ -1500,6 +1500,44 @@ fix_nginx_ssl_issues() {
     return 0
 }
 
+# Function to fix PM2 startup issues
+fix_pm2_startup_issues() {
+    print_header "PM2 Startup Fix"
+    
+    print_info "This will help diagnose and fix PM2 processes stuck in 'starting' status"
+    print_info "Including environment issues, port conflicts, and startup problems"
+    echo ""
+    
+    read -p "Do you want to run the PM2 startup fix script? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "PM2 startup fix cancelled"
+        return 0
+    fi
+    
+    # Check if PM2 startup fix script exists
+    local pm2_startup_fix_script="/var/www/${PROJECT_NAME}_prod/scripts/fix-pm2-startup.sh"
+    if [ ! -f "$pm2_startup_fix_script" ]; then
+        print_error "PM2 startup fix script not found at $pm2_startup_fix_script"
+        return 1
+    fi
+    
+    # Make script executable
+    chmod +x "$pm2_startup_fix_script"
+    
+    # Run PM2 startup fix script
+    print_info "Running PM2 startup fix script..."
+    "$pm2_startup_fix_script"
+    
+    if [ $? -eq 0 ]; then
+        print_status "PM2 startup fix completed successfully"
+    else
+        print_error "PM2 startup fix failed"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1525,7 +1563,8 @@ show_menu() {
     echo -e "${GREEN}14)${NC} Fix Nginx Configuration"
     echo -e "${GREEN}15)${NC} Fix Dependency Issues"
     echo -e "${GREEN}16)${NC} Fix Nginx SSL Issues"
-    echo -e "${GREEN}17)${NC} Exit"
+    echo -e "${GREEN}17)${NC} Fix PM2 Startup Issues"
+    echo -e "${GREEN}18)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -1633,7 +1672,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-17): " choice
+        read -p "Enter your choice (1-18): " choice
         
         case $choice in
             1)
@@ -1759,6 +1798,9 @@ main() {
                 fix_nginx_ssl_issues
                 ;;
             17)
+                fix_pm2_startup_issues
+                ;;
+            18)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1769,7 +1811,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-17."
+                print_error "Invalid option. Please choose 1-18."
                 read -p "Press Enter to continue..."
                 ;;
         esac

@@ -1102,6 +1102,129 @@ manage_pm2() {
     read -p "Press Enter to continue..."
 }
 
+# Function to clean and rebuild project
+clean_and_rebuild() {
+    print_header "Cleaning and Rebuilding Project"
+    
+    local env="$1"  # "dev", "prod", or "both"
+    
+    if [ "$env" = "both" ] || [ "$env" = "dev" ]; then
+        print_info "Cleaning development environment..."
+        local dev_dir="/var/www/${PROJECT_NAME}_dev"
+        if directory_exists "$dev_dir"; then
+            cd "$dev_dir"
+            
+            # Stop PM2 process
+            pm2 stop "${PROJECT_NAME}-dev" 2>/dev/null || true
+            
+            # Clean build artifacts
+            print_info "Removing build artifacts..."
+            rm -rf .next 2>/dev/null || true
+            rm -rf node_modules/.cache 2>/dev/null || true
+            rm -rf .turbo 2>/dev/null || true
+            
+            # Clean npm cache
+            print_info "Cleaning npm cache..."
+            npm cache clean --force >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            
+            # Reinstall dependencies
+            print_info "Reinstalling dependencies..."
+            rm -rf node_modules 2>/dev/null || true
+            npm install >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            
+            if [ $? -eq 0 ]; then
+                print_status "Development environment cleaned and rebuilt"
+            else
+                print_error "Failed to rebuild development environment"
+                return 1
+            fi
+        else
+            print_warning "Development directory not found"
+        fi
+    fi
+    
+    if [ "$env" = "both" ] || [ "$env" = "prod" ]; then
+        print_info "Cleaning production environment..."
+        local prod_dir="/var/www/${PROJECT_NAME}_prod"
+        if directory_exists "$prod_dir"; then
+            cd "$prod_dir"
+            
+            # Stop PM2 process
+            pm2 stop "${PROJECT_NAME}-prod" 2>/dev/null || true
+            
+            # Clean build artifacts
+            print_info "Removing build artifacts..."
+            rm -rf .next 2>/dev/null || true
+            rm -rf node_modules/.cache 2>/dev/null || true
+            rm -rf .turbo 2>/dev/null || true
+            
+            # Clean npm cache
+            print_info "Cleaning npm cache..."
+            npm cache clean --force >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            
+            # Reinstall dependencies
+            print_info "Reinstalling dependencies..."
+            rm -rf node_modules 2>/dev/null || true
+            npm install >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            
+            if [ $? -eq 0 ]; then
+                print_info "Building production application..."
+                npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG"
+                if [ $? -eq 0 ]; then
+                    print_status "Production environment cleaned and rebuilt"
+                else
+                    print_error "Failed to build production application"
+                    return 1
+                fi
+            else
+                print_error "Failed to rebuild production environment"
+                return 1
+            fi
+        else
+            print_warning "Production directory not found"
+        fi
+    fi
+    
+    # Restart PM2 applications
+    print_info "Restarting PM2 applications..."
+    restart_applications
+    
+    print_status "Clean and rebuild completed successfully"
+    return 0
+}
+
+# Function to remove test users
+remove_test_users() {
+    print_header "Removing Test Users"
+    
+    print_info "This will remove the following test users from the database:"
+    echo "   - admin@test.se"
+    echo "   - teacher@test.se"
+    echo "   - student@test.se"
+    echo ""
+    
+    read -p "Are you sure you want to continue? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "Test user removal cancelled"
+        return 0
+    fi
+    
+    print_info "Running test user removal script..."
+    
+    # Run the removal script
+    cd "/var/www/${PROJECT_NAME}_prod"
+    node scripts/remove-test-users.js >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    if [ $? -eq 0 ]; then
+        print_status "Test users removed successfully"
+    else
+        print_error "Failed to remove test users"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1120,7 +1243,9 @@ show_menu() {
     echo -e "${GREEN}7)${NC} Create Backup"
     echo -e "${GREEN}8)${NC} Setup SSL Certificates"
     echo -e "${GREEN}9)${NC} PM2 Management"
-    echo -e "${GREEN}10)${NC} Exit"
+    echo -e "${GREEN}10)${NC} Clean and Rebuild"
+    echo -e "${GREEN}11)${NC} Remove Test Users"
+    echo -e "${GREEN}12)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -1220,7 +1345,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-10): " choice
+        read -p "Enter your choice (1-12): " choice
         
         case $choice in
             1)
@@ -1313,6 +1438,24 @@ main() {
                 manage_pm2
                 ;;
             10)
+                clean_and_rebuild "both"
+                if [ $? -eq 0 ]; then
+                    print_status "Both environments cleaned and rebuilt successfully!"
+                else
+                    print_error "Both environments clean and rebuild failed. Check logs for details."
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            11)
+                remove_test_users
+                if [ $? -eq 0 ]; then
+                    print_status "Test users removed successfully!"
+                else
+                    print_error "Failed to remove test users. Check logs for details."
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            12)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1323,7 +1466,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-10."
+                print_error "Invalid option. Please choose 1-12."
                 read -p "Press Enter to continue..."
                 ;;
         esac

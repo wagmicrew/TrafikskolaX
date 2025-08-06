@@ -233,19 +233,7 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
                     </form>
                   </div>
 
-                  {/* Test Users Info */}
-                  <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-lg sm:rounded-xl p-4 sm:p-6">
-                    <div className="mb-3">
-                      <h4 className="text-sm sm:text-base font-semibold text-blue-100 drop-shadow-sm">Testanvändare</h4>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="text-xs sm:text-sm text-blue-100/90 space-y-1">
-                        <div className="flex items-center gap-2"><Badge className="bg-blue-600 text-white text-xs">Admin</Badge> admin@test.se - password123</div>
-                        <div className="flex items-center gap-2"><Badge className="bg-green-600 text-white text-xs">Lärare</Badge> teacher@test.se - password123</div>
-                        <div className="flex items-center gap-2"><Badge className="bg-gray-600 text-white text-xs">Elev</Badge> student@test.se - password123</div>
-                      </div>
-                    </div>
-                  </div>
+
           </TabsContent>
 
                 <TabsContent value="register" className="space-y-4 sm:space-y-6">

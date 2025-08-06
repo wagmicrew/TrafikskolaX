@@ -416,10 +416,21 @@ QLIRO_MERCHANT_API_KEY=your-qliro-api-key-here
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
+PORT=$([ "$env" = "dev" ] && echo "3000" || echo "3001")
 EOF
         print_warning "Please update $env_file with your actual configuration values"
     else
         print_info "Environment file already exists"
+        # Ensure PORT is set correctly
+        if ! grep -q "PORT=" "$env_file"; then
+            print_info "Adding PORT configuration..."
+            echo "PORT=$([ "$env" = "dev" ] && echo "3000" || echo "3001")" >> "$env_file"
+        fi
+        # Ensure NODE_ENV is set correctly
+        if ! grep -q "NODE_ENV=$env" "$env_file"; then
+            print_info "Updating NODE_ENV to $env..."
+            sed -i "s/NODE_ENV=.*/NODE_ENV=$env/" "$env_file"
+        fi
     fi
     
     print_status "$env environment configured"
@@ -668,20 +679,189 @@ test_deployment() {
         return 1
     fi
     
-    # Test local connections
-    if curl -s http://localhost:$DEV_PORT >/dev/null 2>&1; then
+    # Enhanced local connection testing with detailed diagnostics
+    print_info "Testing development server on port $DEV_PORT..."
+    
+    # Check if port is listening
+    if netstat -tlnp 2>/dev/null | grep -q ":$DEV_PORT "; then
+        print_status "Port $DEV_PORT is listening"
+    else
+        print_warning "Port $DEV_PORT is not listening"
+        print_debug "Checking PM2 logs for development server..."
+        pm2 logs "${PROJECT_NAME}-dev" --lines 10
+    fi
+    
+    # Test HTTP response with timeout
+    local dev_response=$(curl -s --max-time 10 http://localhost:$DEV_PORT 2>/dev/null || echo "TIMEOUT")
+    if [ "$dev_response" != "TIMEOUT" ] && [ -n "$dev_response" ]; then
         print_status "Development server responding on port $DEV_PORT"
     else
         print_warning "Development server not responding on port $DEV_PORT"
+        print_debug "Attempting to restart development server..."
+        pm2 restart "${PROJECT_NAME}-dev" >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        sleep 5
+        dev_response=$(curl -s --max-time 10 http://localhost:$DEV_PORT 2>/dev/null || echo "TIMEOUT")
+        if [ "$dev_response" != "TIMEOUT" ] && [ -n "$dev_response" ]; then
+            print_status "Development server now responding after restart"
+        else
+            print_error "Development server still not responding after restart"
+            print_debug "Checking development server logs..."
+            pm2 logs "${PROJECT_NAME}-dev" --lines 20
+        fi
     fi
     
-    if curl -s http://localhost:$PROD_PORT >/dev/null 2>&1; then
+    # Test production server
+    print_info "Testing production server on port $PROD_PORT..."
+    if netstat -tlnp 2>/dev/null | grep -q ":$PROD_PORT "; then
+        print_status "Port $PROD_PORT is listening"
+    else
+        print_warning "Port $PROD_PORT is not listening"
+    fi
+    
+    local prod_response=$(curl -s --max-time 10 http://localhost:$PROD_PORT 2>/dev/null || echo "TIMEOUT")
+    if [ "$prod_response" != "TIMEOUT" ] && [ -n "$prod_response" ]; then
         print_status "Production server responding on port $PROD_PORT"
     else
         print_warning "Production server not responding on port $PROD_PORT"
+        print_debug "Checking PM2 logs for production server..."
+        pm2 logs "${PROJECT_NAME}-prod" --lines 10
+    fi
+    
+    # Check environment files
+    print_info "Checking environment configuration..."
+    local dev_env="/var/www/${PROJECT_NAME}_dev/.env.local"
+    local prod_env="/var/www/${PROJECT_NAME}_prod/.env.local"
+    
+    if [ -f "$dev_env" ]; then
+        print_status "Development environment file exists"
+        if grep -q "NODE_ENV=development" "$dev_env"; then
+            print_status "Development NODE_ENV is correctly set"
+        else
+            print_warning "Development NODE_ENV may not be set correctly"
+        fi
+    else
+        print_warning "Development environment file missing"
+    fi
+    
+    if [ -f "$prod_env" ]; then
+        print_status "Production environment file exists"
+        if grep -q "NODE_ENV=production" "$prod_env"; then
+            print_status "Production NODE_ENV is correctly set"
+        else
+            print_warning "Production NODE_ENV may not be set correctly"
+        fi
+    else
+        print_warning "Production environment file missing"
+    fi
+    
+    # Check application directories
+    print_info "Checking application directories..."
+    if [ -d "/var/www/${PROJECT_NAME}_dev" ]; then
+        print_status "Development application directory exists"
+        if [ -f "/var/www/${PROJECT_NAME}_dev/package.json" ]; then
+            print_status "Development package.json exists"
+        else
+            print_warning "Development package.json missing"
+        fi
+    else
+        print_error "Development application directory missing"
+    fi
+    
+    if [ -d "/var/www/${PROJECT_NAME}_prod" ]; then
+        print_status "Production application directory exists"
+        if [ -f "/var/www/${PROJECT_NAME}_prod/package.json" ]; then
+            print_status "Production package.json exists"
+        else
+            print_warning "Production package.json missing"
+        fi
+    else
+        print_error "Production application directory missing"
     fi
     
     print_status "Deployment testing completed"
+    return 0
+}
+
+# Function to fix development server issues
+fix_dev_server() {
+    print_header "Fixing Development Server Issues"
+    
+    print_info "Stopping development server..."
+    pm2 stop "${PROJECT_NAME}-dev" >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    print_info "Checking development environment..."
+    local dev_dir="/var/www/${PROJECT_NAME}_dev"
+    local dev_env="$dev_dir/.env.local"
+    
+    # Ensure environment file exists with correct settings
+    if [ ! -f "$dev_env" ]; then
+        print_info "Creating development environment file..."
+        cat > "$dev_env" << EOF
+# Development Environment Configuration
+NODE_ENV=development
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=dev-secret-key-here
+JWT_SECRET=dev-jwt-secret-here
+
+# Database Configuration
+DATABASE_URL=your-dev-database-url-here
+
+# Email Configuration
+BREVO_API_KEY=your-brevo-api-key-here
+
+# Payment Configuration
+QLIRO_MERCHANT_API_KEY=your-qliro-api-key-here
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+PORT=3000
+EOF
+        print_status "Development environment file created"
+    else
+        print_info "Development environment file exists"
+        # Ensure NODE_ENV is set to development
+        if ! grep -q "NODE_ENV=development" "$dev_env"; then
+            print_info "Updating NODE_ENV to development..."
+            sed -i 's/NODE_ENV=.*/NODE_ENV=development/' "$dev_env"
+        fi
+        # Ensure PORT is set
+        if ! grep -q "PORT=3000" "$dev_env"; then
+            echo "PORT=3000" >> "$dev_env"
+        fi
+    fi
+    
+    # Check if dependencies are installed
+    print_info "Checking dependencies..."
+    if [ ! -d "$dev_dir/node_modules" ]; then
+        print_info "Installing dependencies..."
+        cd "$dev_dir"
+        npm install >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to install dependencies"
+            return 1
+        fi
+    else
+        print_status "Dependencies already installed"
+    fi
+    
+    # Restart development server
+    print_info "Restarting development server..."
+    pm2 restart "${PROJECT_NAME}-dev" >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    # Wait for server to start
+    print_info "Waiting for server to start..."
+    sleep 10
+    
+    # Test the server
+    local response=$(curl -s --max-time 10 http://localhost:3000 2>/dev/null || echo "TIMEOUT")
+    if [ "$response" != "TIMEOUT" ] && [ -n "$response" ]; then
+        print_status "Development server is now responding"
+    else
+        print_error "Development server still not responding"
+        print_debug "Checking PM2 logs..."
+        pm2 logs "${PROJECT_NAME}-dev" --lines 20
+    fi
+    
     return 0
 }
 
@@ -696,10 +876,11 @@ manage_pm2() {
     echo -e "${GREEN}3)${NC} Restart All Applications"
     echo -e "${GREEN}4)${NC} Stop All Applications"
     echo -e "${GREEN}5)${NC} Show PM2 Logs"
-    echo -e "${GREEN}6)${NC} Back to Main Menu"
+    echo -e "${GREEN}6)${NC} Fix Development Server"
+    echo -e "${GREEN}7)${NC} Back to Main Menu"
     echo ""
     
-    read -p "Enter your choice (1-6): " pm2_choice
+    read -p "Enter your choice (1-7): " pm2_choice
     
     case $pm2_choice in
         1)
@@ -738,6 +919,9 @@ manage_pm2() {
             pm2 logs --lines 50
             ;;
         6)
+            fix_dev_server
+            ;;
+        7)
             return 0
             ;;
         *)

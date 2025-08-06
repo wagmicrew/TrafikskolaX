@@ -1,24 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Mail, 
-  Save, 
-  Edit2, 
-  Users, 
-  CheckCircle, 
-  XCircle,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Copy,
-  Plus,
-  Send,
-  TestTube
-} from 'lucide-react';
-import toast from 'react-hot-toast';
+import { EmailTemplateBuilder } from '@/components/Admin/EmailTemplateBuilder';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-type EmailTriggerType = 
+export type EmailTriggerType = 
   | 'user_login'
   | 'forgot_password'
   | 'new_user'
@@ -36,9 +21,9 @@ type EmailTriggerType =
   | 'teacher_feedback_reminder'
   | 'new_password';
 
-type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
+export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
 
-interface EmailTemplate {
+export interface EmailTemplate {
   id: string;
   triggerType: EmailTriggerType;
   subject: string;
@@ -254,435 +239,44 @@ const defaultTemplates: Partial<Record<EmailTriggerType, { subject: string; html
 };
 
 export default function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [editedTemplate, setEditedTemplate] = useState<EmailTemplate | null>(null);
-  const [showEmailTest, setShowEmailTest] = useState(false);
-  const [testEmail, setTestEmail] = useState('');
-  const [isSendingTest, setIsSendingTest] = useState(false);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  const fetchTemplates = async () => {
-    try {
-      const response = await fetch('/api/admin/email-templates');
-      if (!response.ok) throw new Error('Failed to fetch templates');
-      
-      const data = await response.json();
-      setTemplates(data.templates);
-      
-      // Create missing templates
-      const existingTriggers = data.templates.map((t: EmailTemplate) => t.triggerType);
-      const missingTriggers = Object.keys(defaultTemplates).filter(
-        trigger => !existingTriggers.includes(trigger)
-      );
-      
-      if (missingTriggers.length > 0) {
-        await createMissingTemplates(missingTriggers as EmailTriggerType[]);
-      }
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      toast.error('Kunde inte hämta e-postmallar');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createMissingTemplates = async (triggers: EmailTriggerType[]) => {
-    for (const trigger of triggers) {
-      const defaultTemplate = defaultTemplates[trigger];
-      if (!defaultTemplate) continue;
-
-      try {
-        await fetch('/api/admin/email-templates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            triggerType: trigger,
-            ...defaultTemplate
-          })
-        });
-      } catch (error) {
-        console.error(`Error creating template for ${trigger}:`, error);
-      }
-    }
-    
-    // Refresh templates
-    await fetchTemplates();
-  };
-
-  const handleTemplateSelect = (template: EmailTemplate) => {
-    setSelectedTemplate(template);
-    setEditedTemplate({ ...template });
-    setShowPreview(false);
-  };
-
-  const handleSendTestEmail = async () => {
-    if (!selectedTemplate?.id) return;
-    setIsSendingTest(true);
-    try {
-      const response = await fetch('/api/admin/email-test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          testEmail
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message);
-        setShowEmailTest(false);
-      } else {
-        toast.error(data.error || 'Misslyckades med att skicka test-e-post');
-      }
-    } catch (error) {
-      console.error('Test email error:', error);
-      toast.error('Ett oväntat fel uppstod vid skickandet av test-e-post');
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!editedTemplate) return;
-
-    setIsSaving(true);
-    const loadingToast = toast.loading('Sparar mall...');
-
-    try {
-      const response = await fetch('/api/admin/email-templates', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedTemplate)
-      });
-
-      if (!response.ok) throw new Error('Failed to save template');
-
-      toast.success('Mall sparad framgångsrikt!', { id: loadingToast });
-      await fetchTemplates();
-      
-      // Update selected template
-      setSelectedTemplate(editedTemplate);
-    } catch (error) {
-      console.error('Error saving template:', error);
-      toast.error('Kunde inte spara mall', { id: loadingToast });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleReceiverToggle = (receiver: EmailReceiverType) => {
-    if (!editedTemplate) return;
-
-    const updatedReceivers = editedTemplate.receivers.includes(receiver)
-      ? editedTemplate.receivers.filter(r => r !== receiver)
-      : [...editedTemplate.receivers, receiver];
-
-    setEditedTemplate({
-      ...editedTemplate,
-      receivers: updatedReceivers
-    });
-  };
-
-  const togglePreview = () => {
-    setShowPreview(!showPreview);
-  };
-
-  const getPreviewHtml = () => {
-    if (!editedTemplate) return '';
-
-    // Replace variables with sample data
-    let preview = editedTemplate.htmlContent;
-    preview = preview.replace(/\{\{user\.firstName\}\}/g, 'Johan');
-    preview = preview.replace(/\{\{user\.lastName\}\}/g, 'Andersson');
-    preview = preview.replace(/\{\{user\.fullName\}\}/g, 'Johan Andersson');
-    preview = preview.replace(/\{\{user\.email\}\}/g, 'johan@example.com');
-    preview = preview.replace(/\{\{booking\.scheduledDate\}\}/g, '2024-03-15');
-    preview = preview.replace(/\{\{booking\.startTime\}\}/g, '14:00');
-    preview = preview.replace(/\{\{booking\.endTime\}\}/g, '15:00');
-    preview = preview.replace(/\{\{booking\.lessonTypeName\}\}/g, 'B-körkort 45 min');
-    preview = preview.replace(/\{\{booking\.totalPrice\}\}/g, '695');
-    preview = preview.replace(/\{\{booking\.id\}\}/g, '123456');
-    preview = preview.replace(/\{\{appUrl\}\}/g, window.location.origin);
-    preview = preview.replace(/\{\{schoolName\}\}/g, 'Din Trafikskola HLM');
-    preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
-
-    return `
-      <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
-          <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
-            ${preview}
-          </div>
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
-            <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
-            <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
-          </div>
-        </div>
-      </div>
-    `;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Laddar e-postmallar...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="p-6 border-b">
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <Mail className="w-8 h-8 text-blue-600" />
-              E-postmallar
-            </h1>
-            <p className="text-gray-600 mt-2">Hantera e-postmallar för automatiska utskick</p>
-          </div>
-
-          {/* Email Test Modal */}
-          {showEmailTest && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded shadow-lg w-96">
-                <h2 className="text-xl font-semibold mb-4">Skicka test-e-post</h2>
-                <input
-                  type="email"
-                  placeholder="Ange e-postadress"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg mb-4"
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setShowEmailTest(false)}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                  >
-                    Avbryt
-                  </button>
-                  <button
-                    onClick={handleSendTestEmail}
-                    disabled={isSendingTest}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {isSendingTest ? 'Skickar...' : 'Skicka test'}
-                  </button>
-                </div>
-              </div>
+    <div className="container mx-auto py-8 px-4">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">E-postmallar</h1>
+          <p className="text-muted-foreground">
+            Hantera e-postmallar för automatiska meddelanden och notifikationer
+          </p>
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>E-postmallshanterare</CardTitle>
+            <CardDescription>
+              Skapa och redigera e-postmallar för olika händelser i systemet.
+              Mallarna används för att skicka automatiska meddelanden till användare.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmailTemplateBuilder />
+          </CardContent>
+        </Card>
+        
+        <div className="mt-8 space-y-4">
+          <h2 className="text-lg font-medium">Vanliga frågor</h2>
+          <div className="space-y-2">
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-medium">Hur lägger jag till en ny e-postmall?</h3>
+              <p className="text-sm text-muted-foreground">
+                Använd formuläret ovan för att skapa en ny mall. Välj en lämplig utlösare och fyll i ämne och innehåll.
+              </p>
             </div>
-          )}
-
-          <div className="flex h-[calc(100vh-200px)]">
-            {/* Template List */}
-            <div className="w-1/3 border-r bg-gray-50 overflow-y-auto">
-              <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Mallar</h2>
-                <div className="space-y-2">
-                  {templates.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => handleTemplateSelect(template)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedTemplate?.id === template.id
-                          ? 'bg-blue-100 border-blue-500 border'
-                          : 'bg-white hover:bg-gray-100 border border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">
-                          {triggerTypeLabels[template.triggerType]}
-                        </span>
-                        {template.isActive ? (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        {template.receivers.map(receiver => (
-                          <span 
-                            key={receiver}
-                            className="text-xs bg-gray-200 px-2 py-1 rounded"
-                          >
-                            {receiverTypeLabels[receiver]}
-                          </span>
-                        ))}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Template Editor */}
-            <div className="flex-1 overflow-y-auto">
-              {editedTemplate ? (
-                <div className="p-6">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                      {triggerTypeLabels[editedTemplate.triggerType]}
-                    </h2>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editedTemplate.isActive}
-                          onChange={(e) => setEditedTemplate({
-                            ...editedTemplate,
-                            isActive: e.target.checked
-                          })}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium">Aktiv</span>
-                      </label>
-                      <button
-                        onClick={togglePreview}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        {showPreview ? 'Dölj förhandsgranskning' : 'Förhandsgranskning'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Receivers */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mottagare
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(receiverTypeLabels).map(([type, label]) => (
-                        <button
-                          key={type}
-                          onClick={() => handleReceiverToggle(type as EmailReceiverType)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            editedTemplate.receivers.includes(type as EmailReceiverType)
-                              ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                              : 'bg-gray-100 text-gray-600 border border-gray-300'
-                          }`}
-                        >
-                          <Users className="w-4 h-4 inline mr-1" />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Subject */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ämnesrad
-                    </label>
-                    <input
-                      type="text"
-                      value={editedTemplate.subject}
-                      onChange={(e) => setEditedTemplate({
-                        ...editedTemplate,
-                        subject: e.target.value
-                      })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* HTML Content */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      HTML-innehåll
-                    </label>
-                    {showPreview ? (
-                      <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                        <div dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
-                      </div>
-                    ) : (
-                      <textarea
-                        value={editedTemplate.htmlContent}
-                        onChange={(e) => setEditedTemplate({
-                          ...editedTemplate,
-                          htmlContent: e.target.value
-                        })}
-                        rows={15}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                      />
-                    )}
-                  </div>
-
-                  {/* Variables Help */}
-                  <div className="mb-6 bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-semibold text-blue-800 mb-2">Tillgängliga variabler:</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.firstName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.lastName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.fullName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.email}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.scheduledDate}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.startTime}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.endTime}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.lessonTypeName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.totalPrice}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.id}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{appUrl}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{schoolName}}'}</code>
-                    </div>
-                  </div>
-
-                  {/* Test Email Button */}
-                  <div className="mb-6">
-                    <button
-                      onClick={() => setShowEmailTest(true)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-2"
-                    >
-                      <TestTube className="w-4 h-4" />
-                      Skicka test-e-post
-                    </button>
-                  </div>
-
-                  {/* Save Buttons */}
-                  <div className="flex justify-end gap-4">
-                    <button
-                      onClick={() => {
-                        setEditedTemplate({ ...selectedTemplate! });
-                      }}
-                      className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Återställ
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                        isSaving
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      <Save className="w-4 h-4" />
-                      {isSaving ? 'Sparar...' : 'Spara ändringar'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <Mail className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>Välj en mall för att redigera</p>
-                  </div>
-                </div>
-              )}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-medium">Vilka variabler kan jag använda i mallarna?</h3>
+              <p className="text-sm text-muted-foreground">
+                Klicka på "Visa tillgängliga variabler" i redigeringsläget för att se en lista över tillgängliga variabler.
+                Dessa inkluderar användarinformation, bokningsdetaljer och mer.
+              </p>
             </div>
           </div>
         </div>

@@ -333,27 +333,6 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
             )}
           </div>
 
-          <Card className="bg-gradient-to-r from-green-500 to-blue-600 text-white">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <FaTrophy className="text-4xl mx-auto mb-4 text-yellow-300" />
-                <h3 className="text-xl font-bold mb-2">Köp Paket & Spara!</h3>
-                <p className="text-sm opacity-90 mb-4">
-                  Upptäck våra fantastiska paket och få mer för pengarna
-                </p>
-                <Button 
-                  asChild
-                  variant="secondary"
-                  className="gap-2 font-bold hover:bg-gray-100"
-                >
-                  <Link href="/packages-store">
-                    <FaShoppingCart />
-                    Se Alla Paket
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

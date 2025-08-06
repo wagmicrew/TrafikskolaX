@@ -13,7 +13,9 @@ import {
   FaExclamationCircle,
   FaArrowLeft,
   FaQrcode,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaTrashAlt,
+  FaTimesCircle
 } from 'react-icons/fa';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
@@ -38,6 +40,10 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
   const [isLoadingPlannedSteps, setIsLoadingPlannedSteps] = useState(false);
   const [userCredits, setUserCredits] = useState<any[]>([]);
   const [isProcessingCredit, setIsProcessingCredit] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [cancellationError, setCancellationError] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('sv-SE', {
@@ -120,6 +126,62 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
       setIsProcessingCredit(false);
     }
   };
+  
+  const handleCancellationRequest = () => {
+    setShowCancelConfirmation(true);
+    setCancellationError('');
+    setCancellationReason('');
+  };
+  
+  const handleCancelBooking = async () => {
+    if (isCancelling) return;
+    
+    // Validate that reason is provided
+    if (!cancellationReason.trim()) {
+      setCancellationError('Vänligen ange en anledning för avbokning');
+      return;
+    }
+    
+    setIsCancelling(true);
+    setCancellationError('');
+    
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: cancellationReason
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Bokningen har avbokats.');
+        // Redirect back to dashboard after successful cancellation
+        setTimeout(() => window.location.href = '/dashboard/student', 1500);
+      } else {
+        const data = await response.json();
+        const errorMessage = data.error || 'Kunde inte avboka bokningen';
+        if (data.hoursRemaining) {
+          setCancellationError(`${errorMessage}. Du måste avboka minst ${Math.ceil(data.hoursRemaining)} timmar i förväg.`);
+        } else {
+          setCancellationError(errorMessage);
+        }
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      setCancellationError('Ett tekniskt fel inträffade. Vänligen försök igen senare.');
+      toast.error('Ett tekniskt fel inträffade vid avbokning');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  
+  const handleCancelConfirmation = () => {
+    setShowCancelConfirmation(false);
+  };
 
   const generateSwishURL = () => {
     const amount = booking.totalPrice;
@@ -164,6 +226,62 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Cancellation Confirmation Modal */}
+      {showCancelConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Bekräfta avbokning</h3>
+            
+            <p className="text-gray-700 mb-4">
+              Är du säker på att du vill avboka denna bokning? Detta går inte att ångra.
+            </p>
+            
+            {cancellationError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {cancellationError}
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label htmlFor="cancellationReason" className="block text-sm font-medium text-gray-700 mb-1">
+                Anledning för avbokning *
+              </label>
+              <textarea
+                id="cancellationReason"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Vänligen ange anledningen till att du avbokar lektionen"
+                disabled={isCancelling}
+                required
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Det är viktigt att du anger en anledning för avbokningen så att vi kan förbättra våra tjänster.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                onClick={handleCancelConfirmation}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                disabled={isCancelling}
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isCancelling}
+              >
+                {isCancelling ? 'Avbokar...' : 'Ja, avboka bokningen'}
+                {!isCancelling && <FaTrashAlt />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link 
@@ -196,6 +314,17 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                    booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
                 </span>
               </div>
+              
+              {/* Cancellation Button - only show if booking is not already cancelled */}
+              {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                <button
+                  onClick={handleCancellationRequest}
+                  className="mt-2 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <FaTimesCircle />
+                  Avboka
+                </button>
+              )}
             </div>
           </div>
 

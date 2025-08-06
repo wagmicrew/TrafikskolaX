@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import { Switch } from '@/components/ui/switch';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import SchoolContactEmailSettings from '@/components/Admin/SchoolContactEmailSettings';
 import { 
   Mail, 
   Globe, 
@@ -40,6 +41,13 @@ interface Settings {
   from_name: string;
   from_email: string;
   reply_to: string;
+  
+  // School contact email settings
+  school_contact_email: string;
+  school_contact_name: string;
+  notify_on_booking: boolean;
+  notify_on_payment: boolean;
+  notify_on_cancellation: boolean;
   
   // Site settings
   site_domain: string;
@@ -82,6 +90,11 @@ export default function SettingsClient() {
     smtp_username: 'admin@dintrafikskolahlm.se',
     smtp_password: '',
     smtp_secure: false,
+    school_contact_email: '',
+    school_contact_name: '',
+    notify_on_booking: false,
+    notify_on_payment: false,
+    notify_on_cancellation: false,
 qliro_dev_api_url: 'https://playground.qliro.com',
     qliro_prod_api_url: 'https://api.qliro.com',
     qliro_use_prod_env: false,
@@ -145,9 +158,9 @@ qliro_dev_api_url: 'https://playground.qliro.com',
       toast.success('Inställningar sparade framgångsrikt!', {
         id: loadingToast,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      toast.error('Kunde inte spara inställningar', {
+      toast.error('Kunde inte spara inställningar: ' + (error.message || 'Unknown error'), {
         id: loadingToast,
       });
     } finally {
@@ -155,7 +168,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
     }
   };
 
-  const updateSetting = (key: keyof Settings, value: any) => {
+  const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -377,10 +390,10 @@ qliro_dev_api_url: 'https://playground.qliro.com',
         </TabsList>
 
         {/* Email Settings Tab */}
-        <TabsContent value="email">
-          <Card>
+        <TabsContent value="email" className="space-y-6">
+          <Card className="bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl">
             <CardHeader>
-              <CardTitle>E-postinställningar</CardTitle>
+              <CardTitle className="text-xl">E-postinställningar</CardTitle>
               <CardDescription>
                 Konfigurera hur e-postmeddelanden skickas från systemet
               </CardDescription>
@@ -554,6 +567,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
               </div>
             </CardContent>
           </Card>
+          
         </TabsContent>
 
         {/* Site Settings Tab */}
@@ -596,6 +610,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
               </div>
             </CardContent>
           </Card>
+          
         </TabsContent>
 
         {/* Payment Settings Tab */}
@@ -780,6 +795,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
               </div>
             </CardContent>
           </Card>
+          
         </TabsContent>
 
 {/* Qliro Test Dialog */}
@@ -877,6 +893,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
               )}
             </CardContent>
           </Card>
+          
         </TabsContent>
       </Tabs>
 

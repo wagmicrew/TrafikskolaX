@@ -104,17 +104,16 @@ export async function POST(request: NextRequest) {
       const isPlaceholderBooking = guestEmail === 'guest@example.com' && guestName === 'Guest';
       
       if (!isPlaceholderBooking) {
-      
-      // Check if email already exists
-      const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
-      if (existingUser.length > 0) {
-        return NextResponse.json({
-          error: 'E-postadressen finns redan. Vill du koppla denna bokning till ditt konto eller använda en annan e-postadress?',
-          userExists: true,
-          existingEmail: guestEmail
-        }, { status: 400 });
-      }
-      
+        // Check if email already exists
+        const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
+        if (existingUser.length > 0) {
+          return NextResponse.json({
+            error: 'E-postadressen finns redan. Vill du koppla denna bokning till ditt konto eller använda en annan e-postadress?',
+            userExists: true,
+            existingEmail: guestEmail
+          }, { status: 400 });
+        }
+        
         // Create a guest user account
         const newUser = await createGuestUser(guestEmail, guestName, guestPhone);
         userId = newUser.id;
@@ -127,7 +126,11 @@ export async function POST(request: NextRequest) {
 
     // If booking for a student as Admin or Teacher
     if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
+      // When admin/teacher books for a student, we want to:
+      // 1. Set userId = studentId (the booking is for the student)
+      // 2. Keep currentUserId as the person who made the booking
       userId = studentId; // Book for the selected student
+      console.log(`Admin/teacher booking: Setting userId=${userId}, keeping currentUserId=${currentUserId}`);
     }
     // Special handling for admin/teacher booking for students
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest) {
         const [booking] = await db
           .insert(bookings)
           .values({
-            userId,
+            userId, // This is the studentId (who the booking is for)
             lessonTypeId: sessionId!,
             scheduledDate,
             startTime,
@@ -205,6 +208,8 @@ export async function POST(request: NextRequest) {
             guestEmail: null,
             guestPhone: null,
             swishUUID: uuidv4(),
+            bookedBy: currentUserId, // Store who made the booking
+            notes: `Bokning gjord av ${currentUserRole} (${currentUserId}) för elev.`
           })
           .returning();
 
@@ -415,36 +420,6 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date()
             })
             .where(eq(userCredits.id, firstCreditRecord.id));
-          }
-
-          // Find available teacher for this time slot
-          const availableTeacher = await findAvailableTeacher(db, scheduledDate, startTime, endTime);
-
-          // Create and confirm booking
-          const [booking] = await db
-            .insert(bookings)
-            .values({
-              userId,
-              lessonTypeId: sessionId!,
-              scheduledDate,
-              startTime,
-              endTime,
-              durationMinutes,
-              transmissionType,
-              totalPrice,
-              status: 'confirmed',
-              paymentStatus: 'paid',
-              isGuestBooking,
-              guestName: isGuestBooking ? guestName : null,
-              guestEmail: isGuestBooking ? guestEmail : null,
-              guestPhone: isGuestBooking ? guestPhone : null,
-              swishUUID: uuidv4(),
-              teacherId: availableTeacher?.id,
-              paymentMethod: 'credits'
-            })
-            .returning();
-
-          // Send email notification
           const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
           if (userEmail) {
             await sendBookingNotification(userEmail, booking, true);
@@ -563,7 +538,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to create user account for guest bookings
-export async function createGuestUser(email: string, name: string, phone: string) {
+async function createGuestUser(email: string, name: string, phone: string) {
   try {
     // Generate random password
     const password = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);

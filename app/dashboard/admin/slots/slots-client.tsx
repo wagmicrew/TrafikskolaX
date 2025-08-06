@@ -168,11 +168,12 @@ export default function SlotsClient() {
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Exception creating slot:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
       toast({
         title: "Fel",
-        description: 'Fel vid skapande av tidslucka: ' + error.message,
+        description: `Fel vid skapande av tidslucka: ${errorMessage}`,
         variant: "destructive"
       });
     }
@@ -570,6 +571,48 @@ export default function SlotsClient() {
     }
   };
 
+  // Copy slots from Monday to other weekdays
+  const handleCopySlots = async () => {
+    if (!confirm('Detta kommer att kopiera alla tidsluckor från måndag till tisdag, onsdag, torsdag och fredag. Vill du fortsätta?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch('/api/admin/slots/copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceDay: 1 }) // 1 = Monday
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Refresh the slots
+        await fetchSlots();
+        
+        toast({
+          title: "Framgång!",
+          description: `Tidsluckor har kopierats framgångsrikt till ${data.totalSlotsCopied} nya platser.`,
+          variant: "default"
+        });
+      } else {
+        throw new Error(data.error || 'Kunde inte kopiera tidsluckor');
+      }
+    } catch (error: unknown) {
+      console.error('Error copying slots:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ett okänt fel uppstod';
+      toast({
+        title: "Fel",
+        description: `Ett fel uppstod vid kopiering av tidsluckor: ${errorMessage}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -638,15 +681,37 @@ export default function SlotsClient() {
             {activeTab === 'slots' && (
               <div>
                 {/* Slots Management Header */}
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <h2 className="text-xl font-semibold">Hantera Tidsluckor</h2>
-                  <button
-                    onClick={() => setShowAddSlot(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Lägg till tidslucka
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={handleCopySlots}
+                      disabled={isLoading}
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Bearbetar...
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                          Kopiera måndag till vardagar
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowAddSlot(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 justify-center"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Lägg till tidslucka
+                    </button>
+                  </div>
                 </div>
 
                 {/* Add Slot Form */}

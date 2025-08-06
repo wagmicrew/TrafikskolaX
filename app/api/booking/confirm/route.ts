@@ -90,18 +90,53 @@ export async function POST(request: NextRequest) {
         .where(eq(bookings.id, bookingId))
         .returning();
 
-      // Send confirmation email
+// Send confirmation email
+      const { sendBookingConfirmationEmail } = await import('@/lib/email/booking-emails');
       if (booking.guestEmail) {
-        await sendConfirmationNotification(booking.guestEmail, updatedBooking, false);
+        await sendBookingConfirmationEmail({
+          user: {
+            id: '',
+            email: booking.guestEmail,
+            firstName: booking.guestName?.split(' ')[0] || 'Guest',
+            lastName: booking.guestName?.split(' ').slice(1).join(' ') || '',
+            role: 'guest'
+          },
+          booking: {
+            id: updatedBooking.id,
+            scheduledDate: updatedBooking.scheduledDate.toISOString().split('T')[0],
+            startTime: updatedBooking.startTime,
+            endTime: updatedBooking.endTime,
+            lessonTypeName: 'Körlektion',
+            totalPrice: updatedBooking.totalPrice?.toString() || '0',
+            paymentMethod: updatedBooking.paymentMethod
+          }
+        });
       } else if (booking.userId) {
         const [user] = await db
-          .select({ email: users.email })
+          .select()
           .from(users)
           .where(eq(users.id, booking.userId))
           .limit(1);
         
         if (user) {
-          await sendConfirmationNotification(user.email, updatedBooking, false);
+          await sendBookingConfirmationEmail({
+            user: {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role
+            },
+            booking: {
+              id: updatedBooking.id,
+              scheduledDate: updatedBooking.scheduledDate.toISOString().split('T')[0],
+              startTime: updatedBooking.startTime,
+              endTime: updatedBooking.endTime,
+              lessonTypeName: 'Körlektion',
+              totalPrice: updatedBooking.totalPrice?.toString() || '0',
+              paymentMethod: updatedBooking.paymentMethod
+            }
+          });
         }
       }
 

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, X, Check, Package as PackageIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Pencil, Trash2, Plus, X, Check, Package as PackageIcon, Loader2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PackageBuilderPopover from '@/components/PackageBuilderPopover';
 
@@ -38,6 +38,7 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
   const [showInactive, setShowInactive] = useState<boolean>(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
   const [currentPackage, setCurrentPackage] = useState<Package | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const filteredPackages = showInactive 
     ? packages.filter(pkg => !pkg.isActive)
@@ -45,6 +46,21 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
 
   const handleSavePackage = async (packageData: any) => {
     try {
+      setIsLoading(true);
+      
+      // Validate required fields
+      if (!packageData.name?.trim()) {
+        toast.error('Paketnamn måste anges');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!packageData.price || isNaN(parseFloat(packageData.price)) || parseFloat(packageData.price) <= 0) {
+        toast.error('Ett giltigt pris måste anges');
+        setIsLoading(false);
+        return;
+      }
+      
       const response = await fetch('/api/admin/packages', {
         method: 'POST',
         headers: {
@@ -62,14 +78,34 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       setPackages(prev => [...prev, savedPackage]);
       setIsPopoverOpen(false);
       toast.success('Paket sparat!');
+      
+      // Force refresh data from server
+      router.refresh();
     } catch (error) {
       console.error('Error saving package:', error);
       toast.error(error instanceof Error ? error.message : 'Fel vid sparning av paket');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleUpdatePackage = async (packageData: any) => {
     try {
+      setIsLoading(true);
+      
+      // Validate required fields
+      if (!packageData.name?.trim()) {
+        toast.error('Paketnamn måste anges');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!packageData.price || isNaN(parseFloat(packageData.price)) || parseFloat(packageData.price) <= 0) {
+        toast.error('Ett giltigt pris måste anges');
+        setIsLoading(false);
+        return;
+      }
+      
       const response = await fetch('/api/admin/packages', {
         method: 'PUT',
         headers: {
@@ -89,14 +125,20 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       ));
       setIsPopoverOpen(false);
       toast.success('Paket uppdaterat!');
+      
+      // Force refresh data from server
+      router.refresh();
     } catch (error) {
       console.error('Error updating package:', error);
       toast.error(error instanceof Error ? error.message : 'Fel vid uppdatering av paket');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDeletePackage = async (packageId: string) => {
     try {
+      setIsLoading(true);
       const response = await fetch(`/api/admin/packages?id=${packageId}`, {
         method: 'DELETE',
       });
@@ -113,19 +155,29 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
         setPackages(prev => prev.map(pkg => 
           pkg.id === packageId ? { ...pkg, isActive: false } : pkg
         ));
-        toast.success('Paket inaktiverat');
+        toast.success('Paket inaktiverat eftersom det har köphistorik');
       } else {
         // Package was actually deleted
         setPackages(prev => prev.filter(pkg => pkg.id !== packageId));
         toast.success('Paket borttaget!');
       }
+      
+      // Force refresh data from server
+      router.refresh();
     } catch (error) {
       console.error('Error deleting package:', error);
       toast.error(error instanceof Error ? error.message : 'Fel vid borttagning av paket');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEditPackage = (pkg: Package) => {
+    setCurrentPackage(pkg);
+    setIsPopoverOpen(true);
+  };
+
+  const openPackageBuilder = (pkg?: Package) => {
     setCurrentPackage(pkg);
     setIsPopoverOpen(true);
   };
@@ -143,12 +195,19 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
           </p>
         </div>
         
-        <Button onClick={() => {
-          setCurrentPackage(undefined);
-          setIsPopoverOpen(true);
-        }}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nytt Paket
+        <Button 
+          onClick={() => openPackageBuilder()} 
+          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-green-500/30"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Laddar...
+            </>
+          ) : (
+            '+ Skapa nytt paket'
+          )}
         </Button>
       </div>
 
@@ -182,96 +241,102 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       {isPopoverOpen && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <PackageBuilderPopover 
-              lessonTypes={lessonTypes}
-              handledarSessions={handledarSessions}
+            <PackageBuilderPopover
+              lessonTypes={lessonTypes.filter(lt => lt.isActive || (currentPackage?.contents || []).some(c => c.lessonTypeId === lt.id))}
+              handledarSessions={handledarSessions.filter(hs => hs.isActive || (currentPackage?.contents || []).some(c => c.handledarSessionId === hs.id))}
               initialPackage={currentPackage}
               onSave={handleSavePackage}
               onUpdate={handleUpdatePackage}
               onClose={() => setIsPopoverOpen(false)}
+              isLoading={isLoading}
             />
           </div>
         </div>
       )}
 
       {/* Packages List */}
-      <div className="space-y-4">
+      <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
-            {showInactive ? 'Inaktiva Paket' : 'Aktiva Paket'}
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-blue-600 text-transparent bg-clip-text">
+            Hantera Paket
           </h2>
-          <Button
-            variant="outline"
-            onClick={() => setShowInactive(!showInactive)}
-          >
-            {showInactive ? 'Visa Aktiva' : 'Visa Inaktiva'}
-          </Button>
-        </div>
+          <div className="space-x-4">
+            <Button 
+              onClick={() => setShowInactive(!showInactive)} 
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-blue-500/30"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              {showInactive ? 'Dölj inaktiva' : 'Visa inaktiva'}
+            </Button>
+          </div>
 
-        {filteredPackages.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Inga {showInactive ? 'inaktiva' : 'aktiva'} paket hittades.
-          </div>
-        ) : (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredPackages.map((pkg) => (
-              <Card key={pkg.id} className="relative flex flex-col h-full hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-xl font-bold truncate">{pkg.name}</CardTitle>
-                      <CardDescription className="mt-1 line-clamp-2">
-                        {pkg.description || 'Ingen beskrivning tillgänglig'}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditPackage(pkg)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => {
-                          if (confirm('Är du säker på att du vill ta bort detta paket?')) {
-                            handleDeletePackage(pkg.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Glassmorphism Container for Package Details */}
-                  <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl text-sm mt-4 p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Pris:</span>
-                      <div className="text-right">
-                        <span className="font-bold">{pkg.price} SEK</span>
-                        {pkg.salePrice && (
-                          <div className="text-green-500 text-xs">
-                            ({pkg.salePrice} SEK på rea)
+          {filteredPackages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Inga {showInactive ? 'inaktiva' : 'aktiva'} paket hittades.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {filteredPackages.map((pkg) => (
+                <div 
+                  key={pkg.id} 
+                  className={`relative overflow-hidden bg-white/90 backdrop-filter backdrop-blur-sm rounded-lg shadow-lg p-5 border border-gray-200/50 transition-all duration-300 hover:shadow-xl ${!pkg.isActive ? 'bg-opacity-70 grayscale-[30%]' : ''}`}
+                >
+                  {/* Subtle gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
+                  <div className="relative z-10">
+                    <CardHeader className="pb-2">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-xl font-bold truncate">{pkg.name}</CardTitle>
+                          <CardDescription className="mt-1 line-clamp-2">
+                            {pkg.description || 'Ingen beskrivning tillgänglig'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => openPackageBuilder(pkg)}
+                            variant="outline"
+                            size="sm"
+                            disabled={isLoading}
+                            className="h-8 px-2 text-xs bg-white/10 backdrop-blur-sm border border-white/30 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
+                          >
+                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Redigera'}
+                          </Button>
+                          <Button
+                            onClick={() => handleDeletePackage(pkg.id)}
+                            variant="destructive"
+                            size="sm"
+                            disabled={isLoading}
+                            className="h-8 px-2 text-xs bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border border-red-500/30"
+                          >
+                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Ta bort'}
+                          </Button>
+                        </div>
+                      </div>
+                      {/* Glassmorphism Container for Package Details */}
+                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl text-sm mt-4 p-4">
+                        <div className="flex justify-between mt-4">
+                          <div>
+                            <span className="font-bold text-gray-800">{pkg.price} kr</span>
+                            {pkg.priceStudent && (
+                              <span className="ml-2 text-sm text-gray-600">Student: {pkg.priceStudent} kr</span>
+                            )}
+                            {pkg.salePrice && (
+                              <span className="ml-2 text-sm font-medium px-2 py-1 bg-green-100 text-green-700 rounded-full">{pkg.salePrice} kr</span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                    {pkg.contents && pkg.contents.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-white/10">
-                        <span className="text-xs text-gray-600">
-                          {pkg.contents.length} innehållsdelar
-                        </span>
-                      </div>
-                    )}
+                    </CardHeader>
                   </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

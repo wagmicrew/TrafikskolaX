@@ -6,6 +6,7 @@ import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/lib/hooks/useAuth"
 import { Toaster } from "react-hot-toast"
+import { CookieConsent } from "@/components/CookieConsent"
 
 const inter = Inter({ subsets: ["latin"] })
 const playfair = Playfair_Display({ subsets: ["latin"] })
@@ -213,6 +214,7 @@ export default function RootLayout({
           {children}
           <Footer />
           <Toaster position="top-right" />
+          <CookieConsent />
         </AuthProvider>
       </body>
     </html>

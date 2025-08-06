@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "npx ts-node --esm lib/seed-users.ts",
-    "db:setup": "tsx scripts/setup-database.ts"
+    "db:setup": "tsx scripts/setup-database.ts",
+    "db:update-slots": "tsx scripts/update-booking-slots.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -44,7 +45,7 @@
     "@radix-ui/react-toast": "1.2.4",
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
-    "@radix-ui/react-tooltip": "1.1.6",
+    "@radix-ui/react-tooltip": "^1.1.6",
     "@sendgrid/mail": "8.1.5",
     "@stackframe/stack": "2.8.25",
     "@types/bcryptjs": "3.0.0",

@@ -1,0 +1,32 @@
+<div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
+    <h1 style="color: #dc2626; margin-bottom: 20px;">Betalningsbekräftelse - Swish</h1>
+    
+    <p>Hej Admin!</p>
+    
+    <p>En ny Swish-betalning har mottagits för följande bokning:</p>
+    
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <p><strong>Boknings-ID:</strong> {{booking.id}}</p>
+      <p><strong>Betalning mottagen:</strong> {{booking.paymentTime}}</p>
+      <p><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
+      <p><strong>Betalningsreferens:</strong> {{booking.swishUUID}}</p>
+      <hr style="margin: 15px 0; border-top: 1px solid #dee2e6;">
+      <p><strong>Kund:</strong> {{user.fullName}}</p>
+      <p><strong>Email:</strong> {{user.email}}</p>
+      <p><strong>Typ:</strong> {{booking.lessonTypeName}}</p>
+      <p><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+      <p><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+    </div>
+
+    <p>Betalningen har registrerats och bokningen är nu bekräftad.</p>
+    
+    <div style="margin-top: 20px; padding: 15px; background-color: #e8f5e9; border-radius: 8px;">
+      <p style="margin: 0; color: #2e7d32;"><strong>Status:</strong> Betalning mottagen och verifierad</p>
+    </div>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
+      <p style="color: #666; font-size: 12px;">Detta är ett automatiskt meddelande från bokningssystemet.</p>
+    </div>
+  </div>
+</div>

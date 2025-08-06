@@ -380,6 +380,7 @@ setup_application() {
             print_error "Failed to build application"
             return 1
         fi
+        print_status "Production build completed"
     fi
     
     print_status "$env environment setup completed"
@@ -445,6 +446,21 @@ setup_pm2() {
     print_info "Stopping existing PM2 processes..."
     pm2 delete "${PROJECT_NAME}-dev" 2>/dev/null || true
     pm2 delete "${PROJECT_NAME}-prod" 2>/dev/null || true
+    
+    # Ensure production build exists
+    local prod_dir="/var/www/${PROJECT_NAME}_prod"
+    if [ ! -d "$prod_dir/.next" ]; then
+        print_info "Production build not found, building now..."
+        cd "$prod_dir"
+        npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to build production application"
+            return 1
+        fi
+        print_status "Production build completed"
+    else
+        print_info "Production build already exists"
+    fi
     
     # Create PM2 ecosystem file
     local ecosystem_file="/var/www/${PROJECT_NAME}_prod/ecosystem.config.js"
@@ -526,6 +542,25 @@ EOF
         print_warning "Production application may not be running properly"
         print_debug "Checking production application logs..."
         pm2 logs "${PROJECT_NAME}-prod" --lines 10
+        
+        # Check if production build exists
+        if [ ! -d "$prod_dir/.next" ]; then
+            print_error "Production build missing. Building now..."
+            cd "$prod_dir"
+            npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            if [ $? -eq 0 ]; then
+                print_info "Production build completed, restarting application..."
+                pm2 restart "${PROJECT_NAME}-prod" >> "$LOG_FILE" 2>> "$ERROR_LOG"
+                sleep 10
+                if pm2 list | grep -q "${PROJECT_NAME}-prod.*online"; then
+                    print_status "Production application now running after build"
+                else
+                    print_error "Production application still not running after build"
+                fi
+            else
+                print_error "Failed to build production application"
+            fi
+        fi
     fi
     
     pm2 save
@@ -819,6 +854,21 @@ restart_applications() {
     
     print_info "Waiting for processes to stop..."
     sleep 5
+    
+    # Ensure production build exists
+    local prod_dir="/var/www/${PROJECT_NAME}_prod"
+    if [ ! -d "$prod_dir/.next" ]; then
+        print_info "Production build not found, building now..."
+        cd "$prod_dir"
+        npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to build production application"
+            return 1
+        fi
+        print_status "Production build completed"
+    else
+        print_info "Production build already exists"
+    fi
     
     # Recreate PM2 ecosystem file
     local ecosystem_file="/var/www/${PROJECT_NAME}_prod/ecosystem.config.js"

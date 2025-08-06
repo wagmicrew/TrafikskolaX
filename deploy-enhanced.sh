@@ -1,0 +1,761 @@
+#!/bin/bash
+
+# 🚀 Enhanced Deployment Script for Din Trafikskola Hässleholm
+# Features: Colorful GUI, Error Handling, Auto Updates, Progress Tracking
+# Run this script on your Ubuntu server
+
+set -e  # Exit on any error
+
+# Colors and styling
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Box drawing characters
+TOP_LEFT="╭"
+TOP_RIGHT="╮"
+BOTTOM_LEFT="╰"
+BOTTOM_RIGHT="╯"
+HORIZONTAL="─"
+VERTICAL="│"
+
+# Configuration
+PROJECT_NAME="dintrafikskolax"
+GITHUB_REPO="https://github.com/wagmicrew/TrafikskolaX.git"
+DEV_PORT=3000
+PROD_PORT=3001
+DOMAIN="dintrafikskolahlm.se"
+DEV_DOMAIN="dev.dintrafikskolahlm.se"
+
+# Log file
+LOG_FILE="/var/log/dintrafikskolax-deployment.log"
+ERROR_LOG="/var/log/dintrafikskolax-errors.log"
+
+# Function to print colored output
+print_status() {
+    echo -e "${GREEN}✅ $1${NC}"
+    echo "$(date): SUCCESS - $1" >> "$LOG_FILE"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+    echo "$(date): WARNING - $1" >> "$LOG_FILE"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+    echo "$(date): ERROR - $1" >> "$ERROR_LOG"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+    echo "$(date): INFO - $1" >> "$LOG_FILE"
+}
+
+print_header() {
+    echo -e "${CYAN}📋 $1${NC}"
+    echo "$(date): HEADER - $1" >> "$LOG_FILE"
+}
+
+# Function to draw a box
+draw_box() {
+    local text="$1"
+    local width=${2:-50}
+    local padding=$(( (width - ${#text} - 2) / 2 ))
+    
+    echo -e "${PURPLE}$TOP_LEFT${HORIZONTAL:0:padding} $text ${HORIZONTAL:0:padding}$TOP_RIGHT${NC}"
+}
+
+# Function to show progress bar
+show_progress() {
+    local current=$1
+    local total=$2
+    local width=50
+    local percentage=$((current * 100 / total))
+    local filled=$((width * current / total))
+    local empty=$((width - filled))
+    
+    printf "\r${CYAN}["
+    printf "%${filled}s" | tr ' ' '█'
+    printf "%${empty}s" | tr ' ' '░'
+    printf "] ${percentage}%%${NC}"
+}
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Function to check if directory exists
+directory_exists() {
+    [ -d "$1" ]
+}
+
+# Function to check if file exists
+file_exists() {
+    [ -f "$1" ]
+}
+
+# Function to create backup
+create_backup() {
+    local backup_dir="/var/backups/dintrafikskolax"
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    
+    print_info "Creating backup..."
+    mkdir -p "$backup_dir"
+    
+    if directory_exists "/var/www/${PROJECT_NAME}_prod"; then
+        tar -czf "$backup_dir/prod_backup_$timestamp.tar.gz" -C /var/www "${PROJECT_NAME}_prod"
+        print_status "Production backup created: prod_backup_$timestamp.tar.gz"
+    fi
+    
+    if directory_exists "/var/www/${PROJECT_NAME}_dev"; then
+        tar -czf "$backup_dir/dev_backup_$timestamp.tar.gz" -C /var/www "${PROJECT_NAME}_dev"
+        print_status "Development backup created: dev_backup_$timestamp.tar.gz"
+    fi
+    
+    # Backup PM2 configuration
+    if command_exists pm2; then
+        pm2 save
+        cp ~/.pm2/dump.pm2 "$backup_dir/pm2_backup_$timestamp.pm2" 2>/dev/null || true
+    fi
+}
+
+# Function to check system requirements
+check_requirements() {
+    print_header "Checking system requirements..."
+    
+    local requirements_met=true
+    
+    # Check if running as root or with sudo
+    if [ "$EUID" -ne 0 ]; then
+        print_error "This script must be run as root or with sudo privileges"
+        requirements_met=false
+    fi
+    
+    # Check Ubuntu version
+    if ! command_exists lsb_release; then
+        print_warning "lsb_release not found, cannot verify Ubuntu version"
+    else
+        local ubuntu_version=$(lsb_release -rs)
+        if [ "$(echo "$ubuntu_version >= 20.04" | bc -l 2>/dev/null || echo "0")" -eq 0 ]; then
+            print_warning "Ubuntu version $ubuntu_version detected. Recommended: 20.04 or later"
+        else
+            print_status "Ubuntu version $ubuntu_version is compatible"
+        fi
+    fi
+    
+    # Check available disk space
+    local available_space=$(df / | awk 'NR==2 {print $4}')
+    local required_space=1048576  # 1GB in KB
+    if [ "$available_space" -lt "$required_space" ]; then
+        print_error "Insufficient disk space. Available: ${available_space}KB, Required: ${required_space}KB"
+        requirements_met=false
+    else
+        print_status "Sufficient disk space available"
+    fi
+    
+    # Check internet connectivity
+    if ! ping -c 1 google.com >/dev/null 2>&1; then
+        print_error "No internet connectivity detected"
+        requirements_met=false
+    else
+        print_status "Internet connectivity confirmed"
+    fi
+    
+    if [ "$requirements_met" = false ]; then
+        print_error "System requirements not met. Please fix the issues above and try again."
+        exit 1
+    fi
+    
+    print_status "All system requirements met"
+}
+
+# Function to install system dependencies
+install_system_deps() {
+    print_header "Installing system dependencies..."
+    
+    local deps=("curl" "wget" "git" "unzip" "software-properties-common" "apt-transport-https" "ca-certificates" "gnupg" "lsb-release")
+    local total=${#deps[@]}
+    local current=0
+    
+    for dep in "${deps[@]}"; do
+        ((current++))
+        show_progress $current $total
+        
+        if ! command_exists "$dep"; then
+            print_info "Installing $dep..."
+            apt install -y "$dep" >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+                print_error "Failed to install $dep"
+                return 1
+            }
+        else
+            print_info "$dep already installed"
+        fi
+    done
+    
+    echo ""  # New line after progress bar
+    print_status "System dependencies installed"
+}
+
+# Function to install Node.js
+install_nodejs() {
+    print_header "Installing Node.js..."
+    
+    if command_exists node; then
+        local node_version=$(node --version)
+        print_info "Node.js $node_version already installed"
+    else
+        print_info "Installing Node.js 18.x..."
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to setup Node.js repository"
+            return 1
+        }
+        
+        apt install -y nodejs >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to install Node.js"
+            return 1
+        }
+        
+        print_status "Node.js $(node --version) installed"
+    fi
+    
+    # Install PM2 globally
+    if ! command_exists pm2; then
+        print_info "Installing PM2..."
+        npm install -g pm2 >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to install PM2"
+            return 1
+        }
+        print_status "PM2 installed"
+    else
+        print_info "PM2 already installed"
+    fi
+}
+
+# Function to install web server
+install_webserver() {
+    print_header "Installing web server components..."
+    
+    # Install Nginx
+    if ! command_exists nginx; then
+        print_info "Installing Nginx..."
+        apt install -y nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to install Nginx"
+            return 1
+        }
+        systemctl enable nginx
+        systemctl start nginx
+        print_status "Nginx installed and started"
+    else
+        print_info "Nginx already installed"
+    fi
+    
+    # Install Certbot
+    if ! command_exists certbot; then
+        print_info "Installing Certbot..."
+        apt install -y certbot python3-certbot-nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to install Certbot"
+            return 1
+        }
+        print_status "Certbot installed"
+    else
+        print_info "Certbot already installed"
+    fi
+}
+
+# Function to setup application
+setup_application() {
+    local env="$1"  # "dev" or "prod"
+    local app_dir="/var/www/${PROJECT_NAME}_$env"
+    
+    print_header "Setting up $env environment..."
+    
+    # Create directory if it doesn't exist
+    if ! directory_exists "$app_dir"; then
+        print_info "Creating $env application directory..."
+        mkdir -p "$app_dir"
+        chown $SUDO_USER:$SUDO_USER "$app_dir"
+    fi
+    
+    cd "$app_dir"
+    
+    # Clone or update repository
+    if ! directory_exists ".git"; then
+        print_info "Cloning repository for $env environment..."
+        git clone "$GITHUB_REPO" . >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to clone repository"
+            return 1
+        }
+    else
+        print_info "Updating existing repository..."
+        git fetch origin >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to fetch updates"
+            return 1
+        }
+        git reset --hard origin/master >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to reset to latest version"
+            return 1
+        }
+    fi
+    
+    # Install dependencies
+    print_info "Installing dependencies..."
+    npm install >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        print_error "Failed to install dependencies"
+        return 1
+    }
+    
+    # Build for production
+    if [ "$env" = "prod" ]; then
+        print_info "Building production application..."
+        npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            print_error "Failed to build application"
+            return 1
+        }
+    fi
+    
+    print_status "$env environment setup completed"
+}
+
+# Function to configure environment
+configure_environment() {
+    local env="$1"
+    local app_dir="/var/www/${PROJECT_NAME}_$env"
+    local env_file="$app_dir/.env.local"
+    
+    print_header "Configuring $env environment..."
+    
+    # Create environment file if it doesn't exist
+    if ! file_exists "$env_file"; then
+        print_info "Creating environment file for $env..."
+        cat > "$env_file" << EOF
+# $env Environment Configuration
+NODE_ENV=$env
+NEXTAUTH_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
+NEXTAUTH_SECRET=your-$env-secret-key-here
+JWT_SECRET=your-$env-jwt-secret-here
+
+# Database Configuration
+DATABASE_URL=your-$env-database-url-here
+
+# Email Configuration (choose one)
+BREVO_API_KEY=your-brevo-api-key-here
+# SENDGRID_API_KEY=your-sendgrid-api-key-here
+
+# Payment Configuration
+QLIRO_MERCHANT_API_KEY=your-qliro-api-key-here
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
+EOF
+        print_warning "Please update $env_file with your actual configuration values"
+    else
+        print_info "Environment file already exists"
+    fi
+    
+    print_status "$env environment configured"
+}
+
+# Function to setup PM2
+setup_pm2() {
+    print_header "Setting up PM2 process manager..."
+    
+    # Create PM2 ecosystem file
+    local ecosystem_file="/var/www/${PROJECT_NAME}_prod/ecosystem.config.js"
+    
+    cat > "$ecosystem_file" << EOF
+module.exports = {
+  apps: [
+    {
+      name: '${PROJECT_NAME}-dev',
+      cwd: '/var/www/${PROJECT_NAME}_dev',
+      script: 'npm',
+      args: 'start',
+      env: {
+        NODE_ENV: 'development',
+        PORT: $DEV_PORT
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: '/var/log/pm2/${PROJECT_NAME}-dev-error.log',
+      out_file: '/var/log/pm2/${PROJECT_NAME}-dev-out.log',
+      log_file: '/var/log/pm2/${PROJECT_NAME}-dev-combined.log'
+    },
+    {
+      name: '${PROJECT_NAME}-prod',
+      cwd: '/var/www/${PROJECT_NAME}_prod',
+      script: 'npm',
+      args: 'start',
+      env: {
+        NODE_ENV: 'production',
+        PORT: $PROD_PORT
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: '/var/log/pm2/${PROJECT_NAME}-prod-error.log',
+      out_file: '/var/log/pm2/${PROJECT_NAME}-prod-out.log',
+      log_file: '/var/log/pm2/${PROJECT_NAME}-prod-combined.log'
+    }
+  ]
+};
+EOF
+    
+    # Create log directory
+    mkdir -p /var/log/pm2
+    
+    # Start applications
+    cd "/var/www/${PROJECT_NAME}_prod"
+    pm2 start ecosystem.config.js >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        print_error "Failed to start PM2 applications"
+        return 1
+    }
+    
+    pm2 save
+    pm2 startup
+    
+    print_status "PM2 applications started"
+}
+
+# Function to setup Nginx
+setup_nginx() {
+    print_header "Setting up Nginx configuration..."
+    
+    local nginx_config="/etc/nginx/sites-available/${PROJECT_NAME}"
+    
+    cat > "$nginx_config" << EOF
+# Development Server Configuration
+server {
+    listen 80;
+    server_name $DEV_DOMAIN;
+    
+    location / {
+        proxy_pass http://localhost:$DEV_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    
+    # Logging
+    access_log /var/log/nginx/${PROJECT_NAME}-dev-access.log;
+    error_log /var/log/nginx/${PROJECT_NAME}-dev-error.log;
+}
+
+# Production Server Configuration
+server {
+    listen 80;
+    server_name $DOMAIN www.$DOMAIN;
+    
+    location / {
+        proxy_pass http://localhost:$PROD_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    
+    # Logging
+    access_log /var/log/nginx/${PROJECT_NAME}-prod-access.log;
+    error_log /var/log/nginx/${PROJECT_NAME}-prod-error.log;
+}
+EOF
+    
+    # Enable the site
+    ln -sf "$nginx_config" /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    
+    # Test and reload Nginx
+    nginx -t >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        print_error "Nginx configuration test failed"
+        return 1
+    }
+    
+    systemctl reload nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        print_error "Failed to reload Nginx"
+        return 1
+    }
+    
+    print_status "Nginx configuration completed"
+}
+
+# Function to create management scripts
+create_management_scripts() {
+    print_header "Creating management scripts..."
+    
+    # Development management script
+    cat > "/usr/local/bin/${PROJECT_NAME}-dev" << 'EOF'
+#!/bin/bash
+cd /var/www/dintrafikskolax_dev
+case "$1" in
+    start)
+        pm2 start dintrafikskolax-dev
+        ;;
+    stop)
+        pm2 stop dintrafikskolax-dev
+        ;;
+    restart)
+        pm2 restart dintrafikskolax-dev
+        ;;
+    logs)
+        pm2 logs dintrafikskolax-dev
+        ;;
+    update)
+        git pull origin master
+        npm install
+        pm2 restart dintrafikskolax-dev
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|logs|update}"
+        exit 1
+        ;;
+esac
+EOF
+
+    # Production management script
+    cat > "/usr/local/bin/${PROJECT_NAME}-prod" << 'EOF'
+#!/bin/bash
+cd /var/www/dintrafikskolax_prod
+case "$1" in
+    start)
+        pm2 start dintrafikskolax-prod
+        ;;
+    stop)
+        pm2 stop dintrafikskolax-prod
+        ;;
+    restart)
+        pm2 restart dintrafikskolax-prod
+        ;;
+    logs)
+        pm2 logs dintrafikskolax-prod
+        ;;
+    update)
+        git pull origin master
+        npm install
+        npm run build
+        pm2 restart dintrafikskolax-prod
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|logs|update}"
+        exit 1
+        ;;
+esac
+EOF
+
+    # Make scripts executable
+    chmod +x "/usr/local/bin/${PROJECT_NAME}-dev"
+    chmod +x "/usr/local/bin/${PROJECT_NAME}-prod"
+    
+    print_status "Management scripts created"
+}
+
+# Function to test deployment
+test_deployment() {
+    print_header "Testing deployment..."
+    
+    # Test PM2 processes
+    if pm2 list | grep -q "${PROJECT_NAME}-prod"; then
+        print_status "Production PM2 process is running"
+    else
+        print_error "Production PM2 process is not running"
+        return 1
+    fi
+    
+    if pm2 list | grep -q "${PROJECT_NAME}-dev"; then
+        print_status "Development PM2 process is running"
+    else
+        print_error "Development PM2 process is not running"
+        return 1
+    fi
+    
+    # Test Nginx
+    if systemctl is-active --quiet nginx; then
+        print_status "Nginx is running"
+    else
+        print_error "Nginx is not running"
+        return 1
+    fi
+    
+    # Test local connections
+    if curl -s http://localhost:$DEV_PORT >/dev/null 2>&1; then
+        print_status "Development server responding on port $DEV_PORT"
+    else
+        print_warning "Development server not responding on port $DEV_PORT"
+    fi
+    
+    if curl -s http://localhost:$PROD_PORT >/dev/null 2>&1; then
+        print_status "Production server responding on port $PROD_PORT"
+    else
+        print_warning "Production server not responding on port $PROD_PORT"
+    fi
+    
+    print_status "Deployment testing completed"
+}
+
+# Function to show main menu
+show_menu() {
+    clear
+    echo -e "${CYAN}"
+    draw_box "🚀 Din Trafikskola Hässleholm Deployment Script" 60
+    echo -e "${NC}"
+    echo ""
+    echo -e "${WHITE}Choose an option:${NC}"
+    echo ""
+    echo -e "${GREEN}1)${NC} Install/Update Production Environment"
+    echo -e "${GREEN}2)${NC} Install/Update Development Environment"
+    echo -e "${GREEN}3)${NC} Install/Update Both Environments"
+    echo -e "${GREEN}4)${NC} Show System Status"
+    echo -e "${GREEN}5)${NC} View Logs"
+    echo -e "${GREEN}6)${NC} Create Backup"
+    echo -e "${GREEN}7)${NC} Setup SSL Certificates"
+    echo -e "${GREEN}8)${NC} Exit"
+    echo ""
+    echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
+    echo -e "${YELLOW}Current time: $(date)${NC}"
+    echo ""
+}
+
+# Function to handle installation/update
+handle_installation() {
+    local env="$1"
+    
+    print_header "Starting $env environment installation/update..."
+    
+    # Create backup before changes
+    create_backup
+    
+    # Check if installation exists
+    local app_dir="/var/www/${PROJECT_NAME}_$env"
+    if directory_exists "$app_dir"; then
+        print_info "Existing $env installation detected. Performing update..."
+    else
+        print_info "No existing $env installation. Performing fresh install..."
+    fi
+    
+    # Perform installation steps
+    check_requirements
+    install_system_deps
+    install_nodejs
+    install_webserver
+    setup_application "$env"
+    configure_environment "$env"
+    
+    if [ "$env" = "prod" ] || [ "$env" = "both" ]; then
+        setup_pm2
+        setup_nginx
+        create_management_scripts
+    fi
+    
+    test_deployment
+    
+    print_status "$env environment installation/update completed successfully!"
+}
+
+# Main script execution
+main() {
+    # Initialize log files
+    touch "$LOG_FILE" "$ERROR_LOG"
+    chmod 644 "$LOG_FILE" "$ERROR_LOG"
+    
+    print_header "Starting enhanced deployment script"
+    print_info "Log file: $LOG_FILE"
+    print_info "Error log: $ERROR_LOG"
+    
+    while true; do
+        show_menu
+        read -p "Enter your choice (1-8): " choice
+        
+        case $choice in
+            1)
+                handle_installation "prod"
+                read -p "Press Enter to continue..."
+                ;;
+            2)
+                handle_installation "dev"
+                read -p "Press Enter to continue..."
+                ;;
+            3)
+                handle_installation "both"
+                read -p "Press Enter to continue..."
+                ;;
+            4)
+                print_header "System Status"
+                echo ""
+                echo -e "${CYAN}PM2 Status:${NC}"
+                pm2 status
+                echo ""
+                echo -e "${CYAN}Nginx Status:${NC}"
+                systemctl status nginx --no-pager
+                echo ""
+                echo -e "${CYAN}Disk Usage:${NC}"
+                df -h
+                echo ""
+                echo -e "${CYAN}Memory Usage:${NC}"
+                free -h
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                print_header "Viewing Logs"
+                echo ""
+                echo -e "${CYAN}Deployment Log:${NC}"
+                tail -20 "$LOG_FILE"
+                echo ""
+                echo -e "${CYAN}Error Log:${NC}"
+                tail -20 "$ERROR_LOG"
+                read -p "Press Enter to continue..."
+                ;;
+            6)
+                create_backup
+                read -p "Press Enter to continue..."
+                ;;
+            7)
+                print_header "SSL Certificate Setup"
+                echo ""
+                echo -e "${YELLOW}Note: Make sure your domain DNS is configured before setting up SSL${NC}"
+                echo ""
+                read -p "Enter your domain (e.g., dintrafikskolahlm.se): " domain
+                if [ -n "$domain" ]; then
+                    print_info "Setting up SSL for $domain..."
+                    certbot --nginx -d "$domain" -d "www.$domain" --non-interactive --agree-tos --email admin@"$domain" || {
+                        print_error "SSL setup failed"
+                    }
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            8)
+                print_header "Exiting deployment script"
+                echo ""
+                print_info "Deployment script completed"
+                print_info "Log files available at:"
+                print_info "  - $LOG_FILE"
+                print_info "  - $ERROR_LOG"
+                echo ""
+                exit 0
+                ;;
+            *)
+                print_error "Invalid option. Please choose 1-8."
+                read -p "Press Enter to continue..."
+                ;;
+        esac
+    done
+}
+
+# Run main function
+main "$@" 

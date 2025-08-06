@@ -101,7 +101,7 @@ file_exists() {
     [ -f "$1" ]
 }
 
-# Function to create backup
+# Function to create backup (optional)
 create_backup() {
     local backup_dir="/var/backups/dintrafikskolax"
     local timestamp=$(date +%Y%m%d_%H%M%S)
@@ -180,7 +180,14 @@ check_requirements() {
 install_system_deps() {
     print_header "Installing system dependencies..."
     
-    local deps=("curl" "wget" "git" "unzip" "software-properties-common" "apt-transport-https" "ca-certificates" "gnupg" "lsb-release")
+    # Update package list first
+    print_info "Updating package list..."
+    apt update >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        print_error "Failed to update package list"
+        return 1
+    }
+    
+    local deps=("curl" "wget" "git" "unzip" "software-properties-common" "apt-transport-https" "ca-certificates" "gnupg" "lsb-release" "bc")
     local total=${#deps[@]}
     local current=0
     
@@ -272,9 +279,16 @@ install_webserver() {
 # Function to setup application
 setup_application() {
     local env="$1"  # "dev" or "prod"
+    local clean_install="$2"  # "true" or "false"
     local app_dir="/var/www/${PROJECT_NAME}_$env"
     
     print_header "Setting up $env environment..."
+    
+    # Remove existing directory if clean install
+    if [ "$clean_install" = "true" ] && directory_exists "$app_dir"; then
+        print_info "Removing existing $env installation for clean install..."
+        rm -rf "$app_dir"
+    fi
     
     # Create directory if it doesn't exist
     if ! directory_exists "$app_dir"; then
@@ -365,6 +379,11 @@ EOF
 # Function to setup PM2
 setup_pm2() {
     print_header "Setting up PM2 process manager..."
+    
+    # Stop existing PM2 processes
+    print_info "Stopping existing PM2 processes..."
+    pm2 delete "${PROJECT_NAME}-dev" 2>/dev/null || true
+    pm2 delete "${PROJECT_NAME}-prod" 2>/dev/null || true
     
     # Create PM2 ecosystem file
     local ecosystem_file="/var/www/${PROJECT_NAME}_prod/ecosystem.config.js"
@@ -621,11 +640,12 @@ show_menu() {
     echo -e "${GREEN}1)${NC} Install/Update Production Environment"
     echo -e "${GREEN}2)${NC} Install/Update Development Environment"
     echo -e "${GREEN}3)${NC} Install/Update Both Environments"
-    echo -e "${GREEN}4)${NC} Show System Status"
-    echo -e "${GREEN}5)${NC} View Logs"
-    echo -e "${GREEN}6)${NC} Create Backup"
-    echo -e "${GREEN}7)${NC} Setup SSL Certificates"
-    echo -e "${GREEN}8)${NC} Exit"
+    echo -e "${GREEN}4)${NC} Clean Install Both Environments"
+    echo -e "${GREEN}5)${NC} Show System Status"
+    echo -e "${GREEN}6)${NC} View Logs"
+    echo -e "${GREEN}7)${NC} Create Backup"
+    echo -e "${GREEN}8)${NC} Setup SSL Certificates"
+    echo -e "${GREEN}9)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -635,18 +655,16 @@ show_menu() {
 # Function to handle installation/update
 handle_installation() {
     local env="$1"
+    local clean_install="${2:-false}"
     
     print_header "Starting $env environment installation/update..."
     
-    # Create backup before changes
-    create_backup
-    
     # Check if installation exists
     local app_dir="/var/www/${PROJECT_NAME}_$env"
-    if directory_exists "$app_dir"; then
+    if directory_exists "$app_dir" && [ "$clean_install" = "false" ]; then
         print_info "Existing $env installation detected. Performing update..."
     else
-        print_info "No existing $env installation. Performing fresh install..."
+        print_info "No existing $env installation or clean install requested. Performing fresh install..."
     fi
     
     # Perform installation steps
@@ -654,7 +672,7 @@ handle_installation() {
     install_system_deps
     install_nodejs
     install_webserver
-    setup_application "$env"
+    setup_application "$env" "$clean_install"
     configure_environment "$env"
     
     if [ "$env" = "prod" ] || [ "$env" = "both" ]; then
@@ -680,22 +698,32 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-8): " choice
+        read -p "Enter your choice (1-9): " choice
         
         case $choice in
             1)
-                handle_installation "prod"
+                handle_installation "prod" "false"
                 read -p "Press Enter to continue..."
                 ;;
             2)
-                handle_installation "dev"
+                handle_installation "dev" "false"
                 read -p "Press Enter to continue..."
                 ;;
             3)
-                handle_installation "both"
+                handle_installation "both" "false"
                 read -p "Press Enter to continue..."
                 ;;
             4)
+                print_warning "This will remove existing installations and perform a clean install!"
+                read -p "Are you sure? (y/N): " confirm
+                if [[ $confirm =~ ^[Yy]$ ]]; then
+                    handle_installation "both" "true"
+                else
+                    print_info "Clean install cancelled"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            5)
                 print_header "System Status"
                 echo ""
                 echo -e "${CYAN}PM2 Status:${NC}"
@@ -711,7 +739,7 @@ main() {
                 free -h
                 read -p "Press Enter to continue..."
                 ;;
-            5)
+            6)
                 print_header "Viewing Logs"
                 echo ""
                 echo -e "${CYAN}Deployment Log:${NC}"
@@ -721,11 +749,11 @@ main() {
                 tail -20 "$ERROR_LOG"
                 read -p "Press Enter to continue..."
                 ;;
-            6)
+            7)
                 create_backup
                 read -p "Press Enter to continue..."
                 ;;
-            7)
+            8)
                 print_header "SSL Certificate Setup"
                 echo ""
                 echo -e "${YELLOW}Note: Make sure your domain DNS is configured before setting up SSL${NC}"
@@ -739,7 +767,7 @@ main() {
                 fi
                 read -p "Press Enter to continue..."
                 ;;
-            8)
+            9)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -750,7 +778,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-8."
+                print_error "Invalid option. Please choose 1-9."
                 read -p "Press Enter to continue..."
                 ;;
         esac

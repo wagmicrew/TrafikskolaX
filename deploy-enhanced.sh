@@ -456,7 +456,7 @@ module.exports = {
       name: '${PROJECT_NAME}-dev',
       cwd: '/var/www/${PROJECT_NAME}_dev',
       script: 'npm',
-      args: 'start',
+      args: 'run dev',
       env: {
         NODE_ENV: 'development',
         PORT: $DEV_PORT
@@ -467,7 +467,10 @@ module.exports = {
       max_memory_restart: '1G',
       error_file: '/var/log/pm2/${PROJECT_NAME}-dev-error.log',
       out_file: '/var/log/pm2/${PROJECT_NAME}-dev-out.log',
-      log_file: '/var/log/pm2/${PROJECT_NAME}-dev-combined.log'
+      log_file: '/var/log/pm2/${PROJECT_NAME}-dev-combined.log',
+      kill_timeout: 5000,
+      wait_ready: true,
+      listen_timeout: 10000
     },
     {
       name: '${PROJECT_NAME}-prod',
@@ -484,7 +487,10 @@ module.exports = {
       max_memory_restart: '1G',
       error_file: '/var/log/pm2/${PROJECT_NAME}-prod-error.log',
       out_file: '/var/log/pm2/${PROJECT_NAME}-prod-out.log',
-      log_file: '/var/log/pm2/${PROJECT_NAME}-prod-combined.log'
+      log_file: '/var/log/pm2/${PROJECT_NAME}-prod-combined.log',
+      kill_timeout: 5000,
+      wait_ready: true,
+      listen_timeout: 10000
     }
   ]
 };
@@ -499,6 +505,27 @@ EOF
     if [ $? -ne 0 ]; then
         print_error "Failed to start PM2 applications"
         return 1
+    fi
+    
+    # Wait for applications to start
+    print_info "Waiting for applications to start..."
+    sleep 15
+    
+    # Check if applications are running
+    if pm2 list | grep -q "${PROJECT_NAME}-dev.*online"; then
+        print_status "Development application started successfully"
+    else
+        print_warning "Development application may not be running properly"
+        print_debug "Checking development application logs..."
+        pm2 logs "${PROJECT_NAME}-dev" --lines 10
+    fi
+    
+    if pm2 list | grep -q "${PROJECT_NAME}-prod.*online"; then
+        print_status "Production application started successfully"
+    else
+        print_warning "Production application may not be running properly"
+        print_debug "Checking production application logs..."
+        pm2 logs "${PROJECT_NAME}-prod" --lines 10
     fi
     
     pm2 save
@@ -782,6 +809,109 @@ test_deployment() {
     return 0
 }
 
+# Function to restart applications with correct configuration
+restart_applications() {
+    print_header "Restarting Applications with Correct Configuration"
+    
+    print_info "Stopping all applications..."
+    pm2 stop all >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    pm2 delete all >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    print_info "Waiting for processes to stop..."
+    sleep 5
+    
+    # Recreate PM2 ecosystem file
+    local ecosystem_file="/var/www/${PROJECT_NAME}_prod/ecosystem.config.js"
+    
+    cat > "$ecosystem_file" << EOF
+module.exports = {
+  apps: [
+    {
+      name: '${PROJECT_NAME}-dev',
+      cwd: '/var/www/${PROJECT_NAME}_dev',
+      script: 'npm',
+      args: 'run dev',
+      env: {
+        NODE_ENV: 'development',
+        PORT: $DEV_PORT
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: '/var/log/pm2/${PROJECT_NAME}-dev-error.log',
+      out_file: '/var/log/pm2/${PROJECT_NAME}-dev-out.log',
+      log_file: '/var/log/pm2/${PROJECT_NAME}-dev-combined.log',
+      kill_timeout: 5000,
+      wait_ready: true,
+      listen_timeout: 10000
+    },
+    {
+      name: '${PROJECT_NAME}-prod',
+      cwd: '/var/www/${PROJECT_NAME}_prod',
+      script: 'npm',
+      args: 'start',
+      env: {
+        NODE_ENV: 'production',
+        PORT: $PROD_PORT
+      },
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
+      error_file: '/var/log/pm2/${PROJECT_NAME}-prod-error.log',
+      out_file: '/var/log/pm2/${PROJECT_NAME}-prod-out.log',
+      log_file: '/var/log/pm2/${PROJECT_NAME}-prod-combined.log',
+      kill_timeout: 5000,
+      wait_ready: true,
+      listen_timeout: 10000
+    }
+  ]
+};
+EOF
+    
+    print_info "Starting applications with correct configuration..."
+    cd "/var/www/${PROJECT_NAME}_prod"
+    pm2 start ecosystem.config.js >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    if [ $? -ne 0 ]; then
+        print_error "Failed to start applications"
+        return 1
+    fi
+    
+    print_info "Waiting for applications to start..."
+    sleep 15
+    
+    # Check application status
+    print_info "Checking application status..."
+    pm2 status
+    
+    # Test applications
+    print_info "Testing applications..."
+    local dev_response=$(curl -s --max-time 10 http://localhost:$DEV_PORT 2>/dev/null || echo "TIMEOUT")
+    if [ "$dev_response" != "TIMEOUT" ] && [ -n "$dev_response" ]; then
+        print_status "Development server responding on port $DEV_PORT"
+    else
+        print_warning "Development server not responding on port $DEV_PORT"
+        print_debug "Development server logs:"
+        pm2 logs "${PROJECT_NAME}-dev" --lines 10
+    fi
+    
+    local prod_response=$(curl -s --max-time 10 http://localhost:$PROD_PORT 2>/dev/null || echo "TIMEOUT")
+    if [ "$prod_response" != "TIMEOUT" ] && [ -n "$prod_response" ]; then
+        print_status "Production server responding on port $PROD_PORT"
+    else
+        print_warning "Production server not responding on port $PROD_PORT"
+        print_debug "Production server logs:"
+        pm2 logs "${PROJECT_NAME}-prod" --lines 10
+    fi
+    
+    pm2 save
+    
+    print_status "Applications restarted with correct configuration"
+    return 0
+}
+
 # Function to fix development server issues
 fix_dev_server() {
     print_header "Fixing Development Server Issues"
@@ -844,23 +974,9 @@ EOF
         print_status "Dependencies already installed"
     fi
     
-    # Restart development server
-    print_info "Restarting development server..."
-    pm2 restart "${PROJECT_NAME}-dev" >> "$LOG_FILE" 2>> "$ERROR_LOG"
-    
-    # Wait for server to start
-    print_info "Waiting for server to start..."
-    sleep 10
-    
-    # Test the server
-    local response=$(curl -s --max-time 10 http://localhost:3000 2>/dev/null || echo "TIMEOUT")
-    if [ "$response" != "TIMEOUT" ] && [ -n "$response" ]; then
-        print_status "Development server is now responding"
-    else
-        print_error "Development server still not responding"
-        print_debug "Checking PM2 logs..."
-        pm2 logs "${PROJECT_NAME}-dev" --lines 20
-    fi
+    # Restart with correct configuration
+    print_info "Restarting development server with correct configuration..."
+    restart_applications
     
     return 0
 }
@@ -877,10 +993,11 @@ manage_pm2() {
     echo -e "${GREEN}4)${NC} Stop All Applications"
     echo -e "${GREEN}5)${NC} Show PM2 Logs"
     echo -e "${GREEN}6)${NC} Fix Development Server"
-    echo -e "${GREEN}7)${NC} Back to Main Menu"
+    echo -e "${GREEN}7)${NC} Restart with Correct Configuration"
+    echo -e "${GREEN}8)${NC} Back to Main Menu"
     echo ""
     
-    read -p "Enter your choice (1-7): " pm2_choice
+    read -p "Enter your choice (1-8): " pm2_choice
     
     case $pm2_choice in
         1)
@@ -922,6 +1039,9 @@ manage_pm2() {
             fix_dev_server
             ;;
         7)
+            restart_applications
+            ;;
+        8)
             return 0
             ;;
         *)

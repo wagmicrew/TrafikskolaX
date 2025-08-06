@@ -176,6 +176,7 @@ export function SwishPaymentDialog({
               title: "Betalning registrerad",
               description: "Vi kommer att bekräfta din betalning inom kort",
             })
+            // Email sending will be handled by the API
             onConfirm()
           } else {
             // Check for specific error

@@ -106,17 +106,29 @@ find_duplicate_directives() {
 backup_nginx_config() {
     print_header "Creating Nginx Configuration Backup"
     
-    local backup_dir="/etc/nginx/backup-$(date +%Y%m%d-%H%M%S)"
+    local backup_dir="/tmp/nginx-backup-$(date +%Y%m%d-%H%M%S)"
     mkdir -p "$backup_dir"
     
     if [ -d "/etc/nginx" ]; then
         # Copy files individually to avoid recursive copying
-        cp /etc/nginx/nginx.conf "$backup_dir/" 2>/dev/null || true
-        cp -r /etc/nginx/sites-available "$backup_dir/" 2>/dev/null || true
-        cp -r /etc/nginx/sites-enabled "$backup_dir/" 2>/dev/null || true
-        cp -r /etc/nginx/conf.d "$backup_dir/" 2>/dev/null || true
-        cp -r /etc/nginx/modules-enabled "$backup_dir/" 2>/dev/null || true
-        cp /etc/nginx/mime.types "$backup_dir/" 2>/dev/null || true
+        if [ -f "/etc/nginx/nginx.conf" ]; then
+            cp /etc/nginx/nginx.conf "$backup_dir/" 2>/dev/null || true
+        fi
+        if [ -d "/etc/nginx/sites-available" ]; then
+            cp -r /etc/nginx/sites-available "$backup_dir/" 2>/dev/null || true
+        fi
+        if [ -d "/etc/nginx/sites-enabled" ]; then
+            cp -r /etc/nginx/sites-enabled "$backup_dir/" 2>/dev/null || true
+        fi
+        if [ -d "/etc/nginx/conf.d" ]; then
+            cp -r /etc/nginx/conf.d "$backup_dir/" 2>/dev/null || true
+        fi
+        if [ -d "/etc/nginx/modules-enabled" ]; then
+            cp -r /etc/nginx/modules-enabled "$backup_dir/" 2>/dev/null || true
+        fi
+        if [ -f "/etc/nginx/mime.types" ]; then
+            cp /etc/nginx/mime.types "$backup_dir/" 2>/dev/null || true
+        fi
         
         print_status "Nginx configuration backed up to $backup_dir"
     else
@@ -143,20 +155,25 @@ fix_duplicate_gzip() {
     
     if [ "$gzip_count" -gt 1 ]; then
         print_warning "Found $gzip_count gzip directives in $nginx_conf"
-        
-        # Create backup
-        cp "$nginx_conf" "${nginx_conf}.backup"
-        
-        # Create a clean nginx.conf with proper gzip configuration
-        cat > "$nginx_conf" << 'EOF'
+    fi
+    
+    # Create backup
+    cp "$nginx_conf" "${nginx_conf}.backup"
+    
+    # Create a clean, optimized nginx.conf for HTTPS and PM2
+    cat > "$nginx_conf" << 'EOF'
 user www-data;
 worker_processes auto;
+worker_rlimit_nofile 65535;
 pid /run/nginx.pid;
+
+# Load dynamic modules
 include /etc/nginx/modules-enabled/*.conf;
 
 events {
-    worker_connections 768;
-    # multi_accept on;
+    worker_connections 4096;
+    multi_accept on;
+    use epoll;
 }
 
 http {
@@ -165,11 +182,21 @@ http {
     ##
     sendfile on;
     tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
     types_hash_max_size 2048;
-    # server_tokens off;
-
-    # server_names_hash_bucket_size 64;
-    # server_name_in_redirect off;
+    server_tokens off;
+    client_max_body_size 100M;
+    
+    # Buffer size settings
+    client_body_buffer_size 128k;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 4 4k;
+    
+    # Timeout settings
+    client_body_timeout 12;
+    client_header_timeout 12;
+    send_timeout 10;
 
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
@@ -178,7 +205,13 @@ http {
     # SSL Settings
     ##
     ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
     ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
 
     ##
     # Logging Settings
@@ -187,12 +220,13 @@ http {
     error_log /var/log/nginx/error.log;
 
     ##
-    # Gzip Settings
+    # Gzip Settings (Optimized for Performance)
     ##
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
+    gzip_min_length 256;
     gzip_types
         text/plain
         text/css
@@ -202,7 +236,19 @@ http {
         application/javascript
         application/xml+rss
         application/atom+xml
-        image/svg+xml;
+        image/svg+xml
+        application/x-font-ttf
+        font/opentype
+        application/vnd.ms-fontobject
+        application/x-font-woff;
+
+    ##
+    # Security Headers
+    ##
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
     ##
     # Virtual Host Configs
@@ -212,11 +258,7 @@ http {
 }
 EOF
         
-        print_status "Fixed duplicate gzip directives in $nginx_conf"
-    else
-        print_status "No duplicate gzip directives found in main config"
-    fi
-    
+    print_status "Created optimized nginx.conf for HTTPS and PM2"
     return 0
 }
 
@@ -266,16 +308,20 @@ create_clean_nginx_config() {
     
     local nginx_conf="/etc/nginx/nginx.conf"
     
-    # Create a clean nginx.conf
+    # Create a clean, optimized nginx.conf for HTTPS and PM2
     cat > "$nginx_conf" << 'EOF'
 user www-data;
 worker_processes auto;
+worker_rlimit_nofile 65535;
 pid /run/nginx.pid;
+
+# Load dynamic modules
 include /etc/nginx/modules-enabled/*.conf;
 
 events {
-    worker_connections 768;
-    # multi_accept on;
+    worker_connections 4096;
+    multi_accept on;
+    use epoll;
 }
 
 http {
@@ -284,11 +330,21 @@ http {
     ##
     sendfile on;
     tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
     types_hash_max_size 2048;
-    # server_tokens off;
-
-    # server_names_hash_bucket_size 64;
-    # server_name_in_redirect off;
+    server_tokens off;
+    client_max_body_size 100M;
+    
+    # Buffer size settings
+    client_body_buffer_size 128k;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 4 4k;
+    
+    # Timeout settings
+    client_body_timeout 12;
+    client_header_timeout 12;
+    send_timeout 10;
 
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
@@ -297,7 +353,13 @@ http {
     # SSL Settings
     ##
     ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
     ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
 
     ##
     # Logging Settings
@@ -306,12 +368,13 @@ http {
     error_log /var/log/nginx/error.log;
 
     ##
-    # Gzip Settings
+    # Gzip Settings (Optimized for Performance)
     ##
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
+    gzip_min_length 256;
     gzip_types
         text/plain
         text/css
@@ -321,7 +384,19 @@ http {
         application/javascript
         application/xml+rss
         application/atom+xml
-        image/svg+xml;
+        image/svg+xml
+        application/x-font-ttf
+        font/opentype
+        application/vnd.ms-fontobject
+        application/x-font-woff;
+
+    ##
+    # Security Headers
+    ##
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
     ##
     # Virtual Host Configs
@@ -331,7 +406,7 @@ http {
 }
 EOF
     
-    print_status "Created clean nginx.conf"
+    print_status "Created optimized nginx.conf for HTTPS and PM2"
     return 0
 }
 

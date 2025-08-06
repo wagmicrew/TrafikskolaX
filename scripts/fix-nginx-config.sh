@@ -110,7 +110,14 @@ backup_nginx_config() {
     mkdir -p "$backup_dir"
     
     if [ -d "/etc/nginx" ]; then
-        cp -r /etc/nginx/* "$backup_dir/"
+        # Copy files individually to avoid recursive copying
+        cp /etc/nginx/nginx.conf "$backup_dir/" 2>/dev/null || true
+        cp -r /etc/nginx/sites-available "$backup_dir/" 2>/dev/null || true
+        cp -r /etc/nginx/sites-enabled "$backup_dir/" 2>/dev/null || true
+        cp -r /etc/nginx/conf.d "$backup_dir/" 2>/dev/null || true
+        cp -r /etc/nginx/modules-enabled "$backup_dir/" 2>/dev/null || true
+        cp /etc/nginx/mime.types "$backup_dir/" 2>/dev/null || true
+        
         print_status "Nginx configuration backed up to $backup_dir"
     else
         print_error "Nginx configuration directory not found"
@@ -140,16 +147,72 @@ fix_duplicate_gzip() {
         # Create backup
         cp "$nginx_conf" "${nginx_conf}.backup"
         
-        # Remove duplicate gzip directives, keep only the first one
-        awk '/^[[:space:]]*gzip/ { if (!gzip_found) { print; gzip_found=1 } else { print "# " $0 " # REMOVED DUPLICATE" } } !/^[[:space:]]*gzip/ { print }' "$nginx_conf" > "${nginx_conf}.tmp"
+        # Create a clean nginx.conf with proper gzip configuration
+        cat > "$nginx_conf" << 'EOF'
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections 768;
+    # multi_accept on;
+}
+
+http {
+    ##
+    # Basic Settings
+    ##
+    sendfile on;
+    tcp_nopush on;
+    types_hash_max_size 2048;
+    # server_tokens off;
+
+    # server_names_hash_bucket_size 64;
+    # server_name_in_redirect off;
+
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    ##
+    # SSL Settings
+    ##
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    ##
+    # Logging Settings
+    ##
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    ##
+    # Gzip Settings
+    ##
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml;
+
+    ##
+    # Virtual Host Configs
+    ##
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+EOF
         
-        if [ $? -eq 0 ]; then
-            mv "${nginx_conf}.tmp" "$nginx_conf"
-            print_status "Fixed duplicate gzip directives in $nginx_conf"
-        else
-            print_error "Failed to fix gzip directives"
-            return 1
-        fi
+        print_status "Fixed duplicate gzip directives in $nginx_conf"
     else
         print_status "No duplicate gzip directives found in main config"
     fi

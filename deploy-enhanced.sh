@@ -1462,6 +1462,44 @@ fix_dependency_issues() {
     return 0
 }
 
+# Function to fix nginx SSL certificate issues
+fix_nginx_ssl_issues() {
+    print_header "Nginx SSL Certificate Fix"
+    
+    print_info "This will help diagnose and fix nginx SSL certificate loading issues"
+    print_info "Including missing certificates and configuration problems"
+    echo ""
+    
+    read -p "Do you want to run the nginx SSL fix script? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "Nginx SSL fix cancelled"
+        return 0
+    fi
+    
+    # Check if nginx SSL fix script exists
+    local nginx_ssl_fix_script="/var/www/${PROJECT_NAME}_prod/scripts/fix-nginx-ssl.sh"
+    if [ ! -f "$nginx_ssl_fix_script" ]; then
+        print_error "Nginx SSL fix script not found at $nginx_ssl_fix_script"
+        return 1
+    fi
+    
+    # Make script executable
+    chmod +x "$nginx_ssl_fix_script"
+    
+    # Run nginx SSL fix script
+    print_info "Running nginx SSL fix script..."
+    "$nginx_ssl_fix_script"
+    
+    if [ $? -eq 0 ]; then
+        print_status "Nginx SSL fix completed successfully"
+    else
+        print_error "Nginx SSL fix failed"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1486,7 +1524,8 @@ show_menu() {
     echo -e "${GREEN}13)${NC} Configure SSL Certificates"
     echo -e "${GREEN}14)${NC} Fix Nginx Configuration"
     echo -e "${GREEN}15)${NC} Fix Dependency Issues"
-    echo -e "${GREEN}16)${NC} Exit"
+    echo -e "${GREEN}16)${NC} Fix Nginx SSL Issues"
+    echo -e "${GREEN}17)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -1594,7 +1633,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-16): " choice
+        read -p "Enter your choice (1-17): " choice
         
         case $choice in
             1)
@@ -1717,6 +1756,9 @@ main() {
                 fix_dependency_issues
                 ;;
             16)
+                fix_nginx_ssl_issues
+                ;;
+            17)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1727,7 +1769,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-16."
+                print_error "Invalid option. Please choose 1-17."
                 read -p "Press Enter to continue..."
                 ;;
         esac

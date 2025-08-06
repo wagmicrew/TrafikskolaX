@@ -740,6 +740,10 @@ main() {
                 read -p "Press Enter to continue..."
                 ;;
             7)
+                setup_www_subdomain
+                read -p "Press Enter to continue..."
+                ;;
+            8)
                 print_header "Exiting SSL configuration script"
                 echo ""
                 print_info "SSL configuration script completed"
@@ -750,7 +754,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-7."
+                print_error "Invalid option. Please choose 1-8."
                 read -p "Press Enter to continue..."
                 ;;
         esac

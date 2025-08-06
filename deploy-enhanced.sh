@@ -1348,6 +1348,44 @@ create_admin_user_manual() {
     return 0
 }
 
+# Function to configure SSL certificates
+configure_ssl_certificates() {
+    print_header "SSL Certificate Configuration"
+    
+    print_info "This will configure SSL certificates for your domains using Let's Encrypt"
+    print_info "Domains: dintrafikskolahlm.se, www.trafikskolahlm.se"
+    echo ""
+    
+    read -p "Do you want to configure SSL certificates? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "SSL configuration cancelled"
+        return 0
+    fi
+    
+    # Check if SSL script exists
+    local ssl_script="/var/www/${PROJECT_NAME}_prod/scripts/configure-ssl.sh"
+    if [ ! -f "$ssl_script" ]; then
+        print_error "SSL configuration script not found at $ssl_script"
+        return 1
+    fi
+    
+    # Make script executable
+    chmod +x "$ssl_script"
+    
+    # Run SSL configuration script
+    print_info "Running SSL configuration script..."
+    "$ssl_script"
+    
+    if [ $? -eq 0 ]; then
+        print_status "SSL configuration completed successfully"
+    else
+        print_error "SSL configuration failed"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1369,7 +1407,8 @@ show_menu() {
     echo -e "${GREEN}10)${NC} Clean and Rebuild"
     echo -e "${GREEN}11)${NC} Remove Test Users"
     echo -e "${GREEN}12)${NC} Create Admin User"
-    echo -e "${GREEN}13)${NC} Exit"
+    echo -e "${GREEN}13)${NC} Configure SSL Certificates"
+    echo -e "${GREEN}14)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -1477,7 +1516,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-13): " choice
+        read -p "Enter your choice (1-14): " choice
         
         case $choice in
             1)
@@ -1591,6 +1630,9 @@ main() {
                 create_admin_user_manual
                 ;;
             13)
+                configure_ssl_certificates
+                ;;
+            14)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1601,7 +1643,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-13."
+                print_error "Invalid option. Please choose 1-14."
                 read -p "Press Enter to continue..."
                 ;;
         esac

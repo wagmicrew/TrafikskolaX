@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 🛡️ SSL Certificate Configuration Script for Din Trafikskola Hässleholm
-# Configures SSL certificates for dintrafikskolahlm.se and www.trafikskolahlm.se
+# Configures SSL certificates for dintrafikskolahlm.se and www.dintrafikskolahlm.se
 # Uses Let's Encrypt via Certbot for free SSL certificates
 
 # Colors and styling
@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DOMAIN="dintrafikskolahlm.se"
-WWW_DOMAIN="www.trafikskolahlm.se"
+WWW_DOMAIN="www.dintrafikskolahlm.se"
 EMAIL="admin@dintrafikskolahlm.se"
 PROJECT_NAME="dintrafikskolax"
 NGINX_SITES_DIR="/etc/nginx/sites-available"
@@ -150,16 +150,90 @@ check_dns() {
         else
             print_error "$domain does not resolve to any IP address"
             all_resolved=false
+            
+            # Provide helpful information for www subdomain
+            if [ "$domain" = "$WWW_DOMAIN" ]; then
+                print_info "To set up www subdomain, add this DNS record:"
+                print_info "Type: CNAME"
+                print_info "Name: www"
+                print_info "Value: $DOMAIN"
+                print_info "Or alternatively:"
+                print_info "Type: A"
+                print_info "Name: www"
+                print_info "Value: $server_ip"
+            fi
         fi
     done
     
     if [ "$all_resolved" = false ]; then
         print_warning "Some domains may not be properly configured in DNS"
         print_warning "SSL certificate issuance may fail if DNS is not correct"
+        echo ""
+        print_info "DNS Setup Instructions:"
+        print_info "1. Log into your domain registrar's DNS management"
+        print_info "2. Add these records:"
+        print_info "   - A record: $DOMAIN -> $server_ip"
+        print_info "   - CNAME record: www -> $DOMAIN"
+        print_info "   OR A record: www -> $server_ip"
+        print_info "3. Wait for DNS propagation (can take up to 24 hours)"
+        echo ""
         read -p "Continue anyway? (y/N): " continue_anyway
         if [[ ! $continue_anyway =~ ^[Yy]$ ]]; then
             return 1
         fi
+    fi
+    
+    return 0
+}
+
+# Function to setup www subdomain
+setup_www_subdomain() {
+    print_header "Setting up www subdomain..."
+    
+    print_info "This will help you configure the www subdomain"
+    print_info "Current server IP: $(hostname -I | awk '{print $1}')"
+    print_info "Main domain: $DOMAIN"
+    print_info "WWW subdomain: $WWW_DOMAIN"
+    echo ""
+    
+    print_info "DNS Configuration Instructions:"
+    echo ""
+    print_info "Option 1 - CNAME Record (Recommended):"
+    print_info "  Type: CNAME"
+    print_info "  Name: www"
+    print_info "  Value: $DOMAIN"
+    print_info "  TTL: 3600 (or default)"
+    echo ""
+    print_info "Option 2 - A Record:"
+    print_info "  Type: A"
+    print_info "  Name: www"
+    print_info "  Value: $(hostname -I | awk '{print $1}')"
+    print_info "  TTL: 3600 (or default)"
+    echo ""
+    print_info "After adding the DNS record:"
+    print_info "1. Wait 5-10 minutes for DNS propagation"
+    print_info "2. Test with: dig +short $WWW_DOMAIN"
+    print_info "3. Run this script again to configure SSL"
+    echo ""
+    
+    read -p "Press Enter when you've added the DNS record..."
+    
+    # Test DNS resolution
+    print_info "Testing DNS resolution..."
+    local resolved_ip=$(dig +short "$WWW_DOMAIN" | head -1)
+    
+    if [ -n "$resolved_ip" ]; then
+        print_status "$WWW_DOMAIN now resolves to $resolved_ip"
+        local server_ip=$(hostname -I | awk '{print $1}')
+        if [ "$resolved_ip" = "$server_ip" ] || [ "$resolved_ip" = "$DOMAIN" ]; then
+            print_status "WWW subdomain is correctly configured!"
+        else
+            print_warning "WWW subdomain points to $resolved_ip"
+            print_warning "Make sure it points to this server ($server_ip) or the main domain"
+        fi
+    else
+        print_error "$WWW_DOMAIN still does not resolve"
+        print_info "DNS propagation may take longer. Try again in a few minutes."
     fi
     
     return 0
@@ -485,7 +559,8 @@ show_menu() {
     echo -e "${GREEN}4)${NC} Renew Certificates"
     echo -e "${GREEN}5)${NC} Test SSL Configuration"
     echo -e "${GREEN}6)${NC} View SSL Logs"
-    echo -e "${GREEN}7)${NC} Exit"
+    echo -e "${GREEN}7)${NC} Setup WWW Subdomain"
+    echo -e "${GREEN}8)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Domains: $DOMAIN, $WWW_DOMAIN${NC}"
     echo -e "${YELLOW}Email: $EMAIL${NC}"
@@ -637,7 +712,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-7): " choice
+        read -p "Enter your choice (1-8): " choice
         
         case $choice in
             1)

@@ -1353,7 +1353,7 @@ configure_ssl_certificates() {
     print_header "SSL Certificate Configuration"
     
     print_info "This will configure SSL certificates for your domains using Let's Encrypt"
-    print_info "Domains: dintrafikskolahlm.se, www.trafikskolahlm.se"
+    print_info "Domains: dintrafikskolahlm.se, www.dintrafikskolahlm.se"
     echo ""
     
     read -p "Do you want to configure SSL certificates? (y/N): " confirm

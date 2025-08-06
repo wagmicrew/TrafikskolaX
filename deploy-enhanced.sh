@@ -271,6 +271,14 @@ install_nodejs() {
         print_status "PM2 installed"
     else
         print_info "PM2 already installed"
+        # Check if PM2 needs updating
+        print_info "Checking PM2 version..."
+        pm2 update >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -eq 0 ]; then
+            print_status "PM2 updated successfully"
+        else
+            print_warning "PM2 update failed, but continuing..."
+        fi
     fi
     
     return 0
@@ -677,6 +685,69 @@ test_deployment() {
     return 0
 }
 
+# Function to manage PM2
+manage_pm2() {
+    print_header "PM2 Management"
+    echo ""
+    echo -e "${WHITE}Choose a PM2 operation:${NC}"
+    echo ""
+    echo -e "${GREEN}1)${NC} Update PM2"
+    echo -e "${GREEN}2)${NC} Show PM2 Status"
+    echo -e "${GREEN}3)${NC} Restart All Applications"
+    echo -e "${GREEN}4)${NC} Stop All Applications"
+    echo -e "${GREEN}5)${NC} Show PM2 Logs"
+    echo -e "${GREEN}6)${NC} Back to Main Menu"
+    echo ""
+    
+    read -p "Enter your choice (1-6): " pm2_choice
+    
+    case $pm2_choice in
+        1)
+            print_info "Updating PM2..."
+            pm2 update >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            if [ $? -eq 0 ]; then
+                print_status "PM2 updated successfully"
+            else
+                print_error "PM2 update failed"
+            fi
+            ;;
+        2)
+            print_info "PM2 Status:"
+            pm2 status
+            ;;
+        3)
+            print_info "Restarting all PM2 applications..."
+            pm2 restart all >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            if [ $? -eq 0 ]; then
+                print_status "All applications restarted"
+            else
+                print_error "Failed to restart applications"
+            fi
+            ;;
+        4)
+            print_info "Stopping all PM2 applications..."
+            pm2 stop all >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            if [ $? -eq 0 ]; then
+                print_status "All applications stopped"
+            else
+                print_error "Failed to stop applications"
+            fi
+            ;;
+        5)
+            print_info "PM2 Logs (last 50 lines):"
+            pm2 logs --lines 50
+            ;;
+        6)
+            return 0
+            ;;
+        *)
+            print_error "Invalid option"
+            ;;
+    esac
+    
+    read -p "Press Enter to continue..."
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -694,7 +765,8 @@ show_menu() {
     echo -e "${GREEN}6)${NC} View Logs"
     echo -e "${GREEN}7)${NC} Create Backup"
     echo -e "${GREEN}8)${NC} Setup SSL Certificates"
-    echo -e "${GREEN}9)${NC} Exit"
+    echo -e "${GREEN}9)${NC} PM2 Management"
+    echo -e "${GREEN}10)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -794,7 +866,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-9): " choice
+        read -p "Enter your choice (1-10): " choice
         
         case $choice in
             1)
@@ -884,6 +956,9 @@ main() {
                 read -p "Press Enter to continue..."
                 ;;
             9)
+                manage_pm2
+                ;;
+            10)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -894,7 +969,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-9."
+                print_error "Invalid option. Please choose 1-10."
                 read -p "Press Enter to continue..."
                 ;;
         esac

@@ -245,32 +245,12 @@ create_nginx_config() {
     
     local nginx_config="$NGINX_SITES_DIR/$DOMAIN"
     
-    # Create nginx configuration
+    # Create temporary HTTP-only nginx configuration for certbot
     cat > "$nginx_config" << EOF
-# HTTP - redirect to HTTPS
+# HTTP - temporary configuration for SSL certificate acquisition
 server {
     listen 80;
     server_name $DOMAIN $WWW_DOMAIN;
-    
-    # Redirect all HTTP traffic to HTTPS
-    return 301 https://\$server_name\$request_uri;
-}
-
-# HTTPS - main configuration
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN $WWW_DOMAIN;
-    
-    # SSL configuration (will be added by certbot)
-    # ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-    
-    # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
     
     # Proxy to PM2 applications
     location / {
@@ -345,7 +325,7 @@ obtain_ssl_certificates() {
     else
         print_info "Obtaining individual certificates for $DOMAIN and $WWW_DOMAIN"
         
-        # Individual certificates using nginx plugin
+        # Individual certificates using nginx plugin - this will automatically modify nginx config
         certbot certonly \
             --nginx \
             --email "$EMAIL" \
@@ -359,6 +339,7 @@ obtain_ssl_certificates() {
         
         if [ $? -eq 0 ]; then
             print_status "Individual certificates obtained successfully"
+            print_info "Certbot has automatically updated the nginx configuration"
         else
             print_error "Failed to obtain individual certificates"
             return 1
@@ -368,11 +349,17 @@ obtain_ssl_certificates() {
     return 0
 }
 
-# Function to configure SSL in nginx
+# Function to configure SSL in nginx (for wildcard certificates or manual setup)
 configure_ssl_in_nginx() {
     print_header "Configuring SSL in Nginx..."
     
     local nginx_config="$NGINX_SITES_DIR/$DOMAIN"
+    
+    # Check if certificates exist
+    if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+        print_error "SSL certificates not found. Please obtain certificates first."
+        return 1
+    fi
     
     # Update nginx configuration with SSL settings
     cat > "$nginx_config" << EOF
@@ -580,11 +567,11 @@ configure_individual_certificates() {
     # Create nginx configuration
     create_nginx_config || return 1
     
-    # Obtain certificates
+    # Obtain certificates (certbot will automatically configure nginx)
     obtain_ssl_certificates "individual" || return 1
     
-    # Configure SSL in nginx
-    configure_ssl_in_nginx || return 1
+    # For individual certificates, certbot automatically configures nginx
+    # No need to manually configure SSL in nginx
     
     # Setup auto-renewal
     setup_auto_renewal || return 1
@@ -627,7 +614,7 @@ configure_wildcard_certificate() {
     # Obtain certificates
     obtain_ssl_certificates "wildcard" || return 1
     
-    # Configure SSL in nginx
+    # For wildcard certificates, manually configure SSL in nginx
     configure_ssl_in_nginx || return 1
     
     # Setup auto-renewal

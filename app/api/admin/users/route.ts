@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
 
 // GET all users
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const allUsers = await db.select().from(users);
@@ -29,14 +28,13 @@ export async function GET(request: NextRequest) {
 // PUT update user
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();
@@ -77,14 +75,13 @@ export async function PUT(request: NextRequest) {
 // DELETE user
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -106,14 +103,13 @@ export async function DELETE(request: NextRequest) {
 // PATCH toggle inskriven status
 export async function PATCH(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();

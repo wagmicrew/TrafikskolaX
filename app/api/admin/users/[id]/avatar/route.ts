@@ -9,7 +9,7 @@ import { cookies } from 'next/headers';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -24,8 +24,10 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    const { id: userId } = await params;
+
     // Check if user can modify this profile (self or admin/teacher)
-    if (user.userId !== params.id && user.role === 'student') {
+    if (user.userId !== userId && user.role === 'student') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -58,7 +60,7 @@ export async function POST(
     }
 
     // Generate unique filename
-    const fileName = `${params.id}-${Date.now()}.${file.name.split('.').pop()}`;
+    const fileName = `${userId}-${Date.now()}.${file.name.split('.').pop()}`;
     const filePath = join(uploadDir, fileName);
 
     // Write file
@@ -69,7 +71,7 @@ export async function POST(
     await db
       .update(users)
       .set({ profileImage: imageUrl })
-      .where(eq(users.id, params.id));
+      .where(eq(users.id, userId));
 
     return NextResponse.json({ 
       success: true, 

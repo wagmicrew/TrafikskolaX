@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packageContents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 // PUT update specific package content
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; contentId: string } }
+  { params }: { params: Promise<{ id: string; contentId: string }> }
 ) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id: packageId, contentId } = params;
+    const { id: packageId, contentId } = await params;
     const body = await request.json();
     const { 
       lessonTypeId, 
@@ -74,20 +73,19 @@ export async function PUT(
 // DELETE specific package content
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; contentId: string } }
+  { params }: { params: Promise<{ id: string; contentId: string }> }
 ) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id: packageId, contentId } = params;
+    const { id: packageId, contentId } = await params;
 
     // Delete the content
     const deletedContent = await db.delete(packageContents)

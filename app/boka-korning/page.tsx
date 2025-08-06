@@ -33,6 +33,7 @@ interface BookingData {
   totalPrice: number
   bookingId?: string
   tempBookingId?: string // Track temporary booking for cleanup
+  sessionId?: string // Add sessionId for handledar sessions
 }
 
 export default function BokaKorning() {
@@ -159,6 +160,7 @@ export default function BokaKorning() {
           ...prev,
           selectedDate: stepData.selectedDate,
           selectedTime: stepData.selectedTime,
+          sessionId: stepData.sessionId, // Add sessionId for handledar sessions
           tempBookingId: stepData.bookingId || prev.tempBookingId
         }))
         setCurrentStep(4)
@@ -187,23 +189,52 @@ const handleBookingComplete = async (paymentData: any) => {
       paymentData.paymentMethod = 'already_paid';
     }
     
-    // If we already have a temporary booking, just update it with payment
-    if (bookingData.tempBookingId) {
+    // The booking is already created as temporary, now we need to update it with final details
+    if (bookingData.bookingId || bookingData.tempBookingId) {
       try {
         setLoading(true)
+        
+        // Update the existing temporary booking with final payment method and guest info
+        const response = await fetch('/api/booking/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: bookingData.bookingId || bookingData.tempBookingId,
+            sessionType: bookingData.sessionType?.type || 'lesson',
+            paymentMethod: paymentData.paymentMethod,
+            guestName: paymentData.guestName,
+            guestEmail: paymentData.guestEmail,
+            guestPhone: paymentData.guestPhone,
+            studentId: paymentData.studentId,
+            alreadyPaid: paymentData.alreadyPaid || false
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to update booking')
+        }
+
+        const data = await response.json()
         
         // Show payment dialog based on selected method
         if (paymentData.paymentMethod === 'swish') {
           setShowSwishDialog(true)
         } else if (paymentData.paymentMethod === 'credits') {
           // Handle credit payment
-          await handleCreditPayment(bookingData.tempBookingId)
+          const bookingId = bookingData.bookingId || bookingData.tempBookingId
+          if (bookingId) {
+            await handleCreditPayment(bookingId)
+          }
         } else if (paymentData.paymentMethod === 'pay_at_location') {
           // Handle pay at location
-          await handlePayAtLocation(bookingData.tempBookingId)
+          const bookingId = bookingData.bookingId || bookingData.tempBookingId
+          if (bookingId) {
+            await handlePayAtLocation(bookingId)
+          }
         }
       } catch (error) {
-        console.error('Error completing booking:', error)
+        console.error('Error updating booking:', error)
         toast.error('Ett fel uppstod. Försök igen.')
       } finally {
         setLoading(false)
@@ -211,6 +242,7 @@ const handleBookingComplete = async (paymentData: any) => {
       return
     }
     
+    // Fallback: create booking if somehow we don't have one (shouldn't happen with new flow)
     try {
       setLoading(true)
       
@@ -220,11 +252,13 @@ const handleBookingComplete = async (paymentData: any) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionType: bookingData.sessionType?.type,
-          sessionId: bookingData.sessionType?.id,
+          sessionId: bookingData.sessionType?.type === 'handledar' && bookingData.sessionId 
+            ? bookingData.sessionId 
+            : bookingData.sessionType?.id,
           scheduledDate: bookingData.selectedDate?.toISOString().split('T')[0],
           startTime: bookingData.selectedTime,
-          endTime: bookingData.sessionType!.type === 'handledar' ? 'To be confirmed' : calculateEndTime(bookingData.selectedTime!, bookingData.sessionType!.durationMinutes),
-          durationMinutes: bookingData.sessionType!.durationMinutes,
+          endTime: bookingData.sessionType?.type === 'handledar' ? 'To be confirmed' : (bookingData.sessionType ? calculateEndTime(bookingData.selectedTime!, bookingData.sessionType.durationMinutes) : ''),
+          durationMinutes: bookingData.sessionType?.durationMinutes || 0,
           transmissionType: bookingData.transmissionType,
           totalPrice: bookingData.totalPrice,
           ...paymentData, // Guest info if not logged in
@@ -248,10 +282,16 @@ const handleBookingComplete = async (paymentData: any) => {
         setShowSwishDialog(true)
       } else if (paymentData.paymentMethod === 'credits') {
         // Handle credit payment
-        await handleCreditPayment(data.booking.id)
+        const bookingId = data.booking.id
+        if (bookingId) {
+          await handleCreditPayment(bookingId)
+        }
       } else if (paymentData.paymentMethod === 'pay_at_location') {
         // Handle pay at location
-        await handlePayAtLocation(data.booking.id)
+        const bookingId = data.booking.id
+        if (bookingId) {
+          await handlePayAtLocation(bookingId)
+        }
       }
     } catch (error) {
       console.error('Error completing booking:', error)
@@ -291,6 +331,19 @@ const handleBookingComplete = async (paymentData: any) => {
       if (currentStep === 5 || bookingData.tempBookingId) {
         await cleanupTempBooking()
       }
+      
+      // If going back from step 4 (confirmation) and we have a booking ID, clean it up
+      if (currentStep === 4 && bookingData.bookingId) {
+        try {
+          await fetch(`/api/booking/cleanup?bookingId=${bookingData.bookingId}&sessionType=${bookingData.sessionType?.type}`, {
+            method: 'DELETE'
+          })
+          setBookingData(prev => ({ ...prev, bookingId: undefined, tempBookingId: undefined }))
+        } catch (error) {
+          console.error('Error cleaning up booking:', error)
+        }
+      }
+      
       setCurrentStep(currentStep - 1)
     }
   }
@@ -365,7 +418,12 @@ const handleBookingComplete = async (paymentData: any) => {
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,
                 totalPrice: bookingData.totalPrice,
-                tempBookingId: bookingData.tempBookingId // Pass the temp booking ID
+                tempBookingId: bookingData.tempBookingId, // Pass the temp booking ID
+                sessionId: bookingData.sessionId, // Pass the specific sessionId for handledar sessions
+                instructor: null, // Add missing required field
+                vehicle: null, // Add missing required field
+                isStudent: (user as any)?.inskriven || false, // Add missing required field
+                isHandledarutbildning: bookingData.sessionType?.type === 'handledar' // Add missing required field
               }}
               user={user}
               onComplete={handleStepComplete}

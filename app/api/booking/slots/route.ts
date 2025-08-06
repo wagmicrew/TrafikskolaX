@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
 import { eq, and, gte, lte, or, inArray } from 'drizzle-orm';
+import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,7 +71,8 @@ export async function GET(request: NextRequest) {
           or(
             eq(bookings.status, 'on_hold'), 
             eq(bookings.status, 'booked'), 
-            eq(bookings.status, 'confirmed')
+            eq(bookings.status, 'confirmed'),
+            eq(bookings.status, 'temp') // Include temporary bookings to block slots
           )
         )
       );
@@ -113,6 +115,8 @@ export async function GET(request: NextRequest) {
       blockedSlotsByDate[dateKey].push(blocked);
     });
 
+
+
     // Process each date
     for (const { dateStr, dayOfWeek } of dateArray) {
       try {
@@ -137,19 +141,12 @@ export async function GET(request: NextRequest) {
           if (isSlotBlocked) continue;
 
           // Check if slot has existing bookings
-          const hasBooking = existingBookings.some((booking) => {
-            // Exclude expired on_hold bookings
-            if (booking.status === 'on_hold' && new Date(booking.createdAt) < tenMinutesAgo) {
-              return false;
-            }
-
-            // Check time overlap
-            return (
-              (booking.startTime >= slot.timeStart && booking.startTime < slot.timeEnd) ||
-              (booking.endTime > slot.timeStart && booking.endTime <= slot.timeEnd) ||
-              (booking.startTime <= slot.timeStart && booking.endTime >= slot.timeEnd)
-            );
-          });
+          const hasBooking = doesAnyBookingOverlapWithSlot(
+            existingBookings,
+            slot.timeStart,
+            slot.timeEnd,
+            true // exclude expired bookings
+          );
 
           // Check if this slot is within 3 hours from now
           const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
@@ -158,8 +155,8 @@ export async function GET(request: NextRequest) {
           // Add slot to available times
           timeSlots.push({
             time: slot.timeStart,
-            available: !hasBooking && !isWithinThreeHours,
-            callForAvailability: isWithinThreeHours && !hasBooking
+            available: !hasBooking && !hasHandledarConflict && !isWithinThreeHours,
+            callForAvailability: isWithinThreeHours && !hasBooking && !hasHandledarConflict
           });
         }
 

@@ -7,13 +7,14 @@ import { requireAuthAPI } from '@/lib/auth/server-auth';
 export const dynamic = 'force-dynamic';
 
 // POST - Create a booking for a specific user
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await requireAuthAPI('admin');
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
     
+    const { id: userId } = await params;
     const body = await request.json();
     const {
       lessonTypeId,
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const [booking] = await db
       .insert(bookings)
       .values({
-        userId: params.id,
+        userId: userId,
         lessonTypeId,
         scheduledDate,
         startTime,

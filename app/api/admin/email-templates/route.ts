@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { emailTemplates, emailReceivers, emailTriggers } from '@/lib/db/schema';
+import { emailTemplates, emailReceivers, emailTriggers, siteSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 
@@ -32,7 +32,27 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ templates: templatesWithReceivers });
+    // Get schoolname and school phone from site settings
+    const schoolnameSetting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'schoolname'))
+      .limit(1);
+
+    const schoolPhoneSetting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'school_phonenumber'))
+      .limit(1);
+
+    const schoolname = schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm';
+    const schoolPhone = schoolPhoneSetting.length > 0 ? schoolPhoneSetting[0].value : '08-XXX XX XX';
+
+    return NextResponse.json({ 
+      templates: templatesWithReceivers,
+      schoolname,
+      schoolPhone
+    });
   } catch (error) {
     console.error('Error fetching email templates:', error);
     return NextResponse.json({ error: 'Failed to fetch email templates' }, { status: 500 });

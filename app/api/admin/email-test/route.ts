@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { emailTemplates, emailReceivers } from '@/lib/db/schema';
+import { emailTemplates, emailReceivers, siteSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { sendEmail } from '@/lib/mailer/universal-mailer';
+import { EnhancedEmailService } from '@/lib/email/enhanced-email-service';
 import { logger } from '@/lib/logging/logger';
 
 export async function POST(request: NextRequest) {
@@ -53,6 +53,29 @@ export async function POST(request: NextRequest) {
 
     const emailTemplate = template[0];
 
+    // Get school settings from database
+    const schoolnameSetting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'schoolname'))
+      .limit(1);
+
+    const schoolPhoneSetting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'school_phonenumber'))
+      .limit(1);
+
+    const schoolEmailSetting = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, 'school_email'))
+      .limit(1);
+
+    const schoolname = schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm';
+    const schoolPhone = schoolPhoneSetting.length > 0 ? schoolPhoneSetting[0].value : '08-XXX XX XX';
+    const schoolEmail = schoolEmailSetting.length > 0 ? schoolEmailSetting[0].value : 'info@dintrafikskolahlm.se';
+
     // Create test data for template variables
     const testData = {
       user: {
@@ -74,7 +97,9 @@ export async function POST(request: NextRequest) {
       customData: {
         swishNumber: '123 456 78 90'
       },
-      schoolName: 'Din Trafikskola Hässleholm',
+      schoolName: schoolname,
+      schoolPhone: schoolPhone,
+      schoolEmail: schoolEmail,
       appUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       currentYear: new Date().getFullYear().toString(),
@@ -112,6 +137,8 @@ export async function POST(request: NextRequest) {
       .replace(/\{\{booking\.swishUUID\}\}/g, testData.booking.swishUUID)
       .replace(/\{\{customData\.swishNumber\}\}/g, testData.customData.swishNumber)
       .replace(/\{\{schoolName\}\}/g, testData.schoolName)
+      .replace(/\{\{schoolPhone\}\}/g, testData.schoolPhone)
+      .replace(/\{\{schoolEmail\}\}/g, testData.schoolEmail)
       .replace(/\{\{appUrl\}\}/g, testData.appUrl)
       .replace(/\{\{baseUrl\}\}/g, testData.baseUrl)
       .replace(/\{\{currentYear\}\}/g, testData.currentYear)
@@ -127,8 +154,8 @@ export async function POST(request: NextRequest) {
 
     const finalContent = testBanner + processedContent;
 
-    // Send the test email
-    const emailSent = await sendEmail({
+    // Send the test email using EnhancedEmailService for full branded template
+    const emailSent = await EnhancedEmailService.sendEmail({
       to: testEmail,
       subject: `[TEST] ${processedSubject}`,
       html: finalContent,

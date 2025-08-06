@@ -11,7 +11,7 @@ interface SwishPaymentDialogProps {
   isOpen: boolean
   onClose: () => void
   booking: {
-    id: string
+    id?: string
     totalPrice: number
   }
   bookingData?: any // Full booking data for creating the booking
@@ -31,7 +31,7 @@ export function SwishPaymentDialog({
 
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
-  const message = `Körlektion ${booking.id.slice(0, 8)}`
+  const message = `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
 
   useEffect(() => {
     if (isOpen) {
@@ -117,36 +117,29 @@ export function SwishPaymentDialog({
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
     try {
-      // If we have booking data, create the booking first
+      // If we have booking data, update the existing temporary booking
       if (bookingData) {
-        const createBookingPayload = {
-          sessionType: bookingData.lessonType?.type || 'lesson',
-          sessionId: bookingData.lessonType?.id,
-          scheduledDate: bookingData.selectedDate?.toISOString().split('T')[0],
-          startTime: bookingData.selectedTime,
-          endTime: bookingData.selectedTime, // Will be calculated on backend
-          durationMinutes: bookingData.lessonType?.durationMinutes,
-          transmissionType: bookingData.transmissionType,
-          totalPrice: bookingData.totalPrice,
-          paymentMethod: 'swish',
-          guestName: bookingData.guestName,
-          guestEmail: bookingData.guestEmail,
-          guestPhone: bookingData.guestPhone,
-          studentId: bookingData.studentId,
-          alreadyPaid: false
-        }
-
-        const createResponse = await fetch('/api/booking/create', {
+        // Update the existing temporary booking with final payment method and guest info
+        const updateResponse = await fetch('/api/booking/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(createBookingPayload)
+          body: JSON.stringify({
+            bookingId: booking.id,
+            sessionType: bookingData.lessonType?.type || 'lesson',
+            paymentMethod: 'swish',
+            guestName: bookingData.guestName,
+            guestEmail: bookingData.guestEmail,
+            guestPhone: bookingData.guestPhone,
+            studentId: bookingData.studentId,
+            alreadyPaid: false
+          })
         })
 
-        if (createResponse.ok) {
-          const result = await createResponse.json()
+        if (updateResponse.ok) {
+          const result = await updateResponse.json()
           // Store booking details for success page
           localStorage.setItem('recentBooking', JSON.stringify({
-            id: result.booking.id,
+            id: booking.id,
             lessonType: bookingData.lessonType?.name,
             date: bookingData.selectedDate?.toISOString().split('T')[0],
             time: bookingData.selectedTime,
@@ -157,13 +150,13 @@ export function SwishPaymentDialog({
           }))
           
           toast({
-            title: "Bokning skapad",
-            description: "Din bokning har skapats och väntar på betalningsbekräftelse",
+            title: "Bokning uppdaterad",
+            description: "Din bokning har uppdaterats och väntar på betalningsbekräftelse",
           })
           onConfirm()
         } else {
-          const error = await createResponse.json()
-          throw new Error(error.error || 'Failed to create booking')
+          const error = await updateResponse.json()
+          throw new Error(error.error || 'Failed to update booking')
         }
       } else {
         try {
@@ -172,7 +165,7 @@ export function SwishPaymentDialog({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              bookingId: booking.id,
+              bookingId: booking.id || 'temp',
               sessionType: 'lesson', // Default to lesson for backward compatibility
               paymentMethod: 'swish'
             }),
@@ -257,7 +250,7 @@ export function SwishPaymentDialog({
                   {message}
                 </div>
                 <div className="text-xs text-white/60 mt-2">
-                  Boknings-ID: {booking.id}
+                  Boknings-ID: {booking.id || 'Genereras...'}
                 </div>
               </div>
 

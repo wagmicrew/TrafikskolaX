@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
 import { eq, and, gte, lte, or } from 'drizzle-orm';
+import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,14 +32,19 @@ export async function GET(request: NextRequest) {
         .from(slotSettings)
         .where(and(eq(slotSettings.dayOfWeek, dayOfWeek), eq(slotSettings.isActive, true)));
 
-      // Get existing bookings for the date (excluding soft deleted)
+      // Get existing bookings for the date (including temporary bookings)
       const existingBookings = await db
         .select()
         .from(bookings)
         .where(
           and(
             eq(bookings.scheduledDate, date),
-            or(eq(bookings.status, 'on_hold'), eq(bookings.status, 'booked'), eq(bookings.status, 'confirmed'))
+            or(
+              eq(bookings.status, 'on_hold'), 
+              eq(bookings.status, 'booked'), 
+              eq(bookings.status, 'confirmed'),
+              eq(bookings.status, 'temp') // Include temporary bookings to block slots
+            )
           )
         );
 
@@ -58,18 +64,12 @@ export async function GET(request: NextRequest) {
 
         if (isBlocked) return false;
 
-        const hasBooking = existingBookings.some((booking) => {
-          // Exclude on_hold bookings older than 10 minutes
-          if (booking.status === 'on_hold' && new Date(booking.createdAt) < new Date(Date.now() - 10 * 60 * 1000))
-            return false;
-
-          // Check time overlap
-          return (
-            (booking.startTime >= slot.timeStart && booking.startTime < slot.timeEnd) ||
-            (booking.endTime > slot.timeStart && booking.endTime <= slot.timeEnd) ||
-            (booking.startTime <= slot.timeStart && booking.endTime >= slot.timeEnd)
-          );
-        });
+        const hasBooking = doesAnyBookingOverlapWithSlot(
+          existingBookings,
+          slot.timeStart,
+          slot.timeEnd,
+          true // exclude expired bookings
+        );
 
         return !hasBooking;
       }).map((slot) => ({

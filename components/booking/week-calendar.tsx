@@ -96,7 +96,7 @@ export function WeekCalendar({
       setLoading(true)
 
       try {
-        // Create temporary booking
+        // Create temporary booking to hold the timeslot
         const response = await fetch('/api/booking/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -108,11 +108,13 @@ export function WeekCalendar({
             endTime: calculateEndTime(time, lessonType.durationMinutes),
             durationMinutes: lessonType.durationMinutes,
             transmissionType: transmissionType,
-            totalPrice: totalPrice, // Use the calculated price from parent
-            paymentMethod: 'swish', // Default payment method
-            guestName: 'Guest',
-            guestEmail: 'guest@example.com',
-            guestPhone: '1234567890' // Placeholder guest info to be updated on confirmation.
+            totalPrice: totalPrice,
+            paymentMethod: 'temp', // Mark as temporary
+            status: 'temp', // Explicitly set status to temp
+            // Use dummy information for temporary booking
+            guestName: 'Temporary',
+            guestEmail: `orderid-${Date.now()}@dintrafikskolahlm.se`,
+            guestPhone: '0000000000'
           })
         })
 

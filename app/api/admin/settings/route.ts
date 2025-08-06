@@ -25,13 +25,29 @@ export async function GET(request: Request) {
 
     // Ensure all expected keys exist with defaults
     const defaultSettings = {
+      // Email settings
       use_sendgrid: false,
       sendgrid_api_key: '',
+      use_smtp: false,
+      smtp_host: '',
+      smtp_port: 587,
+      smtp_username: '',
+      smtp_password: '',
+      smtp_secure: false,
       from_name: 'Din Trafikskola Hässleholm',
       from_email: 'noreply@dintrafikskolahlm.se',
       reply_to: 'info@dintrafikskolahlm.se',
+      school_email: 'info@dintrafikskolahlm.se',
+      force_internal_only: false,
+      fallback_to_internal: true,
+      
+      // Site settings
       site_domain: '',
       site_name: 'Din Trafikskola Hässleholm',
+      schoolname: 'Din Trafikskola Hässleholm',
+      school_phonenumber: '',
+      
+      // Payment settings
       swish_number: '',
       swish_enabled: false,
       qliro_api_key: '',
@@ -65,13 +81,29 @@ export async function PUT(request: Request) {
 
     // Define which keys belong to which category
     const categoryMapping: Record<string, string> = {
+      // Email settings
       use_sendgrid: 'email',
       sendgrid_api_key: 'email',
+      use_smtp: 'email',
+      smtp_host: 'email',
+      smtp_port: 'email',
+      smtp_username: 'email',
+      smtp_password: 'email',
+      smtp_secure: 'email',
       from_name: 'email',
       from_email: 'email',
       reply_to: 'email',
+      school_email: 'email',
+      force_internal_only: 'email',
+      fallback_to_internal: 'email',
+      
+      // Site settings
       site_domain: 'general',
       site_name: 'general',
+      schoolname: 'general',
+      school_phonenumber: 'general',
+      
+      // Payment settings
       swish_number: 'payment',
       swish_enabled: 'payment',
       qliro_api_key: 'payment',

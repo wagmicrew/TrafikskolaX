@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { lessonTypes, packages, packageContents, userCredits } from '@/lib/db/schema';
+import { lessonTypes, packages, packageContents, userCredits, handledarSessions } from '@/lib/db/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import LessonsClient from './lessons-client';
 
@@ -49,6 +49,16 @@ export default async function LessonsPage() {
     .from(packages)
     .orderBy(desc(packages.isActive), packages.name);
 
+  // Fetch handledar sessions for package builder
+  const handledarSessionsList = await db
+    .select({
+      id: handledarSessions.id,
+      title: handledarSessions.title,
+      isActive: handledarSessions.isActive,
+    })
+    .from(handledarSessions)
+    .orderBy(desc(handledarSessions.isActive), handledarSessions.title);
+
   // Get lesson type statistics
   const lessonStats = {
     totalLessons: lessons.length,
@@ -61,6 +71,7 @@ export default async function LessonsPage() {
     <LessonsClient
       lessons={lessons}
       packages={packagesList}
+      handledarSessions={handledarSessionsList}
       stats={lessonStats}
     />
   );

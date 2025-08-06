@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, bookings, userCredits, userFeedback, internalMessages, teacherAvailability, handledarBookings, packagePurchases } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
+import { generateUserDataPdf } from '@/utils/pdfExport';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,7 +114,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// DELETE - Delete user (soft delete)
+// DELETE - Delete user and all associated data
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authUser = await requireAuthAPI('admin');
@@ -122,13 +123,101 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
     const { id } = await params;
     
-    // Soft delete by setting isActive to false
+    // Get user data before deletion for PDF export
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (!user.length) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Get all user-related data for PDF export
+    const userBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.userId, id));
+
+    const userCreditsData = await db
+      .select()
+      .from(userCredits)
+      .where(eq(userCredits.userId, id));
+
+    const userFeedbackData = await db
+      .select()
+      .from(userFeedback)
+      .where(eq(userFeedback.userId, id));
+
+    const handledarBookingsData = await db
+      .select()
+      .from(handledarBookings)
+      .where(eq(handledarBookings.studentId, id));
+
+    // Create PDF export with all user data
+    const pdfData = {
+      user: user[0],
+      bookings: userBookings,
+      credits: userCreditsData,
+      feedback: userFeedbackData,
+      handledarBookings: handledarBookingsData
+    };
+
+    // Try to generate PDF, but don't fail if it doesn't work
+    let pdfGenerated = false;
+    try {
+      await generateUserDataPdf(pdfData, `${user[0].firstName}_${user[0].lastName}_${user[0].id}`);
+      pdfGenerated = true;
+    } catch (pdfError) {
+      console.error('Error generating PDF:', pdfError);
+      // Continue with deletion even if PDF generation fails
+    }
+
+    // Delete all associated data in the correct order (respecting foreign key constraints)
+    
+    // 1. Delete user feedback
+    await db
+      .delete(userFeedback)
+      .where(eq(userFeedback.userId, id));
+
+    // 2. Delete internal messages where user is sender or receiver
+    await db
+      .delete(internalMessages)
+      .where(eq(internalMessages.fromUserId, id));
+    
+    await db
+      .delete(internalMessages)
+      .where(eq(internalMessages.toUserId, id));
+
+    // 3. Delete teacher availability
+    await db
+      .delete(teacherAvailability)
+      .where(eq(teacherAvailability.teacherId, id));
+
+    // 4. Delete user credits (has cascade delete, but being explicit)
+    await db
+      .delete(userCredits)
+      .where(eq(userCredits.userId, id));
+
+    // 5. Delete handledar bookings
+    await db
+      .delete(handledarBookings)
+      .where(eq(handledarBookings.studentId, id));
+
+    // 6. Delete regular bookings
+    await db
+      .delete(bookings)
+      .where(eq(bookings.userId, id));
+
+    // 7. Delete package purchases
+    await db
+      .delete(packagePurchases)
+      .where(eq(packagePurchases.userId, id));
+
+    // 8. Finally delete the user
     const deletedUser = await db
-      .update(users)
-      .set({ 
-        isActive: false,
-        updatedAt: new Date()
-      })
+      .delete(users)
       .where(eq(users.id, id))
       .returning();
 
@@ -137,7 +226,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     return NextResponse.json({ 
-      message: 'User deleted successfully'
+      message: 'User and all associated data deleted successfully.',
+      pdfGenerated: pdfGenerated,
+      pdfFileName: pdfGenerated ? `${user[0].firstName}_${user[0].lastName}_${user[0].id}.pdf` : null
     });
   } catch (error) {
     console.error('Error deleting user:', error);

@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { lessonTypes } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 // GET all lesson types
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const allLessonTypes = await db.select().from(lessonTypes);
@@ -28,14 +27,13 @@ export async function GET(request: NextRequest) {
 // POST create new lesson type
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();
@@ -58,14 +56,13 @@ export async function POST(request: NextRequest) {
 // PUT update lesson type
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();
@@ -88,14 +85,13 @@ export async function PUT(request: NextRequest) {
 // DELETE lesson type
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const { searchParams } = new URL(request.url);

@@ -1,126 +1,118 @@
 # Booking Flow Documentation
 
 ## Overview
-The booking system allows students to schedule driving lessons, view availability, and manage their bookings. This document outlines the complete booking flow and related components.
+The booking system supports multiple user types and payment methods with different flows for each scenario.
 
-## Booking States
+## User Types and Booking Flows
 
-| State | Description | Possible Next States |
-|-------|-------------|----------------------|
-| `temp` | Temporary booking (not confirmed) | `on_hold`, `cancelled` |
-| `on_hold` | Payment pending | `confirmed`, `cancelled` |
-| `confirmed` | Booking is confirmed | `completed`, `cancelled` |
-| `completed` | Lesson has been completed | - |
-| `cancelled` | Booking was cancelled | - |
+### 1. Student Booking (Logged In)
+- **Flow**: Student selects lesson → chooses time → confirms booking → pays
+- **Email**: Sent to student's email
+- **Status**: `temp` → `confirmed` (after payment)
 
-## Booking Flow
+### 2. Guest Booking (Not Logged In)
+- **Flow**: Guest selects lesson → chooses time → enters details → confirms booking → pays
+- **Email**: Sent to guest's email
+- **Status**: `temp` → `confirmed` (after payment)
 
-### 1. Availability Check
-- User selects date, time, and lesson type
-- System checks teacher and car availability
-- Returns available time slots
+### 3. Admin/Teacher Booking for Student
+- **Flow**: Admin creates dummy booking → selects student → confirms booking
+- **Email**: Sent to selected student's email (NOT admin's email)
+- **Status**: `temp` → `confirmed` (after student assignment)
 
-### 2. Temporary Booking
-- Creates a temporary booking (15-minute hold)
-- Prevents double-booking
-- Returns booking ID for payment
+### 4. Handledar Session Booking
+- **Flow**: User selects handledar session → enters supervisor details → confirms booking → pays
+- **Email**: Sent to supervisor's email
+- **Status**: `temp` → `confirmed` (after payment)
 
-### 3. Payment Processing
-- User selects payment method (Swish/Qliro)
-- System processes payment
-- On success, updates booking to `on_hold`
+## Payment Methods
 
-### 4. Confirmation
-- System sends confirmation email
-- Updates calendar with booking
-- Sends notification to teacher
+### Swish Payment Flow
+1. **User selects Swish**: Booking status becomes `payment_avvaktande`
+2. **Email notification**: School receives email about pending Swish payment
+3. **Manual verification**: Admin checks Swish app and confirms/declines payment
+4. **Confirmation**: Booking status becomes `confirmed` or `cancelled`
 
-## Database Tables
-
-### `bookings`
-- `id` (uuid): Unique booking ID
-- `userId` (uuid): Student ID
-- `teacherId` (uuid): Assigned teacher
-- `carId` (uuid): Assigned vehicle
-- `lessonTypeId` (uuid): Type of lesson
-- `scheduledDate` (date): Booking date
-- `startTime`/`endTime` (time): Time slot
-- `status` (enum): Booking state
-- `paymentStatus` (enum): Payment state
-- `totalPrice` (decimal): Booking cost
-
-### `booking_availability`
-- `id` (uuid)
-- `teacherId` (uuid)
-- `date` (date)
-- `startTime` (time)
-- `endTime` (time)
-- `isAvailable` (boolean)
+### Other Payment Methods
+- **Qliro**: Automatic confirmation after successful payment
+- **Already Paid**: Immediate confirmation for admin bookings
+- **Credits**: Immediate confirmation if user has sufficient credits
 
 ## API Endpoints
 
-### Get Availability
-```
-GET /api/availability
-Params: date, lessonTypeId
-```
+### Booking Creation
+- **POST** `/api/booking/create` - Creates new booking
+- **POST** `/api/booking/confirm` - Confirms booking with payment method
+- **PUT** `/api/booking/update-student` - Updates booking with selected student (admin/teacher)
+- **POST** `/api/booking/confirm-swish-payment` - Confirms/declines Swish payment (admin)
 
-### Create Booking
-```
-POST /api/bookings
-Body: {
-  lessonTypeId: string,
-  scheduledDate: string (ISO date),
-  startTime: string (HH:MM),
-  teacherId: string,
-  paymentMethod: 'swish' | 'qliro' | 'invoice'
+### Email Templates
+- **Swish Payment Verification**: `swish_payment_verification` trigger
+- **Booking Confirmation**: `booking_confirmed` trigger
+
+## Database Schema
+
+### Booking Status Values
+- `temp` - Temporary booking (holds timeslot)
+- `payment_avvaktande` - Waiting for payment verification (Swish)
+- `confirmed` - Booking confirmed and paid
+- `cancelled` - Booking cancelled
+
+### Payment Status Values
+- `pending` - Payment pending verification
+- `paid` - Payment confirmed
+- `failed` - Payment failed/declined
+
+## Email Routing Logic
+
+```typescript
+// Email routing based on booking type
+if (isAdminOrTeacher && studentId) {
+  // Send to selected student
+  emailTo = studentEmail
+} else if (isGuestBooking) {
+  // Send to guest email
+  emailTo = guestEmail
+} else {
+  // Send to logged-in user
+  emailTo = userEmail
 }
 ```
 
-### Update Booking
-```
-PATCH /api/bookings/:id
-Body: {
-  status?: 'cancelled' | 'completed',
-  paymentStatus?: 'paid' | 'failed' | 'refunded'
-}
-```
+## Admin Dashboard Features
+
+### Booking Management
+- View all bookings with status filters
+- Confirm/decline Swish payments
+- Update booking details
+- Send manual notifications
+
+### Email Templates
+- Swish payment verification template
+- Booking confirmation template
+- Customizable email content
+
+## Security Considerations
+
+### Authentication
+- Admin/teacher endpoints require proper authentication
+- Student endpoints require user authentication or guest validation
+- Payment confirmation requires admin privileges
+
+### Data Integrity
+- Dummy bookings prevent orphaned records
+- Student assignment validates user existence
+- Payment verification prevents fraud
 
 ## Error Handling
 
-| Error Code | Description | Resolution |
-|------------|-------------|-------------|
-| 400 | Invalid input | Check request body |
-| 403 | Not authorized | Login required |
-| 409 | Time slot taken | Show updated availability |
-| 422 | Validation error | Show error details |
-| 500 | Server error | Retry or contact support |
+### Common Error Scenarios
+- **Invalid student ID**: Returns 404 if student not found
+- **Unauthorized access**: Returns 401 for insufficient permissions
+- **Invalid booking status**: Returns 400 for invalid status transitions
+- **Payment verification failed**: Returns 400 for invalid payment confirmation
 
-## Notifications
-
-### Email Templates
-- `booking_created`: Sent on new booking
-- `booking_confirmed`: Payment received
-- `booking_reminder`: 24h before lesson
-- `booking_cancelled`: On cancellation
-
-### Push Notifications
-- New booking assignment (teacher)
-- Upcoming lesson (30 min before)
-- Booking changes
-
-## Testing
-
-### Test Cases
-1. **Happy Path**
-   - Check availability
-   - Create booking
-   - Process payment
-   - Confirm booking
-   - Complete lesson
-
-2. **Error Cases**
-   - Double booking
-   - Expired hold
-   - Payment failure
-   - Cancellation policy
+### Recovery Procedures
+- **Failed Swish payment**: Admin can decline and booking becomes cancelled
+- **Orphaned bookings**: Cleanup API removes temporary bookings
+- **Email delivery failure**: System logs errors and continues processing

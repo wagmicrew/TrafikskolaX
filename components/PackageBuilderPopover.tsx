@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ interface PackageContent {
   contentType: 'lesson' | 'handledar' | 'text';
   freeText?: string;
   hasChanges?: boolean;
+  sortOrder?: number;
 }
 
 interface Package {
@@ -56,6 +57,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
       </div>
     );
   }
+
   const [packageData, setPackageData] = useState<Package>(() => {
     if (initialPackage) {
       return {
@@ -76,18 +78,58 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
   });
 
   const [showAddDropdown, setShowAddDropdown] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm();
 
+  // Load existing package contents if editing
+  useEffect(() => {
+    if (initialPackage?.id) {
+      loadPackageContents(initialPackage.id);
+    }
+  }, [initialPackage?.id]);
+
+  const loadPackageContents = async (packageId: string) => {
+    try {
+      const response = await fetch(`/api/admin/packages/${packageId}/contents`);
+      if (response.ok) {
+        const contents = await response.json();
+        setPackageData(prev => ({
+          ...prev,
+          contents: contents.map((content: any) => ({
+            id: content.id,
+            lessonTypeId: content.lessonTypeId,
+            handledarSessionId: content.handledarSessionId,
+            credits: content.credits,
+            contentType: content.contentType,
+            freeText: content.freeText,
+            sortOrder: content.sortOrder,
+            hasChanges: false
+          }))
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading package contents:', error);
+    }
+  };
+
   const addContent = (contentType: 'lesson' | 'handledar' | 'text') => {
+    const newContent: PackageContent = {
+      id: uuidv4(),
+      credits: contentType === 'text' ? 0 : 1,
+      contentType,
+      freeText: contentType === 'text' ? '' : undefined,
+      sortOrder: packageData.contents.length,
+    };
+
+    // For handledar type, don't require specific session selection
+    if (contentType === 'handledar') {
+      newContent.handledarSessionId = undefined; // Generic handledar credit
+    }
+
     setPackageData(prev => ({
       ...prev,
-      contents: [...prev.contents, {
-        id: uuidv4(),
-        credits: contentType === 'text' ? 0 : 1,
-        contentType,
-        freeText: contentType === 'text' ? '' : undefined,
-      }],
+      contents: [...prev.contents, newContent],
     }));
     setShowAddDropdown(false);
   };
@@ -97,14 +139,46 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
     const newContents = [...packageData.contents];
     newContents.splice(dragIndex, 1);
     newContents.splice(hoverIndex, 0, draggedContent);
-    setPackageData(prev => ({ ...prev, contents: newContents }));
+    
+    // Update sort order
+    const updatedContents = newContents.map((content, index) => ({
+      ...content,
+      sortOrder: index,
+      hasChanges: true
+    }));
+    
+    setPackageData(prev => ({ ...prev, contents: updatedContents }));
   };
 
-  const removeContent = (id: string) => {
-    setPackageData(prev => ({
-      ...prev,
-      contents: prev.contents.filter(content => content.id !== id),
-    }));
+  const removeContent = async (id: string) => {
+    if (initialPackage?.id) {
+      // For existing packages, delete from database
+      try {
+        const response = await fetch(`/api/admin/packages/${initialPackage.id}/contents?contentId=${id}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setPackageData(prev => ({
+            ...prev,
+            contents: prev.contents.filter(content => content.id !== id),
+          }));
+          toast.success('Innehåll borttaget!');
+        } else {
+          const error = await response.json();
+          toast.error(error.error || 'Fel vid borttagning av innehåll');
+        }
+      } catch (error) {
+        console.error('Error removing content:', error);
+        toast.error('Fel vid borttagning av innehåll');
+      }
+    } else {
+      // For new packages, just remove from local state
+      setPackageData(prev => ({
+        ...prev,
+        contents: prev.contents.filter(content => content.id !== id),
+      }));
+    }
   };
 
   const updateContent = (id: string, field: keyof PackageContent, value: any) => {
@@ -117,11 +191,49 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
   };
 
   const saveContentRow = async (contentId: string) => {
-    if (initialPackage) {
-      // For existing packages, update the entire package with the current content
-      try {
-        await onUpdate?.(packageData);
-        
+    if (!initialPackage?.id) {
+      toast.error('Kan inte spara innehåll för nya paket');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const content = packageData.contents.find(c => c.id === contentId);
+      if (!content) {
+        toast.error('Innehåll hittades inte');
+        return;
+      }
+
+      // Validate content based on type
+      if (content.contentType === 'lesson' && !content.lessonTypeId) {
+        toast.error('Lektionstyp måste väljas för lektionsinnehåll');
+        return;
+      }
+
+      if (content.contentType === 'text' && !content.freeText?.trim()) {
+        toast.error('Fri text måste fyllas i');
+        return;
+      }
+
+      // Prepare data for API
+      const contentData = {
+        lessonTypeId: content.lessonTypeId || null,
+        handledarSessionId: content.handledarSessionId || null,
+        credits: content.credits,
+        contentType: content.contentType,
+        freeText: content.freeText || null,
+        sortOrder: content.sortOrder || 0,
+      };
+
+      const response = await fetch(`/api/admin/packages/${initialPackage.id}/contents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contentData),
+      });
+
+      if (response.ok) {
         // Mark as saved
         setPackageData(prev => ({
           ...prev,
@@ -129,21 +241,16 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
             content.id === contentId ? { ...content, hasChanges: false } : content
           ),
         }));
-
         toast.success('Innehåll sparat!');
-      } catch (error) {
-        console.error('Error saving content:', error);
-        toast.error('Fel vid sparning av innehåll');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Fel vid sparning av innehåll');
       }
-    } else {
-      // For new packages, just mark as no changes (will be saved with package)
-      setPackageData(prev => ({
-        ...prev,
-        contents: prev.contents.map(content => 
-          content.id === contentId ? { ...content, hasChanges: false } : content
-        ),
-      }));
-      toast.success('Ändringar markerade för sparning');
+    } catch (error) {
+      console.error('Error saving content:', error);
+      toast.error('Fel vid sparning av innehåll');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -159,20 +266,6 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
     
     // Return only active lesson types that are not already used
     return lessonTypes.filter(lt => lt.isActive && !usedLessonTypeIds.includes(lt.id));
-  };
-
-  const getAvailableHandledarSessions = (excludeContentId?: string) => {
-    if (!handledarSessions || !Array.isArray(handledarSessions)) {
-      return [];
-    }
-    
-    const usedHandledarSessionIds = packageData.contents
-      .filter(content => content.contentType === 'handledar' && content.id !== excludeContentId)
-      .map(content => content.handledarSessionId)
-      .filter(Boolean);
-    
-    // Return only active handledar sessions that are not already used
-    return handledarSessions.filter(hs => hs.isActive && !usedHandledarSessionIds.includes(hs.id));
   };
 
   const onSubmit = async (data: any) => {
@@ -192,10 +285,6 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
       for (const content of packageData.contents) {
         if (content.contentType === 'lesson' && !content.lessonTypeId) {
           toast.error('Alla lektionsinnehåll måste ha en vald lektionstyp');
-          return;
-        }
-        if (content.contentType === 'handledar' && !content.handledarSessionId) {
-          toast.error('Alla handledarinnehåll måste ha en vald session');
           return;
         }
         if (content.contentType === 'text' && !content.freeText?.trim()) {
@@ -378,7 +467,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                               onClick={() => addContent('handledar')}
                               className="w-full px-4 py-2 text-left text-gray-800 hover:bg-green-100 transition-colors"
                             >
-                              🚗 Handledarkredit
+                              🚗 Handledarkredit (Generisk)
                             </button>
                             <button
                               type="button"
@@ -402,12 +491,13 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                             <span className="text-white font-medium">Innehåll {index + 1}</span>
                           </div>
                           <div className="flex gap-1">
-                            {content.hasChanges && (
+                            {content.hasChanges && initialPackage?.id && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => saveContentRow(content.id)}
+                                disabled={loading}
                                 className="text-green-300 hover:text-green-100 hover:bg-green-500/20"
                                 title="Spara ändringar"
                               >
@@ -430,7 +520,8 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-white/90 text-sm">
-                              {content.contentType === 'handledar' ? 'Handledarutbildning' : 'Lektionstyp'}
+                              {content.contentType === 'lesson' ? 'Lektionstyp' : 
+                               content.contentType === 'handledar' ? 'Handledarkredit' : 'Fri text'}
                             </Label>
                             {content.contentType === 'lesson' ? (
                               <select
@@ -439,73 +530,22 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                                 className="w-full bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-lg px-3 py-2 text-sm focus:bg-white/20 focus:border-white/50"
                               >
                                 <option value="" className="bg-gray-800 text-white">Välj lektionstyp</option>
-                                {(() => {
-                                  const availableTypes = getAvailableLessonTypes(content.id);
-                                  const allOptions = [];
-                                  
-                                  // Add currently selected option if it exists
-                                  if (content.lessonTypeId) {
-                                    const currentType = lessonTypes.find(lt => lt.id === content.lessonTypeId);
-                                    if (currentType) {
-                                      allOptions.push(
-                                        <option key={currentType.id} value={currentType.id} className="bg-gray-800 text-white">
-                                          {currentType.name}
-                                        </option>
-                                      );
-                                    }
-                                  }
-                                  
-                                  // Add available types
-                                  if (availableTypes && Array.isArray(availableTypes)) {
-                                    availableTypes.forEach(type => {
-                                      allOptions.push(
-                                        <option key={type.id} value={type.id} className="bg-gray-800 text-white">
-                                          {type.name}
-                                        </option>
-                                      );
-                                    });
-                                  }
-                                  
-                                  return allOptions;
-                                })()}
+                                {getAvailableLessonTypes(content.id).map(type => (
+                                  <option key={`available-${type.id}`} value={type.id} className="bg-gray-800 text-white">
+                                    {type.name}
+                                  </option>
+                                ))}
+                                {/* Add currently selected option if it exists */}
+                                {content.lessonTypeId && lessonTypes.find(lt => lt.id === content.lessonTypeId) && (
+                                  <option key={`selected-${content.lessonTypeId}`} value={content.lessonTypeId} className="bg-gray-800 text-white">
+                                    {lessonTypes.find(lt => lt.id === content.lessonTypeId)?.name}
+                                  </option>
+                                )}
                               </select>
                             ) : content.contentType === 'handledar' ? (
-                              <select
-                                value={content.handledarSessionId || ''}
-                                onChange={(e) => updateContent(content.id, 'handledarSessionId', e.target.value)}
-                                className="w-full bg-white/10 backdrop-blur-sm border border-white/30 text-white rounded-lg px-3 py-2 text-sm focus:bg-white/20 focus:border-white/50"
-                              >
-                                <option value="" className="bg-gray-800 text-white">Välj handledarutbildning</option>
-                                {(() => {
-                                  const availableSessions = getAvailableHandledarSessions(content.id);
-                                  const allOptions = [];
-                                  
-                                  // Add currently selected option if it exists
-                                  if (content.handledarSessionId) {
-                                    const currentSession = handledarSessions.find(hs => hs.id === content.handledarSessionId);
-                                    if (currentSession) {
-                                      allOptions.push(
-                                        <option key={currentSession.id} value={currentSession.id} className="bg-gray-800 text-white">
-                                          {currentSession.title}
-                                        </option>
-                                      );
-                                    }
-                                  }
-                                  
-                                  // Add available sessions
-                                  if (availableSessions && Array.isArray(availableSessions)) {
-                                    availableSessions.forEach(session => {
-                                      allOptions.push(
-                                        <option key={session.id} value={session.id} className="bg-gray-800 text-white">
-                                          {session.title}
-                                        </option>
-                                      );
-                                    });
-                                  }
-                                  
-                                  return allOptions;
-                                })()}
-                              </select>
+                              <div className="text-white/60 text-sm p-2 bg-white/5 rounded border border-white/20">
+                                Generisk handledarkredit - används för alla handledarutbildningar
+                              </div>
                             ) : (
                               <div className="text-white/60 text-sm p-2 bg-white/5 rounded border border-white/20">
                                 Fritextfält - ingen val krävs

@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { emailTemplates, emailTriggers, emailReceivers } from '@/lib/db/schema';
+import { emailTemplates, emailReceivers, emailTriggers, siteSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
 import { logger } from '@/lib/logging/logger';
@@ -12,6 +12,7 @@ export type EmailTriggerType =
   | 'moved_booking'
   | 'cancelled_booking'
   | 'booking_reminder'
+  | 'booking_confirmed'
   | 'credits_reminder'
   | 'payment_reminder'
   | 'payment_confirmation_request'
@@ -20,9 +21,12 @@ export type EmailTriggerType =
   | 'feedback_received'
   | 'teacher_daily_bookings'
   | 'teacher_feedback_reminder'
-  | 'new_password';
+  | 'awaiting_school_confirmation'
+  | 'pending_school_confirmation'
+  | 'new_password'
+  | 'swish_payment_verification';
 
-export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
+export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user';
 
 interface EmailContext {
   user?: {
@@ -111,12 +115,12 @@ export class EmailService {
       }
 
       // Process template with context data
-      const processedSubject = this.processTemplate(emailTemplate.subject, context);
-const processedHtml = this.processTemplate(applyRedTemplate(emailTemplate.htmlContent), context);
+      const processedSubject = await this.processTemplate(emailTemplate.subject, context);
+const processedHtml = await this.processTemplate(applyRedTemplate(emailTemplate.htmlContent), context);
 
       // Send email to each receiver
       const sendPromises = receivers.map(async (receiver) => {
-        const recipientEmail = this.getRecipientEmail(receiver.receiverType, context, receiver.specificUserId);
+        const recipientEmail = await this.getRecipientEmail(receiver.receiverType, context, receiver.specificUserId);
         
         if (!recipientEmail) {
           console.error(`No email address found for receiver type: ${receiver.receiverType}`);
@@ -149,7 +153,7 @@ const allSuccess = results.every(result => result === true);
   /**
    * Process template variables
    */
-  private static processTemplate(template: string, context: EmailContext): string {
+  private static async processTemplate(template: string, context: EmailContext): Promise<string> {
     let processed = template;
 
     // Replace user variables
@@ -187,9 +191,42 @@ const allSuccess = results.every(result => result === true);
       });
     }
 
+    // Get schoolname from database
+    let schoolname = 'Din Trafikskola Hässleholm';
+    try {
+      const schoolnameSetting = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'schoolname'))
+        .limit(1);
+      
+      if (schoolnameSetting.length > 0) {
+        schoolname = schoolnameSetting[0].value || 'Din Trafikskola Hässleholm';
+      }
+    } catch (error) {
+      console.warn('Failed to fetch schoolname from database, using default', error);
+    }
+
+    // Get school phonenumber from database
+    let schoolPhonenumber = '0760-38 91 92';
+    try {
+      const schoolPhonenumberSetting = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'school_phonenumber'))
+        .limit(1);
+      
+      if (schoolPhonenumberSetting.length > 0 && schoolPhonenumberSetting[0].value) {
+        schoolPhonenumber = schoolPhonenumberSetting[0].value;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch school phonenumber from database, using default', error);
+    }
+
     // Replace system variables
     processed = processed.replace(/\{\{appUrl\}\}/g, process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se');
-    processed = processed.replace(/\{\{schoolName\}\}/g, 'Din Trafikskola HLM');
+    processed = processed.replace(/\{\{schoolName\}\}/g, schoolname);
+    processed = processed.replace(/\{\{schoolPhone\}\}/g, schoolPhonenumber);
     processed = processed.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
 
     return processed;
@@ -198,11 +235,11 @@ const allSuccess = results.every(result => result === true);
   /**
    * Get recipient email based on receiver type
    */
-  private static getRecipientEmail(
+  private static async getRecipientEmail(
     receiverType: EmailReceiverType,
     context: EmailContext,
     specificUserId?: string | null
-  ): string | null {
+  ): Promise<string | null> {
     switch (receiverType) {
       case 'student':
         return context.user?.email || null;
@@ -210,6 +247,22 @@ const allSuccess = results.every(result => result === true);
         return context.teacher?.email || null;
       case 'admin':
         return context.admin?.email || process.env.ADMIN_EMAIL || null;
+      case 'school':
+        // Get school email from database
+        try {
+          const schoolEmailSetting = await db
+            .select()
+            .from(siteSettings)
+            .where(eq(siteSettings.key, 'school_email'))
+            .limit(1);
+          
+          if (schoolEmailSetting.length > 0 && schoolEmailSetting[0].value) {
+            return schoolEmailSetting[0].value;
+          }
+        } catch (error) {
+          console.warn('Failed to fetch school email from database, using default', error);
+        }
+        return 'school@dintrafikskolahlm.se'; // Default fallback
       case 'specific_user':
         // TODO: Fetch specific user email from database if needed
         return null;
@@ -230,6 +283,7 @@ const allSuccess = results.every(result => result === true);
       moved_booking: 'booking_related',
       cancelled_booking: 'booking_related',
       booking_reminder: 'booking_related',
+      booking_confirmed: 'booking_related',
       credits_reminder: 'general',
       payment_reminder: 'payment_confirmation',
       payment_confirmation_request: 'payment_confirmation',
@@ -238,7 +292,10 @@ const allSuccess = results.every(result => result === true);
       feedback_received: 'general',
       teacher_daily_bookings: 'general',
       teacher_feedback_reminder: 'general',
+      awaiting_school_confirmation: 'booking_related',
+      pending_school_confirmation: 'booking_related',
       new_password: 'general',
+      swish_payment_verification: 'payment_confirmation',
     };
 
     return mappings[triggerType] || 'general';

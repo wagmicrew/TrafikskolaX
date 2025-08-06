@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const teacherId = searchParams.get('teacherId');
     const upcoming = searchParams.get('upcoming');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     let query = db
       .select({
@@ -50,31 +52,43 @@ export async function GET(request: NextRequest) {
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id));
 
+    // Build where conditions
+    const conditions = [];
+
     // Filter by teacher ID (only show bookings assigned to this teacher)
     if (teacherId && teacherId === (user.userId || user.id)) {
-      query = query.where(eq(bookings.teacherId, teacherId));
+      conditions.push(eq(bookings.teacherId, teacherId));
     } else {
-      query = query.where(eq(bookings.teacherId, user.userId || user.id));
+      conditions.push(eq(bookings.teacherId, user.userId || user.id));
     }
 
     // Filter by specific date (for today's bookings)
     if (date) {
-      query = query.where(and(
-        eq(bookings.scheduledDate, date),
-        eq(bookings.teacherId, user.userId || user.id)
-      ));
+      conditions.push(eq(bookings.scheduledDate, date));
+    }
+
+    // Filter by date range (for export functions)
+    if (startDate && endDate) {
+      conditions.push(
+        and(
+          gte(bookings.scheduledDate, startDate.split('T')[0]),
+          lte(bookings.scheduledDate, endDate.split('T')[0])
+        )
+      );
     }
 
     // Filter for upcoming bookings (after today)
     if (upcoming === 'true') {
       const today = new Date().toISOString().split('T')[0];
-      query = query.where(and(
-        gte(bookings.scheduledDate, today),
-        eq(bookings.teacherId, user.userId || user.id)
-      ));
+      conditions.push(gte(bookings.scheduledDate, today));
       query = query.orderBy(asc(bookings.scheduledDate), asc(bookings.startTime));
     } else {
       query = query.orderBy(asc(bookings.startTime));
+    }
+
+    // Apply all conditions
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     const results = await query;

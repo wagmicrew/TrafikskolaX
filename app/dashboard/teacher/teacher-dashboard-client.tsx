@@ -21,6 +21,8 @@ import {
   FaExclamationTriangle
 } from 'react-icons/fa';
 import Link from 'next/link';
+import { generateWeeklySchedulePdf, fetchWeeklyBookings } from '@/utils/pdfExport';
+import { ExportButton } from '@/components/ui/ExportButton';
 
 interface Booking {
   id: string;
@@ -49,6 +51,7 @@ interface BookingStep {
 
 interface User {
   id: string;
+  userId?: string; // Added optional userId for compatibility
   firstName: string;
   lastName: string;
   email: string;
@@ -70,6 +73,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateBookings, setDateBookings] = useState<Booking[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchTodaysBookings();
@@ -584,6 +588,19 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
     );
   }
 
+  const handleExportSchedule = async () => {
+    try {
+      setIsExporting(true);
+      const bookings = await fetchWeeklyBookings(user.userId || user.id, 'teacher');
+      generateWeeklySchedulePdf(bookings, 'Mitt schema');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Kunde inte exportera schemat. Försök igen senare.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Menu */}
@@ -602,7 +619,14 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
               </button>
               
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Lärare Dashboard</h1>
+                <div className="flex justify-between items-center">
+                  <h1 className="text-2xl font-bold text-gray-800">Lärarpanel</h1>
+                  <ExportButton 
+                    onClick={handleExportSchedule} 
+                    loading={isExporting}
+                    className="ml-4"
+                  />
+                </div>
                 <p className="text-gray-600">Välkommen, {user.firstName} {user.lastName}</p>
               </div>
             </div>

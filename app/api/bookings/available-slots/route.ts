@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
 import { eq, sql, and, gte, lte, not } from 'drizzle-orm';
 import { parseISO, format, addDays, getDay } from 'date-fns';
+import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -26,11 +27,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ slots: [] });
     }
 
-    // Get existing bookings for the selected date
+    // Get existing bookings for the selected date (including temporary bookings)
     const existingBookings = await db
       .select({
         startTime: bookings.startTime,
         endTime: bookings.endTime,
+        status: bookings.status,
+        createdAt: bookings.createdAt,
       })
       .from(bookings)
       .where(
@@ -73,9 +76,12 @@ export async function GET(request: NextRequest) {
       if (isBlocked) continue;
 
       // Check if this time slot is already booked
-      const isBooked = existingBookings.some(booking => {
-        return booking.startTime === startTime && booking.endTime === endTime;
-      });
+      const isBooked = doesAnyBookingOverlapWithSlot(
+        existingBookings,
+        startTime,
+        endTime,
+        true // exclude expired bookings
+      );
 
       if (!isBooked) {
         availableSlots.push({

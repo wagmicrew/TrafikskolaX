@@ -481,8 +481,8 @@ logger.info('email', 'Email sent via SMTP', {
       const config = await this.getEmailConfig();
 
       // Process template content
-      const processedSubject = this.processTemplate(template[0].subject, context, config);
-      const processedHtml = this.processTemplate(
+      const processedSubject = await this.processTemplate(template[0].subject, context, config);
+      const processedHtml = await this.processTemplate(
         this.applyEmailTemplate(template[0].htmlContent), 
         context, 
         config
@@ -530,7 +530,7 @@ logger.info('email', 'Email sent via SMTP', {
   /**
    * Process template variables
    */
-  private static processTemplate(template: string, context: EmailContext, config: EmailConfig): string {
+  private static async processTemplate(template: string, context: EmailContext, config: EmailConfig): Promise<string> {
     let processed = template;
 
     // User variables
@@ -567,10 +567,43 @@ logger.info('email', 'Email sent via SMTP', {
       });
     }
 
+    // Get schoolname from database
+    let schoolname = 'Din Trafikskola Hässleholm';
+    try {
+      const schoolnameSetting = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'schoolname'))
+        .limit(1);
+      
+      if (schoolnameSetting.length > 0) {
+        schoolname = schoolnameSetting[0].value || 'Din Trafikskola Hässleholm';
+      }
+    } catch (error) {
+      logger.warn('email', 'Failed to fetch schoolname from database, using default', { error });
+    }
+
+    // Get school phonenumber from database
+    let schoolPhonenumber = '0760-38 91 92';
+    try {
+      const schoolPhonenumberSetting = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'school_phonenumber'))
+        .limit(1);
+      
+      if (schoolPhonenumberSetting.length > 0 && schoolPhonenumberSetting[0].value) {
+        schoolPhonenumber = schoolPhonenumberSetting[0].value;
+      }
+    } catch (error) {
+      logger.warn('email', 'Failed to fetch school phonenumber from database, using default', { error });
+    }
+
     // System variables
     processed = processed.replace(/\{\{appUrl\}\}/g, process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se');
-    processed = processed.replace(/\{\{schoolName\}\}/g, config.fromName);
+    processed = processed.replace(/\{\{schoolName\}\}/g, schoolname);
     processed = processed.replace(/\{\{schoolEmail\}\}/g, config.schoolEmail);
+    processed = processed.replace(/\{\{schoolPhone\}\}/g, schoolPhonenumber);
     processed = processed.replace(/\{\{adminEmail\}\}/g, config.adminEmail);
     processed = processed.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
     processed = processed.replace(/\{\{currentDate\}\}/g, new Date().toLocaleDateString('sv-SE'));
@@ -623,7 +656,7 @@ logger.info('email', 'Email sent via SMTP', {
             <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
               <p style="color: #9ca3af; margin: 0; font-size: 12px;">
                 📧 <a href="mailto:{{schoolEmail}}" style="color: #dc2626; text-decoration: none;">{{schoolEmail}}</a> | 
-                📞 <a href="tel:+46760389192" style="color: #dc2626; text-decoration: none;">0760-38 91 92</a>
+                📞 <a href="tel:{{schoolPhone}}" style="color: #dc2626; text-decoration: none;">{{schoolPhone}}</a>
               </p>
               <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 12px;">
                 © {{currentYear}} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
@@ -732,8 +765,8 @@ logger.info('email', 'Email sent via SMTP', {
       };
 
       const config = await this.getEmailConfig();
-      const processedSubject = `[TEST] ${this.processTemplate(template[0].subject, mockContext, config)}`;
-      const processedHtml = this.processTemplate(
+      const processedSubject = `[TEST] ${await this.processTemplate(template[0].subject, mockContext, config)}`;
+      const processedHtml = await this.processTemplate(
         this.applyEmailTemplate(template[0].htmlContent),
         mockContext,
         config

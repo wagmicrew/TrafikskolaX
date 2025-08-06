@@ -9,6 +9,7 @@ import sgMail from '@sendgrid/mail';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 
 // Helper function to get SendGrid API key from database
 async function getSendGridApiKey(): Promise<string> {
@@ -96,38 +97,64 @@ export async function POST(request: NextRequest) {
 
     // If not logged in, validate guest fields (allow placeholders for temporary bookings)
     if (!userId) {
-      if (!guestName || !guestEmail || !guestPhone) {
-        return NextResponse.json({ error: 'Kontaktuppgifter krävs' }, { status: 400 });
-      }
-      
-      // Check if this is a temporary booking with placeholders
-      const isPlaceholderBooking = guestEmail === 'guest@example.com' && guestName === 'Guest';
-      
-      if (!isPlaceholderBooking) {
-      
-      // Check if email already exists
-      const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
-      if (existingUser.length > 0) {
-        return NextResponse.json({
-          error: 'E-postadressen finns redan. Vill du koppla denna bokning till ditt konto eller använda en annan e-postadress?',
-          userExists: true,
-          existingEmail: guestEmail
-        }, { status: 400 });
-      }
-      
-        // Create a guest user account
+      // For temporary bookings, use dummy information
+      if (paymentMethod === 'temp' || status === 'temp') {
+        // Use dummy information for temporary bookings
+        const dummyEmail = `orderid-${Date.now()}@dintrafikskolahlm.se`;
+        const dummyName = 'Temporary';
+        const dummyPhone = '0000000000';
+        
+        // Use the provided values or fall back to dummy values
+        const finalGuestName = guestName || dummyName;
+        const finalGuestEmail = guestEmail || dummyEmail;
+        const finalGuestPhone = guestPhone || dummyPhone;
+        
+        // Skip user creation for temporary bookings
+        isGuestBooking = true;
+        
+        // Use these variables throughout the rest of the function
+        const tempGuestName = finalGuestName;
+        const tempGuestEmail = finalGuestEmail;
+        const tempGuestPhone = finalGuestPhone;
+      } else {
+        // For non-temporary bookings, require proper guest information
+        if (!guestName || !guestEmail || !guestPhone) {
+          return NextResponse.json({ error: 'Kontaktuppgifter krävs' }, { status: 400 });
+        }
+        
+        // Check if email already exists (only for non-temporary bookings)
+        const existingUser = await db.select().from(users).where(eq(users.email, guestEmail.toLowerCase())).limit(1);
+        if (existingUser.length > 0) {
+          return NextResponse.json({
+            error: 'E-postadressen finns redan. Vill du koppla denna bokning till ditt konto eller använda en annan e-postadress?',
+            userExists: true,
+            existingEmail: guestEmail
+          }, { status: 400 });
+        }
+        
+        // Create a guest user account for non-temporary bookings
         const newUser = await createGuestUser(guestEmail, guestName, guestPhone);
         userId = newUser.id;
-        isGuestBooking = true;
-      } else {
-        // For placeholder bookings, skip user creation and set as guest
         isGuestBooking = true;
       }
     }
 
     // If booking for a student as Admin or Teacher
     if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
-      userId = studentId; // Book for the selected student
+      // For admin/teacher bookings, create with dummy information first
+      // The booking will be updated with the selected student later
+      isGuestBooking = true;
+      // Use new variables for guest information
+      const adminGuestName = 'Temporary';
+      const adminGuestEmail = `orderid-${Date.now()}@dintrafikskolahlm.se`;
+      const adminGuestPhone = '0000000000';
+      const adminUserId = null; // Don't set userId yet, will be updated later
+      
+      // Use these variables throughout the rest of the function
+      const finalGuestName = adminGuestName;
+      const finalGuestEmail = adminGuestEmail;
+      const finalGuestPhone = adminGuestPhone;
+      const finalUserId = adminUserId;
     }
     // Special handling for admin/teacher booking for students
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
@@ -211,7 +238,7 @@ export async function POST(request: NextRequest) {
         // Send notification to the student
         const studentUser = await db.select().from(users).where(eq(users.id, userId));
         if (studentUser.length > 0) {
-          await sendBookingNotification(studentUser[0].email, booking, true); // Always send as "paid" for admin bookings
+          await sendBookingNotification(studentUser[0].email, booking, true, false, undefined, studentUser[0]); // Always send as "paid" for admin bookings, pass student user info
         }
 
         return NextResponse.json({ 
@@ -223,10 +250,8 @@ export async function POST(request: NextRequest) {
 
     // Handle different session types
     if (sessionType === 'handledar') {
-      // Ensure guests can't book handledar sessions
-      if (isGuestBooking) {
-        return NextResponse.json({ error: 'Du måste registrera dig för att boka handledarutbildning.' }, { status: 400 });
-      }
+      // Allow guest bookings for handledar sessions - they just need to provide supervisor details
+      // No registration required, just email and phone for the supervisor
       
       // Check if sessionId is the group placeholder
       if (sessionId === 'handledarutbildning-group') {
@@ -614,7 +639,7 @@ export async function createGuestUser(email: string, name: string, phone: string
   }
 }
 
-async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean, isHandledar: boolean = false, paymentMethod?: string) {
+async function sendBookingNotification(email: string, booking: any, alreadyPaid: boolean, isHandledar: boolean = false, paymentMethod?: string, targetUser?: any) {
   // Always save internal message
   await saveInternalMessage(booking.userId, booking, alreadyPaid, isHandledar);
   
@@ -623,7 +648,10 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   
   // Get user details for email context
   let userDetails = null;
-  if (booking.userId) {
+  if (targetUser) {
+    // Use the provided target user (for admin-created bookings)
+    userDetails = targetUser;
+  } else if (booking.userId) {
     const [user] = await db.select().from(users).where(eq(users.id, booking.userId)).limit(1);
     userDetails = user;
   }
@@ -632,6 +660,37 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   let lessonType = null;
   if (booking.lessonTypeId) {
     [lessonType] = await db.select().from(lessonTypes).where(eq(lessonTypes.id, booking.lessonTypeId)).limit(1);
+  }
+
+  // Safely format the scheduled date
+  let formattedScheduledDate = '';
+  try {
+    if (booking.scheduledDate) {
+      const dateValue = booking.scheduledDate;
+      let bookingDate;
+      
+      if (typeof dateValue === 'string') {
+        // If it's already a string in YYYY-MM-DD format, parse it
+        bookingDate = new Date(dateValue + 'T00:00:00');
+      } else if (dateValue instanceof Date) {
+        bookingDate = dateValue;
+      } else {
+        // Fallback to today's date if parsing fails
+        bookingDate = new Date();
+      }
+      
+      // Validate the date is not invalid
+      if (!isNaN(bookingDate.getTime())) {
+        formattedScheduledDate = format(bookingDate, 'yyyy-MM-dd');
+      } else {
+        formattedScheduledDate = format(new Date(), 'yyyy-MM-dd');
+      }
+    } else {
+      formattedScheduledDate = format(new Date(), 'yyyy-MM-dd');
+    }
+  } catch (error) {
+    console.error('Error formatting scheduled date:', error);
+    formattedScheduledDate = format(new Date(), 'yyyy-MM-dd');
   }
   
   const emailContext = {
@@ -650,7 +709,7 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
     },
     booking: {
       id: booking.id,
-      scheduledDate: format(new Date(booking.scheduledDate), 'yyyy-MM-dd'),
+      scheduledDate: formattedScheduledDate,
       startTime: booking.startTime,
       endTime: booking.endTime,
       lessonTypeName: lessonType?.name || 'Handledarutbildning',
@@ -697,6 +756,11 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
     bookingDate = dateValue;
   } else {
     // Fallback to today's date if parsing fails
+    bookingDate = new Date();
+  }
+  
+  // Validate the date is not invalid
+  if (isNaN(bookingDate.getTime())) {
     bookingDate = new Date();
   }
   
@@ -946,7 +1010,7 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
       });
       
       if (isAvailable) {
-        // Check if teacher has conflicting bookings
+        // Check if teacher has conflicting bookings (including temporary bookings)
         const conflictingBookings = await trx
           .select()
           .from(bookings)
@@ -964,7 +1028,16 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
             )
           );
         
-        if (conflictingBookings.length === 0) {
+        // Filter out expired temporary bookings (older than 10 minutes)
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const activeConflictingBookings = conflictingBookings.filter(booking => {
+          if (booking.status === 'temp' && new Date(booking.createdAt) < tenMinutesAgo) {
+            return false; // Exclude expired temporary bookings
+          }
+          return true;
+        });
+        
+        if (activeConflictingBookings.length === 0) {
           availableTeachers.push(teacher);
         }
       }
@@ -990,7 +1063,16 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
             )
           );
         
-        if (conflictingBookings.length === 0) {
+        // Filter out expired temporary bookings (older than 10 minutes)
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const activeConflictingBookings = conflictingBookings.filter(booking => {
+          if (booking.status === 'temp' && new Date(booking.createdAt) < tenMinutesAgo) {
+            return false; // Exclude expired temporary bookings
+          }
+          return true;
+        });
+        
+        if (activeConflictingBookings.length === 0) {
           availableTeachers.push(teacher);
         }
       }

@@ -21,7 +21,8 @@ export const emailTriggerEnum = pgEnum('email_trigger_type', [
   'teacher_feedback_reminder',
   'awaiting_school_confirmation',
   'pending_school_confirmation',
-  'new_password'
+  'new_password',
+  'swish_payment_verification'
 ]);
 
 // Email receiver types enum
@@ -29,7 +30,8 @@ export const emailReceiverEnum = pgEnum('email_receiver_type', [
   'student',
   'teacher',
   'admin',
-  'specific_user'
+  'specific_user',
+  'school'
 ]);
 
 // Email templates table

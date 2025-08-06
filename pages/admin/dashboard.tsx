@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { ExportSchedule } from '@/components/Admin/ExportSchedule';
 
 // Dynamic imports to avoid SSR issues with auth hooks
 const UserManagement = dynamic(() => import('@/components/Admin/UserManagement'), {
@@ -19,40 +20,55 @@ const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState('users');
 
   return (
-    <div className="admin-dashboard">
-      <h1>Admin Dashboard</h1>
-      <nav className="admin-nav">
-        <button 
-          className={activeSection === 'users' ? 'active' : ''}
-          onClick={() => setActiveSection('users')}
-        >
-          Users
-        </button>
-        <button 
-          className={activeSection === 'lessons' ? 'active' : ''}
-          onClick={() => setActiveSection('lessons')}
-        >
-          Lessons & Packages
-        </button>
-        <button 
-          className={activeSection === 'bookings' ? 'active' : ''}
-          onClick={() => setActiveSection('bookings')}
-        >
-          Bookings
-        </button>
-        <button 
-          className={activeSection === 'slots' ? 'active' : ''}
-          onClick={() => setActiveSection('slots')}
-        >
-          Slot Settings
-        </button>
-        <button 
-          className={activeSection === 'settings' ? 'active' : ''}
-          onClick={() => setActiveSection('settings')}
-        >
-          Site Settings
-        </button>
-      </nav>
+    <div className="admin-dashboard p-6 max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+        <ExportSchedule />
+      </div>
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto">
+          <button
+            onClick={() => setActiveSection('users')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeSection === 'users' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Användare
+          </button>
+          <button
+            onClick={() => setActiveSection('lessons')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeSection === 'lessons' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Lektioner
+          </button>
+          <button
+            onClick={() => setActiveSection('bookings')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeSection === 'bookings' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Bokningar
+          </button>
+          <button
+            onClick={() => setActiveSection('slots')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeSection === 'slots' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Tidsluckor
+          </button>
+          <button
+            onClick={() => setActiveSection('settings')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeSection === 'settings' 
+              ? 'border-blue-500 text-blue-600' 
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Inställningar
+          </button>
+        </nav>
+      </div>
       
       <div className="admin-content">
         {activeSection === 'users' && <UserManagement />}

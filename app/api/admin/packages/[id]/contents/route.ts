@@ -2,25 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packageContents, lessonTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 // GET package contents for a specific package
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id: packageId } = params;
+    const { id: packageId } = await params;
 
     const contents = await db.query.packageContents.findMany({
       where: eq(packageContents.packageId, packageId),
@@ -44,20 +43,19 @@ export async function GET(
 // POST add new content to package
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { id: packageId } = params;
+    const { id: packageId } = await params;
     const body = await request.json();
     const { 
       lessonTypeId, 
@@ -90,6 +88,46 @@ export async function POST(
     return NextResponse.json(contentWithRelations);
   } catch (error) {
     console.error('Error adding package content:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' }, 
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE remove content from package
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+
+    const { id: packageId } = await params;
+    const { searchParams } = new URL(request.url);
+    const contentId = searchParams.get('contentId');
+
+    if (!contentId) {
+      return NextResponse.json({ error: 'Content ID is required' }, { status: 400 });
+    }
+
+    await db.delete(packageContents).where(
+      and(
+        eq(packageContents.id, contentId),
+        eq(packageContents.packageId, packageId)
+      )
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting package content:', error);
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

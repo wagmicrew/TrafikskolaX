@@ -1,0 +1,102 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "id": "0008_add_swish_payment_verification",
+  "prevId": "0004_rapid_mister_fear",
+  "tables": {
+    "email_templates": {
+      "name": "email_templates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "hasDefault": true,
+          "isAutoincrement": false,
+          "notNull": true
+        },
+        "triggerType": {
+          "name": "trigger_type",
+          "type": "enum(\"user_login\",\"forgot_password\",\"new_user\",\"new_booking\",\"moved_booking\",\"cancelled_booking\",\"booking_reminder\",\"booking_confirmed\",\"credits_reminder\",\"payment_reminder\",\"payment_confirmation_request\",\"payment_confirmed\",\"payment_declined\",\"feedback_received\",\"teacher_daily_bookings\",\"teacher_feedback_reminder\",\"awaiting_school_confirmation\",\"pending_school_confirmation\",\"new_password\",\"swish_payment_verification\")",
+          "primaryKey": false,
+          "hasDefault": false,
+          "isAutoincrement": false,
+          "notNull": true,
+          "unique": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "hasDefault": false,
+          "isAutoincrement": false,
+          "notNull": true
+        },
+        "htmlContent": {
+          "name": "html_content",
+          "type": "text",
+          "primaryKey": false,
+          "hasDefault": false,
+          "isAutoincrement": false,
+          "notNull": true
+        },
+        "isActive": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "hasDefault": true,
+          "isAutoincrement": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "isAutoincrement": false,
+          "notNull": true
+        },
+        "updatedAt": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "hasDefault": true,
+          "isAutoincrement": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    }
+  },
+  "enums": {
+    "email_trigger_type": {
+      "name": "email_trigger_type",
+      "schema": "",
+      "values": [
+        "user_login",
+        "forgot_password",
+        "new_user",
+        "new_booking",
+        "moved_booking",
+        "cancelled_booking",
+        "booking_reminder",
+        "booking_confirmed",
+        "credits_reminder",
+        "payment_reminder",
+        "payment_confirmation_request",
+        "payment_confirmed",
+        "payment_declined",
+        "feedback_received",
+        "teacher_daily_bookings",
+        "teacher_feedback_reminder",
+        "awaiting_school_confirmation",
+        "pending_school_confirmation",
+        "new_password",
+        "swish_payment_verification"
+      ]
+    }
+  }
+} 

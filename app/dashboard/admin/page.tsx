@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { ExportSchedule } from '@/components/Admin/ExportSchedule';
 
 export default function AdminDashboard() {
   const { user, isLoading } = useAuth();
@@ -29,8 +30,15 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      <p className="text-lg">Välkommen, {user.firstName} {user.lastName}!</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-lg">Välkommen, {user.firstName} {user.lastName}!</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <ExportSchedule />
+        </div>
+      </div>
 
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-gradient-to-r from-green-400 to-blue-500 p-6 rounded-lg shadow-lg text-white">

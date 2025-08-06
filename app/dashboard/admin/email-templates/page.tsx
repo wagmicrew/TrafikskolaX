@@ -263,6 +263,8 @@ export default function EmailTemplatesPage() {
   const [showEmailTest, setShowEmailTest] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [isSendingTest, setIsSendingTest] = useState(false);
+  const [schoolname, setSchoolname] = useState('Din Trafikskola Hässleholm');
+  const [schoolPhone, setSchoolPhone] = useState('08-XXX XX XX');
 
   useEffect(() => {
     fetchTemplates();
@@ -275,6 +277,8 @@ export default function EmailTemplatesPage() {
       
       const data = await response.json();
       setTemplates(data.templates);
+      setSchoolname(data.schoolname || 'Din Trafikskola Hässleholm');
+      setSchoolPhone(data.schoolPhone || '08-XXX XX XX');
       
       // Create missing templates
       const existingTriggers = data.templates.map((t: EmailTemplate) => t.triggerType);
@@ -353,6 +357,40 @@ export default function EmailTemplatesPage() {
     }
   };
 
+  const handleTestContactDesign = async () => {
+    if (!testEmail) {
+      toast.error('Ange en e-postadress först');
+      setShowEmailTest(true);
+      return;
+    }
+
+    setIsSendingTest(true);
+    try {
+      const response = await fetch('/api/admin/test-contact-email-design', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          testEmail
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || 'Misslyckades med att skicka test-e-post');
+      }
+    } catch (error) {
+      console.error('Contact design test error:', error);
+      toast.error('Ett oväntat fel uppstod vid skickandet av test-e-post');
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!editedTemplate) return;
 
@@ -414,7 +452,8 @@ export default function EmailTemplatesPage() {
     preview = preview.replace(/\{\{booking\.totalPrice\}\}/g, '695');
     preview = preview.replace(/\{\{booking\.id\}\}/g, '123456');
     preview = preview.replace(/\{\{appUrl\}\}/g, window.location.origin);
-    preview = preview.replace(/\{\{schoolName\}\}/g, 'Din Trafikskola HLM');
+    preview = preview.replace(/\{\{schoolName\}\}/g, schoolname);
+    preview = preview.replace(/\{\{schoolPhone\}\}/g, schoolPhone);
     preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
 
     return `
@@ -424,8 +463,8 @@ export default function EmailTemplatesPage() {
             ${preview}
           </div>
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
-            <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
-            <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+            <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">${schoolname}</strong></p>
+            <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: ${schoolPhone}</p>
           </div>
         </div>
       </div>
@@ -637,17 +676,26 @@ export default function EmailTemplatesPage() {
                       <code className="bg-white px-2 py-1 rounded">{'{{booking.id}}'}</code>
                       <code className="bg-white px-2 py-1 rounded">{'{{appUrl}}'}</code>
                       <code className="bg-white px-2 py-1 rounded">{'{{schoolName}}'}</code>
+                      <code className="bg-white px-2 py-1 rounded">{'{{schoolPhone}}'}</code>
                     </div>
                   </div>
 
-                  {/* Test Email Button */}
-                  <div className="mb-6">
+                  {/* Test Email Buttons */}
+                  <div className="mb-6 space-y-2">
                     <button
                       onClick={() => setShowEmailTest(true)}
                       className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-2"
                     >
                       <TestTube className="w-4 h-4" />
                       Skicka test-e-post
+                    </button>
+                    
+                    <button
+                      onClick={handleTestContactDesign}
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Testa kontaktformulär design
                     </button>
                   </div>
 

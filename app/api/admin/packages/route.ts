@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packages, packageContents, lessonTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 // GET all packages with their contents
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     // Get all packages with their contents
@@ -42,14 +41,13 @@ export async function GET(request: NextRequest) {
 // POST create new package with contents
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();
@@ -63,46 +61,43 @@ export async function POST(request: NextRequest) {
       contents 
     } = body;
 
-    // Start a transaction
-    const result = await db.transaction(async (tx) => {
-      // Insert the package
-      const [newPackage] = await tx.insert(packages).values({
-        name: name.toString(),
-        description: description?.toString() || null,
-        price: price.toString(),
-        priceStudent: priceStudent ? priceStudent.toString() : null,
-        salePrice: salePrice ? salePrice.toString() : null,
-        isActive: Boolean(isActive),
-      }).returning();
+    // Insert the package
+    const [newPackage] = await db.insert(packages).values({
+      name: name.toString(),
+      description: description?.toString() || null,
+      price: price.toString(),
+      priceStudent: priceStudent ? priceStudent.toString() : null,
+      salePrice: salePrice ? salePrice.toString() : null,
+      isActive: Boolean(isActive),
+    }).returning();
 
-      // Insert package contents if any
-      if (contents && Array.isArray(contents)) {
-        const packageContentsData = contents.map((content: any) => ({
-          packageId: newPackage.id,
-          lessonTypeId: content.lessonTypeId || null,
-          handledarSessionId: content.handledarSessionId || null,
-          credits: content.credits || 0,
-          contentType: content.contentType || 'lesson',
-          freeText: content.freeText || null,
-          sortOrder: content.sortOrder || 0,
-        }));
+    // Insert package contents if any
+    if (contents && Array.isArray(contents)) {
+      const packageContentsData = contents.map((content: any) => ({
+        packageId: newPackage.id,
+        lessonTypeId: content.lessonTypeId || null,
+        handledarSessionId: content.handledarSessionId || null,
+        credits: content.credits || 0,
+        contentType: content.contentType || 'lesson',
+        freeText: content.freeText || null,
+        sortOrder: content.sortOrder || 0,
+      }));
 
-        if (packageContentsData.length > 0) {
-          await tx.insert(packageContents).values(packageContentsData);
-        }
+      if (packageContentsData.length > 0) {
+        await db.insert(packageContents).values(packageContentsData);
       }
+    }
 
-      // Return the created package with its contents
-      return tx.query.packages.findFirst({
-        where: eq(packages.id, newPackage.id),
-        with: {
-          contents: {
-            with: {
-              lessonType: true
-            }
+    // Return the created package with its contents
+    const result = await db.query.packages.findFirst({
+      where: eq(packages.id, newPackage.id),
+      with: {
+        contents: {
+          with: {
+            lessonType: true
           }
         }
-      });
+      }
     });
 
     return NextResponse.json(result);
@@ -118,14 +113,13 @@ export async function POST(request: NextRequest) {
 // PUT update package and its contents
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const body = await request.json();
@@ -147,49 +141,46 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Start a transaction
-    const result = await db.transaction(async (tx) => {
-      // Update the package
-      await tx.update(packages).set({
-        name: name.toString(),
-        description: description?.toString() || null,
-        price: price.toString(),
-        priceStudent: priceStudent ? priceStudent.toString() : null,
-        salePrice: salePrice ? salePrice.toString() : null,
-        isActive: Boolean(isActive),
-      }).where(eq(packages.id, id));
+    // Update the package
+    await db.update(packages).set({
+      name: name.toString(),
+      description: description?.toString() || null,
+      price: price.toString(),
+      priceStudent: priceStudent ? priceStudent.toString() : null,
+      salePrice: salePrice ? salePrice.toString() : null,
+      isActive: Boolean(isActive),
+    }).where(eq(packages.id, id));
 
-      // Delete existing contents
-      await tx.delete(packageContents).where(eq(packageContents.packageId, id));
+    // Delete existing contents
+    await db.delete(packageContents).where(eq(packageContents.packageId, id));
 
-      // Insert updated contents if any
-      if (contents && Array.isArray(contents)) {
-        const packageContentsData = contents.map((content: any) => ({
-          packageId: id,
-          lessonTypeId: content.lessonTypeId || null,
-          handledarSessionId: content.handledarSessionId || null,
-          credits: content.credits || 0,
-          contentType: content.contentType || 'lesson',
-          freeText: content.freeText || null,
-          sortOrder: content.sortOrder || 0,
-        }));
+    // Insert updated contents if any
+    if (contents && Array.isArray(contents)) {
+      const packageContentsData = contents.map((content: any) => ({
+        packageId: id,
+        lessonTypeId: content.lessonTypeId || null,
+        handledarSessionId: content.handledarSessionId || null,
+        credits: content.credits || 0,
+        contentType: content.contentType || 'lesson',
+        freeText: content.freeText || null,
+        sortOrder: content.sortOrder || 0,
+      }));
 
-        if (packageContentsData.length > 0) {
-          await tx.insert(packageContents).values(packageContentsData);
-        }
+      if (packageContentsData.length > 0) {
+        await db.insert(packageContents).values(packageContentsData);
       }
+    }
 
-      // Return the updated package with its contents
-      return tx.query.packages.findFirst({
-        where: eq(packages.id, id),
-        with: {
-          contents: {
-            with: {
-              lessonType: true
-            }
+    // Return the updated package with its contents
+    const result = await db.query.packages.findFirst({
+      where: eq(packages.id, id),
+      with: {
+        contents: {
+          with: {
+            lessonType: true
           }
         }
-      });
+      }
     });
 
     return NextResponse.json(result);
@@ -205,14 +196,13 @@ export async function PUT(request: NextRequest) {
 // DELETE package
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.cookies.get('token')?.value;
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = await verifyJWT(token);
-    if (!decoded || decoded.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const authResult = await requireAuthAPI('admin');
+    
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
     const { searchParams } = new URL(request.url);

@@ -7,7 +7,7 @@ import { eq, sql } from 'drizzle-orm';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -22,7 +22,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const bookingId = params.id;
+    const { id: bookingId } = await params;
 
     // Get booking details first
     const booking = await db
@@ -69,7 +69,7 @@ export async function DELETE(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -84,7 +84,7 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const bookingId = params.id;
+    const { id: bookingId } = await params;
     const body = await request.json();
     const { action } = body;
 

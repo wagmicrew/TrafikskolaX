@@ -54,18 +54,6 @@ export default async function AdminLayout({
               ⚙️ Inställningar
             </Link>
             <Link
-              href="/dashboard/admin/packages"
-              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
-            >
-              📦 Paket
-            </Link>
-            <Link
-              href="/dashboard/admin/logs"
-              className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
-            >
-              📋 Loggar
-            </Link>
-            <Link
               href="/dashboard/admin/email-templates"
               className="px-4 py-2 rounded-lg hover:bg-white/20 transition-colors text-sm md:text-base"
             >

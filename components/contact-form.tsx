@@ -24,11 +24,38 @@ export function ContactForm({ isOpen, onClose }: ContactFormProps) {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const formData = new FormData(e.currentTarget)
+    const data = {
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      message: formData.get('message') as string,
+      preferredContact
+    }
 
-    setSubmitStatus("success")
-    setIsSubmitting(false)
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (response.ok) {
+        setSubmitStatus("success")
+        // Reset form
+        e.currentTarget.reset()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to send message')
+      }
+    } catch (error) {
+      console.error('Contact form error:', error)
+      setSubmitStatus("error")
+    } finally {
+      setIsSubmitting(false)
+    }
 
     // Close modal after success
     setTimeout(() => {

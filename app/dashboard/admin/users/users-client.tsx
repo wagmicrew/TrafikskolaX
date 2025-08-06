@@ -14,6 +14,8 @@ import {
   UserCheck,
   Calendar,
   CreditCard,
+  AlertTriangle,
+  FileText,
 } from 'lucide-react';
 
 interface User {
@@ -53,6 +55,10 @@ export default function UsersClient({
 }: UsersClientProps) {
   const [search, setSearch] = useState(searchFilter);
   const [loadingSkriv, setLoadingSkriv] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [exportPdf, setExportPdf] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSkrivIn = async (userId: string) => {
     setLoadingSkriv(userId);
@@ -75,6 +81,48 @@ export default function UsersClient({
       alert('Ett fel uppstod vid inskrivning');
     }
     setLoadingSkriv(null);
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ exportPdf }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const message = result.pdfGenerated 
+          ? `Användare raderad framgångsrikt. PDF export skapad: ${result.pdfFileName}`
+          : 'Användare raderad framgångsrikt. PDF export misslyckades men användaren raderades.';
+        alert(message);
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        alert(`Fel vid radering: ${error.error}`);
+      }
+    } catch (error) {
+      alert('Ett fel uppstod vid radering av användare');
+    }
+    setDeleting(false);
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
   };
 
   const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -202,15 +250,11 @@ export default function UsersClient({
                       Hantera
                     </Link>
                     
-                    <Link 
-                      href={`/dashboard/admin/users/${user.id}/credits`} 
-                      className="text-green-600 hover:underline flex items-center gap-1"
+                    <button 
+                      onClick={() => handleDeleteClick(user)}
+                      className="text-red-600 hover:underline flex items-center gap-1"
                     >
-                      <CreditCard className="w-4 h-4" /> Krediter
-                    </Link>
-
-                    <button className="text-red-600 hover:underline">
-                      <Trash className="w-5 h-5 inline" /> Radera
+                      <Trash className="w-4 h-4" /> Radera
                     </button>
                   </div>
                 </td>
@@ -219,6 +263,65 @@ export default function UsersClient({
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialogOpen && userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+              <h3 className="text-lg font-semibold">Bekräfta radering</h3>
+            </div>
+            
+            <p className="text-gray-700 mb-4">
+              Vill du verkligen radera användaren <strong>{userToDelete.firstName} {userToDelete.lastName}</strong> och alla bokningar/feedback?
+            </p>
+            
+            <div className="mb-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={exportPdf}
+                  onChange={(e) => setExportPdf(e.target.checked)}
+                  className="rounded"
+                />
+                <FileText className="w-4 h-4" />
+                Exportera en sammanfattning till PDF åt kunden innan du raderar
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                (Detta kommer att kompilera all användardata, alla bokningar och bokningsrecensioner till en PDF med student-ID som PDF-namn och sparas på datorn)
+              </p>
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Raderar...
+                  </>
+                ) : (
+                  <>
+                    <Trash className="w-4 h-4" />
+                    Radera
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-between items-center mt-6">
         <div className="flex gap-2">

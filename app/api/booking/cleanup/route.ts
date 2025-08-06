@@ -25,9 +25,9 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Only allow cleanup of pending bookings
-      if (booking.status !== 'pending') {
-        return NextResponse.json({ error: 'Cannot cancel confirmed booking' }, { status: 400 });
+      // Only allow cleanup of temporary bookings
+      if (booking.status !== 'temp') {
+        return NextResponse.json({ error: 'Cannot cancel non-temporary booking' }, { status: 400 });
       }
 
       // Decrease participant count in session
@@ -45,7 +45,7 @@ export async function DELETE(request: NextRequest) {
         .where(eq(handledarBookings.id, bookingId));
 
       return NextResponse.json({ 
-        message: 'Handledar booking cleaned up successfully',
+        message: 'Temporary handledar booking cleaned up successfully',
         sessionId: booking.sessionId
       });
 

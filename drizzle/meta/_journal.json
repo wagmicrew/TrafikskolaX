@@ -36,6 +36,20 @@
       "when": 1754388200873,
       "tag": "0004_rapid_mister_fear",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1754388200874,
+      "tag": "0008_add_swish_payment_verification",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1754388200875,
+      "tag": "0009_add_school_receiver_type",
+      "breakpoints": true
     }
   ]
 }

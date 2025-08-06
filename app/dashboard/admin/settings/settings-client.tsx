@@ -24,8 +24,10 @@ import {
   DollarSign,
   CheckCircle,
   AlertCircle,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  AlertTriangle
 } from 'lucide-react';
+import { ResetSiteButton } from '@/components/admin/ResetSiteButton';
 
 interface Settings {
   // Email settings
@@ -40,10 +42,15 @@ interface Settings {
   from_name: string;
   from_email: string;
   reply_to: string;
+  school_email: string;
+  force_internal_only: boolean;
+  fallback_to_internal: boolean;
   
   // Site settings
   site_domain: string;
   site_name: string;
+  schoolname: string;
+  school_phonenumber: string;
   
 // Qliro API URLs
   qliro_dev_api_url: string;
@@ -82,14 +89,19 @@ export default function SettingsClient() {
     smtp_username: 'admin@dintrafikskolahlm.se',
     smtp_password: '',
     smtp_secure: false,
-qliro_dev_api_url: 'https://playground.qliro.com',
+    qliro_dev_api_url: 'https://playground.qliro.com',
     qliro_prod_api_url: 'https://api.qliro.com',
     qliro_use_prod_env: false,
     from_name: 'Din Trafikskola Hässleholm',
     from_email: 'admin@dintrafikskolahlm.se',
     reply_to: 'info@dintrafikskolahlm.se',
+    school_email: 'info@dintrafikskolahlm.se',
+    force_internal_only: false,
+    fallback_to_internal: true,
     site_domain: '',
     site_name: 'Din Trafikskola Hässleholm',
+    schoolname: 'Din Trafikskola Hässleholm',
+    school_phonenumber: '',
     swish_number: '',
     swish_enabled: false,
     qliro_api_key: '',
@@ -105,6 +117,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [exportTestResults, setExportTestResults] = useState<any>(null);
   const [qliroTestOpen, setQliroTestOpen] = useState(false);
   const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
 
@@ -189,9 +202,10 @@ qliro_dev_api_url: 'https://playground.qliro.com',
         throw new Error(data.error || 'Failed to test Qliro payment');
       }
       toast.success('Qliro payment test initiated successfully!', { id: loadingToast });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Qliro test error:', error);
-      toast.error(`Qliro test failed: ${error.message}`, { id: loadingToast });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Qliro test failed: ${errorMessage}`, { id: loadingToast });
     } finally {
       setQliroTestOpen(false);
     }
@@ -346,6 +360,253 @@ qliro_dev_api_url: 'https://playground.qliro.com',
     }
   };
 
+  const testContactEmail = async () => {
+    const loadingToast = toast.loading('Skickar test kontaktformulär...');
+    
+    try {
+      const response = await fetch('/api/admin/test-contact-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          testEmail: 'test@example.com' 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send test contact email');
+      }
+      
+      toast.success(`Test kontaktformulär skickat till ${data.schoolEmail}!`, { id: loadingToast });
+    } catch (error: any) {
+      console.error('Contact email test error:', error);
+      toast.error(`Test kontaktformulär misslyckades: ${error.message}`, { id: loadingToast });
+    }
+  };
+
+  const testContactEmailDesign = async () => {
+    const loadingToast = toast.loading('Skickar test kontaktformulär design...');
+    
+    try {
+      const response = await fetch('/api/admin/test-contact-email-design', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          testEmail: 'test@example.com' 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send test contact email design');
+      }
+      
+      toast.success('Test kontaktformulär design skickat!', { id: loadingToast });
+    } catch (error: any) {
+      console.error('Contact email design test error:', error);
+      toast.error(`Test kontaktformulär design misslyckades: ${error.message}`, { id: loadingToast });
+    }
+  };
+
+  const initializeSchoolEmail = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/add-school-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(result.message);
+        // Refresh settings to show the new school_email field
+        await fetchSettings();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to initialize school email setting');
+      }
+    } catch (error) {
+      console.error('Error initializing school email:', error);
+      toast.error('Failed to initialize school email setting');
+    }
+  };
+
+  const initializeAllEmailSettings = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/initialize-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`${result.message} (${result.summary.added} added, ${result.summary.alreadyExists} already existed)`);
+        // Refresh settings to show all the new email fields
+        await fetchSettings();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to initialize email settings');
+      }
+    } catch (error) {
+      console.error('Error initializing email settings:', error);
+      toast.error('Failed to initialize email settings');
+    }
+  };
+
+  const initializeSchoolPhonenumber = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/add-school-phonenumber', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Skoltelefonnummer tillagt!');
+        fetchSettings(); // Refresh settings
+      } else {
+        toast.error(result.error || 'Fel vid tillägg av skoltelefonnummer');
+      }
+    } catch (error) {
+      console.error('Error adding school phonenumber:', error);
+      toast.error('Fel vid tillägg av skoltelefonnummer');
+    }
+  };
+
+  const addSwishPaymentTemplate = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/add-swish-payment-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Swish betalningsmall tillagd!');
+      } else {
+        toast.error(result.error || 'Fel vid tillägg av Swish betalningsmall');
+      }
+    } catch (error) {
+      console.error('Error adding Swish payment template:', error);
+      toast.error('Fel vid tillägg av Swish betalningsmall');
+    }
+  };
+
+  const addEnumValue = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/add-enum-value', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Enum värde tillagt!');
+      } else {
+        toast.error(result.error || 'Fel vid tillägg av enum värde');
+      }
+    } catch (error) {
+      console.error('Error adding enum value:', error);
+      toast.error('Fel vid tillägg av enum värde');
+    }
+  };
+
+  const testSwishConfirmation = async () => {
+    try {
+      const response = await fetch('/api/admin/test-swish-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Swish bekräftelse test lyckades!');
+      } else {
+        toast.error(result.error || 'Fel vid test av Swish bekräftelse');
+      }
+    } catch (error) {
+      console.error('Error testing Swish confirmation:', error);
+      toast.error('Fel vid test av Swish bekräftelse');
+    }
+  };
+
+  const updateSwishTemplateReceiver = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/update-swish-template-receiver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'Swish mall uppdaterad till skol-e-post!');
+      } else {
+        toast.error(result.error || 'Fel vid uppdatering av Swish mall');
+      }
+    } catch (error) {
+      console.error('Error updating Swish template receiver:', error);
+      toast.error('Fel vid uppdatering av Swish mall');
+    }
+  };
+
+  const addSchoolReceiverType = async () => {
+    try {
+      const response = await fetch('/api/admin/settings/add-school-receiver-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success(result.message || 'School receiver type tillagd!');
+      } else {
+        toast.error(result.error || 'Fel vid tillägg av school receiver type');
+      }
+    } catch (error) {
+      console.error('Error adding school receiver type:', error);
+      toast.error('Fel vid tillägg av school receiver type');
+    }
+  };
+
+  const testExportFunctions = async () => {
+    const loadingToast = toast.loading('Testar export-funktioner...');
+    
+    try {
+      const response = await fetch('/api/admin/test-export-functions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast.success('Export-funktioner testade framgångsrikt!', { id: loadingToast });
+        console.log('Export test results:', result);
+        setExportTestResults(result);
+      } else {
+        toast.error(result.error || 'Fel vid test av export-funktioner', { id: loadingToast });
+      }
+    } catch (error: any) {
+      console.error('Export test error:', error);
+      toast.error(`Export test misslyckades: ${error.message}`, { id: loadingToast });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -357,10 +618,14 @@ qliro_dev_api_url: 'https://playground.qliro.com',
   return (
     <div className="max-w-6xl mx-auto">
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="email" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
             E-postinställningar
+          </TabsTrigger>
+          <TabsTrigger value="school" className="flex items-center gap-2">
+            <Building className="w-4 h-4" />
+            Skolinformation
           </TabsTrigger>
           <TabsTrigger value="site" className="flex items-center gap-2">
             <Globe className="w-4 h-4" />
@@ -370,9 +635,9 @@ qliro_dev_api_url: 'https://playground.qliro.com',
             <CreditCard className="w-4 h-4" />
             Betalningsinställningar
           </TabsTrigger>
-          <TabsTrigger value="troubleshoot" className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            Felsökning
+          <TabsTrigger value="troubleshooting" className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            <span className="hidden sm:inline">Felsökning</span>
           </TabsTrigger>
         </TabsList>
 
@@ -403,22 +668,36 @@ qliro_dev_api_url: 'https://playground.qliro.com',
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="use-smtp">Använd SMTP</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aktivera SMTP för e-postutskick.
-                  </p>
-                </div>
-                <Switch
-                  id="use-smtp"
-                  checked={settings.use_smtp}
-                  onCheckedChange={(checked) => {
-                    updateSetting('use_smtp', checked);
-                    if (checked) updateSetting('use_sendgrid', false);
-                  }}
-                />
-              </div>
+                             <div className="flex items-center justify-between">
+                 <div className="space-y-0.5">
+                   <Label htmlFor="use-smtp">Använd SMTP</Label>
+                   <p className="text-sm text-muted-foreground">
+                     Aktivera SMTP för e-postutskick.
+                   </p>
+                 </div>
+                 <Switch
+                   id="use-smtp"
+                   checked={settings.use_smtp}
+                   onCheckedChange={(checked) => {
+                     updateSetting('use_smtp', checked);
+                     if (checked) updateSetting('use_sendgrid', false);
+                   }}
+                 />
+               </div>
+
+               <div className="flex items-center justify-between">
+                 <div className="space-y-0.5">
+                   <Label htmlFor="force-internal-only">Tvinga intern meddelande</Label>
+                   <p className="text-sm text-muted-foreground">
+                     Använd endast intern meddelande (för testning).
+                   </p>
+                 </div>
+                 <Switch
+                   id="force-internal-only"
+                   checked={settings.force_internal_only}
+                   onCheckedChange={(checked) => updateSetting('force_internal_only', checked)}
+                 />
+               </div>
 
               {settings.use_sendgrid && (
                 <div className="space-y-4 pt-4 border-t">
@@ -550,6 +829,213 @@ qliro_dev_api_url: 'https://playground.qliro.com',
                     value={settings.reply_to}
                     onChange={(e) => updateSetting('reply_to', e.target.value)}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="school-email">
+                    <Building className="w-4 h-4 inline mr-2" />
+                    Skolans e-postadress
+                  </Label>
+                  <Input
+                    id="school-email"
+                    type="email"
+                    placeholder="info@dintrafikskolahlm.se"
+                    value={settings.school_email}
+                    onChange={(e) => updateSetting('school_email', e.target.value)}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Används för kontaktformulär och systemmeddelanden
+                  </p>
+                </div>
+
+                                 {/* Initialize School Email Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={initializeSchoolEmail}
+                     className="w-full"
+                   >
+                     <SettingsIcon className="w-4 h-4 mr-2" />
+                     Initiera skolans e-postinställning
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Klicka här om skolans e-postadress inte visas ovan
+                   </p>
+                 </div>
+
+                 {/* Initialize All Email Settings Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={initializeAllEmailSettings}
+                     className="w-full"
+                   >
+                     <SettingsIcon className="w-4 h-4 mr-2" />
+                     Initiera alla e-postinställningar
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Lägger till alla nödvändiga e-postinställningar i databasen
+                   </p>
+                 </div>
+
+                 {/* Add Swish Payment Template Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={addSwishPaymentTemplate}
+                     className="w-full"
+                   >
+                     <DollarSign className="w-4 h-4 mr-2" />
+                     Lägg till Swish betalningsmall
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Lägger till e-postmall för Swish betalningsverifiering
+                   </p>
+                 </div>
+
+                 {/* Add Enum Value Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={addEnumValue}
+                     className="w-full"
+                   >
+                     <SettingsIcon className="w-4 h-4 mr-2" />
+                     Lägg till enum värde
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Lägger till swish_payment_verification till email_trigger_type enum
+                   </p>
+                 </div>
+
+                 {/* Test Swish Confirmation Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={testSwishConfirmation}
+                     className="w-full"
+                   >
+                     <CheckCircle className="w-4 h-4 mr-2" />
+                     Testa Swish bekräftelse
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Testar Swish betalningsverifiering e-postmall
+                   </p>
+                 </div>
+
+                 {/* Update Swish Template Receiver Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={updateSwishTemplateReceiver}
+                     className="w-full"
+                   >
+                     <AtSign className="w-4 h-4 mr-2" />
+                     Uppdatera Swish mall till skol-e-post
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Ändrar Swish mall från admin till skol-e-post
+                   </p>
+                 </div>
+
+                 {/* Add School Receiver Type Button */}
+                 <div className="pt-4 border-t">
+                   <Button
+                     type="button"
+                     variant="outline"
+                     onClick={addSchoolReceiverType}
+                     className="w-full"
+                   >
+                     <AtSign className="w-4 h-4 mr-2" />
+                     Lägg till school receiver type
+                   </Button>
+                   <p className="text-xs text-muted-foreground mt-2">
+                     Lägger till 'school' till email_receiver_type enum
+                   </p>
+                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* School Information Tab */}
+        <TabsContent value="school">
+          <Card>
+            <CardHeader>
+              <CardTitle>Skolinformation</CardTitle>
+              <CardDescription>
+                Grundläggande information om trafikskolan
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="schoolname">
+                  <Building className="w-4 h-4 inline mr-2" />
+                  Skolnamn
+                </Label>
+                <Input
+                  id="schoolname"
+                  placeholder="Din Trafikskola Hässleholm"
+                  value={settings.schoolname}
+                  onChange={(e) => updateSetting('schoolname', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Används i e-postmeddelanden och på webbplatsen
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="school-email">
+                  <AtSign className="w-4 h-4 inline mr-2" />
+                  Skolans e-postadress
+                </Label>
+                <Input
+                  id="school-email"
+                  type="email"
+                  placeholder="info@dintrafikskolahlm.se"
+                  value={settings.school_email}
+                  onChange={(e) => updateSetting('school_email', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Används för kontaktformulär och systemmeddelanden
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="school-phonenumber">
+                  <Phone className="w-4 h-4 inline mr-2" />
+                  Skolans telefonnummer
+                </Label>
+                <Input
+                  id="school-phonenumber"
+                  placeholder="040-123 45 67"
+                  value={settings.school_phonenumber}
+                  onChange={(e) => updateSetting('school_phonenumber', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Används i e-postmeddelanden och kontaktinformation
+                </p>
+              </div>
+
+              <div className="pt-4 border-t">
+                <div className="space-y-2">
+                  <Button
+                    onClick={initializeSchoolPhonenumber}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    Initiera skolans telefonnummer
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Lägger till telefonnummer-inställningen i databasen om den inte finns
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -835,14 +1321,41 @@ qliro_dev_api_url: 'https://playground.qliro.com',
                   Test Qliro Payment
                 </Button>
 
-                <Button
-                  onClick={testSendGridEmail}
-                  disabled={testing || !testUserId}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Testa SendGrid
-                </Button>
+                                 <Button
+                   onClick={testSendGridEmail}
+                   disabled={testing || !testUserId}
+                   className="bg-green-600 hover:bg-green-700"
+                 >
+                   <Mail className="w-4 h-4 mr-2" />
+                   Testa SendGrid
+                 </Button>
+
+                 <Button
+                   onClick={testContactEmail}
+                   disabled={testing}
+                   className="bg-blue-600 hover:bg-blue-700"
+                 >
+                   <Mail className="w-4 h-4 mr-2" />
+                   Testa Kontaktformulär
+                 </Button>
+
+                 <Button
+                   onClick={testContactEmailDesign}
+                   disabled={testing}
+                   className="bg-green-600 hover:bg-green-700"
+                 >
+                   <Mail className="w-4 h-4 mr-2" />
+                   Testa Kontaktformulär Design
+                 </Button>
+
+                 <Button
+                   onClick={testExportFunctions}
+                   disabled={testing}
+                   className="bg-yellow-600 hover:bg-yellow-700"
+                 >
+                   <DollarSign className="w-4 h-4 mr-2" />
+                   Testa Export-funktioner
+                 </Button>
               </div>
               
               <div className="text-sm text-muted-foreground p-4 bg-gray-50 rounded">
@@ -850,6 +1363,7 @@ qliro_dev_api_url: 'https://playground.qliro.com',
                 <ul className="list-disc list-inside space-y-1 mt-2">
                   <li>Krediterings-testet kontrollerar att API:et fungerar korrekt</li>
                   <li>SendGrid-testet skickar en e-post till användarens e-postadress</li>
+                  <li>Export-testet kontrollerar att alla export-funktioner fungerar för både lärare och admin</li>
                   <li>Se konsolen för detaljerade loggmeddelanden</li>
                   <li>Toast-notifieringar visar testresultat</li>
                 </ul>
@@ -873,6 +1387,14 @@ qliro_dev_api_url: 'https://playground.qliro.com',
                       )}
                     </div>
                   ))}
+                </div>
+              )}
+              {exportTestResults && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="font-semibold">Export Test Resultat:</h4>
+                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
+                    {JSON.stringify(exportTestResults, null, 2)}
+                  </pre>
                 </div>
               )}
             </CardContent>

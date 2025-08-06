@@ -29,6 +29,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
+// Import PackageContent type for compatibility
+interface PackageContent {
+  id: string;
+  lessonTypeId?: string;
+  handledarSessionId?: string;
+  credits: number;
+  contentType: 'lesson' | 'handledar' | 'text';
+  freeText?: string;
+  hasChanges?: boolean;
+  sortOrder?: number;
+}
+
 interface Lesson {
   id: string;
   name: string;
@@ -44,12 +56,13 @@ interface Lesson {
 interface Package {
   id: string;
   name: string;
-  description: string | null;
+  description?: string;
   price: string;
-  priceStudent: string | null;
-  salePrice: string | null;
+  priceStudent?: string;
+  salePrice?: string;
   isActive: boolean;
   purchaseCount: number;
+  contents: PackageContent[]; // Make required to match PackageBuilderPopover
 }
 
 interface LessonStats {
@@ -62,10 +75,11 @@ interface LessonStats {
 interface LessonsClientProps {
   lessons: Lesson[];
   packages: Package[];
+  handledarSessions: { id: string; title: string; isActive: boolean; }[];
   stats: LessonStats;
 }
 
-export default function LessonsClient({ lessons, packages, stats }: LessonsClientProps) {
+export default function LessonsClient({ lessons, packages, handledarSessions, stats }: LessonsClientProps) {
   const [showActive, setShowActive] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -406,11 +420,31 @@ export default function LessonsClient({ lessons, packages, stats }: LessonsClien
       {/* New Package Popover */}
       {isNewPackagePopoverOpen && (
         <PackageBuilderPopover
-          lessonTypes={lessons ? lessons.map(l => ({ id: l.id, name: l.name })) : []}
+          lessonTypes={lessons ? lessons.map(l => ({ id: l.id, name: l.name, isActive: l.isActive })) : []}
+          handledarSessions={handledarSessions}
           onClose={() => setIsNewPackagePopoverOpen(false)}
-          onSave={(packageData) => {
-            // Refresh page to show new package
-            window.location.reload();
+          onSave={async (packageData) => {
+            try {
+              const response = await fetch('/api/admin/packages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(packageData),
+              });
+
+              if (response.ok) {
+                toast.success('Paket skapat!');
+                // Refresh page to show new package
+                window.location.reload();
+              } else {
+                const error = await response.json();
+                toast.error(error.error || 'Fel vid skapande av paket');
+              }
+            } catch (error) {
+              console.error('Error creating package:', error);
+              toast.error('Fel vid skapande av paket');
+            }
           }}
         />
       )}
@@ -418,7 +452,8 @@ export default function LessonsClient({ lessons, packages, stats }: LessonsClien
       {/* Edit Package Popover */}
       {isEditPackagePopoverOpen && selectedPackage && (
         <PackageBuilderPopover
-          lessonTypes={lessons ? lessons.map(l => ({ id: l.id, name: l.name })) : []}
+          lessonTypes={lessons ? lessons.map(l => ({ id: l.id, name: l.name, isActive: l.isActive })) : []}
+          handledarSessions={handledarSessions}
           initialPackage={selectedPackage}
           onClose={() => {
             setIsEditPackagePopoverOpen(false);
@@ -427,6 +462,29 @@ export default function LessonsClient({ lessons, packages, stats }: LessonsClien
           onSave={(packageData) => {
             // Refresh page to show updated package
             window.location.reload();
+          }}
+          onUpdate={async (packageData) => {
+            try {
+              const response = await fetch('/api/admin/packages', {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(packageData),
+              });
+
+              if (response.ok) {
+                toast.success('Paket uppdaterat!');
+                // Refresh page to show updated package
+                window.location.reload();
+              } else {
+                const error = await response.json();
+                toast.error(error.error || 'Fel vid uppdatering av paket');
+              }
+            } catch (error) {
+              console.error('Error updating package:', error);
+              toast.error('Fel vid uppdatering av paket');
+            }
           }}
         />
       )}

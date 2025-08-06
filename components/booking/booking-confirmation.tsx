@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { AlertCircle, CreditCard, DollarSign, Loader2, User, Mail, Phone } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -50,6 +49,8 @@ interface BookingData {
   isHandledarutbildning: boolean
   transmissionType?: "manual" | "automatic" | null
   [key: string]: any // Allow additional properties
+  bookingId?: string // Added for existing bookings
+  tempBookingId?: string // Added for temporary bookings
 }
 
 interface BookingCompletionData {
@@ -302,36 +303,36 @@ export function BookingConfirmation({
       return
     }
 
-    // Check if admin has marked as already paid - if so, create booking directly
+    // Check if admin has marked as already paid - if so, create booking directly for student
     if (isAdminOrTeacher && alreadyPaid) {
       setLoading(true)
       try {
-        const bookingPayload = {
-          sessionType: bookingData.lessonType.type || 'lesson',
-          sessionId: bookingData.lessonType.id,
-          studentId: selectedStudent,
-          alreadyPaid: true,
-          scheduledDate: bookingData.selectedDate.toISOString().split('T')[0],
-          startTime: bookingData.selectedTime,
-          endTime: bookingData.selectedTime, // Will be calculated on backend
-          durationMinutes: bookingData.lessonType.durationMinutes,
-          transmissionType: bookingData.transmissionType,
-          totalPrice: bookingData.totalPrice,
-          paymentMethod: 'already_paid',
-          guestName: isHandledarutbildning ? supervisorName : undefined,
-          guestEmail: isHandledarutbildning ? supervisorEmail : undefined,
-          guestPhone: isHandledarutbildning ? supervisorPhone : undefined
-        }
-
-        const response = await fetch('/api/booking/create', {
+        // Use the appropriate API endpoint based on user role
+        const endpoint = user?.role === 'admin' ? '/api/admin/bookings/create-for-student' : '/api/teacher/bookings/create-for-student';
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(bookingPayload)
+          body: JSON.stringify({
+            studentId: selectedStudent,
+            lessonTypeId: bookingData.lessonType.id,
+            scheduledDate: bookingData.selectedDate.toISOString().split('T')[0],
+            startTime: bookingData.selectedTime,
+            endTime: bookingData.selectedTime.split(':').slice(0, 2).join(':') + ':' + 
+                    String(parseInt(bookingData.selectedTime.split(':')[1]) + bookingData.lessonType.durationMinutes).padStart(2, '0'),
+            durationMinutes: bookingData.lessonType.durationMinutes,
+            transmissionType: bookingData.transmissionType || 'manual',
+            totalPrice: bookingData.totalPrice,
+            paymentMethod: 'admin_created',
+            paymentStatus: 'paid',
+            status: 'confirmed',
+            notes: `Bokad av ${user?.role === 'admin' ? 'administratör' : 'lärare'}`
+          })
         })
 
         if (response.ok) {
           const result = await response.json()
-          showNotification('Bokad!', 'Bokningen har skapats och markeras som betald', 'success')
+          showNotification('Bokad!', 'Bokningen har skapats för eleven och bekräftelse har skickats', 'success')
+          
           // Store booking details for success page
           localStorage.setItem('recentBooking', JSON.stringify({
             id: result.booking.id,
@@ -340,15 +341,16 @@ export function BookingConfirmation({
             time: bookingData.selectedTime,
             duration: bookingData.lessonType.durationMinutes,
             price: bookingData.totalPrice,
-            paymentMethod: 'already_paid',
+            paymentMethod: 'admin_created',
             status: 'confirmed'
           }))
+          
           // Redirect to success page
           window.location.href = '/booking/success'
           return
         } else {
           const error = await response.json()
-          showNotification('Fel', error.error || 'Kunde inte skapa bokningen', 'error')
+          showNotification('Fel', error.error || 'Kunde inte skapa bokningen för eleven', 'error')
           return
         }
       } catch (error) {
@@ -366,14 +368,14 @@ export function BookingConfirmation({
       return
     }
 
-    // Update temporary booking with guest information if we have one
-    if (bookingData.tempBookingId && !authUser && (guestName || guestEmail || guestPhone)) {
+    // Update the existing temporary booking with guest information
+    if (bookingData.bookingId || bookingData.tempBookingId) {
       try {
         const updateResponse = await fetch('/api/booking/update-guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            bookingId: bookingData.tempBookingId,
+            bookingId: bookingData.bookingId || bookingData.tempBookingId,
             guestName: isHandledarutbildning ? supervisorName : guestName,
             guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
             guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone
@@ -400,7 +402,7 @@ export function BookingConfirmation({
       guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
       guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? alreadyPaid : false
+      alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false
     }
 
   // Log selected payment method and booking data for troubleshooting
@@ -476,7 +478,9 @@ export function BookingConfirmation({
     const completionData = {
       paymentMethod: selectedPaymentMethod,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? alreadyPaid : false,
+      alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false,
+      totalPrice: bookingData.totalPrice,
+      lessonType: bookingData.lessonType,
       // Add supervisor information for handledar sessions
       ...(isHandledarutbildning && {
         guestName: supervisorName,
@@ -820,8 +824,18 @@ export function BookingConfirmation({
               
               {canUseCredits && (
                 <div 
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
-                  onClick={() => setSelectedPaymentMethod('credits')}
+                  className={`border rounded-lg p-4 ${
+                    (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
+                      ? 'cursor-not-allowed opacity-60'
+                      : 'cursor-pointer transition-colors'
+                  } ${selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  onClick={() => {
+                    if (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone)) {
+                      showNotification('Kontaktuppgifter krävs', 'Fyll i dina kontaktuppgifter först', 'error');
+                      return;
+                    }
+                    setSelectedPaymentMethod('credits');
+                  }}
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${selectedPaymentMethod === 'credits' ? 'border-blue-500 bg-blue-500' : 'border-gray-400'}`}>
@@ -840,24 +854,45 @@ export function BookingConfirmation({
               )}
 
               {/* Booking ID */}
-              {bookingData.tempBookingId && (
+              {(bookingData.tempBookingId || bookingData.id) && (
                 <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg mb-4">
-                  <strong>Boknings-ID:</strong> {bookingData.tempBookingId}
+                  <strong>Boknings-ID:</strong> {bookingData.id || bookingData.tempBookingId}
                 </div>
               )}
 
               {/* Payment Methods */}
               <div className="space-y-4">
                 <h3 className="font-medium">Välj betalningssätt</h3>
+                
+                {/* Guest validation warning */}
+                {!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone) && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Kontaktuppgifter krävs</AlertTitle>
+                    <AlertDescription>
+                      Du måste fylla i dina kontaktuppgifter innan du kan välja betalningsmetod.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Swish Option */}
                 <div 
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                  className={`border rounded-lg p-4 ${
+                    (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
+                      ? 'cursor-not-allowed opacity-60'
+                      : 'cursor-pointer transition-colors'
+                  } ${
                     selectedPaymentMethod === 'swish' 
                       ? 'border-green-500 bg-green-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => setSelectedPaymentMethod('swish')}
+                  onClick={() => {
+                    if (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone)) {
+                      showNotification('Kontaktuppgifter krävs', 'Fyll i dina kontaktuppgifter först', 'error');
+                      return;
+                    }
+                    setSelectedPaymentMethod('swish');
+                  }}
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
@@ -874,15 +909,24 @@ export function BookingConfirmation({
 
                 {/* Qliro Option */}
                 <div 
-                  className={`border rounded-lg p-4 ${qliroAvailable 
-                    ? 'cursor-pointer transition-colors' 
-                    : 'cursor-not-allowed opacity-60'
+                  className={`border rounded-lg p-4 ${
+                    (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone)) || !qliroAvailable
+                      ? 'cursor-not-allowed opacity-60'
+                      : 'cursor-pointer transition-colors'
                   } ${
                     selectedPaymentMethod === 'qliro' 
                       ? 'border-purple-500 bg-purple-50' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => qliroAvailable && setSelectedPaymentMethod('qliro')}
+                  onClick={() => {
+                    if (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone)) {
+                      showNotification('Kontaktuppgifter krävs', 'Fyll i dina kontaktuppgifter först', 'error');
+                      return;
+                    }
+                    if (qliroAvailable) {
+                      setSelectedPaymentMethod('qliro');
+                    }
+                  }}
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
@@ -908,12 +952,22 @@ export function BookingConfirmation({
                 {/* Pay at Location Option */}
                 {canPayAtLocation && (
                   <div 
-                    className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                    className={`border rounded-lg p-4 ${
+                      (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
+                        ? 'cursor-not-allowed opacity-60'
+                        : 'cursor-pointer transition-colors'
+                    } ${
                       selectedPaymentMethod === 'pay_at_location' 
                         ? 'border-amber-500 bg-amber-50' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => setSelectedPaymentMethod('pay_at_location')}
+                    onClick={() => {
+                      if (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone)) {
+                        showNotification('Kontaktuppgifter krävs', 'Fyll i dina kontaktuppgifter först', 'error');
+                        return;
+                      }
+                      setSelectedPaymentMethod('pay_at_location');
+                    }}
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
@@ -982,7 +1036,12 @@ export function BookingConfirmation({
 
             <Button
               onClick={handleSubmit}
-              disabled={loading || (isAdminOrTeacher && !selectedStudent) || (!isAdminOrTeacher && !selectedPaymentMethod && !alreadyPaid)}
+              disabled={
+                loading || 
+                (isAdminOrTeacher && !selectedStudent) || 
+                (!isAdminOrTeacher && !selectedPaymentMethod && !alreadyPaid) ||
+                (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
+              }
               className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
             >
               {loading ? "Bekräftar..." : "Bekräfta bokning"}
@@ -1000,7 +1059,7 @@ export function BookingConfirmation({
         isOpen={showSwishDialog}
         onClose={() => setShowSwishDialog(false)}
         booking={{
-          id: bookingData.tempBookingId || bookingData.id || `temp-${Date.now()}`,
+          id: bookingData.tempBookingId || bookingData.id || (bookingData.isHandledarutbildning ? `handledar-${Date.now()}` : `temp-${Date.now()}`),
           totalPrice: bookingData.totalPrice
         }}
         bookingData={{

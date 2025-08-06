@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, users, lessonTypes } from '@/lib/db/schema';
-import { eq, desc, isNull } from 'drizzle-orm';
+import { eq, desc, isNull, and, gte, lte } from 'drizzle-orm';
 import { verifyToken as verifyJWT } from '@/lib/auth/jwt';
 
 // GET all bookings
@@ -13,35 +13,85 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const userId = searchParams.get('userId');
+
+    // Build where conditions
+    const conditions = [isNull(bookings.deletedAt)];
+
+    if (userId) {
+      conditions.push(eq(bookings.userId, userId));
+    }
+
+    if (startDate && endDate) {
+      conditions.push(
+        and(
+          gte(bookings.scheduledDate, startDate.split('T')[0]),
+          lte(bookings.scheduledDate, endDate.split('T')[0])
+        )
+      );
     }
 
     const allBookings = await db
       .select({
         id: bookings.id,
         userId: bookings.userId,
-        userName: users.name,
+        userName: users.firstName,
+        userLastName: users.lastName,
+        userPhone: users.phone,
         userEmail: users.email,
         lessonTypeId: bookings.lessonTypeId,
         lessonTypeName: lessonTypes.name,
         scheduledDate: bookings.scheduledDate,
-        scheduledTime: bookings.scheduledTime,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
         status: bookings.status,
         paymentStatus: bookings.paymentStatus,
-        paymentMethod: bookings.paymentMethod,
         totalPrice: bookings.totalPrice,
         isCompleted: bookings.isCompleted,
-        completedAt: bookings.completedAt,
+        durationMinutes: bookings.durationMinutes,
+        transmissionType: bookings.transmissionType,
+        teacherId: bookings.teacherId,
         createdAt: bookings.createdAt,
       })
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
-      .where(isNull(bookings.deletedAt))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(desc(bookings.createdAt));
 
-    return NextResponse.json(allBookings);
+    // Format the results for the frontend
+    const formattedBookings = allBookings.map(booking => ({
+      id: booking.id,
+      userId: booking.userId,
+      userName: `${booking.userName || ''} ${booking.userLastName || ''}`.trim() || 'Okänd användare',
+      userPhone: booking.userPhone,
+      userEmail: booking.userEmail,
+      lessonTypeId: booking.lessonTypeId,
+      lessonTypeName: booking.lessonTypeName || 'Okänd lektionstyp',
+      scheduledDate: booking.scheduledDate,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      status: booking.status,
+      paymentStatus: booking.paymentStatus,
+      totalPrice: booking.totalPrice,
+      isCompleted: booking.isCompleted,
+      durationMinutes: booking.durationMinutes,
+      transmissionType: booking.transmissionType || 'manual',
+      teacherId: booking.teacherId,
+      createdAt: booking.createdAt,
+    }));
+
+    return NextResponse.json({ 
+      bookings: formattedBookings,
+      total: formattedBookings.length 
+    });
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -57,7 +107,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -92,7 +142,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const decoded = await verifyJWT(token);
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -105,7 +155,7 @@ export async function DELETE(request: NextRequest) {
 
     await db.update(bookings).set({
       deletedAt: new Date(),
-    }).where(eq(bookings.id, parseInt(id)));
+    }).where(eq(bookings.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

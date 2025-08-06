@@ -21,7 +21,7 @@ interface HandledarSession {
 }
 
 interface HandledarSessionSelectionProps {
-  onComplete: (data: { selectedDate: Date; selectedTime: string }) => void;
+  onComplete: (data: { selectedDate: Date; selectedTime: string; sessionId: string }) => void;
   onBack: () => void;
   sessionType: any;
 }
@@ -48,16 +48,56 @@ export function HandledarSessionSelection({ onComplete, onBack, sessionType }: H
     }
   };
 
-  const handleSessionSelect = (session: HandledarSession) => {
+  const handleSessionSelect = async (session: HandledarSession) => {
     setSelectedSession(session);
-    // Convert session date and time to the expected format
-    const sessionDate = new Date(session.date);
-    const selectedTime = session.startTime.slice(0, 5); // HH:MM format
+    setLoading(true);
     
-    onComplete({
-      selectedDate: sessionDate,
-      selectedTime: selectedTime
-    });
+    try {
+      // Create temporary handledar booking to hold the spot
+      const response = await fetch('/api/booking/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionType: 'handledar',
+          sessionId: session.id,
+          scheduledDate: session.date,
+          startTime: session.startTime,
+          durationMinutes: session.endTime ? 
+            (new Date(`1970-01-01T${session.endTime}`).getTime() - new Date(`1970-01-01T${session.startTime}`).getTime()) / (1000 * 60) :
+            120, // Default 2 hours if no end time
+          totalPrice: session.pricePerParticipant,
+          paymentMethod: 'temp', // Mark as temporary
+          status: 'temp', // Explicitly set status to temp
+          // Use dummy information for temporary booking
+          guestName: 'Temporary',
+          guestEmail: `orderid-${Date.now()}@dintrafikskolahlm.se`,
+          guestPhone: '0000000000'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.booking) {
+        console.log('Temporary handledar booking created:', data.booking);
+        // Convert session date and time to the expected format
+        const sessionDate = new Date(session.date);
+        const selectedTime = session.startTime.slice(0, 5); // HH:MM format
+        
+        onComplete({
+          selectedDate: sessionDate,
+          selectedTime: selectedTime,
+          sessionId: session.id
+        });
+      } else {
+        console.error('Handledar booking creation failed:', data.error);
+        alert('Ett fel uppstod vid bokning av handledarkurs. Försök igen.');
+      }
+    } catch (error) {
+      console.error('Error creating handledar booking:', error);
+      alert('Ett fel uppstod vid bokning av handledarkurs. Försök igen.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {

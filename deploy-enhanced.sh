@@ -387,6 +387,131 @@ setup_application() {
     return 0
 }
 
+# Function to create admin user
+create_admin_user() {
+    print_header "Creating Admin User"
+    
+    local admin_email="admin@dintrafikskolahlm.se"
+    local admin_password="admin123"  # Default password, should be changed
+    
+    print_info "Creating admin user: $admin_email"
+    
+    # Check if admin user already exists
+    local admin_exists=$(cd "/var/www/${PROJECT_NAME}_prod" && node -e "
+    const { db } = require('./lib/db/index.js');
+    const { users } = require('./lib/db/schema.js');
+    const { eq } = require('drizzle-orm');
+    
+    db.select().from(users).where(eq(users.email, '$admin_email')).then(result => {
+      console.log(result.length > 0 ? 'exists' : 'not_exists');
+    }).catch(err => {
+      console.log('error');
+    });
+    " 2>/dev/null || echo "error")
+    
+    if [ "$admin_exists" = "exists" ]; then
+        print_info "Admin user already exists"
+        return 0
+    fi
+    
+    # Create admin user using the existing script
+    cd "/var/www/${PROJECT_NAME}_prod"
+    node -e "
+    const bcrypt = require('bcrypt');
+    const { db } = require('./lib/db/index.js');
+    const { users } = require('./lib/db/schema.js');
+    
+    async function createAdmin() {
+      try {
+        const hashedPassword = await bcrypt.hash('$admin_password', 10);
+        
+        await db.insert(users).values({
+          email: '$admin_email',
+          password: hashedPassword,
+          firstName: 'Admin',
+          lastName: 'Admin',
+          phone: '070123456',
+          role: 'admin',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        console.log('Admin user created successfully');
+      } catch (error) {
+        console.error('Error creating admin user:', error.message);
+        process.exit(1);
+      }
+    }
+    
+    createAdmin();
+    " >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    
+    if [ $? -eq 0 ]; then
+        print_status "Admin user created successfully"
+        print_info "Email: $admin_email"
+        print_info "Password: $admin_password"
+        print_warning "Please change the password after first login!"
+    else
+        print_error "Failed to create admin user"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to prompt for environment configuration
+prompt_environment_config() {
+    local env="$1"
+    local env_file="/var/www/${PROJECT_NAME}_$env/.env.local"
+    
+    print_header "Configuring $env Environment"
+    echo ""
+    print_info "Please provide the following configuration values:"
+    echo ""
+    
+    # Prompt for all required environment variables
+    read -p "NEXTAUTH_SECRET (random string for session encryption): " nextauth_secret
+    read -p "JWT_SECRET (random string for JWT tokens): " jwt_secret
+    read -p "DATABASE_URL (PostgreSQL connection string): " database_url
+    read -p "BREVO_API_KEY (email service API key): " brevo_api_key
+    read -p "QLIRO_MERCHANT_API_KEY (payment service API key): " qliro_api_key
+    
+    # Set default values if empty
+    [ -z "$nextauth_secret" ] && nextauth_secret="your-$env-secret-key-here"
+    [ -z "$jwt_secret" ] && jwt_secret="your-$env-jwt-secret-here"
+    [ -z "$database_url" ] && database_url="your-$env-database-url-here"
+    [ -z "$brevo_api_key" ] && brevo_api_key="your-brevo-api-key-here"
+    [ -z "$qliro_api_key" ] && qliro_api_key="your-qliro-api-key-here"
+    
+    # Create environment file
+    cat > "$env_file" << EOF
+# $env Environment Configuration
+NODE_ENV=$env
+NEXTAUTH_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
+NEXTAUTH_SECRET=$nextauth_secret
+JWT_SECRET=$jwt_secret
+
+# Database Configuration
+DATABASE_URL=$database_url
+
+# Email Configuration
+BREVO_API_KEY=$brevo_api_key
+
+# Payment Configuration
+QLIRO_MERCHANT_API_KEY=$qliro_api_key
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
+PORT=$([ "$env" = "dev" ] && echo "3000" || echo "3001")
+EOF
+    
+    print_status "$env environment configured"
+    print_info "Environment file created at: $env_file"
+    
+    return 0
+}
+
 # Function to configure environment
 configure_environment() {
     local env="$1"
@@ -395,43 +520,18 @@ configure_environment() {
     
     print_header "Configuring $env environment..."
     
-    # Create environment file if it doesn't exist
-    if ! file_exists "$env_file"; then
-        print_info "Creating environment file for $env..."
-        cat > "$env_file" << EOF
-# $env Environment Configuration
-NODE_ENV=$env
-NEXTAUTH_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
-NEXTAUTH_SECRET=your-$env-secret-key-here
-JWT_SECRET=your-$env-jwt-secret-here
-
-# Database Configuration
-DATABASE_URL=your-$env-database-url-here
-
-# Email Configuration (choose one)
-BREVO_API_KEY=your-brevo-api-key-here
-# SENDGRID_API_KEY=your-sendgrid-api-key-here
-
-# Payment Configuration
-QLIRO_MERCHANT_API_KEY=your-qliro-api-key-here
-
-# App Configuration
-NEXT_PUBLIC_APP_URL=https://$([ "$env" = "dev" ] && echo "$DEV_DOMAIN" || echo "$DOMAIN")
-PORT=$([ "$env" = "dev" ] && echo "3000" || echo "3001")
-EOF
-        print_warning "Please update $env_file with your actual configuration values"
-    else
+    # Check if environment file exists
+    if file_exists "$env_file"; then
         print_info "Environment file already exists"
-        # Ensure PORT is set correctly
-        if ! grep -q "PORT=" "$env_file"; then
-            print_info "Adding PORT configuration..."
-            echo "PORT=$([ "$env" = "dev" ] && echo "3000" || echo "3001")" >> "$env_file"
+        read -p "Do you want to reconfigure the environment? (y/N): " reconfigure
+        if [[ $reconfigure =~ ^[Yy]$ ]]; then
+            prompt_environment_config "$env"
+        else
+            print_info "Using existing environment configuration"
         fi
-        # Ensure NODE_ENV is set correctly
-        if ! grep -q "NODE_ENV=$env" "$env_file"; then
-            print_info "Updating NODE_ENV to $env..."
-            sed -i "s/NODE_ENV=.*/NODE_ENV=$env/" "$env_file"
-        fi
+    else
+        print_info "Creating new environment configuration"
+        prompt_environment_config "$env"
     fi
     
     print_status "$env environment configured"
@@ -1225,6 +1325,29 @@ remove_test_users() {
     return 0
 }
 
+# Function to create admin user manually
+create_admin_user_manual() {
+    print_header "Create Admin User"
+    
+    print_info "This will create an admin user with the following details:"
+    echo "   - Email: admin@dintrafikskolahlm.se"
+    echo "   - Password: admin123"
+    echo "   - Name: Admin Admin"
+    echo "   - Phone: 070123456"
+    echo "   - Role: admin"
+    echo ""
+    
+    read -p "Do you want to create this admin user? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "Admin user creation cancelled"
+        return 0
+    fi
+    
+    create_admin_user
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1245,14 +1368,15 @@ show_menu() {
     echo -e "${GREEN}9)${NC} PM2 Management"
     echo -e "${GREEN}10)${NC} Clean and Rebuild"
     echo -e "${GREEN}11)${NC} Remove Test Users"
-    echo -e "${GREEN}12)${NC} Exit"
+    echo -e "${GREEN}12)${NC} Create Admin User"
+    echo -e "${GREEN}13)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
     echo ""
 }
 
-# Function to handle installation/update
+# Function to handle installation
 handle_installation() {
     local env="$1"
     local clean_install="${2:-false}"
@@ -1304,27 +1428,35 @@ handle_installation() {
         return 1
     }
     
+    # Create admin user for production environment
     if [ "$env" = "prod" ] || [ "$env" = "both" ]; then
-        print_debug "Step 7: Setting up PM2..."
+        print_debug "Step 7: Creating admin user..."
+        create_admin_user || {
+            print_warning "Admin user creation failed, but continuing..."
+        }
+    fi
+    
+    if [ "$env" = "prod" ] || [ "$env" = "both" ]; then
+        print_debug "Step 8: Setting up PM2..."
         setup_pm2 || {
             print_error "PM2 setup failed"
             return 1
         }
         
-        print_debug "Step 8: Setting up Nginx..."
+        print_debug "Step 9: Setting up Nginx..."
         setup_nginx || {
             print_error "Nginx setup failed"
             return 1
         }
         
-        print_debug "Step 9: Creating management scripts..."
+        print_debug "Step 10: Creating management scripts..."
         create_management_scripts || {
             print_error "Management scripts creation failed"
             return 1
         }
     fi
     
-    print_debug "Step 10: Testing deployment..."
+    print_debug "Step 11: Testing deployment..."
     test_deployment || {
         print_warning "Deployment testing failed, but installation may still be successful"
     }
@@ -1345,7 +1477,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-12): " choice
+        read -p "Enter your choice (1-13): " choice
         
         case $choice in
             1)
@@ -1456,6 +1588,9 @@ main() {
                 read -p "Press Enter to continue..."
                 ;;
             12)
+                create_admin_user_manual
+                ;;
+            13)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1466,7 +1601,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-12."
+                print_error "Invalid option. Please choose 1-13."
                 read -p "Press Enter to continue..."
                 ;;
         esac

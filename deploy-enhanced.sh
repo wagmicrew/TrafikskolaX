@@ -4,7 +4,8 @@
 # Features: Colorful GUI, Error Handling, Auto Updates, Progress Tracking
 # Run this script on your Ubuntu server
 
-set -e  # Exit on any error
+# Don't exit on error, handle them gracefully
+set +e
 
 # Colors and styling
 RED='\033[0;31m'
@@ -60,6 +61,11 @@ print_info() {
 print_header() {
     echo -e "${CYAN}📋 $1${NC}"
     echo "$(date): HEADER - $1" >> "$LOG_FILE"
+}
+
+print_debug() {
+    echo -e "${PURPLE}🔍 DEBUG: $1${NC}"
+    echo "$(date): DEBUG - $1" >> "$LOG_FILE"
 }
 
 # Function to draw a box
@@ -143,6 +149,7 @@ check_requirements() {
         print_warning "lsb_release not found, cannot verify Ubuntu version"
     else
         local ubuntu_version=$(lsb_release -rs)
+        print_info "Ubuntu version detected: $ubuntu_version"
         if [ "$(echo "$ubuntu_version >= 20.04" | bc -l 2>/dev/null || echo "0")" -eq 0 ]; then
             print_warning "Ubuntu version $ubuntu_version detected. Recommended: 20.04 or later"
         else
@@ -153,6 +160,7 @@ check_requirements() {
     # Check available disk space
     local available_space=$(df / | awk 'NR==2 {print $4}')
     local required_space=1048576  # 1GB in KB
+    print_info "Available disk space: ${available_space}KB"
     if [ "$available_space" -lt "$required_space" ]; then
         print_error "Insufficient disk space. Available: ${available_space}KB, Required: ${required_space}KB"
         requirements_met=false
@@ -170,10 +178,11 @@ check_requirements() {
     
     if [ "$requirements_met" = false ]; then
         print_error "System requirements not met. Please fix the issues above and try again."
-        exit 1
+        return 1
     fi
     
     print_status "All system requirements met"
+    return 0
 }
 
 # Function to install system dependencies
@@ -182,14 +191,18 @@ install_system_deps() {
     
     # Update package list first
     print_info "Updating package list..."
-    apt update >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+    apt update >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    if [ $? -ne 0 ]; then
         print_error "Failed to update package list"
-        return 1
-    }
+        print_debug "apt update failed, but continuing..."
+    else
+        print_status "Package list updated successfully"
+    fi
     
     local deps=("curl" "wget" "git" "unzip" "software-properties-common" "apt-transport-https" "ca-certificates" "gnupg" "lsb-release" "bc")
     local total=${#deps[@]}
     local current=0
+    local failed_deps=()
     
     for dep in "${deps[@]}"; do
         ((current++))
@@ -197,17 +210,28 @@ install_system_deps() {
         
         if ! command_exists "$dep"; then
             print_info "Installing $dep..."
-            apt install -y "$dep" >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+            apt install -y "$dep" >> "$LOG_FILE" 2>> "$ERROR_LOG"
+            if [ $? -ne 0 ]; then
                 print_error "Failed to install $dep"
-                return 1
-            }
+                failed_deps+=("$dep")
+            else
+                print_info "$dep installed successfully"
+            fi
         else
             print_info "$dep already installed"
         fi
     done
     
     echo ""  # New line after progress bar
-    print_status "System dependencies installed"
+    
+    if [ ${#failed_deps[@]} -gt 0 ]; then
+        print_warning "Some dependencies failed to install: ${failed_deps[*]}"
+        print_warning "Continuing with installation..."
+    else
+        print_status "All system dependencies installed successfully"
+    fi
+    
+    return 0
 }
 
 # Function to install Node.js
@@ -219,15 +243,19 @@ install_nodejs() {
         print_info "Node.js $node_version already installed"
     else
         print_info "Installing Node.js 18.x..."
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to setup Node.js repository"
-            return 1
-        }
+            print_debug "Node.js repository setup failed, but continuing..."
+        else
+            print_info "Node.js repository setup successful"
+        fi
         
-        apt install -y nodejs >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        apt install -y nodejs >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to install Node.js"
             return 1
-        }
+        fi
         
         print_status "Node.js $(node --version) installed"
     fi
@@ -235,14 +263,17 @@ install_nodejs() {
     # Install PM2 globally
     if ! command_exists pm2; then
         print_info "Installing PM2..."
-        npm install -g pm2 >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        npm install -g pm2 >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to install PM2"
             return 1
-        }
+        fi
         print_status "PM2 installed"
     else
         print_info "PM2 already installed"
     fi
+    
+    return 0
 }
 
 # Function to install web server
@@ -252,10 +283,11 @@ install_webserver() {
     # Install Nginx
     if ! command_exists nginx; then
         print_info "Installing Nginx..."
-        apt install -y nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        apt install -y nginx >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to install Nginx"
             return 1
-        }
+        fi
         systemctl enable nginx
         systemctl start nginx
         print_status "Nginx installed and started"
@@ -266,14 +298,17 @@ install_webserver() {
     # Install Certbot
     if ! command_exists certbot; then
         print_info "Installing Certbot..."
-        apt install -y certbot python3-certbot-nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        apt install -y certbot python3-certbot-nginx >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to install Certbot"
             return 1
-        }
+        fi
         print_status "Certbot installed"
     else
         print_info "Certbot already installed"
     fi
+    
+    return 0
 }
 
 # Function to setup application
@@ -302,39 +337,45 @@ setup_application() {
     # Clone or update repository
     if ! directory_exists ".git"; then
         print_info "Cloning repository for $env environment..."
-        git clone "$GITHUB_REPO" . >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        git clone "$GITHUB_REPO" . >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to clone repository"
             return 1
-        }
+        fi
     else
         print_info "Updating existing repository..."
-        git fetch origin >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        git fetch origin >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to fetch updates"
             return 1
-        }
-        git reset --hard origin/master >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        fi
+        git reset --hard origin/master >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to reset to latest version"
             return 1
-        }
+        fi
     fi
     
     # Install dependencies
     print_info "Installing dependencies..."
-    npm install >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+    npm install >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    if [ $? -ne 0 ]; then
         print_error "Failed to install dependencies"
         return 1
-    }
+    fi
     
     # Build for production
     if [ "$env" = "prod" ]; then
         print_info "Building production application..."
-        npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+        npm run build >> "$LOG_FILE" 2>> "$ERROR_LOG"
+        if [ $? -ne 0 ]; then
             print_error "Failed to build application"
             return 1
-        }
+        fi
     fi
     
     print_status "$env environment setup completed"
+    return 0
 }
 
 # Function to configure environment
@@ -374,6 +415,7 @@ EOF
     fi
     
     print_status "$env environment configured"
+    return 0
 }
 
 # Function to setup PM2
@@ -434,15 +476,17 @@ EOF
     
     # Start applications
     cd "/var/www/${PROJECT_NAME}_prod"
-    pm2 start ecosystem.config.js >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+    pm2 start ecosystem.config.js >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    if [ $? -ne 0 ]; then
         print_error "Failed to start PM2 applications"
         return 1
-    }
+    fi
     
     pm2 save
     pm2 startup
     
     print_status "PM2 applications started"
+    return 0
 }
 
 # Function to setup Nginx
@@ -502,17 +546,20 @@ EOF
     rm -f /etc/nginx/sites-enabled/default
     
     # Test and reload Nginx
-    nginx -t >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+    nginx -t >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    if [ $? -ne 0 ]; then
         print_error "Nginx configuration test failed"
         return 1
-    }
+    fi
     
-    systemctl reload nginx >> "$LOG_FILE" 2>> "$ERROR_LOG" || {
+    systemctl reload nginx >> "$LOG_FILE" 2>> "$ERROR_LOG"
+    if [ $? -ne 0 ]; then
         print_error "Failed to reload Nginx"
         return 1
-    }
+    fi
     
     print_status "Nginx configuration completed"
+    return 0
 }
 
 # Function to create management scripts
@@ -583,6 +630,7 @@ EOF
     chmod +x "/usr/local/bin/${PROJECT_NAME}-prod"
     
     print_status "Management scripts created"
+    return 0
 }
 
 # Function to test deployment
@@ -626,6 +674,7 @@ test_deployment() {
     fi
     
     print_status "Deployment testing completed"
+    return 0
 }
 
 # Function to show main menu
@@ -668,22 +717,69 @@ handle_installation() {
     fi
     
     # Perform installation steps
-    check_requirements
-    install_system_deps
-    install_nodejs
-    install_webserver
-    setup_application "$env" "$clean_install"
-    configure_environment "$env"
+    print_debug "Step 1: Checking requirements..."
+    check_requirements || {
+        print_error "Requirements check failed"
+        return 1
+    }
+    
+    print_debug "Step 2: Installing system dependencies..."
+    install_system_deps || {
+        print_error "System dependencies installation failed"
+        return 1
+    }
+    
+    print_debug "Step 3: Installing Node.js..."
+    install_nodejs || {
+        print_error "Node.js installation failed"
+        return 1
+    }
+    
+    print_debug "Step 4: Installing web server..."
+    install_webserver || {
+        print_error "Web server installation failed"
+        return 1
+    }
+    
+    print_debug "Step 5: Setting up application..."
+    setup_application "$env" "$clean_install" || {
+        print_error "Application setup failed"
+        return 1
+    }
+    
+    print_debug "Step 6: Configuring environment..."
+    configure_environment "$env" || {
+        print_error "Environment configuration failed"
+        return 1
+    }
     
     if [ "$env" = "prod" ] || [ "$env" = "both" ]; then
-        setup_pm2
-        setup_nginx
-        create_management_scripts
+        print_debug "Step 7: Setting up PM2..."
+        setup_pm2 || {
+            print_error "PM2 setup failed"
+            return 1
+        }
+        
+        print_debug "Step 8: Setting up Nginx..."
+        setup_nginx || {
+            print_error "Nginx setup failed"
+            return 1
+        }
+        
+        print_debug "Step 9: Creating management scripts..."
+        create_management_scripts || {
+            print_error "Management scripts creation failed"
+            return 1
+        }
     fi
     
-    test_deployment
+    print_debug "Step 10: Testing deployment..."
+    test_deployment || {
+        print_warning "Deployment testing failed, but installation may still be successful"
+    }
     
     print_status "$env environment installation/update completed successfully!"
+    return 0
 }
 
 # Main script execution
@@ -703,14 +799,29 @@ main() {
         case $choice in
             1)
                 handle_installation "prod" "false"
+                if [ $? -eq 0 ]; then
+                    print_status "Production installation completed successfully!"
+                else
+                    print_error "Production installation failed. Check logs for details."
+                fi
                 read -p "Press Enter to continue..."
                 ;;
             2)
                 handle_installation "dev" "false"
+                if [ $? -eq 0 ]; then
+                    print_status "Development installation completed successfully!"
+                else
+                    print_error "Development installation failed. Check logs for details."
+                fi
                 read -p "Press Enter to continue..."
                 ;;
             3)
                 handle_installation "both" "false"
+                if [ $? -eq 0 ]; then
+                    print_status "Both environments installation completed successfully!"
+                else
+                    print_error "Both environments installation failed. Check logs for details."
+                fi
                 read -p "Press Enter to continue..."
                 ;;
             4)
@@ -718,6 +829,11 @@ main() {
                 read -p "Are you sure? (y/N): " confirm
                 if [[ $confirm =~ ^[Yy]$ ]]; then
                     handle_installation "both" "true"
+                    if [ $? -eq 0 ]; then
+                        print_status "Clean install completed successfully!"
+                    else
+                        print_error "Clean install failed. Check logs for details."
+                    fi
                 else
                     print_info "Clean install cancelled"
                 fi

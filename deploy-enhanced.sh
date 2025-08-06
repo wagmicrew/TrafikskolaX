@@ -1424,6 +1424,44 @@ fix_nginx_configuration() {
     return 0
 }
 
+# Function to fix dependency issues
+fix_dependency_issues() {
+    print_header "Dependency Fix"
+    
+    print_info "This will help diagnose and fix missing dependencies"
+    print_info "Including bcrypt, drizzle-orm, and other critical modules"
+    echo ""
+    
+    read -p "Do you want to run the dependency fix script? (y/N): " confirm
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        print_info "Dependency fix cancelled"
+        return 0
+    fi
+    
+    # Check if dependency fix script exists
+    local dep_fix_script="/var/www/${PROJECT_NAME}_prod/scripts/fix-dependencies.sh"
+    if [ ! -f "$dep_fix_script" ]; then
+        print_error "Dependency fix script not found at $dep_fix_script"
+        return 1
+    fi
+    
+    # Make script executable
+    chmod +x "$dep_fix_script"
+    
+    # Run dependency fix script
+    print_info "Running dependency fix script..."
+    "$dep_fix_script"
+    
+    if [ $? -eq 0 ]; then
+        print_status "Dependency fix completed successfully"
+    else
+        print_error "Dependency fix failed"
+        return 1
+    fi
+    
+    return 0
+}
+
 # Function to show main menu
 show_menu() {
     clear
@@ -1447,7 +1485,8 @@ show_menu() {
     echo -e "${GREEN}12)${NC} Create Admin User"
     echo -e "${GREEN}13)${NC} Configure SSL Certificates"
     echo -e "${GREEN}14)${NC} Fix Nginx Configuration"
-    echo -e "${GREEN}15)${NC} Exit"
+    echo -e "${GREEN}15)${NC} Fix Dependency Issues"
+    echo -e "${GREEN}16)${NC} Exit"
     echo ""
     echo -e "${YELLOW}Current server: $(hostname -I | awk '{print $1}')${NC}"
     echo -e "${YELLOW}Current time: $(date)${NC}"
@@ -1555,7 +1594,7 @@ main() {
     
     while true; do
         show_menu
-        read -p "Enter your choice (1-15): " choice
+        read -p "Enter your choice (1-16): " choice
         
         case $choice in
             1)
@@ -1675,6 +1714,9 @@ main() {
                 fix_nginx_configuration
                 ;;
             15)
+                fix_dependency_issues
+                ;;
+            16)
                 print_header "Exiting deployment script"
                 echo ""
                 print_info "Deployment script completed"
@@ -1685,7 +1727,7 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-15."
+                print_error "Invalid option. Please choose 1-16."
                 read -p "Press Enter to continue..."
                 ;;
         esac

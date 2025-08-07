@@ -290,3 +290,6 @@ export async function sendRescheduleNotification(
     messageType: 'booking_related',
   });
 }
+
+// Export sendMail as an alias for sendEmail for backward compatibility
+export const sendMail = sendEmail;

@@ -444,3 +444,75 @@ export const lessonTypesRelations = relations(lessonTypes, ({ many }) => ({
   packageContents: many(packageContents),
   credits: many(userCredits),
 }));
+
+// User sessions table
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  sessionToken: varchar('session_token', { length: 255 }).notNull().unique(),
+  expires: timestamp('expires').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Messages table (alias for internalMessages)
+export const messages = internalMessages;
+
+// Notifications table
+export const notifications = pgTable('notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  type: varchar('type', { length: 50 }).default('info'), // info, warning, error, success
+  isRead: boolean('is_read').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Transactions table
+export const transactions = pgTable('transactions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).default('SEK'),
+  type: varchar('type', { length: 50 }).notNull(), // payment, refund, credit, debit
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  description: text('description'),
+  externalId: varchar('external_id', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Payment history table
+export const paymentHistory = pgTable('payment_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar('payment_method', { length: 50 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('pending'),
+  transactionId: varchar('transaction_id', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Credit history table
+export const creditHistory = pgTable('credit_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  amount: integer('amount').notNull(), // Credits added/removed
+  type: varchar('type', { length: 50 }).notNull(), // earned, purchased, used, expired
+  description: text('description'),
+  bookingId: uuid('booking_id').references(() => bookings.id),
+  packageId: uuid('package_id').references(() => packages.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// User packages table
+export const userPackages = pgTable('user_packages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  packageId: uuid('package_id').references(() => packages.id).notNull(),
+  creditsRemaining: integer('credits_remaining').notNull(),
+  validUntil: timestamp('valid_until').notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  purchasedAt: timestamp('purchased_at').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});

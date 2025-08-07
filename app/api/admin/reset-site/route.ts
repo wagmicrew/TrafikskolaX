@@ -17,7 +17,7 @@ import {
   userSessions
 } from '@/lib/db/schema';
 import { eq, and, ne } from 'drizzle-orm';
-import { generateRandomPassword, sendEmail } from '@/lib/utils';
+import { generateRandomPassword, sendEmail } from '@/lib/utils/index';
 import { hash } from 'bcryptjs';
 
 export async function POST() {

@@ -205,8 +205,10 @@ export default function BookingsClient({
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (status: string | null) => {
+    if (!status) return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+    
+    switch (status.toLowerCase()) {
       case 'confirmed':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'cancelled':
@@ -217,8 +219,10 @@ export default function BookingsClient({
     }
   };
 
-  const getPaymentIcon = (paymentStatus: string) => {
-    return paymentStatus === 'paid' ? (
+  const getPaymentIcon = (paymentStatus: string | null) => {
+    if (!paymentStatus) return <CreditCard className="w-5 h-5 text-gray-400" />;
+    
+    return paymentStatus.toLowerCase() === 'paid' ? (
       <CreditCard className="w-5 h-5 text-green-500" />
     ) : (
       <CreditCard className="w-5 h-5 text-gray-400" />
@@ -281,10 +285,9 @@ export default function BookingsClient({
             </button>
           </div>
         </div>
-      </div>
 
       {/* Bulk Actions */}
-      {selectedBookings.length > 0 && (
+      {selectedBookings.length > 0 ? (
         <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-2">
@@ -323,7 +326,7 @@ export default function BookingsClient({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {bookings.length === 0 ? (
         <div className="text-center py-12">

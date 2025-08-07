@@ -10,7 +10,6 @@ const nextConfig = {
     unoptimized: true,
   },
   devIndicators: {
-    buildActivity: false,
     position: 'bottom-right',
   },
   experimental: {
@@ -22,19 +21,24 @@ const nextConfig = {
         },
       },
     },
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react']
   },
+  reactStrictMode: true,
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Don't resolve 'fs' module on the client to prevent this error on build --> Error: Can't resolve 'fs'
       config.resolve.fallback = {
         fs: false,
         path: false,
         os: false,
         crypto: false,
-      }
+      };
     }
-    return config
+    return config;
   },
-}
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
+  },
+};
 
-export default nextConfig
+export default nextConfig;

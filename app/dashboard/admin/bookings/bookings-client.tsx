@@ -282,7 +282,6 @@ export default function BookingsClient({
           </div>
         </div>
       </div>
-      </div>
 
       {/* Bulk Actions */}
       {selectedBookings.length > 0 && (

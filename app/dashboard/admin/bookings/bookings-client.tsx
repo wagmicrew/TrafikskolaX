@@ -257,7 +257,7 @@ export default function BookingsClient({
                 {user.name} ({user.email})
               </option>
             ))}
-            </select>
+          </select>
             
             <button
               onClick={() => {

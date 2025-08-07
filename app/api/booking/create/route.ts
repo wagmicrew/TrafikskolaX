@@ -156,6 +156,38 @@ export async function POST(request: NextRequest) {
       const finalGuestPhone = adminGuestPhone;
       const finalUserId = adminUserId;
     }
+
+    // Check for booking conflicts before proceeding (for regular lessons only)
+    if (sessionType !== 'handledar') {
+      const existingBookings = await db
+        .select()
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.scheduledDate, scheduledDate),
+            or(
+              eq(bookings.status, 'confirmed'),
+              eq(bookings.status, 'temp'),
+              eq(bookings.status, 'on_hold')
+            )
+          )
+        );
+
+      const hasConflict = doesAnyBookingOverlapWithSlot(
+        existingBookings,
+        startTime,
+        endTime,
+        true // exclude expired bookings
+      );
+
+      if (hasConflict) {
+        return NextResponse.json({ 
+          error: 'Denna tid är redan bokad. Vänligen välj en annan tid.',
+          conflict: true
+        }, { status: 400 });
+      }
+    }
+
     // Special handling for admin/teacher booking for students
     if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
       if (sessionType === 'handledar') {

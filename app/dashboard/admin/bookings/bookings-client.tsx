@@ -205,6 +205,35 @@ export default function BookingsClient({
     }
   };
 
+  const handleDeleteBooking = async (bookingId: string) => {
+    if (!confirm('Är du säker på att du vill ta bort denna bokning permanent? Detta går inte att ångra.')) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/admin/bookings/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingIds: [bookingId] })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Bokning borttagen framgångsrikt');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Fel vid borttagning av bokning');
+      }
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      toast.error('Fel vid borttagning av bokning');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusIcon = (status: string | null) => {
     if (!status) return <AlertCircle className="w-5 h-5 text-yellow-500" />;
     
@@ -405,11 +434,21 @@ export default function BookingsClient({
                         Öppna
                       </Link>
                       
+                      <button
+                        onClick={() => handleDeleteBooking(booking.id)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+                        title="Ta bort bokning permanent"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Ta bort
+                      </button>
+                      
                       {booking.teacherId && (
                         <button
                           onClick={() => handleRemoveTeacher(booking.teacherId!)}
                           disabled={isProcessing}
-                          className="inline-flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+                          className="inline-flex items-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors duration-200"
                           title="Ta bort lärare från bokningen"
                         >
                           <Users className="w-4 h-4" />

@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
           inArray(bookings.scheduledDate, dateStrings),
           or(
             eq(bookings.status, 'on_hold'), 
-            eq(bookings.status, 'booked'), 
             eq(bookings.status, 'confirmed'),
             eq(bookings.status, 'temp') // Include temporary bookings to block slots
           )
@@ -155,8 +154,8 @@ export async function GET(request: NextRequest) {
           // Add slot to available times
           timeSlots.push({
             time: slot.timeStart,
-            available: !hasBooking && !hasHandledarConflict && !isWithinThreeHours,
-            callForAvailability: isWithinThreeHours && !hasBooking && !hasHandledarConflict
+            available: !hasBooking && !isWithinThreeHours,
+            callForAvailability: isWithinThreeHours && !hasBooking
           });
         }
 

@@ -36,7 +36,7 @@ export default async function BookingsPage({
     conditions.push(eq(bookings.userId, selectedUserId));
   }
 
-  // Fetch bookings with user and lesson type information
+  // Fetch bookings with user, lesson type, and teacher information
   const bookingsList = await db
     .select({
       id: bookings.id,
@@ -57,6 +57,7 @@ export default async function BookingsPage({
       userPhone: sql`COALESCE(${users.phone}, ${bookings.guestPhone})`,
       userId: bookings.userId,
       lessonTypeName: lessonTypes.name,
+      teacherId: bookings.teacherId,
     })
     .from(bookings)
     .leftJoin(users, eq(bookings.userId, users.id))

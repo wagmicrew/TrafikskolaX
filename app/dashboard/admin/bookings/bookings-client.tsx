@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Calendar, 
   Clock, 
@@ -15,7 +17,13 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  Eye
+  Eye,
+  Trash2,
+  Ban,
+  Users,
+  CheckSquare,
+  Square,
+  Loader2
 } from 'lucide-react';
 
 interface Booking {
@@ -37,6 +45,7 @@ interface Booking {
   userPhone: string;
   userId: string | null;
   lessonTypeName: string;
+  teacherId?: string | null;
 }
 
 interface User {
@@ -63,6 +72,9 @@ export default function BookingsClient({
   showPast,
 }: BookingsClientProps) {
   const router = useRouter();
+  const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   const handleUserChange = (userId: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -76,6 +88,121 @@ export default function BookingsClient({
     const params = new URLSearchParams(window.location.search);
     params.set('page', page.toString());
     router.push(`/dashboard/admin/bookings?${params.toString()}`);
+  };
+
+  const handleBookingSelection = (bookingId: string) => {
+    setSelectedBookings(prev => 
+      prev.includes(bookingId) 
+        ? prev.filter(id => id !== bookingId)
+        : [...prev, bookingId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBookings.length === bookings.length) {
+      setSelectedBookings([]);
+    } else {
+      setSelectedBookings(bookings.map(booking => booking.id));
+    }
+  };
+
+  const handleBulkUnbook = async () => {
+    if (selectedBookings.length === 0) {
+      toast.error('Välj bokningar att avboka');
+      return;
+    }
+
+    if (!confirm(`Är du säker på att du vill avboka ${selectedBookings.length} bokningar? Detta kommer att skicka e-post och återbetala krediter.`)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/admin/bookings/bulk-unbook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingIds: selectedBookings })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message);
+        setSelectedBookings([]);
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Fel vid avbokning');
+      }
+    } catch (error) {
+      console.error('Error bulk unbooking:', error);
+      toast.error('Fel vid avbokning');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBookings.length === 0) {
+      toast.error('Välj bokningar att ta bort');
+      return;
+    }
+
+    if (!confirm(`Är du säker på att du vill ta bort ${selectedBookings.length} bokningar permanent? Detta går inte att ångra.`)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/admin/bookings/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingIds: selectedBookings })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message);
+        setSelectedBookings([]);
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Fel vid borttagning');
+      }
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      toast.error('Fel vid borttagning');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRemoveTeacher = async (teacherId: string) => {
+    if (!confirm('Är du säker på att du vill ta bort denna lärare? Detta kommer att avregistrera läraren från alla bokningar och ta bort användarkontot permanent.')) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/admin/teachers/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherId })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Lärare borttagen framgångsrikt');
+        router.refresh();
+      } else {
+        toast.error(result.error || 'Fel vid borttagning av lärare');
+      }
+    } catch (error) {
+      console.error('Error removing teacher:', error);
+      toast.error('Fel vid borttagning av lärare');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -154,6 +281,49 @@ export default function BookingsClient({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Bulk Actions */}
+      {selectedBookings.length > 0 && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-5 h-5 text-blue-600" />
+              <span className="font-medium text-blue-800">
+                {selectedBookings.length} bokning{selectedBookings.length !== 1 ? 'ar' : ''} vald{selectedBookings.length !== 1 ? 'a' : ''}
+              </span>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={handleBulkUnbook}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Ban className="w-4 h-4" />
+                )}
+                Avboka ({selectedBookings.length})
+              </button>
+              
+              <button
+                onClick={handleBulkDelete}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Ta bort ({selectedBookings.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {bookings.length === 0 ? (
         <div className="text-center py-12">
@@ -173,6 +343,12 @@ export default function BookingsClient({
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedBookings.includes(booking.id)}
+                          onChange={() => handleBookingSelection(booking.id)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
                         <User className="w-5 h-5 text-gray-600" />
                         <h3 className="text-xl font-semibold text-gray-800">
                           {booking.userName}
@@ -217,17 +393,46 @@ export default function BookingsClient({
                       </div>
                     </div>
                     
-                    <Link
-                      href={`/dashboard/admin/bookings/${booking.id}`}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 shadow-md"
-                    >
-                      <Eye className="w-5 h-5" />
-                      Öppna
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/dashboard/admin/bookings/${booking.id}`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 shadow-md"
+                      >
+                        <Eye className="w-5 h-5" />
+                        Öppna
+                      </Link>
+                      
+                      {booking.teacherId && (
+                        <button
+                          onClick={() => handleRemoveTeacher(booking.teacherId!)}
+                          disabled={isProcessing}
+                          className="inline-flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+                          title="Ta bort lärare från bokningen"
+                        >
+                          <Users className="w-4 h-4" />
+                          Ta bort lärare
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Select All Button */}
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              onClick={handleSelectAll}
+              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              {selectedBookings.length === bookings.length ? (
+                <CheckSquare className="w-4 h-4" />
+              ) : (
+                <Square className="w-4 h-4" />
+              )}
+              {selectedBookings.length === bookings.length ? 'Avmarkera alla' : 'Markera alla'}
+            </button>
           </div>
 
           {/* Pagination */}

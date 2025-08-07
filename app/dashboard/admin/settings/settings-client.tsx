@@ -1279,7 +1279,7 @@ export default function SettingsClient() {
 />
 
 {/* Troubleshooting Tab */}
-        <TabsContent value="troubleshoot">
+        <TabsContent value="troubleshooting">
           <Card>
             <CardHeader>
               <CardTitle>API Felsökning</CardTitle>

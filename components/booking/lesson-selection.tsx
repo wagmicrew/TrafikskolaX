@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock } from "lucide-react"
-import { db } from "@/lib/db"
-import { lessonTypes } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
 
 interface SessionType {
   id: string
@@ -91,6 +88,15 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     }
   }
 
+  const formatPrice = (amount?: number) => {
+    if (amount == null) return ''
+    try {
+      return new Intl.NumberFormat('sv-SE').format(amount)
+    } catch {
+      return String(amount)
+    }
+  }
+
   const handleSessionSelect = (session: SessionType) => {
     setSelectedSession(session)
     // Auto-continue after selection
@@ -137,16 +143,16 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                   <span>{formatDuration(session.durationMinutes)}</span>
                 </div>
                 <div className="space-y-1">
-                  {session.salePrice ? (
+              {session.salePrice ? (
                     <>
-                      <div className="text-2xl font-bold text-red-600">{session.salePrice} kr</div>
-                      <div className="text-sm text-gray-500 line-through">{session.price} kr</div>
+                      <div className="text-2xl font-bold text-red-600">{formatPrice(session.salePrice)} kr</div>
+                      <div className="text-sm text-gray-500 line-through">{formatPrice(session.price)} kr</div>
                     </>
                   ) : (
-                    <div className="text-2xl font-bold text-red-600">{session.price} kr</div>
+                    <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
                   )}
                   {session.priceStudent && (
-                    <div className="text-xs text-green-600">Studentpris: {session.priceStudent} kr</div>
+                    <div className="text-xs text-green-600">Studentpris: {formatPrice(session.priceStudent)} kr</div>
                   )}
                   {session.type === 'handledar' && (
                     <div className="text-xs text-orange-600 font-medium">Per deltagare</div>
@@ -161,7 +167,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         ))}
       </div>
 
-      {sessionTypesList.length === 0 && (
+      {sessionTypesList.length === 0 && !loading && (
         <div className="text-center py-12">
           <p className="text-gray-600">Inga sessioner tillgängliga för tillfället.</p>
         </div>

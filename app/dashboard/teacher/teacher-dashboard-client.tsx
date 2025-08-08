@@ -312,43 +312,43 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   );
 
   const renderTodaysBookings = () => (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FaCalendarAlt className="text-red-500" />
-        Dagens Lektioner
+    <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+      <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <FaCalendarAlt className="text-rose-300" />
+        Dagens lektioner
       </h2>
       
       {todaysBookings.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-slate-300">
           <FaCalendarAlt className="text-4xl mx-auto mb-4 opacity-50" />
           <p>Inga lektioner idag</p>
         </div>
       ) : (
         <div className="space-y-4">
           {todaysBookings.map((booking) => (
-            <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div key={booking.id} className="rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`w-3 h-3 rounded-full ${getStatusColor(booking.status)}`}></span>
-                    <h3 className="font-semibold text-gray-800">{booking.userName}</h3>
+                    <h3 className="font-semibold text-white">{booking.userName}</h3>
                     <span className="text-2xl">{getTransmissionIcon(booking.transmissionType)}</span>
                   </div>
                   
-                  <div className="text-sm text-gray-600 space-y-1">
+                  <div className="text-sm text-slate-300 space-y-1">
                     <div className="flex items-center gap-2">
-                      <FaClock className="text-gray-400" />
+                      <FaClock className="text-slate-400" />
                       <span>{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <FaCar className="text-gray-400" />
+                      <FaCar className="text-slate-400" />
                       <span>{booking.lessonTypeName}</span>
                     </div>
 
                     {booking.userPhone && (
                       <div className="flex items-center gap-2">
-                        <FaPhone className="text-gray-400" />
+                        <FaPhone className="text-slate-400" />
                         <span>{booking.userPhone}</span>
                       </div>
                     )}
@@ -358,7 +358,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setSelectedBooking(booking)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors text-sm shadow-inner"
                   >
                     <FaEdit className="inline mr-1" />
                     Utbildningskort
@@ -366,7 +366,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                   
                   <button
                     onClick={() => unbookLesson(booking.id)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                    className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white transition-colors text-sm shadow-lg"
                   >
                     <FaTrash className="inline mr-1" />
                     Avboka
@@ -479,43 +479,43 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   };
 
   const renderBookingsForDate = () => (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FaCalendarAlt className="text-blue-500" />
+    <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+      <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <FaCalendarAlt className="text-sky-300" />
         {selectedDate ? `Lektioner för ${formatDate(selectedDate)}` : 'Alla bokningar'}
       </h2>
       
       {dateBookings.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-slate-300">
           <FaCalendarAlt className="text-4xl mx-auto mb-4 opacity-50" />
           <p>Inga lektioner för detta datum</p>
         </div>
       ) : (
         <div className="space-y-4">
           {dateBookings.map((booking) => (
-            <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div key={booking.id} className="rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`w-3 h-3 rounded-full ${getStatusColor(booking.status)}`}></span>
-                    <h3 className="font-semibold text-gray-800">{booking.userName}</h3>
+                    <h3 className="font-semibold text-white">{booking.userName}</h3>
                     <span className="text-2xl">{getTransmissionIcon(booking.transmissionType)}</span>
                   </div>
                   
-                  <div className="text-sm text-gray-600 space-y-1">
+                  <div className="text-sm text-slate-300 space-y-1">
                     <div className="flex items-center gap-2">
-                      <FaClock className="text-gray-400" />
+                      <FaClock className="text-slate-400" />
                       <span>{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</span>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <FaCar className="text-gray-400" />
+                      <FaCar className="text-slate-400" />
                       <span>{booking.lessonTypeName}</span>
                     </div>
 
                     {booking.userPhone && (
                       <div className="flex items-center gap-2">
-                        <FaPhone className="text-gray-400" />
+                        <FaPhone className="text-slate-400" />
                         <span>{booking.userPhone}</span>
                       </div>
                     )}
@@ -525,7 +525,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setSelectedBooking(booking)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors text-sm shadow-inner"
                   >
                     <FaEdit className="inline mr-1" />
                     Utbildningskort
@@ -533,7 +533,7 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                   
                   <button
                     onClick={() => unbookLesson(booking.id)}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                    className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white transition-colors text-sm shadow-lg"
                   >
                     <FaTrash className="inline mr-1" />
                     Avboka
@@ -548,26 +548,26 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   );
 
   const renderUpcomingBookings = () => (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FaClock className="text-blue-500" />
-        Kommande Lektioner
+    <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+      <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+        <FaClock className="text-sky-300" />
+        Kommande lektioner
       </h2>
       
       {upcomingBookings.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-slate-300">
           <FaClock className="text-4xl mx-auto mb-4 opacity-50" />
           <p>Inga kommande lektioner</p>
         </div>
       ) : (
         <div className="space-y-3">
           {upcomingBookings.slice(0, 5).map((booking) => (
-            <div key={booking.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+            <div key={booking.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${getStatusColor(booking.status)}`}></div>
                 <div>
-                  <p className="font-medium text-gray-800">{booking.userName}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-medium text-white">{booking.userName}</p>
+                  <p className="text-sm text-slate-300">
                     {formatDate(booking.scheduledDate)} • {formatTime(booking.startTime)}
                   </p>
                 </div>
@@ -602,32 +602,32 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
       {/* Mobile Menu */}
       {renderMobileMenu()}
 
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="backdrop-blur-md bg-white/10 border-b border-white/10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 text-gray-600 hover:text-gray-800"
+                className="lg:hidden p-2 text-slate-200 hover:text-white rounded-xl border border-white/10 shadow-inner"
               >
                 <FaBars />
               </button>
               
               <div>
                 <div className="flex justify-between items-center">
-                  <h1 className="text-2xl font-bold text-gray-800">Lärarpanel</h1>
+                  <h1 className="text-2xl font-bold text-white drop-shadow-sm">Lärarpanel</h1>
                   <ExportButton 
                     onClick={handleExportSchedule} 
                     loading={isExporting}
-                    className="ml-4"
+                    className="ml-4 bg-white/10 hover:bg-white/20 text-white border border-white/20"
                   />
                 </div>
-                <p className="text-gray-600">Välkommen, {user.firstName} {user.lastName}</p>
+                <p className="text-slate-300">Välkommen, {user.firstName} {user.lastName}</p>
               </div>
             </div>
 
@@ -635,10 +635,10 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
             <nav className="hidden lg:flex items-center gap-6">
               <button
                 onClick={() => setActiveView('overview')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors border ${
                   activeView === 'overview' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-white/20 text-white border-white/30' 
+                    : 'text-slate-200 hover:bg-white/10 border-white/10'
                 }`}
               >
                 <FaClipboardList />
@@ -647,10 +647,10 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
               
               <button
                 onClick={() => setActiveView('bookings')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors border ${
                   activeView === 'bookings' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-white/20 text-white border-white/30' 
+                    : 'text-slate-200 hover:bg-white/10 border-white/10'
                 }`}
               >
                 <FaCalendarAlt />
@@ -659,10 +659,10 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
               
               <button
                 onClick={() => setActiveView('feedback')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors border ${
                   activeView === 'feedback' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-white/20 text-white border-white/30' 
+                    : 'text-slate-200 hover:bg-white/10 border-white/10'
                 }`}
               >
                 <FaCommentDots />
@@ -679,35 +679,35 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
           <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600">Dagens Lektioner</p>
-                    <p className="text-3xl font-bold text-gray-800">{todaysBookings.length}</p>
+                    <p className="text-slate-300">Dagens lektioner</p>
+                    <p className="text-3xl font-bold text-white">{todaysBookings.length}</p>
                   </div>
-                  <FaCalendarAlt className="text-4xl text-blue-500" />
+                  <FaCalendarAlt className="text-4xl text-sky-300" />
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600">Kommande</p>
-                    <p className="text-3xl font-bold text-gray-800">{upcomingBookings.length}</p>
+                    <p className="text-slate-300">Kommande</p>
+                    <p className="text-3xl font-bold text-white">{upcomingBookings.length}</p>
                   </div>
-                  <FaClock className="text-4xl text-blue-500" />
+                  <FaClock className="text-4xl text-sky-300" />
                 </div>
               </div>
               
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600">Genomförda Idag</p>
-                    <p className="text-3xl font-bold text-gray-800">
+                    <p className="text-slate-300">Genomförda idag</p>
+                    <p className="text-3xl font-bold text-white">
                       {todaysBookings.filter(b => b.isCompleted).length}
                     </p>
                   </div>
-                  <FaUsers className="text-4xl text-blue-500" />
+                  <FaUsers className="text-4xl text-sky-300" />
                 </div>
               </div>
             </div>
@@ -722,19 +722,19 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
         {activeView === 'bookings' && (
           <div className="space-y-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Filtrera bokningar</h2>
+            <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+              <h2 className="text-2xl font-bold text-white mb-4">Filtrera bokningar</h2>
               <div className="flex items-center gap-4">
-                <label className="text-gray-600">Välj datum:</label>
+                <label className="text-slate-300">Välj datum:</label>
                 <input 
                   type="date" 
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="p-2 border rounded-lg"
+                  className="p-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-slate-300"
                 />
                 <button
                   onClick={() => setSelectedDate('')}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors text-sm shadow-inner"
                 >
                   Visa alla
                 </button>
@@ -745,9 +745,9 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
         )}
 
         {activeView === 'feedback' && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Feedback Översikt</h2>
-            <p className="text-gray-600 mb-4">
+          <div className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
+            <h2 className="text-2xl font-bold text-white mb-4">Planering & feedback</h2>
+            <p className="text-slate-300 mb-4">
               Klicka på "Utbildningskort" för en lektion för att ge detaljerad feedback baserat på svenska trafikutbildningens krav.
             </p>
             {renderTodaysBookings()}

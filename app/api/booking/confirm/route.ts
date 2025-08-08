@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, handledarBookings, users } from '@/lib/db/schema';
+import { bookings, handledarBookings, users, blockedSlots } from '@/lib/db/schema';
+import { doTimeRangesOverlap } from '@/lib/utils/time-overlap';
+import { eq, and } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
@@ -27,6 +29,14 @@ export async function POST(request: NextRequest) {
       // Only allow confirmation of temporary bookings
       if (booking.status !== 'temp') {
         return NextResponse.json({ error: 'Booking is not temporary' }, { status: 400 });
+      }
+
+      // Ensure not confirming into a blocked time (safety check)
+      const blocked = await db.select().from(blockedSlots).where(eq(blockedSlots.date, booking.scheduledDate));
+      const allDayBlocked = blocked.some(b => b.isAllDay);
+      const timeBlocked = blocked.some(b => b.timeStart && b.timeEnd && doTimeRangesOverlap(booking.startTime, booking.endTime, b.timeStart, b.timeEnd));
+      if (allDayBlocked || timeBlocked) {
+        return NextResponse.json({ error: 'Tiden är blockerad. Kan inte bekräfta bokning.' }, { status: 400 });
       }
 
       // Update booking with guest information and payment status
@@ -89,6 +99,14 @@ export async function POST(request: NextRequest) {
       // Only allow confirmation of temporary bookings
       if (booking.status !== 'temp') {
         return NextResponse.json({ error: 'Booking is not temporary' }, { status: 400 });
+      }
+
+      // Ensure not confirming into a blocked time (safety check)
+      const blocked = await db.select().from(blockedSlots).where(eq(blockedSlots.date, booking.scheduledDate));
+      const allDayBlocked = blocked.some(b => b.isAllDay);
+      const timeBlocked = blocked.some(b => b.timeStart && b.timeEnd && doTimeRangesOverlap(booking.startTime, booking.endTime, b.timeStart, b.timeEnd));
+      if (allDayBlocked || timeBlocked) {
+        return NextResponse.json({ error: 'Tiden är blockerad. Kan inte bekräfta bokning.' }, { status: 400 });
       }
 
       // Update booking with guest information and payment status

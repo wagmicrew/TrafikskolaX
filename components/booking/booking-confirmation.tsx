@@ -1042,7 +1042,7 @@ export function BookingConfirmation({
                 (!isAdminOrTeacher && !selectedPaymentMethod && !alreadyPaid) ||
                 (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
               }
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
             >
               {loading ? "Bekräftar..." : "Bekräfta bokning"}
             </Button>

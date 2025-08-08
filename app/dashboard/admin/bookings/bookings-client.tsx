@@ -271,16 +271,16 @@ export default function BookingsClient({
   };
 
   return (
-    <div>
+    <div className="text-slate-100">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <Calendar className="w-8 h-8 text-blue-600" />
+        <h1 className="text-3xl font-bold text-white flex items-center gap-2 drop-shadow-sm">
+          <Calendar className="w-8 h-8 text-sky-300" />
           Bokningar
         </h1>
         
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             value={selectedUserId}
             onChange={(e) => handleUserChange(e.target.value)}
           >
@@ -303,10 +303,10 @@ export default function BookingsClient({
                 params.set('page', '1');
                 router.push(`/dashboard/admin/bookings?${params.toString()}`);
               }}
-              className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border ${
                 showPast 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                  : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
+                  ? 'bg-white/20 text-white border-white/30 hover:bg-white/30' 
+                  : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
               }`}
             >
               <Calendar className="w-4 h-4" />
@@ -317,11 +317,11 @@ export default function BookingsClient({
 
       {/* Bulk Actions */}
       {selectedBookings.length > 0 ? (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-blue-600" />
-              <span className="font-medium text-blue-800">
+              <CheckSquare className="w-5 h-5 text-sky-300" />
+              <span className="font-medium text-white">
                 {selectedBookings.length} bokning{selectedBookings.length !== 1 ? 'ar' : ''} vald{selectedBookings.length !== 1 ? 'a' : ''}
               </span>
             </div>
@@ -330,7 +330,7 @@ export default function BookingsClient({
               <button
                 onClick={handleBulkUnbook}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-amber-500/80 hover:bg-amber-500 text-white disabled:opacity-50 flex items-center gap-2 shadow-lg"
               >
                 {isProcessing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -343,7 +343,7 @@ export default function BookingsClient({
               <button
                 onClick={handleBulkDelete}
                 disabled={isProcessing}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white disabled:opacity-50 flex items-center gap-2 shadow-lg"
               >
                 {isProcessing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -358,9 +358,9 @@ export default function BookingsClient({
       ) : null}
 
       {bookings.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">Inga bokningar hittades</p>
+        <div className="text-center py-12 text-slate-300">
+          <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+          <p className="text-lg">Inga bokningar hittades</p>
         </div>
       ) : (
         <>
@@ -368,9 +368,8 @@ export default function BookingsClient({
             {bookings.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
+                className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/15 transition-colors duration-300 overflow-hidden"
               >
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 h-2"></div>
                 <div className="p-6">
                   <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <div className="flex-1">
@@ -379,10 +378,10 @@ export default function BookingsClient({
                           type="checkbox"
                           checked={selectedBookings.includes(booking.id)}
                           onChange={() => handleBookingSelection(booking.id)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 bg-white/10 border-white/30 rounded focus:ring-sky-500"
                         />
-                        <User className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-xl font-semibold text-gray-800">
+                        <User className="w-5 h-5 text-slate-200" />
+                        <h3 className="text-xl font-semibold text-white">
                           {booking.userName}
                         </h3>
                         {getStatusIcon(booking.status)}
@@ -390,34 +389,34 @@ export default function BookingsClient({
                       </div>
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <Calendar className="w-4 h-4" />
                           <span>{new Date(booking.scheduledDate).toLocaleDateString('sv-SE')}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <Clock className="w-4 h-4" />
                           <span>
                             {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <Car className="w-4 h-4" />
                           <span>{booking.lessonTypeName}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <Mail className="w-4 h-4" />
                           <span className="truncate">{booking.userEmail}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <Phone className="w-4 h-4" />
                           <span>{booking.userPhone}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-gray-600">
+                        <div className="flex items-center gap-2 text-slate-300">
                           <span className="text-xs">
                             Skapad: {new Date(booking.createdAt).toLocaleDateString('sv-SE')}
                           </span>
@@ -428,7 +427,7 @@ export default function BookingsClient({
                     <div className="flex gap-2">
                       <Link
                         href={`/dashboard/admin/bookings/${booking.id}`}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors duration-200 shadow-md"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-colors duration-200"
                       >
                         <Eye className="w-5 h-5" />
                         Öppna
@@ -437,7 +436,7 @@ export default function BookingsClient({
                       <button
                         onClick={() => handleDeleteBooking(booking.id)}
                         disabled={isProcessing}
-                        className="inline-flex items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors duration-200"
+                        className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white disabled:opacity-50 transition-colors duration-200 shadow-lg"
                         title="Ta bort bokning permanent"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -448,7 +447,7 @@ export default function BookingsClient({
                         <button
                           onClick={() => handleRemoveTeacher(booking.teacherId!)}
                           disabled={isProcessing}
-                          className="inline-flex items-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors duration-200"
+                          className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white disabled:opacity-50 transition-colors duration-200 shadow-lg"
                           title="Ta bort lärare från bokningen"
                         >
                           <Users className="w-4 h-4" />
@@ -466,7 +465,7 @@ export default function BookingsClient({
           <div className="mb-4 flex items-center gap-2">
             <button
               onClick={handleSelectAll}
-              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-colors"
             >
               {selectedBookings.length === bookings.length ? (
                 <CheckSquare className="w-4 h-4" />
@@ -482,7 +481,7 @@ export default function BookingsClient({
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -504,10 +503,10 @@ export default function BookingsClient({
                   <button
                     key={pageNum}
                     onClick={() => handlePageChange(pageNum)}
-                    className={`px-4 py-2 rounded-lg transition-colors ${
+                    className={`px-4 py-2 rounded-xl transition-colors border ${
                       currentPage === pageNum
-                        ? 'bg-blue-600 text-white'
-                        : 'hover:bg-gray-100'
+                        ? 'bg-white/20 text-white border-white/30'
+                        : 'bg-white/10 hover:bg-white/20 border-white/20'
                     }`}
                   >
                     {pageNum}
@@ -519,7 +518,7 @@ export default function BookingsClient({
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

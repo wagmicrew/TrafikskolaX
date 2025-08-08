@@ -29,52 +29,34 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-lg">Välkommen, {user.firstName} {user.lastName}!</p>
+          <h1 className="text-3xl font-bold text-white drop-shadow-sm">Adminpanel</h1>
+          <p className="text-slate-300">Välkommen, {user.firstName} {user.lastName}!</p>
         </div>
         <div className="flex items-center gap-4">
-          <ExportSchedule />
+          <div className="rounded-xl bg-white/10 border border-white/20 text-white">
+            <ExportSchedule />
+          </div>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-r from-green-400 to-blue-500 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Bokningar</h2>
-          <p className="text-gray-100">Hantera alla bokningar</p>
-          <Link href="/dashboard/admin/bookings" className="inline-block mt-4 bg-white text-green-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
-        </div>
-
-        <div className="bg-gradient-to-r from-purple-400 to-pink-500 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Användare</h2>
-          <p className="text-gray-100">Hantera elever och lärare</p>
-          <Link href="/dashboard/admin/users" className="inline-block mt-4 bg-white text-purple-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
-        </div>
-
-        <div className="bg-gradient-to-r from-yellow-400 to-red-500 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Lektioner & Paket</h2>
-          <p className="text-gray-100">Hantera lektionspaket</p>
-          <Link href="/dashboard/admin/lessons" className="inline-block mt-4 bg-white text-yellow-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
-        </div>
-
-        <div className="bg-gradient-to-r from-orange-400 to-pink-600 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Handledarkurs</h2>
-          <p className="text-gray-100">Hantera handledarkurser & bokningar</p>
-          <Link href="/dashboard/admin/handledarkurs" className="inline-block mt-4 bg-white text-orange-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
-        </div>
-
-        <div className="bg-gradient-to-r from-teal-400 to-indigo-500 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Inställningar</h2>
-          <p className="text-gray-100">Konfigurera systemet</p>
-          <Link href="/dashboard/admin/settings" className="inline-block mt-4 bg-white text-teal-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Öppna</Link>
-        </div>
-        <div className="bg-gradient-to-r from-blue-400 to-indigo-500 p-6 rounded-lg shadow-lg text-white">
-          <h2 className="text-xl font-semibold mb-2">Debug & Logging</h2>
-          <p className="text-gray-100">View system logs and debug information</p>
-          <Link href="/dashboard/admin/logging" className="inline-block mt-4 bg-white text-blue-700 py-2 px-4 rounded hover:bg-gray-100 transition-colors">Open</Link>
-        </div>
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[
+          { title: 'Bokningar', desc: 'Hantera alla bokningar', href: '/dashboard/admin/bookings' },
+          { title: 'Användare', desc: 'Hantera elever och lärare', href: '/dashboard/admin/users' },
+          { title: 'Lektioner & paket', desc: 'Hantera lektionspaket', href: '/dashboard/admin/lessons' },
+          { title: 'Handledarkurs', desc: 'Hantera handledarkurser & bokningar', href: '/dashboard/admin/handledarkurs' },
+          { title: 'Inställningar', desc: 'Konfigurera systemet', href: '/dashboard/admin/settings' },
+          { title: 'Loggar & felsökning', desc: 'Visa loggar och felsök', href: '/dashboard/admin/logging' },
+        ].map((card) => (
+          <div key={card.title} className="rounded-2xl p-6 bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg">
+            <h2 className="text-xl font-semibold mb-2">{card.title}</h2>
+            <p className="text-slate-200">{card.desc}</p>
+            <Link href={card.href} className="inline-block mt-4 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-colors">Öppna</Link>
+          </div>
+        ))}
       </div>
     </div>
   );

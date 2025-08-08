@@ -222,22 +222,22 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
   };
 
   return (
-    <div>
+    <div className="text-slate-100">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BookOpen className="w-8 h-8 text-blue-600" /> Lektioner &amp; Paket
+        <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
+          <BookOpen className="w-8 h-8 text-sky-300" /> Lektioner &amp; Paket
         </h1>
 
         <div className="flex gap-3">
           <button
             onClick={() => setIsNewLessonPopoverOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
           >
             <BookOpen className="w-4 h-4" /> Ny Lektionstyp
           </button>
           <button
             onClick={() => setIsNewPackagePopoverOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
           >
             <Package className="w-4 h-4" /> Nytt Paket
           </button>
@@ -247,7 +247,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
       <div className="mb-4">
         <button
           onClick={() => setShowActive(!showActive)}
-          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
         >
           {showActive ? 'Visa Inaktiva' : 'Visa Aktiva'}
         </button>
@@ -255,38 +255,38 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredLessons.map(lesson => (
-          <div key={lesson.id} className="bg-white rounded-xl shadow-md p-4">
+          <div key={lesson.id} className="rounded-2xl p-4 bg-white/10 backdrop-blur-md border border-white/20 text-white">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-indigo-500" /> {lesson.name}
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+                <BookOpen className="w-5 h-5 text-sky-300" /> {lesson.name}
               </h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => openEditDialog(lesson)}
-                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                  className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white"
                   title="Edit lesson"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteLesson(lesson)}
-                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                  className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
                   title={lesson.bookingCount > 0 ? 'Archive lesson' : 'Delete lesson'}
                 >
                   {lesson.bookingCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-            <p className="text-gray-600 mb-2">{lesson.description}</p>
-            <div className="flex justify-between items-center text-sm">
+            <p className="text-slate-300 mb-2">{lesson.description}</p>
+            <div className="flex justify-between items-center text-sm text-slate-200">
               <div>
                 <span>Pris: {lesson.price} SEK</span>
-                {lesson.salePrice && <span className="ml-2 text-green-500">({lesson.salePrice} SEK på rea)</span>}
+                {lesson.salePrice && <span className="ml-2 text-green-300">({lesson.salePrice} SEK på rea)</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{lesson.durationMinutes} min</span>
+                <span className="text-xs text-slate-300">{lesson.durationMinutes} min</span>
                 {lesson.bookingCount > 0 && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  <span className="text-xs bg-white/10 text-white px-2 py-1 rounded border border-white/20">
                     {lesson.bookingCount} bokningar
                   </span>
                 )}
@@ -490,40 +490,40 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
       )}
 
       <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Paket</h2>
+        <h2 className="text-2xl font-bold mb-4 text-white drop-shadow-sm">Paket</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPackages.map(pkg => (
-            <div key={pkg.id} className="bg-white rounded-xl shadow-md p-4">
+            <div key={pkg.id} className="rounded-2xl p-4 bg-white/10 backdrop-blur-md border border-white/20 text-white">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Package className="w-5 h-5 text-indigo-500" /> {pkg.name}
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
+                  <Package className="w-5 h-5 text-sky-300" /> {pkg.name}
                 </h3>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEditPackage(pkg)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white"
                     title="Edit package"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeletePackage(pkg)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
                     title={pkg.purchaseCount > 0 ? 'Archive package' : 'Delete package'}
                   >
                     {pkg.purchaseCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-              <p className="text-gray-600 mb-2">{pkg.description}</p>
+              <p className="text-slate-300 mb-2">{pkg.description}</p>
               <div className="flex justify-between items-center text-sm">
                 <div>
                   <span>Pris: {pkg.price} SEK</span>
-                  {pkg.salePrice && <span className="ml-2 text-green-500">({pkg.salePrice} SEK på rea)</span>}
+                  {pkg.salePrice && <span className="ml-2 text-green-300">({pkg.salePrice} SEK på rea)</span>}
                 </div>
                 <div className="flex items-center gap-2">
                   {pkg.purchaseCount > 0 && (
-                    <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                    <span className="text-xs bg-white/10 text-white px-2 py-1 rounded border border-white/20">
                       {pkg.purchaseCount} köp
                     </span>
                   )}
@@ -535,21 +535,21 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
       </div>
 
       <div className="flex gap-4 mt-8">
-        <div className="flex items-center gap-2 px-4 py-3 border rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
           <span className="text-lg font-semibold">Totalt Lektioner</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.totalLessons}</span>
+          <span className="text-2xl font-bold text-sky-300">{stats.totalLessons}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 border rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
           <span className="text-lg font-semibold">Aktiva Lektioner</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.activeLessons}</span>
+          <span className="text-2xl font-bold text-sky-300">{stats.activeLessons}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 border rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
           <span className="text-lg font-semibold">Totalt Paket</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.totalPackages}</span>
+          <span className="text-2xl font-bold text-sky-300">{stats.totalPackages}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 border rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
           <span className="text-lg font-semibold">Aktiva Paket</span>
-          <span className="text-2xl font-bold text-blue-600">{stats.activePackages}</span>
+          <span className="text-2xl font-bold text-sky-300">{stats.activePackages}</span>
         </div>
       </div>
     </div>

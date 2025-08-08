@@ -196,7 +196,7 @@ export function WeekCalendar({
           </div>
 
           {/* Days grid */}
-          <div className="grid grid-cols-7 gap-2 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
             {weekDays.map((day) => {
               const isSelected = selectedDate && isSameDay(selectedDate, day.date)
               const daySlots = availableSlots[day.dateKey]
@@ -259,8 +259,8 @@ export function WeekCalendar({
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-2">
+                ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || []).map((slot) => (
                     <Button
                       key={slot.time}

@@ -143,15 +143,15 @@ export default function UsersClient({
   };
 
   return (
-    <div>
+    <div className="text-slate-100">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <User className="w-8 h-8 text-blue-600" /> Användarhantering
+        <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
+          <User className="w-8 h-8 text-sky-300" /> Användarhantering
         </h1>
 
         <Link
           href="/dashboard/admin/users/new"
-          className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
         >
           <PlusCircle className="w-5 h-5" /> Lägg till Användare
         </Link>
@@ -161,7 +161,7 @@ export default function UsersClient({
         <select
           value={roleFilter}
           onChange={handleRoleChange}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
           <option value="">Alla roller</option>
           <option value="student">Student</option>
@@ -174,51 +174,51 @@ export default function UsersClient({
             value={search}
             onChange={handleSearchChange}
             placeholder="Sök användare..."
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 rounded-l-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
           <button
             type="submit"
-            className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 rounded-r-lg bg-white/10 hover:bg白/20 border border-white/20 text-white transition-colors"
           >
             Sök
           </button>
         </form>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white">
+      <div className="overflow-x-auto rounded-2xl bg白/10 backdrop-blur-md border border-white/20">
+        <table className="min-w-full text-sm">
           <thead>
-            <tr>
-              <th className="px-4 py-2 text-left">Namn</th>
-              <th className="px-4 py-2 text-left">Email</th>
-              <th className="px-4 py-2 text-left">Roll</th>
-              <th className="px-4 py-2 text-left">Inskriven</th>
-              <th className="px-4 py-2 text-left">Bokningar</th>
-              <th className="px-4 py-2 text-left">Åtgärder</th>
+            <tr className="text-left">
+              <th className="px-4 py-3 text-slate-300">Namn</th>
+              <th className="px-4 py-3 text-slate-300">Email</th>
+              <th className="px-4 py-3 text-slate-300">Roll</th>
+              <th className="px-4 py-3 text-slate-300">Inskriven</th>
+              <th className="px-4 py-3 text-slate-300">Bokningar</th>
+              <th className="px-4 py-3 text-slate-300">Åtgärder</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-t">
-                <td className="px-4 py-2">
+              <tr key={user.id} className="border-t border-white/10 hover:bg-white/5">
+                <td className="px-4 py-3 text-slate-100">
                   {user.firstName} {user.lastName}
                 </td>
-                <td className="px-4 py-2">{user.email}</td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3 text-slate-200">{user.email}</td>
+                <td className="px-4 py-3 text-slate-200">
                   {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Lärare' : 'Student'}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     {user.inskriven ? (
-                      <Check className="w-5 h-5 text-green-500" />
+                      <Check className="w-5 h-5 text-green-400" />
                     ) : (
-                      <X className="w-5 h-5 text-red-500" />
+                      <X className="w-5 h-5 text-rose-400" />
                     )}
                     {user.role === 'student' && !user.inskriven && (
                       <button
                         onClick={() => handleSkrivIn(user.id)}
                         disabled={loadingSkriv === user.id}
-                        className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
+                        className="px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs rounded transition-colors disabled:opacity-50"
                       >
                         {loadingSkriv === user.id ? (
                           'Skriver in...'
@@ -231,30 +231,30 @@ export default function UsersClient({
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3">
                   {user.bookingCount > 0 ? (
                     <Link
                       href={`/dashboard/admin/bookings?user=${user.id}`}
-                      className="text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
+                      className="text-sky-300 hover:underline cursor-pointer flex items-center gap-1"
                     >
                       <Calendar className="w-4 h-4" />
                       {user.bookingCount}
                     </Link>
                   ) : (
-                    <span className="text-gray-500">{user.bookingCount}</span>
+                    <span className="text-slate-400">{user.bookingCount}</span>
                   )}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Link href={`/dashboard/admin/users/${user.id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/dashboard/admin/users/${user.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white">
                       Hantera
                     </Link>
                     
                     <button 
                       onClick={() => handleDeleteClick(user)}
-                      className="text-red-600 hover:underline flex items-center gap-1"
+                      className="px-3 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
                     >
-                      <Trash className="w-4 h-4" /> Radera
+                      <Trash className="w-4 h-4 inline mr-1" /> Radera
                     </button>
                   </div>
                 </td>
@@ -325,7 +325,7 @@ export default function UsersClient({
 
       <div className="flex justify-between items-center mt-6">
         <div className="flex gap-2">
-          <span className="text-sm">
+          <span className="text-sm text-slate-300">
             Visar {((currentPage - 1) * 20) + 1}-{Math.min(currentPage * 20, totalPages * 20)} av {totalPages * 20}
           </span>
         </div>
@@ -333,14 +333,14 @@ export default function UsersClient({
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeftCircle className="w-5 h-5" /> Föregående
           </button>
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages || totalPages === 0}
-            className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Nästa <ArrowRightCircle className="w-5 h-5" />
           </button>
@@ -349,11 +349,11 @@ export default function UsersClient({
 
       <div className="flex gap-4 mt-8">
         {userStats.map((stat) => (
-          <div key={stat.role} className="flex items-center gap-2 px-4 py-3 border rounded-lg">
+          <div key={stat.role} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
             <span className="text-lg font-semibold">
               {stat.role === 'admin' ? 'Admin' : stat.role === 'teacher' ? 'Lärare' : 'Studenter'}
             </span>
-            <span className="text-2xl font-bold text-blue-600">{stat.count}</span>
+            <span className="text-2xl font-bold text-sky-300">{stat.count}</span>
           </div>
         ))}
       </div>

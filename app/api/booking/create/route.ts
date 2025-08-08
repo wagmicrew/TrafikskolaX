@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne } from 'drizzle-orm';
@@ -9,7 +9,7 @@ import sgMail from '@sendgrid/mail';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
+import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 
 // Helper function to get SendGrid API key from database
 async function getSendGridApiKey(): Promise<string> {
@@ -139,6 +139,47 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Enforce block date and blocked slot rules for regular lessons
+    if (sessionType !== 'handledar') {
+      // Respect configurable opening date (site setting "booking_open_from")
+      try {
+        const openFrom = await db
+          .select()
+          .from(siteSettings)
+          .where(eq(siteSettings.key, 'booking_open_from'))
+          .limit(1);
+        const bookingOpenFrom = openFrom && openFrom[0]?.value ? String(openFrom[0].value) : null;
+        if (bookingOpenFrom && scheduledDate < bookingOpenFrom) {
+          return NextResponse.json({ error: 'Datumet är ännu inte öppet för bokning.' }, { status: 400 });
+        }
+      } catch {}
+
+      // Disallow past dates
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (scheduledDate < todayStr) {
+        return NextResponse.json({ error: 'Kan inte boka ett datum i det förflutna.' }, { status: 400 });
+      }
+
+      // Check blocked slots (all-day or overlapping intervals)
+      const blockedForDate = await db
+        .select()
+        .from(blockedSlots)
+        .where(eq(blockedSlots.date, scheduledDate));
+
+      const isAllDayBlocked = blockedForDate.some(b => b.isAllDay);
+      if (isAllDayBlocked) {
+        return NextResponse.json({ error: 'Dagen är blockerad för bokning.' }, { status: 400 });
+      }
+
+      const isTimeBlocked = blockedForDate.some(b => {
+        if (!b.timeStart || !b.timeEnd) return false;
+        return doTimeRangesOverlap(startTime, endTime, b.timeStart, b.timeEnd);
+      });
+      if (isTimeBlocked) {
+        return NextResponse.json({ error: 'Denna tid är blockerad och kan inte bokas.' }, { status: 400 });
+      }
+    }
+
     // If booking for a student as Admin or Teacher
     if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
       // For admin/teacher bookings, create with dummy information first
@@ -163,21 +204,14 @@ export async function POST(request: NextRequest) {
         .select()
         .from(bookings)
         .where(
-          and(
-            eq(bookings.scheduledDate, scheduledDate),
-            or(
-              eq(bookings.status, 'confirmed'),
-              eq(bookings.status, 'temp'),
-              eq(bookings.status, 'on_hold')
-            )
-          )
+          eq(bookings.scheduledDate, scheduledDate)
         );
 
       const hasConflict = doesAnyBookingOverlapWithSlot(
         existingBookings,
         startTime,
         endTime,
-        true // exclude expired bookings
+        false // any row blocks
       );
 
       if (hasConflict) {

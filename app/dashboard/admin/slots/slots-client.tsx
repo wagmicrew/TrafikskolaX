@@ -614,10 +614,10 @@ export default function SlotsClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-100">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Tidsluckor</h1>
+        <h1 className="text-3xl font-bold text-white drop-shadow-sm">Tidsluckor</h1>
       </div>
 
       {/* Warning Dialog */}
@@ -648,15 +648,15 @@ export default function SlotsClient() {
       )}
 
 {/* Tabs */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="border-b border-gray-200">
+        <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+          <div className="border-b border-white/10">
             <nav className="-mb-px flex">
               <button
                 onClick={() => setActiveTab('slots')}
                 className={`px-6 py-3 border-b-2 font-medium text-sm ${
                   activeTab === 'slots'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-sky-400 text-white'
+                    : 'border-transparent text-slate-300 hover:text-white'
                 }`}
               >
                 <Clock className="w-4 h-4 inline mr-2" />
@@ -666,8 +666,8 @@ export default function SlotsClient() {
                 onClick={() => setActiveTab('blocked')}
                 className={`px-6 py-3 border-b-2 font-medium text-sm ${
                   activeTab === 'blocked'
-                    ? 'border-red-500 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-rose-400 text-white'
+                    : 'border-transparent text-slate-300 hover:text-white'
                 }`}
               >
                 <Ban className="w-4 h-4 inline mr-2" />
@@ -682,12 +682,12 @@ export default function SlotsClient() {
               <div>
                 {/* Slots Management Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                  <h2 className="text-xl font-semibold">Hantera Tidsluckor</h2>
+                  <h2 className="text-xl font-semibold text-white">Hantera Tidsluckor</h2>
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button
                       onClick={handleCopySlots}
                       disabled={isLoading}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <>
@@ -706,7 +706,7 @@ export default function SlotsClient() {
                     </button>
                     <button
                       onClick={() => setShowAddSlot(true)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 justify-center"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-2 justify-center"
                     >
                       <Plus className="w-4 h-4" />
                       Lägg till tidslucka
@@ -716,15 +716,15 @@ export default function SlotsClient() {
 
                 {/* Add Slot Form */}
                 {showAddSlot && (
-                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                    <h3 className="font-semibold mb-3">Ny Tidslucka</h3>
+                  <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl mb-4">
+                    <h3 className="font-semibold mb-3 text-white">Ny Tidslucka</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1">Dag</label>
                         <select
                           value={slotForm.dayOfWeek}
                           onChange={(e) => setSlotForm({ ...slotForm, dayOfWeek: parseInt(e.target.value) })}
-                          className="w-full border rounded px-3 py-2"
+                          className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                         >
                           {DAYS_OF_WEEK.map((day, index) => (
                             <option key={index} value={index}>{day}</option>
@@ -737,7 +737,7 @@ export default function SlotsClient() {
                           type="time"
                           value={slotForm.timeStart}
                           onChange={(e) => setSlotForm({ ...slotForm, timeStart: e.target.value })}
-                          className="w-full border rounded px-3 py-2"
+                          className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                         />
                       </div>
                       <div>
@@ -746,7 +746,7 @@ export default function SlotsClient() {
                           type="time"
                           value={slotForm.timeEnd}
                           onChange={(e) => setSlotForm({ ...slotForm, timeEnd: e.target.value })}
-                          className="w-full border rounded px-3 py-2"
+                          className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                         />
                       </div>
                       <div>
@@ -755,14 +755,14 @@ export default function SlotsClient() {
                           type="number"
                           value={slotForm.adminMinutes}
                           onChange={(e) => setSlotForm({ ...slotForm, adminMinutes: parseInt(e.target.value) })}
-                          className="w-full border rounded px-3 py-2"
+                          className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                         />
                       </div>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <button
                         onClick={() => handleCreateSlot()}
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                        className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white"
                       >
                         <Save className="w-4 h-4 inline mr-1" />
                         Spara
@@ -772,7 +772,7 @@ export default function SlotsClient() {
                           setShowAddSlot(false);
                           resetSlotForm();
                         }}
-                        className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                        className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white"
                       >
                         <X className="w-4 h-4 inline mr-1" />
                         Avbryt
@@ -783,7 +783,7 @@ export default function SlotsClient() {
 
 
                 {/* Week Navigation */}
-                <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-4 p-4 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
                   <Button
                     variant="outline"
                     size="sm"
@@ -840,10 +840,10 @@ export default function SlotsClient() {
               <div>
                 {/* Blocked Slots Management Header */}
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Hantera Blockerade Tider</h2>
+                  <h2 className="text-xl font-semibold text-white">Hantera Blockerade Tider</h2>
                   <button
                     onClick={() => setShowAddBlocked(true)}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2"
+                    className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
                     Blockera tid
@@ -852,8 +852,8 @@ export default function SlotsClient() {
 
               {/* Add Blocked Slot Form */}
               {showAddBlocked && (
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                  <h3 className="font-semibold mb-3">Blockera Tid</h3>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-xl mb-4">
+                  <h3 className="font-semibold mb-3 text-white">Blockera Tid</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">Datum</label>
@@ -861,7 +861,7 @@ export default function SlotsClient() {
                         type="date"
                         value={blockedForm.date}
                         onChange={(e) => setBlockedForm({ ...blockedForm, date: e.target.value })}
-                        className="w-full border rounded px-3 py-2"
+                        className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                       />
                     </div>
                     <div>
@@ -870,7 +870,7 @@ export default function SlotsClient() {
                           type="checkbox"
                           checked={blockedForm.isAllDay}
                           onChange={(e) => setBlockedForm({ ...blockedForm, isAllDay: e.target.checked })}
-                          className="mr-2"
+                          className="mr-2 accent-sky-400"
                         />
                         Hela dagen
                       </label>
@@ -883,7 +883,7 @@ export default function SlotsClient() {
                             type="time"
                             value={blockedForm.timeStart}
                             onChange={(e) => setBlockedForm({ ...blockedForm, timeStart: e.target.value })}
-                            className="w-full border rounded px-3 py-2"
+                            className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                           />
                         </div>
                         <div>
@@ -892,7 +892,7 @@ export default function SlotsClient() {
                             type="time"
                             value={blockedForm.timeEnd}
                             onChange={(e) => setBlockedForm({ ...blockedForm, timeEnd: e.target.value })}
-                            className="w-full border rounded px-3 py-2"
+                            className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                           />
                         </div>
                       </>
@@ -905,13 +905,13 @@ export default function SlotsClient() {
                       value={blockedForm.reason}
                       onChange={(e) => setBlockedForm({ ...blockedForm, reason: e.target.value })}
                       placeholder="T.ex. Semester, Sjukdom, etc."
-                      className="w-full border rounded px-3 py-2"
+                      className="w-full rounded px-3 py-2 bg-white/10 border border-white/20 text-white"
                     />
                   </div>
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={handleCreateBlockedSlot}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white"
                     >
                       <Save className="w-4 h-4 inline mr-1" />
                       Spara
@@ -921,7 +921,7 @@ export default function SlotsClient() {
                         setShowAddBlocked(false);
                         resetBlockedForm();
                       }}
-                      className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white"
                     >
                       <X className="w-4 h-4 inline mr-1" />
                       Avbryt

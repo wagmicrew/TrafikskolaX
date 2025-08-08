@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
+import { slotSettings, bookings, blockedSlots, siteSettings } from '@/lib/db/schema';
 import { eq, and, gte, lte, or, inArray } from 'drizzle-orm';
-import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
+import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,16 @@ export async function GET(request: NextRequest) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const today = new Date().toISOString().split('T')[0];
-    const blockUntilDate = '2025-08-18'; // Block all days until this date
+    // Optionally read an opening date from site settings
+    let bookingOpenFrom: string | null = null;
+    try {
+      const openFrom = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'booking_open_from'))
+        .limit(1);
+      if (openFrom && openFrom[0]?.value) bookingOpenFrom = String(openFrom[0].value);
+    } catch {}
 
     // Generate array of all dates in the range
     const dateArray = [];
@@ -28,8 +37,8 @@ export async function GET(request: NextRequest) {
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0];
       
-      // Skip past dates and dates before block date
-      if (dateStr < today || dateStr < blockUntilDate) {
+      // Skip past dates and dates before opening date (if configured)
+      if (dateStr < today || (bookingOpenFrom && dateStr < bookingOpenFrom)) {
         slotsForWeek[dateStr] = [];
         current.setDate(current.getDate() + 1);
         continue;
@@ -60,20 +69,13 @@ export async function GET(request: NextRequest) {
         eq(slotSettings.isActive, true)
       ));
 
-    // Fetch all bookings for the date range in one query
+    // Fetch all bookings for the date range in one query (any row blocks)
     const dateStrings = dateArray.map(d => d.dateStr);
     const allBookings = await db
       .select()
       .from(bookings)
       .where(
-        and(
-          inArray(bookings.scheduledDate, dateStrings),
-          or(
-            eq(bookings.status, 'on_hold'), 
-            eq(bookings.status, 'confirmed'),
-            eq(bookings.status, 'temp') // Include temporary bookings to block slots
-          )
-        )
+        inArray(bookings.scheduledDate, dateStrings)
       );
 
     // Fetch all blocked slots for the date range in one query
@@ -131,10 +133,15 @@ export async function GET(request: NextRequest) {
           const isAllDayBlocked = blockedSlotsList.some(blocked => blocked.isAllDay);
           if (isAllDayBlocked) continue;
 
-          // Check if this specific slot is blocked
+          // Check if this specific slot overlaps with any blocked interval
           const isSlotBlocked = blockedSlotsList.some((blocked) => {
             if (!blocked.timeStart || !blocked.timeEnd) return false;
-            return slot.timeStart >= blocked.timeStart && slot.timeEnd <= blocked.timeEnd;
+            return doTimeRangesOverlap(
+              slot.timeStart,
+              slot.timeEnd,
+              blocked.timeStart,
+              blocked.timeEnd
+            );
           });
 
           if (isSlotBlocked) continue;
@@ -144,7 +151,7 @@ export async function GET(request: NextRequest) {
             existingBookings,
             slot.timeStart,
             slot.timeEnd,
-            true // exclude expired bookings
+            false // any row blocks
           );
 
           // Check if this slot is within 3 hours from now

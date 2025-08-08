@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/use-auth';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export function ResetSiteButton() {
   const [isLoading, setIsLoading] = useState(false);

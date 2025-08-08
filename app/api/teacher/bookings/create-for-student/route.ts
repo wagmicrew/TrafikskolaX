@@ -6,6 +6,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,6 +56,37 @@ export async function POST(request: NextRequest) {
 
     if (lessonType.length === 0) {
       return NextResponse.json({ error: 'Lesson type not found' }, { status: 404 });
+    }
+
+    // Check for existing bookings that conflict with this timeslot
+    const existingBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.scheduledDate, scheduledDate));
+
+    // Check if there's already a booking for this student at this time
+    const studentBooking = existingBookings.find(booking => 
+      booking.userId === studentId && 
+      doTimeRangesOverlap(startTime, endTime, booking.startTime, booking.endTime)
+    );
+
+    if (studentBooking) {
+      return NextResponse.json({ 
+        error: 'This student already has a booking at this time',
+        existingBooking: studentBooking
+      }, { status: 400 });
+    }
+
+    // Check for any conflicting bookings (any user) at this time
+    const conflictingBooking = existingBookings.find(booking => 
+      doTimeRangesOverlap(startTime, endTime, booking.startTime, booking.endTime)
+    );
+
+    if (conflictingBooking) {
+      return NextResponse.json({ 
+        error: 'This time slot is already booked by another user',
+        conflictingBooking: conflictingBooking
+      }, { status: 400 });
     }
 
     // Create the booking

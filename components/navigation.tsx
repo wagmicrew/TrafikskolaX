@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
 import { LoginForm } from "@/components/login-form"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
-import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X } from "lucide-react"
+import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X, HelpCircle } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
 export const Navigation = memo(function Navigation() {
@@ -125,7 +125,15 @@ export const Navigation = memo(function Navigation() {
               
             {/* Dashboard/Logout Button */}
             {user ? (
-              <div className="ml-4">
+              <div className="ml-4 flex items-center space-x-2">
+                <Link
+                  href="/dashboard/help"
+                  className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                  aria-label="Hjälp"
+                >
+                  <HelpCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+                  <span>Hjälp</span>
+                </Link>
                 <UserAvatarMenu />
               </div>
             ) : (
@@ -205,6 +213,14 @@ export const Navigation = memo(function Navigation() {
                 >
                   <User className="w-5 h-5 text-gray-500" />
                   <span>Dashboard</span>
+                </Link>
+                <Link
+                  href="/dashboard/help"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+                >
+                  <HelpCircle className="w-5 h-5 text-gray-500" />
+                  <span>Hjälp</span>
                 </Link>
                 <button
                   onClick={() => {

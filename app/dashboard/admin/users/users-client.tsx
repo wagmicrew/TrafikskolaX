@@ -264,60 +264,72 @@ export default function UsersClient({
         </table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog with Glassmorphism */}
       {deleteDialogOpen && userToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-500" />
-              <h3 className="text-lg font-semibold">Bekräfta radering</h3>
-            </div>
-            
-            <p className="text-gray-700 mb-4">
-              Vill du verkligen radera användaren <strong>{userToDelete.firstName} {userToDelete.lastName}</strong> och alla bokningar/feedback?
-            </p>
-            
-            <div className="mb-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={exportPdf}
-                  onChange={(e) => setExportPdf(e.target.checked)}
-                  className="rounded"
-                />
-                <FileText className="w-4 h-4" />
-                Exportera en sammanfattning till PDF åt kunden innan du raderar
-              </label>
-              <p className="text-xs text-gray-500 mt-1">
-                (Detta kommer att kompilera all användardata, alla bokningar och bokningsrecensioner till en PDF med student-ID som PDF-namn och sparas på datorn)
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl max-w-md w-full mx-4">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-red-400" />
+                  <h3 className="text-lg font-semibold text-white">Bekräfta radering</h3>
+                </div>
+                <button
+                  onClick={handleDeleteCancel}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-slate-300 mb-4">
+                Vill du verkligen radera användaren <strong className="text-white">{userToDelete.firstName} {userToDelete.lastName}</strong> och alla bokningar/feedback?
               </p>
-            </div>
-            
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={handleDeleteCancel}
-                disabled={deleting}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-              >
-                Avbryt
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {deleting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Raderar...
-                  </>
-                ) : (
-                  <>
-                    <Trash className="w-4 h-4" />
-                    Radera
-                  </>
-                )}
-              </button>
+              
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-sm text-white">
+                  <input
+                    type="checkbox"
+                    checked={exportPdf}
+                    onChange={(e) => setExportPdf(e.target.checked)}
+                    className="rounded bg-white/5 border-white/20 text-sky-500 focus:ring-sky-500"
+                  />
+                  <FileText className="w-4 h-4" />
+                  Exportera en sammanfattning till PDF åt kunden innan du raderar
+                </label>
+                <p className="text-xs text-slate-400 mt-1">
+                  (Detta kommer att kompilera all användardata, alla bokningar och bokningsrecensioner till en PDF med student-ID som PDF-namn och sparas på datorn)
+                </p>
+              </div>
+              
+              {/* Footer */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleDeleteCancel}
+                  disabled={deleting}
+                  className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleting}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Raderar...
+                    </>
+                  ) : (
+                    <>
+                      <Trash className="w-4 h-4" />
+                      Radera
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

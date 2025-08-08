@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .from(slotSettings)
       .orderBy(slotSettings.dayOfWeek, slotSettings.timeStart);
 
-    return NextResponse.json({ slotSettings: slots });
+    return NextResponse.json({ slots: slots });
   } catch (error) {
     console.error('Error fetching slots:', error);
     return NextResponse.json({ error: 'Failed to fetch slots' }, { status: 500 });

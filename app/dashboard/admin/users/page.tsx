@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { users, bookings } from '@/lib/db/schema';
-import { sql, desc, eq } from 'drizzle-orm';
+import { sql, desc, eq, and, or, not, like } from 'drizzle-orm';
 import UsersClient from './users-client';
 
 export const dynamic = 'force-dynamic';
@@ -21,16 +21,32 @@ export default async function UsersPage({
   const roleFilter = params.role || '';
   const searchFilter = params.search || '';
 
-  // Build conditions
+  // Build conditions array
   const conditions = [];
+  
+  // Add role filter if specified
   if (roleFilter) {
     conditions.push(eq(users.role, roleFilter as any));
   }
+  
+  // Add search filter if specified
   if (searchFilter) {
     conditions.push(
-      sql`(${users.firstName} ILIKE ${`%${searchFilter}%`} OR ${users.lastName} ILIKE ${`%${searchFilter}%`} OR ${users.email} ILIKE ${`%${searchFilter}%`})`
+      or(
+        like(users.firstName, `%${searchFilter}%`),
+        like(users.lastName, `%${searchFilter}%`),
+        like(users.email, `%${searchFilter}%`)
+      )
     );
   }
+  
+  // Always exclude temporary users
+  conditions.push(not(like(users.email, 'orderid-%@dintrafikskolahlm.se')));
+  conditions.push(not(like(users.email, 'temp-%@%')));
+  conditions.push(not(eq(users.firstName, 'Temporary')));
+
+  // Create the where clause
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Fetch users with booking counts
   const allUsers = await db
@@ -43,7 +59,7 @@ export default async function UsersPage({
       role: users.role,
       isActive: users.isActive,
       inskriven: users.inskriven,
-      inskrivenDate: users.inskrivenDate,
+      inskrivenDate: sql<string | null>`CASE WHEN ${users.inskrivenDate} IS NOT NULL THEN ${users.inskrivenDate}::text ELSE NULL END`,
       customPrice: users.customPrice,
       personalNumber: users.personalNumber,
       address: users.address,
@@ -58,7 +74,7 @@ export default async function UsersPage({
       )`,
     })
     .from(users)
-    .where(conditions.length > 0 ? sql`${conditions.join(' AND ')}` : undefined)
+    .where(whereClause)
     .orderBy(desc(users.createdAt))
     .limit(pageSize)
     .offset(offset);
@@ -67,7 +83,7 @@ export default async function UsersPage({
   const totalCount = await db
     .select({ count: sql`count(*)` })
     .from(users)
-    .where(conditions.length > 0 ? sql`${conditions.join(' AND ')}` : undefined)
+    .where(whereClause)
     .then((result) => Number(result[0].count));
 
   // Get user statistics
@@ -77,7 +93,14 @@ export default async function UsersPage({
       count: sql<number>`count(*)`,
     })
     .from(users)
-    .where(eq(users.isActive, true))
+    .where(
+      and(
+        eq(users.isActive, true),
+        not(like(users.email, 'orderid-%@dintrafikskolahlm.se')),
+        not(like(users.email, 'temp-%@%')),
+        not(eq(users.firstName, 'Temporary'))
+      )
+    )
     .groupBy(users.role);
 
   return (

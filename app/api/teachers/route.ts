@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { or, eq } from 'drizzle-orm';
+import { or, eq, and, not, like } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Fetch appropriate users based on current user's role
+    // Fetch appropriate users based on current user's role, excluding temporary users
     let recipientUsers;
     
     if (user.role === 'student') {
@@ -33,13 +33,18 @@ export async function GET(request: NextRequest) {
         })
         .from(users)
         .where(
-          or(
-            eq(users.role, 'teacher'),
-            eq(users.role, 'admin')
+          and(
+            or(
+              eq(users.role, 'teacher'),
+              eq(users.role, 'admin')
+            ),
+            not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
+            not(like(users.email, 'temp-%@%')), // exclude other temp patterns
+            not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
           )
         );
     } else {
-      // Teachers and admins can message everyone
+      // Teachers and admins can message everyone except temporary users
       recipientUsers = await db
         .select({
           id: users.id,
@@ -47,7 +52,14 @@ export async function GET(request: NextRequest) {
           email: users.email,
           role: users.role,
         })
-        .from(users);
+        .from(users)
+        .where(
+          and(
+            not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
+            not(like(users.email, 'temp-%@%')), // exclude other temp patterns
+            not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
+          )
+        );
     }
 
     return NextResponse.json({ teachers: recipientUsers });

@@ -12,16 +12,18 @@ export default async function AdminMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Meddelanden</h1>
-            <p className="text-gray-600">Hantera alla interna meddelanden och frågor</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-sky-600/20 to-purple-600/20 border-b border-white/10">
+              <h1 className="text-2xl font-bold text-white mb-2">Admin Meddelanden</h1>
+              <p className="text-gray-300">Hantera alla interna meddelanden och frågor</p>
+            </div>
           </div>
-          
-          <MessagesClient />
         </div>
+        
+        <MessagesClient />
       </div>
     </div>
   );

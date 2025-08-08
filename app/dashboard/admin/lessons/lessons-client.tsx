@@ -14,6 +14,7 @@ import {
   Edit3,
   Trash2,
   Archive,
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -299,112 +300,132 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
 {/* Edit Lesson Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          {/* Glassmorphism style */}
-          <div className="dialog-glassmorphism relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20 rounded-xl"></div>
-            <div className="relative z-10 p-6 sm:p-8">
-            <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">Redigera Lektionstyp</DialogTitle>
-                <DialogDescription className="text-white/80 drop-shadow-sm">
-                  Gör ändringar i lektionstypens egenskaper. Klicka spara när du är klar.
-                </DialogDescription>
-              </DialogHeader>
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-6 h-6 text-sky-400" />
+                  <h3 className="text-lg font-semibold text-white">Redigera Lektionstyp</h3>
+                </div>
+                <button
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-slate-300 mb-6">
+                Gör ändringar i lektionstypens egenskaper. Klicka spara när du är klar.
+              </p>
+              
               <form onSubmit={handleSaveLesson} className="space-y-4">
                 <div className="grid gap-4">
-              <div>
-                <Label htmlFor="name" className="text-white font-medium drop-shadow-sm">Namn</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description" className="text-white font-medium drop-shadow-sm">Beskrivning</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg resize-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="duration" className="text-white font-medium drop-shadow-sm">Längd (minuter)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={formData.durationMinutes}
-                    onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
-                    required
-                    min="1"
-                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
-                  />
+                  <div>
+                    <Label htmlFor="name" className="block text-white font-medium mb-2">Namn</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder:text-white/50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="description" className="block text-white font-medium mb-2">Beskrivning</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none placeholder:text-white/50"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="duration" className="block text-white font-medium mb-2">Längd (minuter)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={formData.durationMinutes}
+                        onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
+                        required
+                        min="1"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price" className="block text-white font-medium mb-2">Pris (SEK)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        required
+                        min="0"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="priceStudent" className="block text-white font-medium mb-2">Studentpris (SEK)</Label>
+                      <Input
+                        id="priceStudent"
+                        type="number"
+                        value={formData.priceStudent}
+                        onChange={(e) => setFormData({ ...formData, priceStudent: e.target.value })}
+                        min="0"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="salePrice" className="block text-white font-medium mb-2">Reapris (SEK)</Label>
+                      <Input
+                        id="salePrice"
+                        type="number"
+                        value={formData.salePrice}
+                        onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                        min="0"
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="rounded border-white/20 text-sky-500 focus:ring-sky-500 bg-white/5"
+                    />
+                    <Label htmlFor="isActive" className="text-white font-medium">Aktiv</Label>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="price" className="text-white font-medium drop-shadow-sm">Pris (SEK)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    required
-                    min="0"
-                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
-                  />
+
+                {/* Footer */}
+                <div className="flex gap-3 justify-end pt-4">
+                  <Button 
+                    type="button" 
+                    onClick={() => setIsEditDialogOpen(false)}
+                    className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    Avbryt
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? 'Sparar...' : 'Spara ändringar'}
+                  </Button>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="priceStudent" className="text-white font-medium drop-shadow-sm">Studentpris (SEK)</Label>
-                  <Input
-                    id="priceStudent"
-                    type="number"
-                    value={formData.priceStudent}
-                    onChange={(e) => setFormData({ ...formData, priceStudent: e.target.value })}
-                    min="0"
-                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="salePrice" className="text-white font-medium drop-shadow-sm">Reapris (SEK)</Label>
-                  <Input
-                    id="salePrice"
-                    type="number"
-                    value={formData.salePrice}
-                    onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
-                    min="0"
-                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="isActive" className="text-white font-medium drop-shadow-sm">Aktiv</Label>
-              </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Avbryt
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Sparar...' : 'Spara ändringar'}
-                </Button>
-              </DialogFooter>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
 
       {/* New Lesson Type Popover */}
       {isNewLessonPopoverOpen && (

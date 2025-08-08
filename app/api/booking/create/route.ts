@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       transmissionType,
       totalPrice,
       paymentMethod, // swish, credits, pay_at_location, qliro
+      status, // Add missing status variable
       // Guest fields
       guestName,
       guestEmail,
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
         existingBookings,
         startTime,
         endTime,
-        false // any row blocks
+        false // Check ALL bookings including temporary ones
       );
 
       if (hasConflict) {

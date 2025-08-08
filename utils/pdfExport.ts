@@ -37,6 +37,20 @@ const getBaseUrl = () => {
   return baseUrl;
 };
 
+// Helper function to fetch school name from database
+const getSchoolName = async () => {
+  try {
+    const response = await fetch(`${getBaseUrl()}/api/admin/settings`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.settings?.schoolname || 'Din Trafikskola Hässleholm';
+    }
+  } catch (error) {
+    console.error('Failed to fetch school name:', error);
+  }
+  return 'Din Trafikskola Hässleholm';
+};
+
 // Helper function to fetch all future bookings
 export const fetchAllFutureBookings = async (userId?: string, role: 'admin' | 'teacher' = 'teacher', authToken?: string) => {
   try {
@@ -79,15 +93,25 @@ export const fetchAllFutureBookings = async (userId?: string, role: 'admin' | 't
   }
 };
 
-export const generateWeeklySchedulePdf = (bookings: Booking[], title: string = 'Veckoschema') => {
+export const generateWeeklySchedulePdf = async (bookings: Booking[], title: string = 'Veckoschema') => {
   // Create a new PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let yPos = 20;
 
+  // Get school name
+  const schoolName = await getSchoolName();
+
+  // Add school header
+  doc.setFontSize(16);
+  doc.setTextColor(41, 128, 185); // School blue color
+  doc.text(schoolName, margin, yPos);
+  yPos += 8;
+
   // Add title
-  doc.setFontSize(18);
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
   doc.text(title, margin, yPos);
   yPos += 10;
 
@@ -100,22 +124,16 @@ export const generateWeeklySchedulePdf = (bookings: Booking[], title: string = '
   doc.text(`Vecka: ${dateRange}`, margin, yPos);
   yPos += 15;
 
-  // Group bookings by date
+  // Group bookings by date and filter out empty days
   const bookingsByDate: { [key: string]: Booking[] } = {};
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
   
-  // Initialize empty arrays for each day
-  weekDays.forEach(day => {
-    const dateKey = format(day, 'yyyy-MM-dd');
-    bookingsByDate[dateKey] = [];
-  });
-
   // Add bookings to their respective days
   bookings.forEach(booking => {
     const bookingDate = booking.scheduledDate.split('T')[0];
-    if (bookingsByDate[bookingDate]) {
-      bookingsByDate[bookingDate].push(booking);
+    if (!bookingsByDate[bookingDate]) {
+      bookingsByDate[bookingDate] = [];
     }
+    bookingsByDate[bookingDate].push(booking);
   });
 
   // Sort bookings within each day by start time
@@ -123,40 +141,44 @@ export const generateWeeklySchedulePdf = (bookings: Booking[], title: string = '
     dayBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
   });
 
-  // Create a table for each day
-  weekDays.forEach((day, index) => {
-    const dateKey = format(day, 'yyyy-MM-dd');
-    const dayBookings = bookingsByDate[dateKey] || [];
-    
-    // Add day header
-    if (index > 0) {
-      // Add new page if not enough space
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      } else {
-        yPos += 10;
-      }
-    }
-    
-    // Day header
-    doc.setFontSize(14);
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
-    doc.setTextColor(0, 0, 0);
-    doc.text(
-      format(day, 'EEEE d MMMM yyyy', { locale: sv }),
-      margin + 5,
-      yPos + 6
-    );
-    yPos += 12;
+  // Get sorted dates that have bookings
+  const datesWithBookings = Object.keys(bookingsByDate)
+    .filter(date => bookingsByDate[date].length > 0)
+    .sort();
 
-    if (dayBookings.length === 0) {
-      doc.setFontSize(10);
-      doc.text('Inga lektioner inbokade', margin + 5, yPos);
-      yPos += 8;
-      return;
+  if (datesWithBookings.length === 0) {
+    // No bookings found
+    doc.setFontSize(12);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Inga bokningar hittades för denna vecka', margin, yPos);
+    doc.save(`schema-${format(today, 'yyyy-MM-dd')}.pdf`);
+    return;
+  }
+
+  // Create a section for each day with bookings
+  datesWithBookings.forEach((dateKey, index) => {
+    const dayBookings = bookingsByDate[dateKey];
+    const dayDate = parseISO(dateKey);
+    
+    // Add page break if not enough space (except for first day)
+    if (index > 0 && yPos > 200) {
+      doc.addPage();
+      yPos = 20;
+    } else if (index > 0) {
+      yPos += 15; // Add some space between days
     }
+    
+    // Day header with background
+    doc.setFontSize(14);
+    doc.setFillColor(41, 128, 185); // School blue
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      format(dayDate, 'EEEE d MMMM yyyy', { locale: sv }),
+      margin + 5,
+      yPos + 7
+    );
+    yPos += 15;
 
     // Prepare table data
     const tableData = dayBookings.map(booking => [
@@ -181,7 +203,7 @@ export const generateWeeklySchedulePdf = (bookings: Booking[], title: string = '
       },
       bodyStyles: {
         fontSize: 8,
-        cellPadding: 3
+        cellPadding: 4
       },
       alternateRowStyles: {
         fillColor: [245, 245, 245]
@@ -195,6 +217,19 @@ export const generateWeeklySchedulePdf = (bookings: Booking[], title: string = '
       }
     });
   });
+
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(
+      `Sida ${i} av ${pageCount} | Genererat: ${format(new Date(), 'yyyy-MM-dd HH:mm', { locale: sv })}`,
+      margin,
+      doc.internal.pageSize.getHeight() - 10
+    );
+  }
 
   // Save the PDF
   doc.save(`schema-${format(today, 'yyyy-MM-dd')}.pdf`);
@@ -553,7 +588,7 @@ export const fetchWeeklyBookings = async (userId?: string, role: 'admin' | 'teac
 
     const response = await fetch(url, { headers });
     if (!response.ok) {
-      throw new Error('Kunde inte hämta bokningar');
+      throw new Error('Kunde inte hämta veckans bokningar');
     }
     const data = await response.json();
     return data.bookings || [];
@@ -561,4 +596,233 @@ export const fetchWeeklyBookings = async (userId?: string, role: 'admin' | 'teac
     console.error('Fel vid hämtning av veckans bokningar:', error);
     return [];
   }
+};
+
+// Generate daily schedule PDF with improved design
+export const generateDailySchedulePdf = async (bookings: Booking[], date: string = new Date().toISOString().split('T')[0]) => {
+  // Create a new PDF document
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  let yPos = 20;
+
+  // Get school name
+  const schoolName = await getSchoolName();
+
+  // Add school header
+  doc.setFontSize(16);
+  doc.setTextColor(41, 128, 185); // School blue color
+  doc.text(schoolName, margin, yPos);
+  yPos += 8;
+
+  // Add title
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Dagens Schema', margin, yPos);
+  yPos += 10;
+
+  // Add date
+  doc.setFontSize(10);
+  const formattedDate = format(parseISO(date), 'EEEE d MMMM yyyy', { locale: sv });
+  doc.text(`Datum: ${formattedDate}`, margin, yPos);
+  yPos += 15;
+
+  if (bookings.length === 0) {
+    // No bookings found
+    doc.setFontSize(12);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Inga bokningar hittades för denna dag', margin, yPos);
+    doc.save(`schema-${date}.pdf`);
+    return;
+  }
+
+  // Sort bookings by start time
+  const sortedBookings = bookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  // Prepare table data
+  const tableData = sortedBookings.map(booking => [
+    booking.startTime + ' - ' + booking.endTime,
+    booking.userName,
+    booking.userPhone || 'Ingen telefon',
+    booking.lessonTypeName,
+    booking.transmissionType || 'Ej angivet'
+  ]);
+
+  // Add table
+  autoTable(doc, {
+    startY: yPos,
+    head: [['Tid', 'Elev', 'Telefon', 'Lektionstyp', 'Växellåda']],
+    body: tableData,
+    margin: { left: margin, right: margin },
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    bodyStyles: {
+      fontSize: 8,
+      cellPadding: 4
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    styles: {
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
+    }
+  });
+
+  // Add footer
+  doc.setFontSize(8);
+  doc.setTextColor(128, 128, 128);
+  doc.text(
+    `Genererat: ${format(new Date(), 'yyyy-MM-dd HH:mm', { locale: sv })}`,
+    margin,
+    doc.internal.pageSize.getHeight() - 10
+  );
+
+  // Save the PDF
+  doc.save(`schema-${date}.pdf`);
+};
+
+// Generate future schedule PDF with improved design
+export const generateFutureSchedulePdf = async (bookings: Booking[], title: string = 'Kommande Schema') => {
+  // Create a new PDF document
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  let yPos = 20;
+
+  // Get school name
+  const schoolName = await getSchoolName();
+
+  // Add school header
+  doc.setFontSize(16);
+  doc.setTextColor(41, 128, 185); // School blue color
+  doc.text(schoolName, margin, yPos);
+  yPos += 8;
+
+  // Add title
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.text(title, margin, yPos);
+  yPos += 10;
+
+  // Add date range
+  doc.setFontSize(10);
+  const today = new Date();
+  const dateRange = `Från: ${format(today, 'd MMM yyyy', { locale: sv })}`;
+  doc.text(dateRange, margin, yPos);
+  yPos += 15;
+
+  // Group bookings by date and filter out empty days
+  const bookingsByDate: { [key: string]: Booking[] } = {};
+  
+  // Add bookings to their respective days
+  bookings.forEach(booking => {
+    const bookingDate = booking.scheduledDate.split('T')[0];
+    if (!bookingsByDate[bookingDate]) {
+      bookingsByDate[bookingDate] = [];
+    }
+    bookingsByDate[bookingDate].push(booking);
+  });
+
+  // Sort bookings within each day by start time
+  Object.values(bookingsByDate).forEach(dayBookings => {
+    dayBookings.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  });
+
+  // Get sorted dates that have bookings
+  const datesWithBookings = Object.keys(bookingsByDate)
+    .filter(date => bookingsByDate[date].length > 0)
+    .sort();
+
+  if (datesWithBookings.length === 0) {
+    // No bookings found
+    doc.setFontSize(12);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Inga kommande bokningar hittades', margin, yPos);
+    doc.save(`kommande-schema-${format(today, 'yyyy-MM-dd')}.pdf`);
+    return;
+  }
+
+  // Create a section for each day with bookings
+  datesWithBookings.forEach((dateKey, index) => {
+    const dayBookings = bookingsByDate[dateKey];
+    const dayDate = parseISO(dateKey);
+    
+    // Add page break if not enough space (except for first day)
+    if (index > 0 && yPos > 200) {
+      doc.addPage();
+      yPos = 20;
+    } else if (index > 0) {
+      yPos += 15; // Add some space between days
+    }
+    
+    // Day header with background
+    doc.setFontSize(14);
+    doc.setFillColor(41, 128, 185); // School blue
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      format(dayDate, 'EEEE d MMMM yyyy', { locale: sv }),
+      margin + 5,
+      yPos + 7
+    );
+    yPos += 15;
+
+    // Prepare table data
+    const tableData = dayBookings.map(booking => [
+      booking.startTime + ' - ' + booking.endTime,
+      booking.userName,
+      booking.userPhone || 'Ingen telefon',
+      booking.lessonTypeName,
+      booking.transmissionType || 'Ej angivet'
+    ]);
+
+    // Add table
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Tid', 'Elev', 'Telefon', 'Lektionstyp', 'Växellåda']],
+      body: tableData,
+      margin: { left: margin, right: margin },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: 4
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      styles: {
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
+      },
+      didDrawPage: (data: any) => {
+        yPos = data.cursor.y + 10;
+      }
+    });
+  });
+
+  // Add footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text(
+      `Sida ${i} av ${pageCount} | Genererat: ${format(new Date(), 'yyyy-MM-dd HH:mm', { locale: sv })}`,
+      margin,
+      doc.internal.pageSize.getHeight() - 10
+    );
+  }
+
+  // Save the PDF
+  doc.save(`kommande-schema-${format(today, 'yyyy-MM-dd')}.pdf`);
 };

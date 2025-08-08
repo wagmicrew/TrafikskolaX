@@ -6,10 +6,16 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Clock, Calendar } from "lucide-react"
 import { format, addDays, startOfWeek, addWeeks, isSameDay } from "date-fns"
 import { sv } from "date-fns/locale"
+import { toast } from "react-hot-toast"
 
 interface TimeSlot {
   time: string
   available: boolean
+  unavailable: boolean
+  hasBooking: boolean
+  isWithinThreeHours: boolean
+  gradient: 'green' | 'red'
+  clickable: boolean
 }
 
 interface LessonType {
@@ -62,6 +68,7 @@ export function WeekCalendar({
       }
     } catch (error) {
       console.error('Error fetching slots:', error)
+      toast.error('Ett fel uppstod vid hämtning av tillgängliga tider')
     } finally {
       setLoading(false)
     }
@@ -122,6 +129,7 @@ export function WeekCalendar({
         
         if (response.ok && data.booking) {
           console.log('Temporary booking created:', data.booking)
+          toast.success('Tid bokad! Fortsätt till bekräftelse.')
           // Pass booking ID to parent component
           onComplete({ 
             selectedDate, 
@@ -130,11 +138,40 @@ export function WeekCalendar({
           })
         } else {
           console.error('Booking creation failed:', data.error)
-          alert('Ett fel uppstod vid bokning. Försök igen.')
+          
+          // Show specific error messages based on the error
+          if (data.error?.includes('redan bokad')) {
+            toast.error('Denna tid är redan bokad. Välj en annan tid.')
+            // Refresh slots to get updated availability
+            await fetchAvailableSlots()
+          } else if (data.error?.includes('blockerad')) {
+            toast.error('Denna tid är blockerad och kan inte bokas.')
+            // Refresh slots to get updated availability
+            await fetchAvailableSlots()
+          } else if (data.error?.includes('3 timmar')) {
+            toast.error('Bokningar måste göras minst 3 timmar i förväg.')
+            // Refresh slots to get updated availability
+            await fetchAvailableSlots()
+          } else if (data.error?.includes('förflutna')) {
+            toast.error('Kan inte boka ett datum i det förflutna.')
+            // Refresh slots to get updated availability
+            await fetchAvailableSlots()
+          } else {
+            toast.error('Ett fel uppstod vid bokning. Försök igen.')
+            // Refresh slots to get updated availability
+            await fetchAvailableSlots()
+          }
+          
+          // Clear the selected time since booking failed
+          setSelectedTime(null)
         }
       } catch (error) {
         console.error('Error creating booking:', error)
-        alert('Ett fel uppstod vid bokning. Försök igen.')
+        toast.error('Ett fel uppstod vid bokning. Kontrollera din internetanslutning och försök igen.')
+        // Refresh slots to get updated availability
+        await fetchAvailableSlots()
+        // Clear the selected time since booking failed
+        setSelectedTime(null)
       } finally {
         setLoading(false)
       }
@@ -266,14 +303,22 @@ export function WeekCalendar({
                       key={slot.time}
                       variant={selectedTime === slot.time ? "default" : "outline"}
                       size="sm"
-                      disabled={!slot.available}
-                      onClick={() => handleTimeSelect(slot.time)}
+                      disabled={!slot.clickable}
+                      onClick={() => slot.clickable && handleTimeSelect(slot.time)}
                       className={`
                         ${selectedTime === slot.time 
                           ? 'bg-red-600 hover:bg-red-700 text-white' 
                           : ''
                         }
-                        ${!slot.available ? 'opacity-50 cursor-not-allowed' : ''}
+                        ${!slot.clickable ? 'opacity-50 cursor-not-allowed' : ''}
+                        ${slot.gradient === 'green' && slot.clickable 
+                          ? 'bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 font-semibold' 
+                          : ''
+                        }
+                        ${slot.gradient === 'red' && !slot.clickable 
+                          ? 'bg-white border-2 border-red-500 text-red-700 font-semibold' 
+                          : ''
+                        }
                       `}
                     >
                       {slot.time}

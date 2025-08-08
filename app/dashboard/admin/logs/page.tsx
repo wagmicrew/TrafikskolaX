@@ -10,12 +10,16 @@ export default async function AdminLogsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">System Logs</h1>
-        <p className="text-gray-600 mt-2">
-          Monitor and manage application logs for debugging and analysis
-        </p>
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-sky-600/20 to-purple-600/20 border-b border-white/10">
+            <h1 className="text-2xl font-bold text-white">System Logs</h1>
+            <p className="text-gray-300 mt-1">
+              Övervaka och hantera applikationsloggar för debugging och analys
+            </p>
+          </div>
+        </div>
       </div>
       
       <LogsClient />

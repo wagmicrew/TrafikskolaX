@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { or, eq, ne } from 'drizzle-orm';
+import { or, eq, ne, not, like, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,14 +19,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Fetch all users unless student
+    // Fetch all users unless student, excluding temporary users
     const availableUsersQuery = user.role !== 'student'
-      ? db.select().from(users).where(ne(users.id, user.userId)) // optionally exclude self
+      ? db.select().from(users).where(
+          and(
+            ne(users.id, user.userId), // exclude self
+            not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
+            not(like(users.email, 'temp-%@%')), // exclude other temp patterns
+            not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
+          )
+        )
       : db
           .select()
           .from(users)
           .where(
-            or(eq(users.role, 'teacher'), eq(users.role, 'admin'))
+            and(
+              or(eq(users.role, 'teacher'), eq(users.role, 'admin')),
+              not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
+              not(like(users.email, 'temp-%@%')), // exclude other temp patterns
+              not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
+            )
           );
     const availableUsers = await availableUsersQuery;
 

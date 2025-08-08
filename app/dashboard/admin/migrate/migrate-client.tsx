@@ -198,22 +198,22 @@ const OperationCard = ({
     };
 
     return (
-      <div className={`border-2 rounded-2xl p-6 transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${getVariantClasses()}`}>
+      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-6 transition-all duration-300 transform hover:scale-105 hover:shadow-xl">
         <div className="flex items-start gap-4">
-          <div className={`text-4xl p-3 rounded-full bg-white shadow-md ${getIconColor()}`}>
+          <div className={`text-4xl p-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 ${getIconColor()}`}>
             {icon}
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">{title}</h3>
-            <p className="text-gray-600 mb-4 leading-relaxed">{description}</p>
+            <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+            <p className="text-gray-300 mb-4 leading-relaxed">{description}</p>
             
             {/* Stats */}
             {stats && stats.length > 0 && (
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {stats.map((stat, index) => (
-                  <div key={index} className="bg-white/70 backdrop-blur-sm rounded-lg p-3 text-center">
+                  <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center border border-white/10">
                     <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                    <div className="text-xs text-gray-600">{stat.label}</div>
+                    <div className="text-xs text-gray-300">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -238,9 +238,9 @@ const OperationCard = ({
             </button>
 
             {state.result && (
-              <div className="mt-4 p-4 rounded-xl bg-white/90 backdrop-blur-sm border shadow-sm">
+              <div className="mt-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
                 <div className={`flex items-center gap-2 text-sm font-bold mb-2 ${
-                  state.result.success ? 'text-green-700' : 'text-red-700'
+                  state.result.success ? 'text-green-400' : 'text-red-400'
                 }`}>
                   {state.result.success ? (
                     <FaCheckCircle className="text-lg" />
@@ -253,15 +253,15 @@ const OperationCard = ({
                 {state.result.results && state.result.results.length > 0 && (
                   <div className="mt-3">
                     <details className="text-xs">
-                      <summary className="cursor-pointer text-gray-600 hover:text-gray-800 font-medium flex items-center gap-2">
+                      <summary className="cursor-pointer text-gray-300 hover:text-gray-200 font-medium flex items-center gap-2">
                         <FaEye />
                         View Details ({state.result.results.length} operations)
                       </summary>
-                      <div className="mt-3 max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                        <ul className="space-y-1 text-gray-700">
+                      <div className="mt-3 max-h-40 overflow-y-auto bg-white/5 rounded-lg p-3 border border-white/10">
+                        <ul className="space-y-1 text-gray-300">
                           {state.result.results.map((result, index) => (
                             <li key={index} className="flex items-start gap-2 p-1">
-                              <div className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                              <div className="w-2 h-2 bg-sky-400 rounded-full mt-1.5 flex-shrink-0"></div>
                               <span className="text-xs">{result}</span>
                             </li>
                           ))}
@@ -272,8 +272,8 @@ const OperationCard = ({
                 )}
                 
                 {state.result.error && (
-                  <div className="mt-3 text-xs text-red-600 font-mono bg-red-50 p-3 rounded-lg border border-red-200">
-                    <div className="flex items-center gap-2 mb-1 font-bold text-red-700">
+                  <div className="mt-3 text-xs text-red-300 font-mono bg-red-500/10 p-3 rounded-lg border border-red-400/30">
+                    <div className="flex items-center gap-2 mb-1 font-bold text-red-400">
                       <FaExclamationTriangle />
                       Error Details:
                     </div>
@@ -289,46 +289,48 @@ const OperationCard = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="max-w-6xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="max-w-6xl mx-auto">
         {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white rounded-3xl shadow-2xl p-8 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-5xl font-bold flex items-center gap-4 mb-4">
-                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                  <FaDatabase className="text-yellow-300" />
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden mb-8">
+          <div className="px-6 py-4 bg-gradient-to-r from-sky-600/20 to-purple-600/20 border-b border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-white flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
+                    <FaDatabase className="text-sky-400" />
+                  </div>
+                  Database Migration & Management
+                </h1>
+                <p className="text-gray-300 leading-relaxed max-w-3xl">
+                  Hantera din databas schema, injicera testdata och underhålla ditt system med kraftfulla verktyg.
+                </p>
+              </div>
+              <div className="hidden lg:block">
+                <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <FaCog className="text-6xl text-sky-400 animate-spin" style={{ animationDuration: '8s' }} />
                 </div>
-                Database Migration & Management
-              </h1>
-              <p className="text-xl text-blue-100 leading-relaxed max-w-3xl">
-                Hantera din databas schema, injicera testdata och underhålla ditt system med kraftfulla verktyg.
-              </p>
-            </div>
-            <div className="hidden lg:block">
-              <div className="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <FaCog className="text-6xl text-yellow-300 animate-spin" style={{ animationDuration: '8s' }} />
               </div>
             </div>
-          </div>
-          
-          {/* Status Bar */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-300">4</div>
-              <div className="text-sm text-blue-200">Available Operations</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-green-300">✓</div>
-              <div className="text-sm text-blue-200">Safe to Run</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-purple-300">∞</div>
-              <div className="text-sm text-blue-200">Repeatable</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-orange-300">⚡</div>
-              <div className="text-sm text-blue-200">Fast Execution</div>
+            
+            {/* Status Bar */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-sky-400">4</div>
+                <div className="text-sm text-gray-300">Available Operations</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-green-400">✓</div>
+                <div className="text-sm text-gray-300">Safe to Run</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-purple-400">∞</div>
+                <div className="text-sm text-gray-300">Repeatable</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-orange-400">⚡</div>
+                <div className="text-sm text-gray-300">Fast Execution</div>
+              </div>
             </div>
           </div>
         </div>
@@ -375,9 +377,9 @@ const OperationCard = ({
         />
       </div>
 
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg border">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">💡 Usage Tips:</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
+      <div className="mt-8 p-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
+        <h3 className="text-sm font-semibold text-white mb-2">💡 Usage Tips:</h3>
+        <ul className="text-sm text-gray-300 space-y-1">
           <li>• <strong>Setup Database</strong> first to ensure all tables and schema are current</li>
           <li>• <strong>Inject Test Data</strong> for development and testing purposes</li>
           <li>• <strong>Clean Test Data</strong> when you want a fresh start (keeps admin user)</li>

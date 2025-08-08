@@ -14,8 +14,14 @@ import {
   Copy,
   Plus,
   Send,
-  TestTube
+  TestTube,
+  Trash2,
+  Download,
+  Loader2,
+  X,
+  FileText
 } from 'lucide-react';
+import EditableTemplateName from '@/components/Admin/EditableTemplateName';
 import toast from 'react-hot-toast';
 
 type EmailTriggerType = 
@@ -34,7 +40,8 @@ type EmailTriggerType =
   | 'feedback_received'
   | 'teacher_daily_bookings'
   | 'teacher_feedback_reminder'
-  | 'new_password';
+  | 'new_password'
+  | 'cancelled_booking';
 
 type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
 
@@ -48,32 +55,6 @@ interface EmailTemplate {
   createdAt: string;
   updatedAt: string;
 }
-
-const triggerTypeLabels: Record<EmailTriggerType, string> = {
-  user_login: 'Användarinloggning',
-  forgot_password: 'Glömt lösenord',
-  new_user: 'Ny användare',
-  new_booking: 'Ny bokning',
-  moved_booking: 'Flyttad bokning',
-  cancelled_booking: 'Avbokad bokning',
-  booking_reminder: 'Bokningspåminnelse',
-  credits_reminder: 'Kreditpåminnelse',
-  payment_reminder: 'Betalningspåminnelse',
-  payment_confirmation_request: 'Betalningsbekräftelse begäran',
-  payment_confirmed: 'Betalning bekräftad',
-  payment_declined: 'Betalning avvisad',
-  feedback_received: 'Feedback mottagen',
-  teacher_daily_bookings: 'Dagliga bokningar för lärare',
-  teacher_feedback_reminder: 'Feedbackpåminnelse för lärare',
-  new_password: 'Nytt lösenord'
-};
-
-const receiverTypeLabels: Record<EmailReceiverType, string> = {
-  student: 'Student',
-  teacher: 'Lärare',
-  admin: 'Admin',
-  specific_user: 'Specifik användare'
-};
 
 const defaultTemplates: Partial<Record<EmailTriggerType, { subject: string; htmlContent: string; receivers: EmailReceiverType[] }>> = {
   new_user: {
@@ -104,75 +85,6 @@ const defaultTemplates: Partial<Record<EmailTriggerType, { subject: string; html
       <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
     `,
     receivers: ['student', 'admin']
-  },
-  payment_reminder: {
-    subject: 'Betalningspåminnelse - {{booking.lessonTypeName}}',
-    htmlContent: `
-      <h1>Betalningspåminnelse</h1>
-      <p>Hej {{user.firstName}},</p>
-      <p>Vi vill påminna dig om att betala för din bokning:</p>
-      <ul>
-        <li>Datum: {{booking.scheduledDate}}</li>
-        <li>Tid: {{booking.startTime}} - {{booking.endTime}}</li>
-        <li>Belopp: {{booking.totalPrice}} kr</li>
-      </ul>
-      <p>Swish-nummer: {{swishNumber}}</p>
-      <p>Meddelande: {{booking.swishUUID}}</p>
-      <p><a href="{{appUrl}}/dashboard/student/bookings/{{booking.id}}">Betala nu</a></p>
-      <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
-    `,
-    receivers: ['student']
-  },
-  payment_confirmation_request: {
-    subject: 'Betalningsbekräftelse från {{user.fullName}}',
-    htmlContent: `
-      <h1>Ny betalningsbekräftelse</h1>
-      <p>Student {{user.fullName}} ({{user.email}}) har bekräftat betalning för bokning {{booking.id}}.</p>
-      <p>Bokningsdetaljer:</p>
-      <ul>
-        <li>Datum: {{booking.scheduledDate}}</li>
-        <li>Tid: {{booking.startTime}} - {{booking.endTime}}</li>
-        <li>Belopp: {{booking.totalPrice}} kr</li>
-      </ul>
-      <p>Vänligen verifiera betalningen i Swish och uppdatera bokningsstatus.</p>
-      <p><a href="{{appUrl}}/dashboard/admin/bookings/{{booking.id}}">Öppna bokning</a></p>
-    `,
-    receivers: ['admin']
-  },
-  payment_confirmed: {
-    subject: 'Betalning bekräftad - {{booking.lessonTypeName}}',
-    htmlContent: `
-      <h1>Din betalning är bekräftad!</h1>
-      <p>Hej {{user.firstName}},</p>
-      <p>Vi har mottagit din betalning för:</p>
-      <ul>
-        <li>Datum: {{booking.scheduledDate}}</li>
-        <li>Tid: {{booking.startTime}} - {{booking.endTime}}</li>
-        <li>Belopp: {{booking.totalPrice}} kr</li>
-      </ul>
-      <p>Din bokning är nu helt bekräftad. Vi ser fram emot att träffa dig!</p>
-      <p><a href="{{appUrl}}/dashboard/student/bookings/{{booking.id}}">Se din bokning</a></p>
-      <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
-    `,
-    receivers: ['student']
-  },
-  payment_declined: {
-    subject: 'Betalning kunde inte verifieras - {{booking.lessonTypeName}}',
-    htmlContent: `
-      <h1>Betalningsproblem</h1>
-      <p>Hej {{user.firstName}},</p>
-      <p>Vi kunde tyvärr inte verifiera din betalning för bokningen:</p>
-      <ul>
-        <li>Datum: {{booking.scheduledDate}}</li>
-        <li>Tid: {{booking.startTime}} - {{booking.endTime}}</li>
-        <li>Belopp: {{booking.totalPrice}} kr</li>
-      </ul>
-      <p>Vänligen kontrollera att betalningen har gjorts korrekt eller kontakta oss på telefon.</p>
-      <p>Du kan också prova en annan betalningsmetod.</p>
-      <p><a href="{{appUrl}}/dashboard/student/bookings/{{booking.id}}">Se din bokning</a></p>
-      <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
-    `,
-    receivers: ['student']
   },
   cancelled_booking: {
     subject: 'Bokning avbokad - {{booking.lessonTypeName}}',
@@ -299,24 +211,24 @@ export default function EmailTemplatesPage() {
 
   const createMissingTemplates = async (triggers: EmailTriggerType[]) => {
     for (const trigger of triggers) {
-      const defaultTemplate = defaultTemplates[trigger];
-      if (!defaultTemplate) continue;
-
-      try {
-        await fetch('/api/admin/email-templates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            triggerType: trigger,
-            ...defaultTemplate
-          })
-        });
-      } catch (error) {
-        console.error(`Error creating template for ${trigger}:`, error);
+      const template = defaultTemplates[trigger];
+      if (template) {
+        try {
+          await fetch('/api/admin/email-templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              triggerType: trigger,
+              subject: template.subject,
+              htmlContent: template.htmlContent,
+              receivers: template.receivers
+            })
+          });
+        } catch (error) {
+          console.error(`Error creating template for ${trigger}:`, error);
+        }
       }
     }
-    
-    // Refresh templates
     await fetchTemplates();
   };
 
@@ -326,68 +238,9 @@ export default function EmailTemplatesPage() {
     setShowPreview(false);
   };
 
-  const handleSendTestEmail = async () => {
-    if (!selectedTemplate?.id) return;
-    setIsSendingTest(true);
-    try {
-      const response = await fetch('/api/admin/email-test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          testEmail
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message);
-        setShowEmailTest(false);
-      } else {
-        toast.error(data.error || 'Misslyckades med att skicka test-e-post');
-      }
-    } catch (error) {
-      console.error('Test email error:', error);
-      toast.error('Ett oväntat fel uppstod vid skickandet av test-e-post');
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
-
-  const handleTestContactDesign = async () => {
-    if (!testEmail) {
-      toast.error('Ange en e-postadress först');
-      setShowEmailTest(true);
-      return;
-    }
-
-    setIsSendingTest(true);
-    try {
-      const response = await fetch('/api/admin/test-contact-email-design', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          testEmail
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message);
-      } else {
-        toast.error(data.error || 'Misslyckades med att skicka test-e-post');
-      }
-    } catch (error) {
-      console.error('Contact design test error:', error);
-      toast.error('Ett oväntat fel uppstod vid skickandet av test-e-post');
-    } finally {
-      setIsSendingTest(false);
+  const handleTemplateChange = (field: keyof EmailTemplate, value: any) => {
+    if (editedTemplate) {
+      setEditedTemplate({ ...editedTemplate, [field]: value });
     }
   };
 
@@ -395,346 +248,347 @@ export default function EmailTemplatesPage() {
     if (!editedTemplate) return;
 
     setIsSaving(true);
-    const loadingToast = toast.loading('Sparar mall...');
-
     try {
       const response = await fetch('/api/admin/email-templates', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editedTemplate)
+        body: JSON.stringify({
+          triggerType: editedTemplate.triggerType,
+          subject: editedTemplate.subject,
+          htmlContent: editedTemplate.htmlContent,
+          receivers: editedTemplate.receivers
+        })
       });
 
-      if (!response.ok) throw new Error('Failed to save template');
-
-      toast.success('Mall sparad framgångsrikt!', { id: loadingToast });
-      await fetchTemplates();
-      
-      // Update selected template
-      setSelectedTemplate(editedTemplate);
+      if (response.ok) {
+        toast.success('Mall sparad framgångsrikt');
+        await fetchTemplates();
+        setSelectedTemplate(editedTemplate);
+      } else {
+        toast.error('Fel vid sparande av mall');
+      }
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error('Kunde inte spara mall', { id: loadingToast });
+      toast.error('Fel vid sparande av mall');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleReceiverToggle = (receiver: EmailReceiverType) => {
-    if (!editedTemplate) return;
+  const handleTemplateNameSave = async (templateId: string, newName: string) => {
+    try {
+      const response = await fetch('/api/admin/email-templates/update-name', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId, newName })
+      });
 
-    const updatedReceivers = editedTemplate.receivers.includes(receiver)
-      ? editedTemplate.receivers.filter(r => r !== receiver)
-      : [...editedTemplate.receivers, receiver];
+      if (!response.ok) {
+        throw new Error('Failed to update template name');
+      }
 
-    setEditedTemplate({
-      ...editedTemplate,
-      receivers: updatedReceivers
-    });
+      toast.success('Mallnamn uppdaterat');
+      await fetchTemplates();
+    } catch (error) {
+      console.error('Error updating template name:', error);
+      toast.error('Fel vid uppdatering av mallnamn');
+      throw error;
+    }
   };
 
-  const togglePreview = () => {
-    setShowPreview(!showPreview);
+  const handleTestEmail = async () => {
+    if (!selectedTemplate || !testEmail) return;
+
+    setIsSendingTest(true);
+    try {
+      const response = await fetch('/api/admin/email-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          testEmail
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Testmail skickat');
+        setShowEmailTest(false);
+        setTestEmail('');
+      } else {
+        toast.error('Fel vid skickande av testmail');
+      }
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      toast.error('Fel vid skickande av testmail');
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
-  const getPreviewHtml = () => {
-    if (!editedTemplate) return '';
-
-    // Replace variables with sample data
-    let preview = editedTemplate.htmlContent;
-    preview = preview.replace(/\{\{user\.firstName\}\}/g, 'Johan');
-    preview = preview.replace(/\{\{user\.lastName\}\}/g, 'Andersson');
-    preview = preview.replace(/\{\{user\.fullName\}\}/g, 'Johan Andersson');
-    preview = preview.replace(/\{\{user\.email\}\}/g, 'johan@example.com');
-    preview = preview.replace(/\{\{booking\.scheduledDate\}\}/g, '2024-03-15');
-    preview = preview.replace(/\{\{booking\.startTime\}\}/g, '14:00');
-    preview = preview.replace(/\{\{booking\.endTime\}\}/g, '15:00');
-    preview = preview.replace(/\{\{booking\.lessonTypeName\}\}/g, 'B-körkort 45 min');
-    preview = preview.replace(/\{\{booking\.totalPrice\}\}/g, '695');
-    preview = preview.replace(/\{\{booking\.id\}\}/g, '123456');
-    preview = preview.replace(/\{\{appUrl\}\}/g, window.location.origin);
-    preview = preview.replace(/\{\{schoolName\}\}/g, schoolname);
-    preview = preview.replace(/\{\{schoolPhone\}\}/g, schoolPhone);
-    preview = preview.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
-
-    return `
-      <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
-        <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
-          <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
-            ${preview}
-          </div>
-          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
-            <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">${schoolname}</strong></p>
-            <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: ${schoolPhone}</p>
-          </div>
-        </div>
-      </div>
-    `;
+  const getTemplateDisplayName = (triggerType: EmailTriggerType): string => {
+    const names: Record<EmailTriggerType, string> = {
+      user_login: 'Inloggning',
+      forgot_password: 'Glömt lösenord',
+      new_user: 'Ny användare',
+      new_booking: 'Ny bokning',
+      moved_booking: 'Flyttad bokning',
+      cancelled_booking: 'Avbokad bokning',
+      booking_reminder: 'Bokningspåminnelse',
+      credits_reminder: 'Kreditpåminnelse',
+      payment_reminder: 'Betalningspåminnelse',
+      payment_confirmation_request: 'Betalningsbekräftelse',
+      payment_confirmed: 'Betalning bekräftad',
+      payment_declined: 'Betalning nekad',
+      feedback_received: 'Feedback mottagen',
+      teacher_daily_bookings: 'Dagens bokningar (lärare)',
+      teacher_feedback_reminder: 'Feedbackpåminnelse (lärare)',
+      new_password: 'Nytt lösenord'
+    };
+    return names[triggerType] || triggerType;
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Laddar e-postmallar...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-400 mx-auto"></div>
+            <p className="text-white mt-4">Laddar e-postmallar...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white shadow-lg rounded-xl overflow-hidden">
-          <div className="p-6 border-b">
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <Mail className="w-8 h-8 text-blue-600" />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="mb-6">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 bg-gradient-to-r from-sky-600/20 to-purple-600/20 border-b border-white/10">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Mail className="w-6 h-6 text-sky-400" />
               E-postmallar
             </h1>
-            <p className="text-gray-600 mt-2">Hantera e-postmallar för automatiska utskick</p>
+            <p className="text-gray-300 mt-1">Hantera och redigera e-postmallar för olika händelser</p>
           </div>
+        </div>
+      </div>
 
-          {/* Email Test Modal */}
-          {showEmailTest && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <div className="bg-white p-6 rounded shadow-lg w-96">
-                <h2 className="text-xl font-semibold mb-4">Skicka test-e-post</h2>
-                <input
-                  type="email"
-                  placeholder="Ange e-postadress"
-                  value={testEmail}
-                  onChange={(e) => setTestEmail(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg mb-4"
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setShowEmailTest(false)}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                  >
-                    Avbryt
-                  </button>
-                  <button
-                    onClick={handleSendTestEmail}
-                    disabled={isSendingTest}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {isSendingTest ? 'Skickar...' : 'Skicka test'}
-                  </button>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Template List */}
+        <div className="lg:col-span-1">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/10">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-sky-400" />
+                Mallar
+              </h2>
             </div>
-          )}
+            <div className="p-4 space-y-2">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                    selectedTemplate?.id === template.id
+                      ? 'bg-sky-500/20 border border-sky-400/30'
+                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                  }`}
+                  onClick={() => handleTemplateSelect(template)}
+                >
+                  <EditableTemplateName
+                    templateId={template.id}
+                    currentName={getTemplateDisplayName(template.triggerType)}
+                    onSave={handleTemplateNameSave}
+                    className="text-white font-medium"
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      template.isActive 
+                        ? 'bg-green-500/20 text-green-300 border border-green-400/30' 
+                        : 'bg-red-500/20 text-red-300 border border-red-400/30'
+                    }`}>
+                      {template.isActive ? 'Aktiv' : 'Inaktiv'}
+                    </span>
+                    <span className="text-xs text-gray-300">
+                      {template.receivers.join(', ')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-          <div className="flex h-[calc(100vh-200px)]">
-            {/* Template List */}
-            <div className="w-1/3 border-r bg-gray-50 overflow-y-auto">
-              <div className="p-4">
-                <h2 className="text-lg font-semibold text-gray-800 mb-4">Mallar</h2>
-                <div className="space-y-2">
-                  {templates.map((template) => (
+        {/* Template Editor */}
+        <div className="lg:col-span-2">
+          {selectedTemplate ? (
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-white/10">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Edit2 className="w-5 h-5 text-sky-400" />
+                    Redigera: {getTemplateDisplayName(selectedTemplate.triggerType)}
+                  </h2>
+                  <div className="flex gap-2">
                     <button
-                      key={template.id}
-                      onClick={() => handleTemplateSelect(template)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedTemplate?.id === template.id
-                          ? 'bg-blue-100 border-blue-500 border'
-                          : 'bg-white hover:bg-gray-100 border border-gray-200'
-                      }`}
+                      onClick={() => setShowPreview(!showPreview)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/20 rounded-lg transition-colors"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">
-                          {triggerTypeLabels[template.triggerType]}
-                        </span>
-                        {template.isActive ? (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        {template.receivers.map(receiver => (
-                          <span 
-                            key={receiver}
-                            className="text-xs bg-gray-200 px-2 py-1 rounded"
-                          >
-                            {receiverTypeLabels[receiver]}
-                          </span>
-                        ))}
-                      </div>
+                      {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPreview ? 'Dölj förhandsvisning' : 'Förhandsvisning'}
                     </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Template Editor */}
-            <div className="flex-1 overflow-y-auto">
-              {editedTemplate ? (
-                <div className="p-6">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                      {triggerTypeLabels[editedTemplate.triggerType]}
-                    </h2>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={editedTemplate.isActive}
-                          onChange={(e) => setEditedTemplate({
-                            ...editedTemplate,
-                            isActive: e.target.checked
-                          })}
-                          className="rounded border-gray-300"
-                        />
-                        <span className="text-sm font-medium">Aktiv</span>
-                      </label>
-                      <button
-                        onClick={togglePreview}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        {showPreview ? 'Dölj förhandsgranskning' : 'Förhandsgranskning'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Receivers */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mottagare
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(receiverTypeLabels).map(([type, label]) => (
-                        <button
-                          key={type}
-                          onClick={() => handleReceiverToggle(type as EmailReceiverType)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            editedTemplate.receivers.includes(type as EmailReceiverType)
-                              ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                              : 'bg-gray-100 text-gray-600 border border-gray-300'
-                          }`}
-                        >
-                          <Users className="w-4 h-4 inline mr-1" />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Subject */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ämnesrad
-                    </label>
-                    <input
-                      type="text"
-                      value={editedTemplate.subject}
-                      onChange={(e) => setEditedTemplate({
-                        ...editedTemplate,
-                        subject: e.target.value
-                      })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-
-                  {/* HTML Content */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      HTML-innehåll
-                    </label>
-                    {showPreview ? (
-                      <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                        <div dangerouslySetInnerHTML={{ __html: getPreviewHtml() }} />
-                      </div>
-                    ) : (
-                      <textarea
-                        value={editedTemplate.htmlContent}
-                        onChange={(e) => setEditedTemplate({
-                          ...editedTemplate,
-                          htmlContent: e.target.value
-                        })}
-                        rows={15}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                      />
-                    )}
-                  </div>
-
-                  {/* Variables Help */}
-                  <div className="mb-6 bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-semibold text-blue-800 mb-2">Tillgängliga variabler:</h3>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.firstName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.lastName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.fullName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{user.email}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.scheduledDate}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.startTime}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.endTime}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.lessonTypeName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.totalPrice}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{booking.id}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{appUrl}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{schoolName}}'}</code>
-                      <code className="bg-white px-2 py-1 rounded">{'{{schoolPhone}}'}</code>
-                    </div>
-                  </div>
-
-                  {/* Test Email Buttons */}
-                  <div className="mb-6 space-y-2">
                     <button
                       onClick={() => setShowEmailTest(true)}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-2"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/20 rounded-lg transition-colors"
                     >
                       <TestTube className="w-4 h-4" />
-                      Skicka test-e-post
-                    </button>
-                    
-                    <button
-                      onClick={handleTestContactDesign}
-                      className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Testa kontaktformulär design
-                    </button>
-                  </div>
-
-                  {/* Save Buttons */}
-                  <div className="flex justify-end gap-4">
-                    <button
-                      onClick={() => {
-                        setEditedTemplate({ ...selectedTemplate! });
-                      }}
-                      className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Återställ
+                      Testa
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                        isSaving
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
-                      <Save className="w-4 h-4" />
-                      {isSaving ? 'Sparar...' : 'Spara ändringar'}
+                      {isSaving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      Spara
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  <div className="text-center">
-                    <Mail className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>Välj en mall för att redigera</p>
+              </div>
+
+              <div className="p-6">
+                {!showPreview ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Ämne</label>
+                      <input
+                        value={editedTemplate?.subject || ''}
+                        onChange={(e) => handleTemplateChange('subject', e.target.value)}
+                        placeholder="E-postämne..."
+                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder:text-white/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white font-medium mb-2">HTML-innehåll</label>
+                      <textarea
+                        value={editedTemplate?.htmlContent || ''}
+                        onChange={(e) => handleTemplateChange('htmlContent', e.target.value)}
+                        placeholder="HTML-innehåll..."
+                        className="w-full h-64 px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none placeholder:text-white/50"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white font-medium mb-2">Mottagare</label>
+                      <div className="flex gap-4">
+                        {['student', 'teacher', 'admin'].map((receiver) => (
+                          <label key={receiver} className="flex items-center gap-2 text-white">
+                            <input
+                              type="checkbox"
+                              checked={editedTemplate?.receivers.includes(receiver as EmailReceiverType)}
+                              onChange={(e) => {
+                                const currentReceivers = editedTemplate?.receivers || [];
+                                const newReceivers = e.target.checked
+                                  ? [...currentReceivers, receiver as EmailReceiverType]
+                                  : currentReceivers.filter(r => r !== receiver);
+                                handleTemplateChange('receivers', newReceivers);
+                              }}
+                              className="rounded border-white/20 text-sky-500 focus:ring-sky-500 bg-white/5"
+                            />
+                            <span className="capitalize">{receiver}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {editedTemplate?.subject}
+                    </h3>
+                    <div 
+                      className="prose prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: editedTemplate?.htmlContent || '' }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl overflow-hidden">
+              <div className="text-center py-12">
+                <Mail className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-300 text-lg">Välj en mall för att börja redigera</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Test Email Modal with Glassmorphism */}
+      {showEmailTest && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <TestTube className="w-6 h-6 text-sky-400" />
+                  <h3 className="text-lg font-semibold text-white">Skicka testmail</h3>
                 </div>
-              )}
+                <button
+                  onClick={() => setShowEmailTest(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-slate-300 mb-6">
+                Skicka ett testmail för att se hur mallen ser ut
+              </p>
+              
+              <div className="mb-6">
+                <label className="block text-white font-medium mb-2">E-postadress</label>
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="test@example.com"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder:text-white/50"
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowEmailTest(false)}
+                  className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Avbryt
+                </button>
+                <button
+                  onClick={handleTestEmail}
+                  disabled={isSendingTest || !testEmail}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isSendingTest ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Skicka testmail
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

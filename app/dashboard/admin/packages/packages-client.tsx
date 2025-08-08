@@ -186,18 +186,18 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <PackageIcon className="w-6 h-6" />
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <PackageIcon className="w-6 h-6 text-sky-400" />
             Hantera Paket
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-gray-300">
             Skapa och hantera lektionspaket som elever kan köpa
           </p>
         </div>
         
         <Button 
           onClick={() => openPackageBuilder()} 
-          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-green-500/30"
+          className="bg-sky-500 hover:bg-sky-600 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-sky-400/30"
           disabled={isLoading}
         >
           {isLoading ? (
@@ -213,33 +213,33 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border border-white/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-white">
               Totalt Paket
             </CardTitle>
-            <PackageIcon className="h-4 w-4 text-muted-foreground" />
+            <PackageIcon className="h-4 w-4 text-sky-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPackages}</div>
+            <div className="text-2xl font-bold text-white">{stats.totalPackages}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border border-white/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium text-white">
               Aktiva Paket
             </CardTitle>
-            <Check className="h-4 w-4 text-muted-foreground" />
+            <Check className="h-4 w-4 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activePackages}</div>
+            <div className="text-2xl font-bold text-white">{stats.activePackages}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Package Builder Popover */}
       {isPopoverOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <PackageBuilderPopover
               lessonTypes={lessonTypes.filter(lt => lt.isActive || (currentPackage?.contents || []).some(c => c.lessonTypeId === lt.id))}
@@ -257,13 +257,13 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
       {/* Packages List */}
       <div className="space-y-8">
         <div className="flex justify-between items-center">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-blue-600 text-transparent bg-clip-text">
+          <h2 className="text-3xl font-bold text-white">
             Hantera Paket
           </h2>
           <div className="space-x-4">
             <Button 
               onClick={() => setShowInactive(!showInactive)} 
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] border border-blue-500/30"
+              className="bg-white/5 hover:bg-white/10 text-white border border-white/20 shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -272,71 +272,69 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
               {showInactive ? 'Dölj inaktiva' : 'Visa inaktiva'}
             </Button>
           </div>
-
-          {filteredPackages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Inga {showInactive ? 'inaktiva' : 'aktiva'} paket hittades.
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredPackages.map((pkg) => (
-                <div 
-                  key={pkg.id} 
-                  className={`relative overflow-hidden bg-white/90 backdrop-filter backdrop-blur-sm rounded-lg shadow-lg p-5 border border-gray-200/50 transition-all duration-300 hover:shadow-xl ${!pkg.isActive ? 'bg-opacity-70 grayscale-[30%]' : ''}`}
-                >
-                  {/* Subtle gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-blue-500/5 pointer-events-none"></div>
-                  <div className="relative z-10">
-                    <CardHeader className="pb-2">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-xl font-bold truncate">{pkg.name}</CardTitle>
-                          <CardDescription className="mt-1 line-clamp-2">
-                            {pkg.description || 'Ingen beskrivning tillgänglig'}
-                          </CardDescription>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => openPackageBuilder(pkg)}
-                            variant="outline"
-                            size="sm"
-                            disabled={isLoading}
-                            className="h-8 px-2 text-xs bg-white/10 backdrop-blur-sm border border-white/30 text-white hover:bg-white/20 hover:text-white transition-all duration-200"
-                          >
-                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Redigera'}
-                          </Button>
-                          <Button
-                            onClick={() => handleDeletePackage(pkg.id)}
-                            variant="destructive"
-                            size="sm"
-                            disabled={isLoading}
-                            className="h-8 px-2 text-xs bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border border-red-500/30"
-                          >
-                            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Ta bort'}
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Glassmorphism Container for Package Details */}
-                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl text-sm mt-4 p-4">
-                        <div className="flex justify-between mt-4">
-                          <div>
-                            <span className="font-bold text-gray-800">{pkg.price} kr</span>
-                            {pkg.priceStudent && (
-                              <span className="ml-2 text-sm text-gray-600">Student: {pkg.priceStudent} kr</span>
-                            )}
-                            {pkg.salePrice && (
-                              <span className="ml-2 text-sm font-medium px-2 py-1 bg-green-100 text-green-700 rounded-full">{pkg.salePrice} kr</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+
+        {filteredPackages.length === 0 ? (
+          <div className="text-center py-8 text-gray-300">
+            Inga {showInactive ? 'inaktiva' : 'aktiva'} paket hittades.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {filteredPackages.map((pkg) => (
+              <div 
+                key={pkg.id} 
+                className={`relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl p-5 transition-all duration-300 hover:shadow-xl ${!pkg.isActive ? 'opacity-70' : ''}`}
+              >
+                <div className="relative z-10">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-xl font-bold text-white truncate">{pkg.name}</CardTitle>
+                        <CardDescription className="mt-1 text-gray-300 line-clamp-2">
+                          {pkg.description || 'Ingen beskrivning tillgänglig'}
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => openPackageBuilder(pkg)}
+                          variant="outline"
+                          size="sm"
+                          disabled={isLoading}
+                          className="h-8 px-2 text-xs bg-white/5 border border-white/20 text-white hover:bg-white/10 transition-all duration-200"
+                        >
+                          {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Redigera'}
+                        </Button>
+                        <Button
+                          onClick={() => handleDeletePackage(pkg.id)}
+                          variant="destructive"
+                          size="sm"
+                          disabled={isLoading}
+                          className="h-8 px-2 text-xs bg-red-500 hover:bg-red-600 text-white border border-red-400/30"
+                        >
+                          {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Ta bort'}
+                        </Button>
+                      </div>
+                    </div>
+                    {/* Glassmorphism Container for Package Details */}
+                    <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl text-sm mt-4 p-4">
+                      <div className="flex justify-between mt-4">
+                        <div>
+                          <span className="font-bold text-white">{pkg.price} kr</span>
+                          {pkg.priceStudent && (
+                            <span className="ml-2 text-sm text-gray-300">Student: {pkg.priceStudent} kr</span>
+                          )}
+                          {pkg.salePrice && (
+                            <span className="ml-2 text-sm font-medium px-2 py-1 bg-green-500/20 text-green-300 border border-green-400/30 rounded-full">{pkg.salePrice} kr</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

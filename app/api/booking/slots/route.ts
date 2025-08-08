@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { slotSettings, bookings, blockedSlots, siteSettings } from '@/lib/db/schema';
+import { slotSettings, bookings, blockedSlots, extraSlots, siteSettings } from '@/lib/db/schema';
 import { eq, and, gte, lte, or, inArray } from 'drizzle-orm';
 import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 
@@ -15,10 +15,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'startDate and endDate are required' }, { status: 400 });
     }
 
-    const slotsForWeek = {};
+    const slotsForWeek: Record<string, any[]> = {};
     const start = new Date(startDate);
     const end = new Date(endDate);
     const today = new Date().toISOString().split('T')[0];
+    
+    // Set booking start date to August 18th, 2025
+    const bookingStartDate = '2025-08-18';
+    
     // Optionally read an opening date from site settings
     let bookingOpenFrom: string | null = null;
     try {
@@ -29,6 +33,11 @@ export async function GET(request: NextRequest) {
         .limit(1);
       if (openFrom && openFrom[0]?.value) bookingOpenFrom = String(openFrom[0].value);
     } catch {}
+
+    // Use the booking start date if no site setting is found
+    if (!bookingOpenFrom) {
+      bookingOpenFrom = bookingStartDate;
+    }
 
     // Generate array of all dates in the range
     const dateArray = [];
@@ -69,10 +78,16 @@ export async function GET(request: NextRequest) {
         eq(slotSettings.isActive, true)
       ));
 
-    // Fetch all bookings for the date range in one query (any row blocks)
+    // Fetch ALL bookings for the date range - including temporary bookings
     const dateStrings = dateArray.map(d => d.dateStr);
     const allBookings = await db
-      .select()
+      .select({
+        scheduledDate: bookings.scheduledDate,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        status: bookings.status,
+        createdAt: bookings.createdAt
+      })
       .from(bookings)
       .where(
         inArray(bookings.scheduledDate, dateStrings)
@@ -84,13 +99,18 @@ export async function GET(request: NextRequest) {
       .from(blockedSlots)
       .where(inArray(blockedSlots.date, dateStrings));
 
+    // Fetch all extra slots for the date range
+    const allExtraSlots = await db
+      .select()
+      .from(extraSlots)
+      .where(inArray(extraSlots.date, dateStrings));
+
     // Pre-compute time-based constants
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const now = new Date();
     const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
 
     // Group data by date for efficient lookup
-    const slotSettingsByDay = {};
+    const slotSettingsByDay: Record<number, any[]> = {};
     allSlotSettings.forEach(slot => {
       if (!slotSettingsByDay[slot.dayOfWeek]) {
         slotSettingsByDay[slot.dayOfWeek] = [];
@@ -98,7 +118,7 @@ export async function GET(request: NextRequest) {
       slotSettingsByDay[slot.dayOfWeek].push(slot);
     });
 
-    const bookingsByDate = {};
+    const bookingsByDate: Record<string, any[]> = {};
     allBookings.forEach(booking => {
       const dateKey = booking.scheduledDate;
       if (!bookingsByDate[dateKey]) {
@@ -107,7 +127,7 @@ export async function GET(request: NextRequest) {
       bookingsByDate[dateKey].push(booking);
     });
 
-    const blockedSlotsByDate = {};
+    const blockedSlotsByDate: Record<string, any[]> = {};
     allBlockedSlots.forEach(blocked => {
       const dateKey = blocked.date;
       if (!blockedSlotsByDate[dateKey]) {
@@ -116,7 +136,14 @@ export async function GET(request: NextRequest) {
       blockedSlotsByDate[dateKey].push(blocked);
     });
 
-
+    const extraSlotsByDate: Record<string, any[]> = {};
+    allExtraSlots.forEach(extra => {
+      const dateKey = extra.date;
+      if (!extraSlotsByDate[dateKey]) {
+        extraSlotsByDate[dateKey] = [];
+      }
+      extraSlotsByDate[dateKey].push(extra);
+    });
 
     // Process each date
     for (const { dateStr, dayOfWeek } of dateArray) {
@@ -124,6 +151,7 @@ export async function GET(request: NextRequest) {
         const daySlots = slotSettingsByDay[dayOfWeek] || [];
         const existingBookings = bookingsByDate[dateStr] || [];
         const blockedSlotsList = blockedSlotsByDate[dateStr] || [];
+        const extraSlotsList = extraSlotsByDate[dateStr] || [];
 
         // Process slots for this day
         const timeSlots = [];
@@ -146,25 +174,68 @@ export async function GET(request: NextRequest) {
 
           if (isSlotBlocked) continue;
 
-          // Check if slot has existing bookings
+          // Check if slot has existing bookings - include ALL bookings (temp, confirmed, etc.)
           const hasBooking = doesAnyBookingOverlapWithSlot(
             existingBookings,
             slot.timeStart,
             slot.timeEnd,
-            false // any row blocks
+            false // Include ALL bookings - don't exclude any
           );
 
           // Check if this slot is within 3 hours from now
           const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
           const isWithinThreeHours = slotDateTime <= threeHoursFromNow;
           
-          // Add slot to available times
+          // Determine availability and styling
+          const isAvailable = !hasBooking && !isWithinThreeHours;
+          const isUnavailable = hasBooking || isWithinThreeHours;
+          
+          // Add slot to available times with gradient information
           timeSlots.push({
             time: slot.timeStart,
-            available: !hasBooking && !isWithinThreeHours,
-            callForAvailability: isWithinThreeHours && !hasBooking
+            available: isAvailable,
+            unavailable: isUnavailable,
+            hasBooking: hasBooking,
+            isWithinThreeHours: isWithinThreeHours,
+            gradient: isAvailable ? 'green' : 'red', // green for available, red for unavailable
+            clickable: isAvailable // only available slots are clickable
           });
         }
+
+        // Add extra slots for this date
+        for (const extraSlot of extraSlotsList) {
+          // Check if this extra slot overlaps with any existing bookings
+          const hasBooking = doesAnyBookingOverlapWithSlot(
+            existingBookings,
+            extraSlot.timeStart,
+            extraSlot.timeEnd,
+            false // Include ALL bookings - don't exclude any
+          );
+
+          // Check if this slot is within 3 hours from now
+          const slotDateTime = new Date(`${dateStr}T${extraSlot.timeStart}`);
+          const isWithinThreeHours = slotDateTime <= threeHoursFromNow;
+          
+          // Determine availability and styling
+          const isAvailable = !hasBooking && !isWithinThreeHours;
+          const isUnavailable = hasBooking || isWithinThreeHours;
+          
+          // Add extra slot to available times
+          timeSlots.push({
+            time: extraSlot.timeStart,
+            available: isAvailable,
+            unavailable: isUnavailable,
+            hasBooking: hasBooking,
+            isWithinThreeHours: isWithinThreeHours,
+            gradient: isAvailable ? 'green' : 'red', // green for available, red for unavailable
+            clickable: isAvailable, // only available slots are clickable
+            isExtraSlot: true, // mark as extra slot
+            reason: extraSlot.reason // include reason if available
+          });
+        }
+
+        // Sort slots by time
+        timeSlots.sort((a, b) => a.time.localeCompare(b.time));
 
         slotsForWeek[dateStr] = timeSlots;
 
@@ -183,7 +254,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching booking slots:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch booking slots', 
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

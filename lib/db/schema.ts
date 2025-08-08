@@ -145,6 +145,18 @@ export const blockedSlots = pgTable('blocked_slots', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Extra slots for specific dates
+export const extraSlots = pgTable('extra_slots', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  date: date('date').notNull(),
+  timeStart: time('time_start').notNull(),
+  timeEnd: time('time_end').notNull(),
+  reason: text('reason'),
+  createdBy: uuid('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Lesson types
 export const lessonTypes = pgTable('lesson_types', {
   id: uuid('id').defaultRandom().primaryKey(),

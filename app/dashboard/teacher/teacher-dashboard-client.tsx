@@ -23,6 +23,7 @@ import {
 import Link from 'next/link';
 import { generateWeeklySchedulePdf, fetchWeeklyBookings } from '@/utils/pdfExport';
 import { ExportButton } from '@/components/ui/ExportButton';
+import { toast } from 'react-hot-toast';
 
 interface Booking {
   id: string;
@@ -591,11 +592,12 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const handleExportSchedule = async () => {
     try {
       setIsExporting(true);
-      const bookings = await fetchWeeklyBookings(user.userId || user.id, 'teacher');
-      generateWeeklySchedulePdf(bookings, 'Mitt schema');
+      const bookings = await fetchWeeklyBookings(user?.id, 'teacher');
+      await generateWeeklySchedulePdf(bookings, 'Mitt schema');
+      toast.success('Schema exporterat framgångsrikt!');
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Kunde inte exportera schemat. Försök igen senare.');
+      toast.error('Kunde inte exportera schemat. Försök igen senare.');
     } finally {
       setIsExporting(false);
     }

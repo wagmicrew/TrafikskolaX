@@ -9,6 +9,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  User, 
+  Lock, 
+  Camera, 
+  Save, 
+  X, 
+  Edit, 
+  Shield,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  FileText
+} from 'lucide-react';
 
 interface UserData {
   firstName: string;
@@ -40,6 +55,7 @@ function SettingsClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
     if (user) {
@@ -48,22 +64,22 @@ function SettingsClient() {
   }, [user]);
 
   const fetchUserData = async () => {
-  try {
-    const response = await fetch('/api/user/profile', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-      }
-    });
-    if (!response.ok) throw new Error('Failed to fetch user data');
-    const data = await response.json();
-    setUserData(data.user);
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    addToast({ type: 'error', message: 'Kunde inte hämta användardata.' });
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch user data');
+      const data = await response.json();
+      setUserData(data.user);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      addToast({ type: 'error', message: 'Kunde inte hämta användardata.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -95,6 +111,7 @@ function SettingsClient() {
 
       const result = await response.json();
       addToast({ type: 'success', message: 'Profilen har uppdaterats!' });
+      if (refreshUser) refreshUser();
     } catch (error) {
       addToast({ type: 'error', message: 'Kunde inte uppdatera profilen.' });
     } finally {
@@ -109,25 +126,28 @@ function SettingsClient() {
       return;
     }
     if (password.length < 6) {
-      addToast({ type: 'error', message: 'Lösenordet måste vara minst 6 tecken.' });
+      addToast({ type: 'error', message: 'Lösenordet måste vara minst 6 tecken långt.' });
       return;
     }
-    setSaving(true);
 
+    setSaving(true);
     try {
-      const response = await fetch(`/api/admin/users/${user?.userId}`, {
+      const response = await fetch('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        },
         body: JSON.stringify({ password }),
       });
 
-      if (!response.ok) throw new Error('Failed to change password');
+      if (!response.ok) throw new Error('Failed to update password');
 
-      addToast({ type: 'success', message: 'Lösenordet har ändrats!' });
+      addToast({ type: 'success', message: 'Lösenordet har uppdaterats!' });
       setPassword('');
       setConfirmPassword('');
     } catch (error) {
-      addToast({ type: 'error', message: 'Kunde inte ändra lösenordet.' });
+      addToast({ type: 'error', message: 'Kunde inte uppdatera lösenordet.' });
     } finally {
       setSaving(false);
     }
@@ -137,10 +157,10 @@ function SettingsClient() {
     if (!avatarFile) return;
     setSaving(true);
 
-    const formData = new FormData();
-    formData.append('avatar', avatarFile);
-
     try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+
       const response = await fetch('/api/user/avatar', {
         method: 'POST',
         headers: {
@@ -150,13 +170,10 @@ function SettingsClient() {
       });
 
       if (!response.ok) throw new Error('Failed to upload avatar');
-      
-      const result = await response.json();
-      setUserData(prev => prev ? { ...prev, profileImage: result.avatarUrl } : null);
-      addToast({ type: 'success', message: 'Profilbilden har laddats upp!' });
+
+      addToast({ type: 'success', message: 'Profilbilden har uppdaterats!' });
+      if (refreshUser) refreshUser();
       setAvatarFile(null);
-      // Refresh user data to update avatar in menu
-      await refreshUser();
     } catch (error) {
       addToast({ type: 'error', message: 'Kunde inte ladda upp profilbilden.' });
     } finally {
@@ -164,170 +181,292 @@ function SettingsClient() {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
-  if (!userData) return <div>Kunde inte ladda användardata.</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full space-y-6">
-      {/* Profile Information Section */}
-      <form onSubmit={handleProfileSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Personlig information</CardTitle>
-            <CardDescription>Håll din information uppdaterad.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={userData.profileImage} alt="User avatar" />
-                <AvatarFallback>{userData.firstName?.[0]}{userData.lastName?.[0]}</AvatarFallback>
-              </Avatar>
-              <div className="space-y-2">
-                <Label htmlFor="avatar">Ladda upp ny profilbild</Label>
-                <Input id="avatar" type="file" onChange={handleAvatarChange} accept="image/*" />
-                <Button type="button" onClick={handleAvatarUpload} disabled={saving || !avatarFile}>
-                  {saving ? 'Laddar upp...' : 'Ladda upp'}
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Förnamn</Label>
-                <Input id="firstName" name="firstName" value={userData.firstName} onChange={handleInputChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Efternamn</Label>
-                <Input id="lastName" name="lastName" value={userData.lastName} onChange={handleInputChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-post</Label>
-                <Input id="email" name="email" type="email" value={userData.email} onChange={handleInputChange} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefonnummer</Label>
-                <Input id="phone" name="phone" value={userData.phone || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="personalNumber">Personnummer</Label>
-                <Input id="personalNumber" name="personalNumber" value={userData.personalNumber || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Adress</Label>
-                <Input id="address" name="address" value={userData.address || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="postalCode">Postnummer</Label>
-                <Input id="postalCode" name="postalCode" value={userData.postalCode || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Stad</Label>
-                <Input id="city" name="city" value={userData.city || ''} onChange={handleInputChange} />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={saving}>{saving ? 'Sparar...' : 'Spara ändringar'}</Button>
-          </CardFooter>
-        </Card>
-      </form>
+    <div className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-white/10 border border-white/20">
+          <TabsTrigger 
+            value="profile" 
+            className="text-white data-[state=active]:bg-white/20 data-[state=active]:text-white"
+          >
+            <User className="w-4 h-4 mr-2" />
+            Profil
+          </TabsTrigger>
+          <TabsTrigger 
+            value="security" 
+            className="text-white data-[state=active]:bg-white/20 data-[state=active]:text-white"
+          >
+            <Lock className="w-4 h-4 mr-2" />
+            Säkerhet
+          </TabsTrigger>
+          <TabsTrigger 
+            value="avatar" 
+            className="text-white data-[state=active]:bg-white/20 data-[state=active]:text-white"
+          >
+            <Camera className="w-4 h-4 mr-2" />
+            Profilbild
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Education Card Section - Only show for students */}
-      {user?.role === 'student' && (
-        <form onSubmit={handleProfileSubmit}>
-          <Card>
+        <TabsContent value="profile" className="space-y-6">
+          <Card className="bg-white/10 border border-white/20 backdrop-blur-md">
             <CardHeader>
-              <CardTitle>Utbildningskort</CardTitle>
-              <CardDescription>Information för ditt utbildningskort. Vissa fält kan bara redigeras av lärare eller administratörer.</CardDescription>
+              <CardTitle className="text-white flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Personlig Information
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Uppdatera din personliga information och kontaktuppgifter
+              </CardDescription>
             </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="workplace">Arbetsplats</Label>
-                <Input id="workplace" name="workplace" value={userData.workplace || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="workPhone">Arbetstelefon</Label>
-                <Input id="workPhone" name="workPhone" value={userData.workPhone || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mobilePhone">Mobiltelefon</Label>
-                <Input id="mobilePhone" name="mobilePhone" value={userData.mobilePhone || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="kkValidityDate">KK-giltighetsdatum</Label>
-                <Input id="kkValidityDate" name="kkValidityDate" type="date" value={userData.kkValidityDate || ''} onChange={handleInputChange} />
-              </div>
-              <div className="space-y-2">
-                <Label>Riskutbildning 1</Label>
-                <Input type="date" value={userData.riskEducation1 || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Riskutbildning 2</Label>
-                <Input type="date" value={userData.riskEducation2 || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Kunskapsprov</Label>
-                <Input type="date" value={userData.knowledgeTest || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Körprov</Label>
-                <Input type="date" value={userData.drivingTest || ''} disabled />
-              </div>
-              {/* Notes field - Hidden for students as they don't need to see teacher/admin notes */}
-              {user?.role !== 'student' && (
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="notes">Anteckningar</Label>
-                  <textarea 
-                    id="notes" 
-                    name="notes" 
-                    value={userData.notes || ''} 
-                    onChange={handleInputChange} 
-                    className="w-full p-2 border rounded" 
-                    rows={4} 
+            <CardContent>
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-white">Förnamn</Label>
+                    <Input
+                      name="firstName"
+                      value={userData?.firstName || ''}
+                      onChange={handleInputChange}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      placeholder="Ditt förnamn"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Efternamn</Label>
+                    <Input
+                      name="lastName"
+                      value={userData?.lastName || ''}
+                      onChange={handleInputChange}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      placeholder="Ditt efternamn"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white flex items-center">
+                    <Mail className="w-4 h-4 mr-2" />
+                    E-post
+                  </Label>
+                  <Input
+                    name="email"
+                    type="email"
+                    value={userData?.email || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="din.email@example.com"
                   />
                 </div>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={saving}>{saving ? 'Sparar...' : 'Spara Utbildningskort'}</Button>
-          </CardFooter>
-        </Card>
-      </form>
-      )}
 
-      {/* Security Section */}
-      <form onSubmit={handlePasswordSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Lösenord</CardTitle>
-            <CardDescription>Ändra ditt lösenord här.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">Nytt lösenord</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Bekräfta nytt lösenord</Label>
-              <Input 
-                id="confirmPassword" 
-                type="password" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={saving}>{saving ? 'Ändrar...' : 'Ändra lösenord'}</Button>
-          </CardFooter>
-        </Card>
-      </form>
+                <div className="space-y-2">
+                  <Label className="text-white flex items-center">
+                    <Phone className="w-4 h-4 mr-2" />
+                    Telefon
+                  </Label>
+                  <Input
+                    name="phone"
+                    value={userData?.phone || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="070-123 45 67"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white">Personnummer</Label>
+                  <Input
+                    name="personalNumber"
+                    value={userData?.personalNumber || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="YYYYMMDD-XXXX"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white flex items-center">
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Adress
+                  </Label>
+                  <Input
+                    name="address"
+                    value={userData?.address || ''}
+                    onChange={handleInputChange}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="Gatunamn 123"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-white">Postnummer</Label>
+                    <Input
+                      name="postalCode"
+                      value={userData?.postalCode || ''}
+                      onChange={handleInputChange}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      placeholder="123 45"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Stad</Label>
+                    <Input
+                      name="city"
+                      value={userData?.city || ''}
+                      onChange={handleInputChange}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      placeholder="Stockholm"
+                    />
+                  </div>
+                </div>
+
+                <CardFooter className="flex justify-end space-x-4 pt-6 border-t border-white/10">
+                  <Button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                  >
+                    {saving ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Sparar...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Save className="w-4 h-4 mr-2" />
+                        Spara Ändringar
+                      </div>
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <Card className="bg-white/10 border border-white/20 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Shield className="w-5 h-5 mr-2" />
+                Säkerhet
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Ändra ditt lösenord för att hålla ditt konto säkert
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-white">Nytt Lösenord</Label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="Minst 6 tecken"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-white">Bekräfta Lösenord</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    placeholder="Upprepa lösenordet"
+                  />
+                </div>
+
+                <CardFooter className="flex justify-end space-x-4 pt-6 border-t border-white/10">
+                  <Button
+                    type="submit"
+                    disabled={saving || !password || !confirmPassword}
+                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                  >
+                    {saving ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Uppdaterar...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Lock className="w-4 h-4 mr-2" />
+                        Uppdatera Lösenord
+                      </div>
+                    )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="avatar" className="space-y-6">
+          <Card className="bg-white/10 border border-white/20 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Camera className="w-5 h-5 mr-2" />
+                Profilbild
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Ladda upp en ny profilbild för ditt konto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex items-center space-x-6">
+                  <Avatar className="w-20 h-20">
+                    <AvatarImage src={userData?.profileImage} />
+                    <AvatarFallback className="bg-white/10 text-white text-xl">
+                      {userData?.firstName?.[0]}{userData?.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <Label className="text-white">Välj Bild</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="bg-white/5 border-white/20 text-white file:bg-white/10 file:border-white/20 file:text-white file:rounded file:px-3 file:py-1 file:mr-4"
+                    />
+                  </div>
+                </div>
+
+                <CardFooter className="flex justify-end space-x-4 pt-6 border-t border-white/10">
+                  <Button
+                    onClick={handleAvatarUpload}
+                    disabled={saving || !avatarFile}
+                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                  >
+                    {saving ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Laddar upp...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <Camera className="w-4 h-4 mr-2" />
+                        Ladda Upp Bild
+                      </div>
+                    )}
+                  </Button>
+                </CardFooter>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

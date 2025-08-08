@@ -112,9 +112,20 @@ export default function Studentsidan() {
     );
   }
 
+  // Map JWT payload to User interface expected by StudentDashboardClient
+  const mappedUser = {
+    id: user.userId,
+    name: `${user.firstName} ${user.lastName}`,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+    avatar: user.profileImage
+  };
+
   return (
     <StudentDashboardClient 
-      user={user}
+      user={mappedUser}
       bookings={dashboardData.bookings}
       credits={dashboardData.credits}
       feedback={dashboardData.feedback}

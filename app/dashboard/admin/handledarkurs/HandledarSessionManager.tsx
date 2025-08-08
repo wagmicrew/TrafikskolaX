@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { X } from 'lucide-react';
 
 export default function HandledarSessionManager() {
   const [sessions, setSessions] = useState([]);
@@ -174,48 +175,132 @@ export default function HandledarSessionManager() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="backdrop-blur-md bg-white/90 border border-white/20 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold text-gray-800">{isEditing ? 'Redigera Session' : 'Skapa Ny Session'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="title">Titel</Label>
-              <Input id="title" name="title" value={formData.title} onChange={handleFormChange} required />
+        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          {/* Glassmorphism style */}
+          <div className="dialog-glassmorphism relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20 rounded-xl"></div>
+            <div className="relative z-10 p-6 sm:p-8">
+              <DialogHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
+                    {isEditing ? 'Redigera Session' : 'Skapa Ny Session'}
+                  </DialogTitle>
+                  <button
+                    onClick={handleCloseDialog}
+                    className="text-white/70 hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </DialogHeader>
+              
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="title" className="text-white">Titel</Label>
+                  <Input 
+                    id="title" 
+                    name="title" 
+                    value={formData.title} 
+                    onChange={handleFormChange} 
+                    required 
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description" className="text-white">Beskrivning</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    value={formData.description} 
+                    onChange={handleFormChange}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="date" className="text-white">Datum</Label>
+                    <Input 
+                      id="date" 
+                      name="date" 
+                      type="date" 
+                      value={formData.date} 
+                      onChange={handleFormChange} 
+                      required 
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxParticipants" className="text-white">Max Antal Deltagare</Label>
+                    <Input 
+                      id="maxParticipants" 
+                      name="maxParticipants" 
+                      type="number" 
+                      value={formData.maxParticipants} 
+                      onChange={handleFormChange} 
+                      required 
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startTime" className="text-white">Starttid</Label>
+                    <Input 
+                      id="startTime" 
+                      name="startTime" 
+                      type="time" 
+                      value={formData.startTime} 
+                      onChange={handleFormChange} 
+                      required 
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="endTime" className="text-white">Sluttid</Label>
+                    <Input 
+                      id="endTime" 
+                      name="endTime" 
+                      type="time" 
+                      value={formData.endTime} 
+                      onChange={handleFormChange} 
+                      required 
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="pricePerParticipant" className="text-white">Pris per Deltagare</Label>
+                  <Input 
+                    id="pricePerParticipant" 
+                    name="pricePerParticipant" 
+                    type="number" 
+                    value={formData.pricePerParticipant} 
+                    onChange={handleFormChange} 
+                    required 
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                
+                {/* Footer */}
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleCloseDialog}
+                    className="text-white border-white/20 hover:bg-white/10"
+                  >
+                    Avbryt
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                  >
+                    {isEditing ? 'Spara Ändringar' : 'Skapa Session'}
+                  </Button>
+                </div>
+              </form>
             </div>
-            <div>
-              <Label htmlFor="description">Beskrivning</Label>
-              <Textarea id="description" name="description" value={formData.description} onChange={handleFormChange} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="date">Datum</Label>
-                <Input id="date" name="date" type="date" value={formData.date} onChange={handleFormChange} required />
-              </div>
-              <div>
-                <Label htmlFor="maxParticipants">Max Antal Deltagare</Label>
-                <Input id="maxParticipants" name="maxParticipants" type="number" value={formData.maxParticipants} onChange={handleFormChange} required />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startTime">Starttid</Label>
-                <Input id="startTime" name="startTime" type="time" value={formData.startTime} onChange={handleFormChange} required />
-              </div>
-              <div>
-                <Label htmlFor="endTime">Sluttid</Label>
-                <Input id="endTime" name="endTime" type="time" value={formData.endTime} onChange={handleFormChange} required />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="pricePerParticipant">Pris per Deltagare</Label>
-              <Input id="pricePerParticipant" name="pricePerParticipant" type="number" value={formData.pricePerParticipant} onChange={handleFormChange} required />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={handleCloseDialog}>Avbryt</Button>
-              <Button type="submit">{isEditing ? 'Spara Ändringar' : 'Skapa Session'}</Button>
-            </div>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

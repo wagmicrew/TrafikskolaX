@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, lessonTypes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
+import { doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (lessonType.length === 0) {
       return NextResponse.json({ error: 'Lesson type not found' }, { status: 404 });
+    }
+
+    // Check for existing bookings that conflict with this timeslot
+    const existingBookings = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.scheduledDate, scheduledDate));
+
+    // Check if there's already a booking for this user at this time
+    const userBooking = existingBookings.find(booking => 
+      booking.userId === userId && 
+      doTimeRangesOverlap(startTime, endTime, booking.startTime, booking.endTime)
+    );
+
+    if (userBooking) {
+      return NextResponse.json({ 
+        error: 'This user already has a booking at this time',
+        existingBooking: userBooking
+      }, { status: 400 });
+    }
+
+    // Check for any conflicting bookings (any user) at this time
+    const conflictingBooking = existingBookings.find(booking => 
+      doTimeRangesOverlap(startTime, endTime, booking.startTime, booking.endTime)
+    );
+
+    if (conflictingBooking) {
+      return NextResponse.json({ 
+        error: 'This time slot is already booked by another user',
+        conflictingBooking: conflictingBooking
+      }, { status: 400 });
     }
 
     // Create the booking

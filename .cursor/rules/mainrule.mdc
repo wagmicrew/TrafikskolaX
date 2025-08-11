@@ -1,0 +1,37 @@
+---
+alwaysApply: true
+---
+# Documentation_new
+
+Concise, AI-friendly docs and rules for TrafikskolaX.
+
+- ai/auth.md — Auth model, roles, quick contracts
+- ai/database.md — DB schema essentials (Neon + Drizzle)
+- ai/booking.md — Booking flow, statuses, core endpoints
+- ai/payments.md — Swish + Qliro contracts and routes
+- ai/email.md — Email template/trigger system
+- ai/ui.md — Design tokens and patterns
+- cursor_rules/core.md — Must-follow engineering rules
+- cursor_rules/ui.md — Must-follow UI rules and iconography
+- cursor_rules/payments.md — Rules for Swish QR + Qliro checkout and payment eligibility
+- site_api.md — Endpoints, purpose, auth, duplicates
+- suggestions_and_duplicates.md — Improvements + duplicate endpoints
+
+Source of truth remains the codebase and existing docs under `Documentation/`.
+
+## Primary lookup and bootstrap (for every new chat)
+
+- Always consult `Documentation_new/` first. Use `Documentation/` as secondary source.
+- On chat start, preload the following context for yourself:
+  - Stack: Next.js App Router, TypeScript, Tailwind, Neon Postgres + Drizzle
+  - Env setup: `DATABASE_URL`, `JWT_SECRET`, `NEXT_PUBLIC_APP_URL`, SMTP/SendGrid when working on email
+  - DB migrations: `npm run db:generate && npm run db:migrate`
+  - Payments matrix:
+    - Guests: Swish, Qliro
+    - Users: Swish, Qliro, Credits
+    - Inskrivna users: Swish, Qliro, Credits, Pay later (max 2 unpaid)
+  - UI preferences: crisp clear fonts/colors; use Pen icon for edit and Disc icon for save
+  - Site API index: prefer `Documentation_new/site_api.md` for endpoint discovery and auth rules
+- When adding features, follow `cursor_rules/core.md`, `cursor_rules/ui.md`, and `cursor_rules/payments.md` strictly.
+- For Swish and Qliro work, read `ai/payments.md` and `cursor_rules/payments.md`; do not mock provider URLs; surface availability via status endpoint.
+- If you find duplicate APIs, propose unification and log in `Documentation_new/suggestions_and_duplicates.md`.

@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { siteSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { getPaymentSettingsCached } from '@/lib/settings/payment-settings';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get payment settings
-    const settings = await db
-      .select({ key: siteSettings.key, value: siteSettings.value })
-      .from(siteSettings)
-      .where(eq(siteSettings.category, 'payment'));
-
-    const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value ?? '';
-      return acc;
-    }, {} as Record<string, string>);
+    const settingsMap = await getPaymentSettingsCached(60_000);
 
     // Check if Qliro is enabled
     const qliroEnabled = settingsMap.qliro_enabled === 'true';

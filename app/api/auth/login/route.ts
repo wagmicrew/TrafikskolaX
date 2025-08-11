@@ -4,9 +4,16 @@ import { signToken } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { sql } from 'drizzle-orm';
 import { EmailService } from '@/lib/email/email-service';
+import { rateLimit, getRequestIp } from '@/lib/utils/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Simple in-memory rate limit: 5 requests / 60s per IP
+    const ip = getRequestIp(request.headers as any);
+    const rl = rateLimit({ key: `login:${ip}`, limit: 5, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many login attempts, try again shortly.' }, { status: 429 });
+    }
     console.log('Login request received');
     console.log('Request method:', request.method);
     console.log('Request headers:', Object.fromEntries(request.headers.entries()));

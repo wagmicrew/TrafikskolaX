@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,32 +47,16 @@ check_current_branch() {
     print_status "Current branch: $current_branch"
     
     if [ "$current_branch" != "main" ] && [ "$current_branch" != "master" ]; then
-        print_warning "You're not on main/master branch. Current branch: $current_branch"
-        read -p "Do you want to continue? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Aborting..."
-            exit 1
-        fi
+        print_warning "Not on main/master (current: $current_branch). Continuing with caution."
     fi
 }
 
 # Function to check for uncommitted changes
 check_uncommitted_changes() {
     if [ -n "$(git status --porcelain)" ]; then
-        print_warning "You have uncommitted changes:"
-        git status --short
-        
-        read -p "Do you want to stash them before pulling? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            print_status "Stashing changes..."
-            git stash push -m "Auto-stash before update $(date)"
-            STASHED=true
-        else
-            print_error "Please commit or stash your changes before updating."
-            exit 1
-        fi
+        print_warning "Uncommitted changes detected. Auto-stashing before update..."
+        git stash push -u -m "Auto-stash before update $(date)" >/dev/null 2>&1 || true
+        STASHED=true
     fi
 }
 
@@ -85,11 +70,14 @@ perform_git_pull() {
         exit 1
     fi
     
-    print_status "Pulling changes..."
-    if ! git pull origin $(git branch --show-current); then
-        print_error "Failed to pull changes"
+    PRE_HASH=$(git rev-parse HEAD)
+    BRANCH=$(git branch --show-current)
+    print_status "Pulling changes with --ff-only..."
+    if ! git pull --ff-only origin "$BRANCH"; then
+        print_error "Fast-forward pull failed (diverged history). Please resolve locally."
         exit 1
     fi
+    POST_HASH=$(git rev-parse HEAD)
     
     print_success "Git pull completed successfully"
 }
@@ -98,24 +86,57 @@ perform_git_pull() {
 check_new_dependencies() {
     print_header "Checking for new dependencies"
     
-    # Check if package.json or package-lock.json changed
-    if git diff --name-only HEAD~1 HEAD | grep -E "(package\.json|package-lock\.json)" > /dev/null; then
+    # Compare pre/post pull
+    if git diff --name-only "$PRE_HASH".."$POST_HASH" | grep -E "(package\.json|package-lock\.json)" >/dev/null; then
         print_status "Dependencies have changed, installing new packages..."
         
-        # Remove node_modules and package-lock.json for clean install
-        if [ -d "node_modules" ]; then
-            print_status "Removing existing node_modules..."
-            rm -rf node_modules
+        # Install dependencies (prefer deterministic CI install if lockfile exists)
+        if [ -f package-lock.json ]; then
+            print_status "Running npm ci..."
+            if ! npm ci; then
+                print_error "npm ci failed"
+                exit 1
+            fi
+        else
+            print_status "Running npm install (no lockfile)..."
+            if ! npm install; then
+                print_error "npm install failed"
+                exit 1
+            fi
         fi
         
-        if [ -f "package-lock.json" ]; then
-            print_status "Removing existing package-lock.json..."
-            rm package-lock.json
-        fi
-        
-        # Install dependencies
-        print_status "Installing dependencies..."
-        if ! npm install; then
+        print_success "Dependencies installed successfully"
+        REBUILD_NEEDED=true
+    else
+        print_status "No dependency changes detected"
+    fi
+}
+
+check_node_npm() {
+    print_header "Checking Node.js and npm versions"
+    node -v || { print_error "Node.js not found"; exit 1; }
+    npm -v || { print_error "npm not found"; exit 1; }
+}
+
+run_build() {
+    print_header "Building application"
+    export NODE_ENV=production
+    export NEXT_DISABLE_SOURCEMAPS=${NEXT_DISABLE_SOURCEMAPS:-1}
+    export NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE:-4096} ${NODE_OPTIONS:-}"
+    
+    # Clear Next.js cache for clean builds when code changed
+    print_status "Clearing Next.js cache..."
+    [ -d .next ] && rm -rf .next || true
+    
+    if [ -f scripts/build-with-progress.mjs ]; then
+        print_status "Using scripts/build-with-progress.mjs"
+        node scripts/build-with-progress.mjs || { print_error "Build failed"; exit 1; }
+    else
+        print_status "Using next build"
+        npx --yes next build || { print_error "Build failed"; exit 1; }
+    fi
+    print_success "Build completed"
+}
             print_error "Failed to install dependencies"
             exit 1
         fi
@@ -132,7 +153,7 @@ check_build_changes() {
     print_header "Checking for build-related changes"
     
     # Check if any source files, config files, or build-related files changed
-    if git diff --name-only HEAD~1 HEAD | grep -E "\.(tsx?|jsx?|json|mjs|css|scss|md|yml|yaml|config\.js|next\.config\.mjs)" > /dev/null; then
+    if git diff --name-only "$PRE_HASH".."$POST_HASH" | grep -E "\.(tsx?|jsx?|json|mjs|css|scss|md|yml|yaml|config\.js|next\.config\.mjs)$" >/dev/null; then
         print_status "Source files have changed, rebuild will be needed"
         REBUILD_NEEDED=true
     else
@@ -143,22 +164,7 @@ check_build_changes() {
 # Function to rebuild the application
 rebuild_application() {
     if [ "$REBUILD_NEEDED" = true ]; then
-        print_header "Rebuilding application"
-        
-        # Clear Next.js cache
-        print_status "Clearing Next.js cache..."
-        if [ -d ".next" ]; then
-            rm -rf .next
-        fi
-        
-        # Build the application
-        print_status "Building application..."
-        if ! npm run build; then
-            print_error "Build failed"
-            exit 1
-        fi
-        
-        print_success "Application rebuilt successfully"
+        run_build
     else
         print_status "No rebuild needed"
     fi
@@ -174,15 +180,16 @@ restart_pm2_processes() {
         return
     fi
     
-    # Check if there are any PM2 processes for this app
-    local app_name=$(basename $(pwd))
-    if pm2 list | grep -q "$app_name"; then
-        print_status "Restarting PM2 processes..."
-        pm2 restart all
-        print_success "PM2 processes restarted"
+    local target=${PM2_APP_NAME:-}
+    if [ -n "$target" ]; then
+        print_status "Reloading PM2 app '$target'..."
+        pm2 reload "$target" || pm2 restart "$target" || print_warning "PM2 reload failed for '$target'"
     else
-        print_status "No PM2 processes found for this application"
+        print_status "PM2_APP_NAME not set; reloading all PM2 apps"
+        pm2 reload all || pm2 restart all || true
     fi
+    pm2 save >/dev/null 2>&1 || true
+    print_success "PM2 reload attempted"
 }
 
 # Function to restart development server (if running)
@@ -250,6 +257,7 @@ main() {
     
     # Perform update
     perform_git_pull
+    check_node_npm
     check_new_dependencies
     check_build_changes
     rebuild_application

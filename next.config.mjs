@@ -21,10 +21,18 @@ const nextConfig = {
         },
       },
     },
-    optimizeCss: true,
+    // Disable CSS inlining that may fetch external styles during build in some setups
+    optimizeCss: false,
     optimizePackageImports: ['lucide-react']
   },
   reactStrictMode: true,
+  productionBrowserSourceMaps: false,
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/icons/{{member}}',
+      preventFullImport: true,
+    },
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -33,6 +41,11 @@ const nextConfig = {
         os: false,
         crypto: false,
       };
+    }
+    // Reduce bundle by marking server-only deps as externals in client
+    if (!isServer) {
+      config.externals = config.externals || [];
+      // noop; placeholder for heavy libs if detected
     }
     return config;
   },

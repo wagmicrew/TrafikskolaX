@@ -4,6 +4,7 @@ import { bookings, users, lessonTypes, userCredits, internalMessages, handledarS
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne } from 'drizzle-orm';
+import { rateLimit, getRequestIp } from '@/lib/utils/rate-limit';
 import bcrypt from 'bcryptjs';
 import sgMail from '@sendgrid/mail';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +36,12 @@ async function getSendGridApiKey(): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit booking creation (10/min per IP)
+    const ip = getRequestIp(request.headers as any);
+    const rl = rateLimit({ key: `booking:create:${ip}`, limit: 10, windowMs: 60_000 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many booking attempts. Please wait a minute.' }, { status: 429 });
+    }
     const body = await request.json();
     const {
       sessionType,

@@ -86,7 +86,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ slots: availableSlots });
+    const res = NextResponse.json({ slots: availableSlots });
+    // Deprecation headers: prefer /api/booking/available-slots
+    res.headers.set('Deprecation', 'true');
+    res.headers.set('Sunset', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString());
+    res.headers.set('Link', '</api/booking/available-slots>; rel="successor-version"');
+    return res;
   } catch (error) {
     console.error('Error fetching available slots:', error);
     return NextResponse.json(

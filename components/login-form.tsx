@@ -22,6 +22,13 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [fpStep, setFpStep] = useState<'email' | 'code' | 'reset' | null>(null)
+  const [fpEmail, setFpEmail] = useState("")
+  const [fpCode, setFpCode] = useState("")
+  const [fpNew, setFpNew] = useState("")
+  const [fpConfirm, setFpConfirm] = useState("")
+  const [fpBusy, setFpBusy] = useState(false)
+  const [fpMsg, setFpMsg] = useState("")
   const router = useRouter()
   const { login } = useAuth()
 
@@ -230,6 +237,19 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
                           "Logga in"
                         )}
                       </Button>
+                      <div className="text-center mt-2 text-white/90 text-sm">
+                        <button
+                          type="button"
+                          className="underline hover:text-white"
+                          onClick={() => {
+                            setFpStep('email')
+                            setError("")
+                            setSuccess("")
+                          }}
+                        >
+                          Glömt lösenord?
+                        </button>
+                      </div>
                     </form>
                   </div>
 
@@ -348,6 +368,166 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
                   </div>
                 </TabsContent>
               </Tabs>
+
+              {fpStep && (
+                <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg sm:rounded-xl p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white drop-shadow-sm mb-2">Återställ lösenord</h3>
+                  {fpMsg && (
+                    <div className="mb-3 text-sm text-yellow-200">{fpMsg}</div>
+                  )}
+
+                  {fpStep === 'email' && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        setFpBusy(true)
+                        setFpMsg("")
+                        try {
+                          const r = await fetch('/api/auth/forgot/start', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: fpEmail })
+                          })
+                          if (r.status === 429) {
+                            setFpMsg('Vänta 2 minuter innan du begär ny kod.')
+                          }
+                          setFpStep('code')
+                        } finally {
+                          setFpBusy(false)
+                        }
+                      }}
+                      className="space-y-3"
+                    >
+                      <Label className="text-white">E‑postadress</Label>
+                      <Input
+                        type="email"
+                        value={fpEmail}
+                        onChange={(e) => setFpEmail(e.target.value)}
+                        placeholder="din@email.se"
+                        required
+                        className="bg-white/10 border-white/30 text-white"
+                      />
+                      <Button type="submit" disabled={fpBusy}>Skicka kod</Button>
+                    </form>
+                  )}
+
+                  {fpStep === 'code' && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        setFpBusy(true)
+                        setFpMsg("")
+                        try {
+                          const r = await fetch('/api/auth/forgot/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: fpEmail, code: fpCode })
+                          })
+                          const d = await r.json()
+                          if (d?.valid) {
+                            setFpStep('reset')
+                          } else {
+                            setFpMsg('Fel kod – försök igen')
+                          }
+                        } finally {
+                          setFpBusy(false)
+                        }
+                      }}
+                      className="space-y-3"
+                    >
+                      <Label className="text-white">Kod (6 siffror)</Label>
+                      <Input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={fpCode}
+                        onChange={(e) => setFpCode(e.target.value)}
+                        placeholder="123456"
+                        required
+                        className="bg-white/10 border-white/30 text-white"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button type="submit" disabled={fpBusy}>Verifiera kod</Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={fpBusy}
+                          onClick={async () => {
+                            setFpBusy(true)
+                            setFpMsg("")
+                            try {
+                              const r = await fetch('/api/auth/forgot/start', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: fpEmail })
+                              })
+                              if (r.status === 429) {
+                                setFpMsg('Du kan begära ny kod var 2:e minut.')
+                              } else {
+                                setFpMsg('Ny kod skickad om e‑posten finns registrerad.')
+                              }
+                            } finally {
+                              setFpBusy(false)
+                            }
+                          }}
+                        >Skicka om kod</Button>
+                      </div>
+                      <div className="text-xs text-white/80">Koden är giltig i 10 minuter.</div>
+                    </form>
+                  )}
+
+                  {fpStep === 'reset' && (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault()
+                        if (fpNew.length < 6) {
+                          setFpMsg('Minst 6 tecken')
+                          return
+                        }
+                        if (fpNew !== fpConfirm) {
+                          setFpMsg('Lösenorden matchar inte')
+                          return
+                        }
+                        setFpBusy(true)
+                        setFpMsg("")
+                        try {
+                          const r = await fetch('/api/auth/forgot/reset', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: fpEmail, newPassword: fpNew })
+                          })
+                          if (r.ok) {
+                            setFpStep(null)
+                            setSuccess('Lösenordet ändrat. Logga in med det nya.')
+                          } else {
+                            setFpMsg('Kunde inte ändra lösenordet')
+                          }
+                        } finally {
+                          setFpBusy(false)
+                        }
+                      }}
+                      className="space-y-3"
+                    >
+                      <Label className="text-white">Nytt lösenord</Label>
+                      <Input
+                        type="password"
+                        value={fpNew}
+                        onChange={(e) => setFpNew(e.target.value)}
+                        required
+                        className="bg-white/10 border-white/30 text-white"
+                      />
+                      <Label className="text-white">Bekräfta lösenord</Label>
+                      <Input
+                        type="password"
+                        value={fpConfirm}
+                        onChange={(e) => setFpConfirm(e.target.value)}
+                        required
+                        className="bg-white/10 border-white/30 text-white"
+                      />
+                      <Button type="submit" disabled={fpBusy}>Ändra lösenord</Button>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

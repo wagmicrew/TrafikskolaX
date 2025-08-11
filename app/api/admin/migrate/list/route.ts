@@ -35,8 +35,6 @@ async function collectSqlFiles(root: string) {
           const s = await safeStat(entryAbs);
           if (!s) continue;
           const relPath = path.relative(root, entryAbs).replace(/\\/g, '/');
-          const previewBuf = await fs.readFile(entryAbs);
-          const preview = previewBuf.toString('utf8').slice(0, 2000);
           items.push({
             id: relPath,
             dir: rel,
@@ -44,7 +42,7 @@ async function collectSqlFiles(root: string) {
             relPath,
             size: s.size,
             mtime: s.mtimeMs,
-            preview,
+            // preview removed for performance; fetch via /api/admin/migrate/preview when needed
           });
         }
       }

@@ -95,29 +95,36 @@ check_new_dependencies() {
     fi
     if git diff --name-only "$base_range" | grep -E "(package\.json|package-lock\.json)" >/dev/null; then
         print_status "Dependencies have changed, installing new packages..."
-        
+
+        export CI=${CI:-1}
+        export NPM_CONFIG_FUND=false
+        export NPM_CONFIG_AUDIT=false
+
         # Install dependencies (prefer deterministic CI install if lockfile exists)
         if [ -f package-lock.json ]; then
             print_status "Running npm ci (no-audit, no-fund, prefer-offline)..."
             if ! npm ci --no-audit --no-fund --prefer-offline; then
-                print_warning "npm ci failed, cleaning cache and retrying..."
-                npm cache clean --force || true
+                print_warning "npm ci failed, retrying without prefer-offline..."
                 if ! npm ci --no-audit --no-fund; then
-                    print_warning "npm ci still failing, falling back to npm install..."
-                    if ! npm install --no-audit --no-fund; then
-                        print_error "Failed to install dependencies"
-                        exit 1
+                    print_warning "npm ci failed again, trying with legacy peer deps..."
+                    if ! npm ci --no-audit --no-fund --legacy-peer-deps; then
+                        print_warning "npm ci still failing, cleaning cache and trying npm install --legacy-peer-deps..."
+                        npm cache clean --force || true
+                        if ! npm install --no-audit --no-fund --legacy-peer-deps; then
+                            print_error "Failed to install dependencies"
+                            exit 1
+                        fi
                     fi
                 fi
             fi
         else
-            print_status "Running npm install (no lockfile, no-audit, no-fund)..."
-            if ! npm install --no-audit --no-fund; then
+            print_status "Running npm install (no lockfile, no-audit, no-fund, legacy-peer-deps)..."
+            if ! npm install --no-audit --no-fund --legacy-peer-deps; then
                 print_error "Failed to install dependencies"
                 exit 1
             fi
         fi
-        
+
         print_success "Dependencies installed successfully"
         REBUILD_NEEDED=true
     else

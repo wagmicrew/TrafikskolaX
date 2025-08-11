@@ -633,6 +633,29 @@ export default function QliroSettingsClient() {
                             <Button size="sm" variant="outline" onClick={() => setRepayId(p.id)}>
                               <LinkIcon className="w-4 h-4 mr-1" /> Betalningslänk
                             </Button>
+                            {p.paymentReference ? (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={async () => {
+                                  const t = toast.loading('Hämtar checkout...', { position: 'top-right' });
+                                  try {
+                                    const res = await fetch('/api/payments/qliro/create-for-reference', {
+                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ reference: p.paymentReference })
+                                    });
+                                    const data = await res.json();
+                                    if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa checkout');
+                                    toast.success('Öppnar Qliro...', { id: t, position: 'top-right' });
+                                    if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+                                  } catch (e: any) {
+                                    toast.error(e.message || 'Fel vid öppning av checkout', { id: t, position: 'top-right' });
+                                  }
+                                }}
+                              >
+                                Visa checkout
+                              </Button>
+                            ) : null}
                             <Button size="sm" variant="outline" onClick={() => setRefundId(p.id)}>
                               <RefreshCw className="w-4 h-4 mr-1" /> Återbetalning
                             </Button>

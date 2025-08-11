@@ -396,14 +396,16 @@ export default function EmailTemplatesPage() {
       setSchoolname(data.schoolname || 'Din Trafikskola Hässleholm');
       setSchoolPhone(data.schoolPhone || '08-XXX XX XX');
       
-      // Create missing templates
+      // Create missing templates in background to avoid blocking initial load
       const existingTriggers = data.templates.map((t: EmailTemplate) => t.triggerType);
       const missingTriggers = Object.keys(defaultTemplates).filter(
         trigger => !existingTriggers.includes(trigger)
       );
-      
       if (missingTriggers.length > 0) {
-        await createMissingTemplates(missingTriggers as EmailTriggerType[]);
+        // Fire and forget, then silently refresh after completion
+        createMissingTemplates(missingTriggers as EmailTriggerType[]) // no await
+          .then(() => fetchTemplates())
+          .catch(() => {/* ignore */});
       }
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -450,6 +452,8 @@ export default function EmailTemplatesPage() {
 
   const exec = (command: string, value?: string) => {
     if (!wysiwygRef.current) return;
+    // Preserve current selection so formatting happens at caret
+    saveSelection();
     wysiwygRef.current.focus();
     try {
       document.execCommand(command, false, value);
@@ -500,23 +504,70 @@ export default function EmailTemplatesPage() {
     if (wysiwygRef.current) handleTemplateChange('htmlContent', wysiwygRef.current.innerHTML);
   };
 
+  // Selection helpers to ensure inserts happen at caret
+  const isNodeInsideEditor = (node: Node | null) => {
+    if (!node || !wysiwygRef.current) return false;
+    return node === wysiwygRef.current || wysiwygRef.current.contains(node as Node);
+  };
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!isNodeInsideEditor(range.startContainer) || !isNodeInsideEditor(range.endContainer)) return;
+    selectedRangeRef.current = range.cloneRange();
+  };
+
+  const restoreSelection = () => {
+    if (!wysiwygRef.current || !selectedRangeRef.current) return false;
+    const sel = window.getSelection();
+    if (!sel) return false;
+    sel.removeAllRanges();
+    sel.addRange(selectedRangeRef.current);
+    return true;
+  };
+
   const insertHtml = (html: string) => {
-    try {
-      if (wysiwygRef.current) {
-        wysiwygRef.current.focus();
-        // Restore a saved selection if present
-        if (selectedRangeRef.current) {
-          const sel = window.getSelection();
-          if (sel) { sel.removeAllRanges(); sel.addRange(selectedRangeRef.current); }
-        }
-      }
-      const ok = document.execCommand('insertHTML', false, html);
-      if (!ok && wysiwygRef.current) {
-        // Fallback: append at end
-        wysiwygRef.current.innerHTML = (wysiwygRef.current.innerHTML || '') + html;
-      }
-      if (wysiwygRef.current) handleTemplateChange('htmlContent', wysiwygRef.current.innerHTML);
-    } catch {}
+    const editor = wysiwygRef.current;
+    if (!editor) return;
+    editor.focus();
+    // Try to restore last known selection inside editor
+    restoreSelection();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    // Ensure range is inside editor
+    if (!isNodeInsideEditor(range.startContainer) || !isNodeInsideEditor(range.endContainer)) {
+      // Place caret at end if not inside
+      const endRange = document.createRange();
+      endRange.selectNodeContents(editor);
+      endRange.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(endRange);
+    }
+    const activeRange = sel.getRangeAt(0);
+    // Replace selection with HTML fragment
+    activeRange.deleteContents();
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let lastNode: Node | null = null;
+    while (temp.firstChild) {
+      lastNode = frag.appendChild(temp.firstChild);
+    }
+    const firstNode = frag.firstChild;
+    activeRange.insertNode(frag);
+    // Move caret after inserted content
+    if (lastNode) {
+      const newRange = document.createRange();
+      newRange.setStartAfter(lastNode);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      // Save new selection state
+      selectedRangeRef.current = newRange.cloneRange();
+    }
+    handleTemplateChange('htmlContent', editor.innerHTML);
   };
 
   const insertButton = () => {
@@ -536,6 +587,8 @@ export default function EmailTemplatesPage() {
   };
 
   const insertTable = () => {
+    // Save selection before prompts (prompts may blur the editor)
+    saveSelection();
     const rows = Math.max(1, Math.min(6, parseInt(prompt('Antal rader', '2') || '2', 10)));
     const cols = Math.max(1, Math.min(6, parseInt(prompt('Antal kolumner', '2') || '2', 10)));
     let table = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse;">
@@ -559,6 +612,114 @@ export default function EmailTemplatesPage() {
     wysiwygRef.current.innerHTML = style + cur;
     handleTemplateChange('htmlContent', wysiwygRef.current.innerHTML);
   };
+
+  // Drag & drop support and visible handles for buttons and tables
+  const draggingRef = useRef<HTMLElement | null>(null);
+  const lastDownRef = useRef<{ x: number; y: number } | null>(null);
+
+  const injectEditorStyles = () => {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('editor-dnd-style')) return;
+    const styleEl = document.createElement('style');
+    styleEl.id = 'editor-dnd-style';
+    styleEl.textContent = `
+      /* Visible drag handle (top-right) for editor elements only */
+      [data-editor-button], .editor-content table { position: relative; }
+      [data-editor-button]::after, .editor-content table::after {
+        content: '↕↔'; /* arrows */
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        font-size: 10px;
+        line-height: 1;
+        background: rgba(15,23,42,0.9);
+        color: #e2e8f0;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 6px;
+        padding: 2px 4px;
+        pointer-events: none; /* purely visual; drag starts from element */
+        z-index: 2;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  };
+
+  const enhanceDraggables = () => {
+    const editor = wysiwygRef.current;
+    if (!editor) return;
+    injectEditorStyles();
+    // Attach editor-level listeners once
+    if (!(editor as any)._dragEnhanced) {
+      editor.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      });
+      editor.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const targetEditor = wysiwygRef.current;
+        if (!targetEditor || !draggingRef.current) return;
+        const sel = window.getSelection();
+        let range: Range | null = null;
+        // @ts-ignore
+        if (document.caretRangeFromPoint) {
+          // @ts-ignore
+          range = document.caretRangeFromPoint(e.clientX, e.clientY);
+        } else if ((document as any).caretPositionFromPoint) {
+          const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+          if (pos) {
+            range = document.createRange();
+            range.setStart(pos.offsetNode, pos.offset);
+            range.collapse(true);
+          }
+        }
+        if (!range) {
+          range = document.createRange();
+          range.selectNodeContents(targetEditor);
+          range.collapse(false);
+        }
+        if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+        const node = draggingRef.current;
+        try {
+          range.insertNode(node);
+        } catch {}
+        draggingRef.current = null;
+        handleTemplateChange('htmlContent', targetEditor.innerHTML);
+        saveSelection();
+      });
+      (editor as any)._dragEnhanced = true;
+    }
+    const makeDraggable = (el: HTMLElement) => {
+      if ((el as any)._dragBound) return;
+      (el as any)._dragBound = true;
+      // Always set draggable; gate drag start via handle hit test
+      el.setAttribute('draggable', 'true');
+      el.addEventListener('mousedown', (e) => {
+        lastDownRef.current = { x: e.clientX, y: e.clientY };
+      });
+      el.addEventListener('dragstart', (e) => {
+        const rect = el.getBoundingClientRect();
+        const pt = (e instanceof DragEvent && e.clientX && e.clientY)
+          ? { x: e.clientX, y: e.clientY }
+          : (lastDownRef.current || { x: rect.right, y: rect.top });
+        const withinHandle = pt.x >= rect.right - 24 && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.top + 24;
+        if (!withinHandle) {
+          e.preventDefault();
+          return;
+        }
+        draggingRef.current = el;
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', 'move');
+        }
+      });
+      el.addEventListener('dragend', () => {
+        draggingRef.current = null;
+      });
+    };
+    editor.querySelectorAll('a[data-editor-button], table').forEach((n) => makeDraggable(n as HTMLElement));
+  };
+
+  useEffect(() => { enhanceDraggables(); }, [editedTemplate?.htmlContent]);
 
   // Editor click handler for editing links and buttons
   const onEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -951,29 +1112,31 @@ export default function EmailTemplatesPage() {
                             <button onClick={() => setBlock('H2')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">H2</button>
                             <button onClick={() => setBlock('P')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">P</button>
                             <div className="w-px h-6 bg-white/10" />
-                            <button onClick={() => exec('insertUnorderedList')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">• Lista</button>
-                            <button onClick={() => exec('insertOrderedList')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">1. Lista</button>
-                            <button onClick={insertLink} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Länk</button>
-                            <button onClick={() => setShowParamDialog(true)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Parametrar</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => exec('insertUnorderedList')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">• Lista</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => exec('insertOrderedList')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">1. Lista</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={insertLink} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Länk</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => setShowParamDialog(true)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Parametrar</button>
                             <div className="w-px h-6 bg-white/10" />
-                            <button onClick={() => exec('justifyLeft')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Vänster</button>
-                            <button onClick={() => exec('justifyCenter')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mitten</button>
-                            <button onClick={() => exec('justifyRight')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Höger</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => exec('justifyLeft')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Vänster</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => exec('justifyCenter')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mitten</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => exec('justifyRight')} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Höger</button>
                             <div className="w-px h-6 bg-white/10" />
-                            <button onClick={insertButton} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Knapp</button>
-                            <button onClick={() => insertSpacer(8)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum S</button>
-                            <button onClick={() => insertSpacer(16)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum M</button>
-                            <button onClick={() => insertSpacer(24)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum L</button>
-                            <button onClick={insertTable} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Tabell</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={insertButton} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Knapp</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => insertSpacer(8)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum S</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => insertSpacer(16)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum M</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={() => insertSpacer(24)} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Mellanrum L</button>
+                            <button onMouseDown={(e)=>{e.preventDefault(); saveSelection();}} onClick={insertTable} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Tabell</button>
                             <button onClick={makeResponsive} className="px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20">Responsiv</button>
                           </div>
                           <div
                             ref={wysiwygRef}
-                            className="min-h-[320px] p-4 text-white outline-none"
+                            className="min-h-[320px] p-4 text-white outline-none editor-content"
                             contentEditable
                             suppressContentEditableWarning
-                             onInput={(e) => handleTemplateChange('htmlContent', (e.target as HTMLDivElement).innerHTML)}
-                             onClick={onEditorClick}
+                            onInput={(e) => { handleTemplateChange('htmlContent', (e.target as HTMLDivElement).innerHTML); saveSelection(); enhanceDraggables(); }}
+         onKeyUp={() => saveSelection()}
+         onMouseUp={() => saveSelection()}
+         onClick={(e) => { onEditorClick(e); saveSelection(); }}
                             dangerouslySetInnerHTML={{ __html: editedTemplate?.htmlContent || '' }}
                           />
                         </div>

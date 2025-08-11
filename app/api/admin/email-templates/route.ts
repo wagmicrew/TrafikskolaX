@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 import { emailTemplates, emailReceivers, emailTriggers, siteSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
@@ -68,6 +69,27 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { triggerType, subject, htmlContent, receivers } = body;
+
+    // Ensure enum value exists in DB for provided triggerType
+    if (typeof triggerType !== 'string' || triggerType.trim() === '') {
+      return NextResponse.json({ error: 'Invalid triggerType' }, { status: 400 });
+    }
+    try {
+      const existing = await db.execute(sql`
+        SELECT e.enumlabel
+        FROM pg_enum e
+        JOIN pg_type t ON t.oid = e.enumtypid
+        WHERE t.typname = 'email_trigger_type'
+      `);
+      const labels: string[] = ((existing as any).rows?.map((r: any) => r.enumlabel))
+        ?? (Array.isArray(existing) ? (existing as any).map((r: any) => r.enumlabel) : []);
+      if (!labels.includes(triggerType)) {
+        const escaped = triggerType.replace(/'/g, "''");
+        await db.execute(sql.raw(`ALTER TYPE email_trigger_type ADD VALUE IF NOT EXISTS '${escaped}'`));
+      }
+    } catch (e) {
+      console.error('Failed ensuring enum email_trigger_type value:', e);
+    }
 
     // Check if template already exists
     const existingTemplate = await db

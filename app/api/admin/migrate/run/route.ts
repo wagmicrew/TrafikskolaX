@@ -72,10 +72,38 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Kör hela filen i ett anrop – fungerar för de flesta .sql-migreringar
-        await db.execute(sql.raw(content));
-        logs.push(`Klar: ${safeRel}`);
-        results.push({ path: safeRel, ok: true, bytes: content.length });
+        // Kör filen statement‑för‑statement för att hantera flera satser (Neon HTTP tillåter inte flera i samma anrop)
+        const statements = content
+          .replace(/\r\n/g, '\n')
+          // Ta bort blockkommentarer /* ... */
+          .replace(/\/\*[\s\S]*?\*\//g, '')
+          // Dela på semikolon som följs av start på nästa SQL nyckelord eller slut
+          .split(/;(?=\s*(?:CREATE|ALTER|INSERT|UPDATE|DELETE|DROP|GRANT|REVOKE|TRUNCATE|COMMENT|BEGIN|COMMIT|ROLLBACK|SET|SHOW|ANALYZE|EXPLAIN|VACUUM|COPY|DO|CALL|VALUES|TABLE|WITH|SELECT|$))/gi)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          // Filtrera bort radkommentarer
+          .map(s => s.split('\n').filter(line => !/^\s*--/.test(line)).join('\n').trim())
+          .filter(s => s.length > 0);
+
+        let fileOk = true;
+        for (const [idx, stmt] of statements.entries()) {
+          try {
+            logs.push(`> Kör sats ${idx + 1}/${statements.length}: ${stmt.substring(0, 120)}${stmt.length > 120 ? '…' : ''}`);
+            await db.execute(sql.raw(stmt));
+          } catch (e: any) {
+            fileOk = false;
+            const msg = e?.message || String(e);
+            logs.push(`!! Fel i sats ${idx + 1}: ${msg}`);
+            // Fortsätt med resterande för att försöka köra det som går
+          }
+        }
+
+        if (fileOk) {
+          logs.push(`Klar: ${safeRel}`);
+          results.push({ path: safeRel, ok: true, bytes: content.length });
+        } else {
+          results.push({ path: safeRel, ok: false, error: 'Ett eller flera statements misslyckades' });
+        }
       } catch (e: any) {
         const msg = e?.message || String(e);
         logs.push(`Fel för ${safeRel}: ${msg}`);

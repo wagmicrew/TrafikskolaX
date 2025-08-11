@@ -1,14 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# TrafikskolaX Deployment Script
-# This script handles deployment to dev.dintrafikskolahlm.se
+# TrafikskolaX Deployment Script (enhanced)
+# Supports dev/prod targets with separate remote directories
 
-# Configuration
-REMOTE_USER="trafikskolax"
-REMOTE_HOST="dev.dintrafikskolahlm.se"
-REMOTE_PATH="/var/www/trafikskolax"
-LOCAL_PATH="."
-GITHUB_REPO="https://github.com/wagmicrew/TrafikskolaX.git"
+# Defaults (can be overridden by env vars or CLI flags)
+REMOTE_USER=${REMOTE_USER:-"trafikskolax"}
+REMOTE_HOST=${REMOTE_HOST:-"dev.dintrafikskolahlm.se"}
+ENVIRONMENT=${ENVIRONMENT:-"dev"}          # dev | prod
+REMOTE_BASE=${REMOTE_BASE:-"/var/www"}
+LOCAL_PATH=${LOCAL_PATH:-"."}
+SSH_KEY=${SSH_KEY:-"~/.ssh/trafikskolax_key"}
+
+# Derived
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  REMOTE_PATH="$REMOTE_BASE/dintrafikskolax_prod"
+  PM2_APP_NAME="trafikskolax_prod"
+else
+  REMOTE_PATH="$REMOTE_BASE/dintrafikskolax_dev"
+  PM2_APP_NAME="trafikskolax_dev"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,92 +27,97 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting TrafikskolaX deployment...${NC}"
+echo -e "${GREEN}Starting TrafikskolaX deployment (${ENVIRONMENT})...${NC}"
+
+usage() {
+  echo "Usage: $0 {deploy|setup|push|full} [--env dev|prod] [--host HOST] [--user USER] [--key SSH_KEY]" >&2
+}
+
+# Parse flags following the command
+parse_flags() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --env)
+        ENVIRONMENT="$2"; shift 2 ;;
+      --host)
+        REMOTE_HOST="$2"; shift 2 ;;
+      --user)
+        REMOTE_USER="$2"; shift 2 ;;
+      --key)
+        SSH_KEY="$2"; shift 2 ;;
+      *)
+        echo "Unknown option: $1" >&2; usage; exit 1 ;;
+    esac
+  done
+  # Recompute derived after flags
+  if [[ "$ENVIRONMENT" == "prod" ]]; then
+    REMOTE_PATH="$REMOTE_BASE/dintrafikskolax_prod"
+    PM2_APP_NAME="trafikskolax_prod"
+  else
+    REMOTE_PATH="$REMOTE_BASE/dintrafikskolax_dev"
+    PM2_APP_NAME="trafikskolax_dev"
+  fi
+}
 
 # Function to deploy via SSH
 deploy() {
-    echo -e "${YELLOW}Deploying to ${REMOTE_HOST}...${NC}"
-    
-    # Build the project
-    echo -e "${YELLOW}Building project...${NC}"
-    npm run build
-    
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Build failed!${NC}"
-        exit 1
-    fi
-    
-    # Deploy using rsync
-    echo -e "${YELLOW}Syncing files to remote server...${NC}"
-    rsync -avz --delete \
-        --exclude 'node_modules' \
-        --exclude '.git' \
-        --exclude '.env.local' \
-        --exclude 'scripts/deploy-*' \
-        -e "ssh -i ~/.ssh/trafikskolax_key" \
-        ./ ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/
-    
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Rsync failed!${NC}"
-        exit 1
-    fi
-    
-    # Install dependencies and restart PM2 on remote
-    echo -e "${YELLOW}Installing dependencies and restarting PM2...${NC}"
-    ssh -i ~/.ssh/trafikskolax_key ${REMOTE_USER}@${REMOTE_HOST} << 'ENDSSH'
-        cd /var/www/trafikskolax
-        npm install --production
-        pm2 restart trafikskolax || pm2 start npm --name "trafikskolax" -- start
-        pm2 save
-ENDSSH
-    
-    echo -e "${GREEN}Deployment completed successfully!${NC}"
+  parse_flags "$@"
+  echo -e "${YELLOW}Deploying to ${REMOTE_HOST} (${ENVIRONMENT})...${NC}"
+
+  # Build locally (production)
+  echo -e "${YELLOW}Building project (local)...${NC}"
+  NODE_ENV=production npm run build
+
+  # Sync files to remote target path
+  echo -e "${YELLOW}Syncing files to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH} ...${NC}"
+  rsync -avz --delete \
+    --exclude 'node_modules' \
+    --exclude '.git' \
+    --exclude '.env.local' \
+    --exclude 'scripts/deploy-*' \
+    -e "ssh -i ${SSH_KEY}" \
+    ./ "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}/"
+
+  # Install deps and restart PM2 remotely
+  echo -e "${YELLOW}Installing dependencies and restarting PM2 on remote...${NC}"
+  ssh -i ${SSH_KEY} ${REMOTE_USER}@${REMOTE_HOST} bash -s << EOF
+set -euo pipefail
+cd "${REMOTE_PATH}"
+export NPM_CONFIG_FUND=false
+export NPM_CONFIG_AUDIT=false
+if [ -f package-lock.json ]; then
+  npm ci --omit=dev || npm ci --omit=dev --legacy-peer-deps || npm install --omit=dev --legacy-peer-deps
+else
+  npm install --omit=dev --legacy-peer-deps
+fi
+pm2 describe "${PM2_APP_NAME}" >/dev/null 2>&1 \
+  && pm2 reload "${PM2_APP_NAME}" \
+  || pm2 start npm --name "${PM2_APP_NAME}" -- start
+pm2 save || true
+EOF
+
+  echo -e "${GREEN}Deployment completed successfully!${NC}"
 }
 
 # Function to setup remote server
 setup_remote() {
-    echo -e "${YELLOW}Setting up remote server...${NC}"
-    
-    ssh -i ~/.ssh/trafikskolax_key root@${REMOTE_HOST} << 'ENDSSH'
-        # Create user if not exists
-        if ! id -u trafikskolax > /dev/null 2>&1; then
-            useradd -m -s /bin/bash trafikskolax
-            echo "User trafikskolax created"
-        fi
-        
-        # Create directory
-        mkdir -p /var/www/trafikskolax
-        chown -R trafikskolax:trafikskolax /var/www/trafikskolax
-        
-        # Setup nginx site
-        cat > /etc/nginx/sites-available/trafikskolax << 'EOF'
-server {
-    listen 80;
-    server_name dev.dintrafikskolahlm.se;
-    
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+  parse_flags "$@"
+  echo -e "${YELLOW}Setting up remote server (${ENVIRONMENT})...${NC}"
+
+  ssh -i ${SSH_KEY} root@${REMOTE_HOST} bash -s << EOF
+set -euo pipefail
+# Create user if not exists
+if ! id -u ${REMOTE_USER} >/dev/null 2>&1; then
+  useradd -m -s /bin/bash ${REMOTE_USER}
+  echo "User ${REMOTE_USER} created"
+fi
+
+# Create directories
+mkdir -p "${REMOTE_BASE}/dintrafikskolax_dev" "${REMOTE_BASE}/dintrafikskolax_prod"
+chown -R ${REMOTE_USER}:${REMOTE_USER} "${REMOTE_BASE}/dintrafikskolax_dev" "${REMOTE_BASE}/dintrafikskolax_prod"
+
+echo "Remote setup completed"
 EOF
-        
-        # Disable other sites and enable this one
-        rm -f /etc/nginx/sites-enabled/*
-        ln -sf /etc/nginx/sites-available/trafikskolax /etc/nginx/sites-enabled/
-        
-        # Test and reload nginx
-        nginx -t && systemctl reload nginx
-        
-        echo "Remote setup completed"
-ENDSSH
 }
 
 # Function to push to GitHub
@@ -113,26 +129,16 @@ push_to_github() {
 }
 
 # Main execution
-case "$1" in
-    deploy)
-        deploy
-        ;;
-    setup)
-        setup_remote
-        ;;
-    push)
-        push_to_github
-        ;;
-    full)
-        push_to_github
-        deploy
-        ;;
-    *)
-        echo "Usage: $0 {deploy|setup|push|full}"
-        echo "  deploy - Deploy to remote server"
-        echo "  setup  - Setup remote server (run once)"
-        echo "  push   - Push to GitHub"
-        echo "  full   - Push to GitHub and deploy"
-        exit 1
-        ;;
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  deploy)
+    deploy "$@" ;;
+  setup)
+    setup_remote "$@" ;;
+  push)
+    push_to_github ;;
+  full)
+    push_to_github; deploy "$@" ;;
+  *)
+    usage; exit 1 ;;
 esac

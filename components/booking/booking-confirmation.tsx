@@ -243,7 +243,7 @@ export function BookingConfirmation({
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch('/api/admin/students')
+      const response = await fetch('/api/admin/students?excludeTemp=true')
       if (response.ok) {
         const data = await response.json()
         setStudents(data.students || [])
@@ -325,7 +325,13 @@ export function BookingConfirmation({
             paymentMethod: 'admin_created',
             paymentStatus: 'paid',
             status: 'confirmed',
-            notes: `Bokad av ${user?.role === 'admin' ? 'administratör' : 'lärare'}`
+            notes: `Bokad av ${user?.role === 'admin' ? 'administratör' : 'lärare'}`,
+            // Handledar support when admin books
+            sessionId: bookingData.sessionId,
+            supervisorName: isHandledarutbildning ? supervisorName : undefined,
+            supervisorEmail: isHandledarutbildning ? supervisorEmail : undefined,
+            supervisorPhone: isHandledarutbildning ? supervisorPhone : undefined,
+            useHandledarCredit: isHandledarutbildning ? (alreadyPaid === true) : false
           })
         })
 
@@ -428,7 +434,7 @@ export function BookingConfirmation({
             amount: bookingData.totalPrice,
             reference: `booking-${Date.now()}`,
             description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `${window.location.origin}/booking/confirmation`
+            returnUrl: `${window.location.origin}/dashboard/student/bokningar${(bookingData.id || bookingData.tempBookingId) ? `/${bookingData.id || bookingData.tempBookingId}` : ''}`
           })
         })
         
@@ -733,7 +739,7 @@ export function BookingConfirmation({
             )}
 
             {/* Supervisor Information for Handledar Sessions */}
-            {isHandledarSession && !isAdminOrTeacher && (
+            {isHandledarSession && (
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Handledare information</h3>
                 <div className="space-y-3">
@@ -1044,7 +1050,14 @@ export function BookingConfirmation({
               }
               className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4"
             >
-              {loading ? "Bekräftar..." : "Bekräfta bokning"}
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="animate-spin inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white"></span>
+                  Genomför bokning
+                </span>
+              ) : (
+                "Bekräfta bokning"
+              )}
             </Button>
             <Button variant="outline" onClick={onBack} className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />

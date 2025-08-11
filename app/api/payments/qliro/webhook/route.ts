@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packagePurchases, userCredits, packageContents, bookings, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { logger } from '@/lib/logging/logger';
@@ -107,34 +107,112 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      // Update payment status
+      // Detect if optional column paid_at exists to avoid runtime errors on legacy DBs
+      let paidAtExists = false;
+      try {
+        const result: any = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1`);
+        const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+        paidAtExists = rows.length > 0;
+      } catch {
+        paidAtExists = false;
+      }
+
+      // Update payment status (conditionally include paidAt)
+      const updateValues: any = {
+        paymentStatus: 'paid',
+        paymentReference: event.PaymentReference,
+      };
+      if (paidAtExists) {
+        updateValues.paidAt = new Date();
+      }
+
       await db
         .update(packagePurchases)
-        .set({
-          paymentStatus: 'paid',
-          paidAt: new Date(),
-          paymentReference: event.PaymentReference
-        })
+        .set(updateValues)
         .where(eq(packagePurchases.id, orderId));
 
-      // Get package contents
+      // Get package contents we need to convert into credits
       const contents = await db
-        .select()
+        .select({
+          lessonTypeId: packageContents.lessonTypeId,
+          handledarSessionId: packageContents.handledarSessionId,
+          credits: packageContents.credits,
+          contentType: packageContents.contentType,
+        })
         .from(packageContents)
         .where(eq(packageContents.packageId, purchase[0].packageId));
 
-      // Add credits to user
+      // Add credits to user according to correct schema (lesson and handledar)
       for (const content of contents) {
-        if (content.lessonTypeId && content.credits) {
-          await db
-            .insert(userCredits)
-            .values({
-              userId: purchase[0].userId,
-              lessonTypeId: content.lessonTypeId,
-              credits: content.credits,
-              source: 'package_purchase',
-              sourceId: orderId
-            });
+        const qty = Number(content.credits || 0);
+        if (!qty || qty <= 0) continue;
+
+        // Lesson credits (by lessonType)
+        if (content.lessonTypeId) {
+          const existing = await db
+            .select()
+            .from(userCredits)
+            .where(and(
+              eq(userCredits.userId, purchase[0].userId),
+              eq(userCredits.lessonTypeId, content.lessonTypeId)
+            ))
+            .limit(1);
+
+          if (existing.length > 0) {
+            await db
+              .update(userCredits)
+              .set({
+                creditsRemaining: existing[0].creditsRemaining + qty,
+                creditsTotal: existing[0].creditsTotal + qty,
+                updatedAt: new Date(),
+              })
+              .where(eq(userCredits.id, existing[0].id));
+          } else {
+            await db
+              .insert(userCredits)
+              .values({
+                userId: purchase[0].userId,
+                lessonTypeId: content.lessonTypeId,
+                creditsRemaining: qty,
+                creditsTotal: qty,
+                packageId: purchase[0].packageId,
+                creditType: 'lesson',
+              });
+          }
+        } else if (content.contentType === 'handledar') {
+          // Handledar credits (no lessonTypeId, creditType = 'handledar')
+          const existingHandledar = await db
+            .select()
+            .from(userCredits)
+            .where(and(
+              eq(userCredits.userId, purchase[0].userId),
+              eq(userCredits.lessonTypeId, null),
+              eq(userCredits.creditType, 'handledar')
+            ))
+            .limit(1);
+
+          if (existingHandledar.length > 0) {
+            await db
+              .update(userCredits)
+              .set({
+                creditsRemaining: existingHandledar[0].creditsRemaining + qty,
+                creditsTotal: existingHandledar[0].creditsTotal + qty,
+                updatedAt: new Date(),
+              })
+              .where(eq(userCredits.id, existingHandledar[0].id));
+          } else {
+            await db
+              .insert(userCredits)
+              .values({
+                userId: purchase[0].userId,
+                handledarSessionId: content.handledarSessionId || null,
+                lessonTypeId: null,
+                creditsRemaining: qty,
+                creditsTotal: qty,
+                packageId: purchase[0].packageId,
+                creditType: 'handledar',
+              });
+          }
         }
       }
 

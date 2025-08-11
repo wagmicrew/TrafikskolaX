@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, userCredits, internalMessages } from '@/lib/db/schema';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, isNull } from 'drizzle-orm';
 import { verifyToken } from '@/lib/auth/jwt';
 import { cookies } from 'next/headers';
 import sgMail from '@sendgrid/mail';
@@ -48,7 +48,10 @@ export async function POST(
     let tokenUserId;
     try {
       const payload = await verifyToken(token.value);
-      tokenUserId = payload.userId;
+      if (!payload || !(payload as any).userId) {
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+      tokenUserId = (payload as any).userId;
       console.log('Token payload:', payload);
       console.log('Request userId:', userId);
       console.log('Token userId:', tokenUserId);
@@ -81,13 +84,13 @@ export async function POST(
 
     // Check for available credits - use tokenUserId
     const userCreditRecords = await db.query.userCredits.findMany({
-      where: (credits, { eq, and, or }) => 
+      where: (credits, { eq, and, or, isNull }) => 
         and(
           eq(credits.userId, tokenUserId),
           or(
             eq(credits.lessonTypeId, booking.lessonTypeId),
             and(
-              eq(credits.lessonTypeId, null),
+              isNull(credits.lessonTypeId),
               eq(credits.creditType, 'handledar')
             )
           )
@@ -143,7 +146,7 @@ async function sendPaymentConfirmationNotification(booking: any) {
     // Save internal message
     const formattedDate = format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv });
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
-    const bookingUrl = `${baseUrl}/dashboard/student/bookings/${booking.id}`;
+    const bookingUrl = `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
     
     await db.insert(internalMessages).values({
       fromUserId: booking.userId,

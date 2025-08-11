@@ -16,6 +16,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     
     console.log('Fetching credits for user:', id);
+    if (id === 'new') {
+      return NextResponse.json({ credits: [] });
+    }
     
     const searchParams = new URL(request.url).searchParams;
     const creditType = searchParams.get('creditType');

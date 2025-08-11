@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
-import { internalMessages } from '@/lib/db/schema';
+import { internalMessages, siteSettings } from '@/lib/db/schema';
+import { eq as drEq } from 'drizzle-orm';
 import { eq, and, count } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -18,6 +19,19 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
+
+    // Check if internal messages are globally enabled
+    try {
+      const rows = await db
+        .select()
+        .from(siteSettings)
+        .where(drEq(siteSettings.key, 'internal_messages_enabled'))
+        .limit(1);
+      const enabled = rows.length === 0 ? true : rows[0].value !== 'false';
+      if (!enabled) {
+        return NextResponse.json({ unreadCount: 0, disabled: true });
+      }
+    } catch {}
 
     const result = await db
       .select({ count: count() })

@@ -235,6 +235,17 @@ export const userFeedback = pgTable('user_feedback', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// Booking plan items (planned steps per booking)
+export const bookingPlanItems = pgTable('booking_plan_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  bookingId: uuid('booking_id').references(() => bookings.id).notNull(),
+  stepIdentifier: varchar('step_identifier', { length: 50 }).notNull(),
+  addedBy: uuid('added_by').references(() => users.id),
+  isSelected: boolean('is_selected').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Internal Messages table
 export const internalMessages = pgTable('internal_messages', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -388,6 +399,10 @@ export const packagePurchases = pgTable('package_purchases', {
   paymentMethod: varchar('payment_method', { length: 50 }),
   paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
   invoiceNumber: varchar('invoice_number', { length: 100 }),
+  // Newly added fields for Qliro admin features
+  paidAt: timestamp('paid_at'),
+  paymentReference: varchar('payment_reference', { length: 255 }),
+  userEmail: varchar('user_email', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -478,6 +493,28 @@ export const notifications = pgTable('notifications', {
   type: varchar('type', { length: 50 }).default('info'), // info, warning, error, success
   isRead: boolean('is_read').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Lesson content groups and items
+export const lessonContentGroups = pgTable('lesson_content_groups', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const lessonContentItems = pgTable('lesson_content_items', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  groupId: uuid('group_id').notNull().references(() => lessonContentGroups.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  durationMinutes: integer('duration_minutes'),
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // Transactions table

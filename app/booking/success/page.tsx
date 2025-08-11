@@ -232,7 +232,7 @@ export default function BookingSuccessPage() {
                 </div>
                 <div>
                   <p className="font-medium">Förbered dig inför lektionen</p>
-                  <p className="text-sm text-gray-600">Se till att du har ditt körkort och är redo 10 minuter innan lektionen börjar.</p>
+                  <p className="text-sm text-gray-600">Var på plats i god tid (ca 10 minuter innan) och ta med giltig legitimation. Körkort är inte nödvändigt för att påbörja din utbildning.</p>
                 </div>
               </div>
               <div className="flex items-start">

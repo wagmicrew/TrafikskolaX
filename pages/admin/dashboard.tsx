@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ExportSchedule } from '@/components/Admin/ExportSchedule';
+// ExportSchedule is a client component; import dynamically and pass required props
+const ExportSchedule = dynamic(() => import('@/components/Admin/ExportSchedule'), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
 
 // Dynamic imports to avoid SSR issues with auth hooks
 const UserManagement = dynamic(() => import('@/components/Admin/UserManagement'), {
@@ -23,7 +27,7 @@ const AdminDashboard = () => {
     <div className="admin-dashboard p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-        <ExportSchedule />
+        <ExportSchedule role="admin" />
       </div>
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">

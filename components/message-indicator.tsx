@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FaEnvelope } from 'react-icons/fa';
 import { useMessages } from '@/lib/hooks/use-messages';
@@ -13,6 +13,15 @@ interface MessageIndicatorProps {
 
 const MessageIndicator: React.FC<MessageIndicatorProps> = ({ href, className, children }) => {
   const { unreadCount } = useMessages();
+  const [enabled, setEnabled] = useState(true);
+  useEffect(() => {
+    fetch('/api/messages/unread-count')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setEnabled(data?.disabled !== true))
+      .catch(() => setEnabled(true));
+  }, []);
+
+  if (!enabled) return null;
 
   return (
     <Link href={href} className={`relative ${className}`}>

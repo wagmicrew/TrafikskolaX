@@ -3,23 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  FaCalendarAlt, 
   FaCheckCircle, 
   FaClock, 
-  FaCreditCard, 
-  FaShoppingCart, 
-  FaCommentDots,
-  FaTrophy,
   FaCoins,
   FaStar,
   FaBookOpen,
   FaGraduationCap,
-  FaStore,
-  FaEnvelope,
-  FaPlusCircle
 } from 'react-icons/fa';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import MessageIndicator from '@/components/message-indicator';
+import LearningModules from './LearningModules';
+import StudentStrengthsCard from './StudentStrengthsCard';
+import StudentHeader from './StudentHeader';
+import PackageStoreModal from '@/components/PackageStoreModal';
+import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
+import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 
 interface Booking {
   id: string;
@@ -86,10 +84,20 @@ interface User {
   avatar?: string;
 }
 
+interface UserPackage {
+  id: string;
+  packageId: string;
+  name?: string;
+  description?: string;
+  purchaseDate?: string;
+  pricePaid?: number;
+}
+
 interface StudentDashboardClientProps {
   user: User;
   bookings: Booking[];
   credits: Credit[];
+  userPackages?: UserPackage[];
   feedback: Feedback[];
   stats: Stats;
 }
@@ -98,6 +106,7 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   user, 
   bookings: initialBookings, 
   credits, 
+  userPackages = [],
   feedback, 
   stats 
 }) => {
@@ -106,6 +115,13 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [processingCreditPayment, setProcessingCreditPayment] = useState<Record<string, boolean>>({});
+  const [confirmUseCreditsFor, setConfirmUseCreditsFor] = useState<{ bookingId: string, lessonTypeId: string } | null>(null)
+  const [openingBooking, setOpeningBooking] = useState(false)
+  const [showPackageModal, setShowPackageModal] = useState(false)
+  const [showSwishDialog, setShowSwishDialog] = useState(false)
+  const [showQliroDialog, setShowQliroDialog] = useState(false)
+  const [swishPaymentData, setSwishPaymentData] = useState({ amount: 0, message: '', purchaseId: '' })
+  const [qliroPaymentData, setQliroPaymentData] = useState({ amount: 0, purchaseId: '', checkoutUrl: '' })
 
   const upcomingBookings = bookings.filter(
     (booking) => booking.status !== 'cancelled' && booking.status !== 'completed'
@@ -167,6 +183,7 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
       toast.error('Ett fel inträffade vid betalning med krediter');
     } finally {
       setProcessingCreditPayment(prev => ({ ...prev, [bookingId]: false }));
+      setConfirmUseCreditsFor(null)
     }
   };
 
@@ -175,102 +192,72 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12 px-6 shadow-lg mb-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold flex items-center gap-3">
-              <FaGraduationCap className="text-yellow-300" />
-              Studentsidan
-            </h1>
-            <p className="text-xl mt-2 text-blue-100">Välkommen tillbaka, {user.firstName} {user.lastName}!</p>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-blue-200">Din framsteg</div>
-            <div className="text-2xl font-bold">{stats.completedBookings}/{stats.totalBookings}</div>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <nav className="flex justify-center gap-4 text-lg font-semibold">
-            <Link href="/dashboard/student" className="hover:text-yellow-300">Bokningar</Link>
-            <Link href="/dashboard/student/feedback" className="hover:text-yellow-300">Feedback</Link>
-            <MessageIndicator href="/dashboard/student/meddelande" className="hover:text-yellow-300">
-              Meddelande
-            </MessageIndicator>
-            <Link href="/dashboard/student/settings" className="hover:text-yellow-300">Inställningar</Link>
-            <Link href="/dashboard/utbildningskort" className="hover:text-yellow-300">Utbildningskort</Link>
-          </nav>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
+      <div className="px-6 pt-8">
+        <StudentHeader title="Studentsidan" icon={<FaGraduationCap className="text-yellow-300" />} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-blue-500">
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Totalt Lektioner</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.totalBookings}</p>
+                <p className="text-sm text-slate-300">Totalt lektioner</p>
+                <p className="text-3xl font-extrabold">{stats.totalBookings}</p>
               </div>
-              <FaBookOpen className="text-4xl text-blue-500" />
+              <FaBookOpen className="text-3xl text-sky-300" />
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Genomförda</p>
-                <p className="text-3xl font-bold text-green-600">{stats.completedBookings}</p>
+                <p className="text-sm text-slate-300">Genomförda</p>
+                <p className="text-3xl font-extrabold">{stats.completedBookings}</p>
               </div>
-              <FaCheckCircle className="text-4xl text-green-500" />
+              <FaCheckCircle className="text-3xl text-emerald-300" />
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Kommande</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.upcomingBookings}</p>
+                <p className="text-sm text-slate-300">Kommande</p>
+                <p className="text-3xl font-extrabold">{stats.upcomingBookings}</p>
               </div>
-              <FaClock className="text-4xl text-yellow-500" />
+              <FaClock className="text-3xl text-yellow-300" />
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Tillgängliga Krediter</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.totalCredits}</p>
+                <p className="text-sm text-slate-300">Tillgängliga krediter</p>
+                <p className="text-3xl font-extrabold">{stats.totalCredits}</p>
               </div>
-              <FaCoins className="text-4xl text-purple-500" />
+              <FaCoins className="text-3xl text-purple-300" />
             </div>
           </div>
         </div>
 
         <div className="space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Översikt av dina lektioner</h2>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing}>
+            <h2 className="text-2xl font-extrabold text-white">Mina bokningar</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing} className="border-white/20 text-white hover:bg-white/10">
                 {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
               </Button>
             </div>
           </div>
 
-          <Card className="shadow-lg border-0">
-            <CardHeader className="bg-white border-b border-gray-100 rounded-t-xl">
-              <CardTitle className="text-2xl font-bold text-gray-900">Mina Bokningar</CardTitle>
-              <CardDescription className="text-lg text-gray-600">
-                Hantera dina kommande och tidigare lektioner smidigt och enkelt
-              </CardDescription>
+          <Card className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-white shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-white">Översikt</CardTitle>
+              <CardDescription className="text-slate-300">Hantera kommande och tidigare lektioner</CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent>
               <Tabs defaultValue="upcoming" onValueChange={setActiveTab}>
-                <TabsList className="flex-nowrap overflow-x-auto">
+                <TabsList className="bg-white/5 border border-white/10">
                   <TabsTrigger value="upcoming">Kommande</TabsTrigger>
                   <TabsTrigger value="past">Tidigare</TabsTrigger>
                 </TabsList>
-                
                 <TabsContent value="upcoming">
                   {upcomingBookings.length > 0 ? (
                     <BookingsTable 
@@ -280,19 +267,25 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                       compact={true}
                     />
                   ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Inga kommande lektioner hittades</p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4"
-                        onClick={() => router.push('/book')}
-                      >
-                        Boka lektion nu
-                      </Button>
+                    <div className="text-center py-8 text-slate-300">
+                      <p>Inga kommande lektioner hittades</p>
+                      {openingBooking ? (
+                        <div className="mt-4 flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-sky-500"></div>
+                          <div className="text-sm text-slate-200">Öppnar bokning...</div>
+                        </div>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          className="mt-4 border-white/20 text-white hover:bg-white/10"
+                          onClick={() => { setOpeningBooking(true); router.push('/boka-korning') }}
+                        >
+                          Boka lektion nu
+                        </Button>
+                      )}
                     </div>
                   )}
                 </TabsContent>
-                
                 <TabsContent value="past">
                   {pastBookings.length > 0 ? (
                     <BookingsTable 
@@ -302,8 +295,8 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                       compact={true}
                     />
                   ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">Inga tidigare lektioner hittades</p>
+                    <div className="text-center py-8 text-slate-300">
+                      <p>Inga tidigare lektioner hittades</p>
                     </div>
                   )}
                 </TabsContent>
@@ -311,30 +304,124 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
             </CardContent>
           </Card>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <FaCoins className="text-yellow-500" />
-              Dina Krediter
-            </h3>
-            
-            {credits.length > 0 ? (
-              <div className="space-y-3">
-                {credits.map((credit) => (
-                  <div key={credit.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium">
-                      {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
-                    </span>
-                    <span className="font-bold text-purple-600">{credit.creditsRemaining || credit.remaining}</span>
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-extrabold flex items-center gap-2">
+                <FaCoins className="text-yellow-300" /> Dina krediter och paket
+              </h3>
+              <Button onClick={() => setShowPackageModal(true)} className="bg-sky-600 hover:bg-sky-500">Köp paket</Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm uppercase tracking-wide text-slate-300 mb-2">Krediter</h4>
+                {credits.length > 0 ? (
+                  <div className="space-y-3">
+                    {credits.map((credit: any) => (
+                      <div key={credit.id} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
+                        <span className="text-sm">
+                          {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                        </span>
+                        <span className="font-bold text-purple-300">{credit.creditsRemaining || credit.remaining}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+                    Inga krediter tillgängliga
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-600">Inga krediter tillgängliga</p>
-            )}
+              <div>
+                <h4 className="text-sm uppercase tracking-wide text-slate-300 mb-2">Aktiva paket</h4>
+                {userPackages.length > 0 ? (
+                  <div className="space-y-3">
+                    {userPackages.map((pkg) => (
+                      <div key={pkg.id} className="p-3 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold">{pkg.name || 'Paket'}</div>
+                            {pkg.purchaseDate && (
+                              <div className="text-xs text-slate-300">Köpt: {new Date(pkg.purchaseDate).toLocaleDateString('sv-SE')}</div>
+                            )}
+                          </div>
+                          {typeof pkg.pricePaid !== 'undefined' && (
+                            <div className="text-sm text-slate-200">{Number(pkg.pricePaid).toLocaleString('sv-SE')} kr</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300">
+                    Inga aktiva paket
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
+          {/* Strengths vs Needs Work */}
+          <StudentStrengthsCard />
+
+          {/* Learning modules/progress */}
+          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-extrabold">Lärande</h3>
+              <Button onClick={() => toast('Kommer snart: fler moduler!')} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white">Visa alla</Button>
+            </div>
+            <LearningModules userId={user.id} />
+          </div>
         </div>
       </div>
+
+      {/* Confirm use credits dialog */}
+      {confirmUseCreditsFor && (
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=>setConfirmUseCreditsFor(null)} />
+          <div className="relative z-[11010] rounded-2xl bg-slate-900/95 border border-white/10 text-white shadow-2xl p-6 w-[min(92vw,480px)]">
+            <h4 className="text-lg font-extrabold mb-2">Använd krediter?</h4>
+            <p className="text-slate-300 mb-4">Vill du använda dina krediter för att betala denna bokning?</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={()=>setConfirmUseCreditsFor(null)}>Avbryt</Button>
+              <Button onClick={()=>handleCreditPayment(confirmUseCreditsFor.bookingId, confirmUseCreditsFor.lessonTypeId)} className="bg-emerald-600 hover:bg-emerald-500">Använd krediter</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Package Store Modal */}
+      <PackageStoreModal
+        isOpen={showPackageModal}
+        onClose={() => setShowPackageModal(false)}
+        userRole={user.role}
+        hasActivePackage={(userPackages || []).length > 0}
+        onStartPayment={(args) => {
+          if (args.method === 'swish') {
+            setSwishPaymentData({ amount: args.amount, message: args.message, purchaseId: args.purchaseId })
+            setShowSwishDialog(true)
+          } else {
+            setQliroPaymentData({ amount: args.amount, purchaseId: args.purchaseId, checkoutUrl: args.checkoutUrl })
+            setShowQliroDialog(true)
+          }
+        }}
+      />
+
+      {/* Payment dialogs */}
+      <SwishPaymentDialog
+        isOpen={showSwishDialog}
+        onClose={() => setShowSwishDialog(false)}
+        booking={{ id: swishPaymentData.purchaseId, totalPrice: swishPaymentData.amount }}
+        onConfirm={() => setShowSwishDialog(false)}
+        customMessage={swishPaymentData.message}
+      />
+      <QliroPaymentDialog
+        isOpen={showQliroDialog}
+        onClose={() => setShowQliroDialog(false)}
+        purchaseId={qliroPaymentData.purchaseId}
+        amount={qliroPaymentData.amount}
+        checkoutUrl={qliroPaymentData.checkoutUrl}
+        onConfirm={() => setShowQliroDialog(false)}
+      />
     </div>
   );
 };

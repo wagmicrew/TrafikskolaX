@@ -225,30 +225,26 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
   }, [booking.id, user.id, booking.paymentStatus]);
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
       {/* Cancellation Confirmation Modal */}
       {showCancelConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">Bekräfta avbokning</h3>
-            
-            <p className="text-gray-700 mb-4">
-              Är du säker på att du vill avboka denna bokning? Detta går inte att ångra.
-            </p>
-            
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleCancelConfirmation} />
+          <div className="relative z-[11010] rounded-2xl bg-slate-900/95 border border-white/10 text-white shadow-2xl p-6 w-[min(92vw,560px)]">
+            <h3 className="text-xl font-extrabold mb-2">Bekräfta avbokning</h3>
+            <p className="text-slate-300 mb-4">Är du säker på att du vill avboka denna bokning? Detta går inte att ångra.</p>
+
             {cancellationError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 px-4 py-3">
                 {cancellationError}
               </div>
             )}
-            
+
             <div className="mb-4">
-              <label htmlFor="cancellationReason" className="block text-sm font-medium text-gray-700 mb-1">
-                Anledning för avbokning *
-              </label>
+              <label htmlFor="cancellationReason" className="block text-sm font-medium text-white mb-2">Anledning för avbokning *</label>
               <textarea
                 id="cancellationReason"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/40 p-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 rows={3}
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
@@ -256,26 +252,33 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                 disabled={isCancelling}
                 required
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Det är viktigt att du anger en anledning för avbokningen så att vi kan förbättra våra tjänster.
-              </p>
+              <p className="mt-1 text-sm text-white/60">Det är viktigt att du anger en anledning för avbokningen.</p>
             </div>
 
-            <div className="flex justify-end space-x-4 mt-6">
+            <div className="flex justify-end gap-2 mt-2">
               <button
                 onClick={handleCancelConfirmation}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50"
                 disabled={isCancelling}
               >
-                Avbryt
+                Behåll
               </button>
               <button
                 onClick={handleCancelBooking}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isCancelling}
               >
-                {isCancelling ? 'Avbokar...' : 'Ja, avboka bokningen'}
-                {!isCancelling && <FaTrashAlt />}
+                {isCancelling ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    Avbokar...
+                  </>
+                ) : (
+                  <>
+                    <FaTrashAlt />
+                    Ja, avboka bokningen
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -295,21 +298,21 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
 
       <div className="max-w-4xl mx-auto">
         {/* Main Booking Card */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-6">
+        <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl p-8 mb-6">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Bokning Detaljer</h1>
-              <p className="text-gray-600">Bokning ID: {booking.id}</p>
+              <h1 className="text-3xl font-extrabold mb-2">Bokning</h1>
+              <p className="text-slate-300">Bokning ID: {booking.id}</p>
             </div>
             <div className="text-right">
               <div className="flex gap-2 mb-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20`}>
                   {booking.status === 'confirmed' ? 'Bekräftad' : 
                    booking.status === 'pending' ? 'Väntande' : 
                    booking.status === 'on_hold' ? 'Pausad' : 
                    booking.status === 'cancelled' ? 'Avbokad' : booking.status}
                 </span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20`}>
                   {booking.paymentStatus === 'paid' ? 'Betald' : 
                    booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
                 </span>
@@ -332,37 +335,37 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Lesson Information */}
             <div className="space-y-6">
-              <div className="border-l-4 border-blue-500 pl-4">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">Lektionsinformation</h2>
+              <div className="border-l-4 border-sky-400 pl-4">
+                <h2 className="text-xl font-extrabold mb-4">Lektionsinformation</h2>
                 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <FaCalendarAlt className="text-blue-600" />
+                    <FaCalendarAlt className="text-sky-300" />
                     <div>
-                      <p className="font-medium">{booking.lessonTypeName}</p>
-                      <p className="text-sm text-gray-600">{booking.lessonTypeDescription}</p>
+                      <p className="font-semibold">{booking.lessonTypeName}</p>
+                      <p className="text-sm text-slate-300">{booking.lessonTypeDescription}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <FaClock className="text-green-600" />
+                    <FaClock className="text-emerald-300" />
                     <div>
-                      <p className="font-medium">{formatDate(booking.scheduledDate)}</p>
-                      <p className="text-sm text-gray-600">{booking.startTime} - {booking.endTime} ({booking.durationMinutes} min)</p>
+                      <p className="font-semibold">{formatDate(booking.scheduledDate)}</p>
+                      <p className="text-sm text-slate-300">{booking.startTime} - {booking.endTime} ({booking.durationMinutes} min)</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <FaCar className="text-purple-600" />
+                    <FaCar className="text-purple-300" />
                     <div>
-                      <p className="font-medium">Växellåda: {booking.transmissionType || 'Ej specificerad'}</p>
+                      <p className="font-semibold">Växellåda: {booking.transmissionType || 'Ej specificerad'}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <FaCoins className="text-yellow-600" />
+                    <FaCoins className="text-yellow-300" />
                     <div>
-                      <p className="font-medium text-lg">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
+                      <p className="font-semibold text-lg">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
                     </div>
                   </div>
                 </div>
@@ -370,26 +373,26 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
 
               {/* Teacher Information */}
               {booking.teacherFirstName && (
-                <div className="border-l-4 border-green-500 pl-4">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Körlärarinformation</h2>
+                <div className="border-l-4 border-emerald-400 pl-4">
+                  <h2 className="text-xl font-extrabold mb-4">Körlärarinformation</h2>
                   
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <FaUser className="text-green-600" />
-                      <p className="font-medium">{booking.teacherFirstName} {booking.teacherLastName}</p>
+                      <FaUser className="text-emerald-300" />
+                      <p className="font-semibold">{booking.teacherFirstName} {booking.teacherLastName}</p>
                     </div>
 
                     {booking.teacherEmail && (
                       <div className="flex items-center gap-3">
-                        <FaEnvelope className="text-blue-600" />
-                        <p className="text-sm">{booking.teacherEmail}</p>
+                        <FaEnvelope className="text-sky-300" />
+                        <p className="text-sm text-slate-200">{booking.teacherEmail}</p>
                       </div>
                     )}
 
                     {booking.teacherPhone && (
                       <div className="flex items-center gap-3">
-                        <FaPhone className="text-purple-600" />
-                        <p className="text-sm">{booking.teacherPhone}</p>
+                        <FaPhone className="text-purple-300" />
+                        <p className="text-sm text-slate-200">{booking.teacherPhone}</p>
                       </div>
                     )}
                   </div>
@@ -401,8 +404,8 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
             <div>
 {booking.paymentStatus === 'unpaid' && (
                 <div className="border-l-4 border-red-500 pl-4 mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FaExclamationCircle className="text-red-600" />
+                  <h2 className="text-xl font-extrabold mb-4 flex items-center gap-2 text-white">
+                    <FaExclamationCircle className="text-red-400" />
                     Betalning krävs
                   </h2>
 
@@ -430,9 +433,9 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                   )}
 
                   {/* Swish Payment Information */}
-                  <div className="bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10 backdrop-blur-xl border border-blue-500/20 rounded-xl p-6 mb-4">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <FaQrcode className="text-blue-600" />
+                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 mb-4">
+                    <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
+                      <FaQrcode className="text-sky-300" />
                       Betala med Swish
                     </h3>
 
@@ -442,12 +445,12 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                         size={150}
                         className="mx-auto bg-white p-2 rounded-lg"
                       />
-                      <p className="text-sm text-gray-600 mt-2">Skanna QR-koden med din Swish-app</p>
+                      <p className="text-sm text-slate-300 mt-2">Skanna QR-koden med din Swish-app</p>
                     </div>
 
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-800 mb-2">Betalningsinformation:</h4>
-                      <div className="space-y-1 text-sm">
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-lg">
+                      <h4 className="font-semibold mb-2">Betalningsinformation:</h4>
+                      <div className="space-y-1 text-sm text-slate-200">
                         <p><strong>Mottagare:</strong> Din Trafikskola HLM</p>
                         <p><strong>Belopp:</strong> {Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
                         <p><strong>Meddelande:</strong> Körleksion {booking.lessonTypeName} - {formatDate(booking.scheduledDate)}</p>
@@ -456,15 +459,25 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
 
                     {/* Payment Confirmation Button */}
                     {!isPaymentConfirmed ? (
-                      <button
+                <button
                         onClick={handlePaymentConfirmation}
-                        className="w-full mt-4 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-semibold"
+                  className="w-full mt-4 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 font-semibold disabled:opacity-50"
+                  disabled={isPaymentConfirmed}
                       >
-                        <FaMoneyBillWave />
-                        Jag har betalat
+                  {isPaymentConfirmed ? (
+                    <>
+                      <FaCheckCircle />
+                      Bekräftad
+                    </>
+                  ) : (
+                    <>
+                      <FaMoneyBillWave />
+                      Jag har betalat
+                    </>
+                  )}
                       </button>
                     ) : (
-                      <div className="w-full mt-4 bg-green-100 text-green-800 py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-semibold">
+                      <div className="w-full mt-4 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-semibold">
                         <FaCheckCircle />
                         Betalningsbekräftelse skickad
                       </div>
@@ -506,38 +519,35 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
         </div>
 
         {/* Planned Steps and Feedback */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Planerade steg & feedback</h2>
+        <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl p-8">
+          <h2 className="text-2xl font-extrabold mb-4">Planerade steg & feedback</h2>
           {isLoadingPlannedSteps ? (
-            <p>Laddar planerade steg...</p>
+            <p className="text-slate-300">Laddar planerade steg...</p>
           ) : plannedSteps.length > 0 ? (
             <div className="space-y-4">
               {plannedSteps.map(step => (
-                <div key={step.id} className="p-4 border rounded-lg bg-gray-50">
-                  <h3 className="font-bold text-lg text-gray-800">{step.stepIdentifier}</h3>
+                <div key={step.id} className="p-4 border border-white/10 rounded-lg bg-white/5">
+                  <h3 className="font-extrabold text-lg">{step.stepIdentifier}</h3>
                   {step.feedbackText && (
-                    <p className="text-gray-700 mt-2">{step.feedbackText}</p>
+                    <p className="text-slate-200 mt-2">{step.feedbackText}</p>
                   )}
                   {step.valuation !== null && step.valuation !== undefined && (
                     <div className="flex items-center gap-2 mt-2">
                       <span className="font-semibold">Värdering:</span>
-                      <span className="text-blue-600 font-bold">{step.valuation}/10</span>
+                      <span className="text-sky-300 font-bold">{step.valuation}/10</span>
                     </div>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-600">Inga planerade steg eller feedback för denna lektion ännu.</p>
+            <p className="text-slate-300">Inga planerade steg eller feedback för denna lektion ännu.</p>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center mt-6">
-          <Link
-            href="/dashboard/student"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
+          <Link href="/dashboard/student" className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">
             Tillbaka till Studentsidan
           </Link>
         </div>

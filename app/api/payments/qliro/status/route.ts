@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       .where(eq(siteSettings.category, 'payment'));
 
     const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value;
+      acc[setting.key] = setting.value ?? '';
       return acc;
     }, {} as Record<string, string>);
 
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Determine which environment to use
-    const useProduction = process.env.NODE_ENV === 'production' && qliroProdEnabled;
+    // Determine which environment to use strictly from site_settings
+    const useProduction = qliroProdEnabled;
     const apiUrl = useProduction 
       ? (settingsMap.qliro_prod_api_url || 'https://api.qliro.com')
       : (settingsMap.qliro_dev_api_url || 'https://playground.qliro.com');
@@ -45,48 +45,67 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // In production, test connectivity to Qliro API
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    // Always perform a reachability check against the configured FQDN
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        const response = await fetch(`${apiUrl}/health`, {
+      // First attempt a HEAD request to the base URL
+      let ok = false;
+      try {
+        const headResp = await fetch(apiUrl, {
           method: 'HEAD',
           signal: controller.signal,
-          headers: {
-            'User-Agent': 'TrafikskolaX/1.0'
-          }
-        });
+          redirect: 'follow' as RequestRedirect,
+          headers: { 'User-Agent': 'TrafikskolaX/1.0' }
+        } as RequestInit);
+        ok = !!headResp;
+      } catch {
+        ok = false;
+      }
 
-        clearTimeout(timeoutId);
+      // If HEAD fails, fall back to GET '/'
+      if (!ok) {
+        try {
+          const getResp = await fetch(apiUrl, {
+            method: 'GET',
+            signal: controller.signal,
+            redirect: 'follow' as RequestRedirect,
+            headers: { 'User-Agent': 'TrafikskolaX/1.0' }
+          } as RequestInit);
+          ok = !!getResp;
+        } catch {
+          ok = false;
+        }
+      }
 
-        // If we get any response (even 404), the service is reachable
+      clearTimeout(timeoutId);
+
+      if (!ok) {
+        // Do not hard-block checkout; mark as available but warn
         return NextResponse.json({
           available: true,
-          environment: useProduction ? 'production' : 'sandbox',
-          apiUrl: apiUrl
-        });
-
-      } catch (error) {
-        console.error('Qliro connectivity check failed:', error);
-        
-        return NextResponse.json({
-          available: false,
           reason: 'connectivity',
           message: 'Cannot reach Qliro API',
-          error: error instanceof Error ? error.message : 'Unknown error'
+          environment: useProduction ? 'production' : 'sandbox',
+          apiUrl
         });
       }
-    }
 
-    // In development, always return available (will use mock mode if needed)
-    return NextResponse.json({
-      available: true,
-      environment: useProduction ? 'production' : 'sandbox',
-      apiUrl: apiUrl,
-      mock: process.env.NODE_ENV === 'development'
-    });
+      return NextResponse.json({
+        available: true,
+        environment: useProduction ? 'production' : 'sandbox',
+        apiUrl
+      });
+    } catch (error) {
+      console.error('Qliro connectivity check failed:', error);
+      return NextResponse.json({
+        available: true,
+        reason: 'connectivity',
+        message: 'Cannot reach Qliro API',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
 
   } catch (error) {
     console.error('Error checking Qliro status:', error);

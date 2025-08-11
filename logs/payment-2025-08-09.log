@@ -1,0 +1,7 @@
+{"timestamp":"2025-08-09T21:44:30.810Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754775869974","amount":500,"description":"Bokning: Bedömningslektion"}}
+{"timestamp":"2025-08-09T21:44:30.812Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-09T21:44:31.369Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-09T21:44:31.371Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754775869974","amount":500,"environment":"sandbox"}}
+{"timestamp":"2025-08-09T21:44:31.406Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754775869974"}}
+{"timestamp":"2025-08-09T21:44:31.409Z","level":"warn","category":"payment","message":"Network error detected, falling back to mock mode","data":{"error":"fetch failed","reference":"booking-1754775869974"}}
+{"timestamp":"2025-08-09T21:44:31.410Z","level":"info","category":"payment","message":"Qliro checkout session created successfully","data":{"checkoutId":"mock_booking-1754775869974","reference":"booking-1754775869974","isMock":true}}

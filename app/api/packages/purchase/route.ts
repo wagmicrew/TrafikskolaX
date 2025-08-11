@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { packages, packagePurchases, siteSettings, userCredits, packageContents, lessonTypes } from '@/lib/db/schema';
+import { packages, packagePurchases, siteSettings, userCredits, packageContents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { qliroService } from '@/lib/payment/qliro-service';
@@ -37,12 +37,13 @@ export async function POST(request: NextRequest) {
 
     const pkg = packageData[0];
     
-    // Calculate effective price
-    let effectivePrice = pkg.price;
-    if (pkg.salePrice) {
-      effectivePrice = pkg.salePrice;
-    } else if (user.role === 'student' && pkg.priceStudent) {
-      effectivePrice = pkg.priceStudent;
+    // Calculate effective price (coerce to number from DB types)
+    const toNumber = (v: unknown): number => typeof v === 'number' ? v : Number(v ?? 0);
+    let effectivePrice: number = toNumber(pkg.price);
+    if (pkg.salePrice !== null && pkg.salePrice !== undefined) {
+      effectivePrice = toNumber(pkg.salePrice);
+    } else if (user.role === 'student' && pkg.priceStudent !== null && pkg.priceStudent !== undefined) {
+      effectivePrice = toNumber(pkg.priceStudent);
     }
 
     // Get payment settings
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       .where(eq(siteSettings.category, 'payment'));
 
     const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value;
+      acc[setting.key] = setting.value ?? '';
       return acc;
     }, {} as Record<string, string>);
 
@@ -62,9 +63,10 @@ export async function POST(request: NextRequest) {
       .values({
         userId: user.id,
         packageId: packageId,
-        pricePaid: effectivePrice,
+        pricePaid: effectivePrice.toFixed(2),
         paymentMethod: paymentMethod,
-        paymentStatus: 'pending'
+        paymentStatus: 'pending',
+        userEmail: user.email
       })
       .returning();
 
@@ -118,122 +120,36 @@ async function handleSwishPayment(purchaseId: string, amount: number, settings: 
   }
 }
 
-async function handleQliroPayment(purchaseId: string, amount: number, settings: Record<string, string>, pkg: any, user: any) {
-  const apiKey = settings.qliro_api_key;
-  const secret = settings.qliro_secret;
-  const merchantId = settings.qliro_merchant_id;
-  const sandbox = settings.qliro_sandbox === 'true';
-
-  if (!apiKey || !secret || !merchantId) {
-    return NextResponse.json({ error: 'Qliro not configured' }, { status: 500 });
-  }
-
-  // Use the correct API URL based on environment settings
-  const useProduction = settings.qliro_use_prod_env === 'true';
-  const baseUrl = useProduction 
-    ? (settings.qliro_prod_api_url || 'https://api.qliro.com')
-    : (settings.qliro_dev_api_url || 'https://playground.qliro.com');
-
-  const checkoutData = {
-    MerchantId: parseInt(merchantId),
-    PurchaseCurrency: 'SEK',
-    PurchaseCountry: 'SE',
-    Locale: 'sv-SE',
-    OrderId: purchaseId,
-    MerchantReference: purchaseId,
-    OrderItems: [
-      {
-        MerchantReference: pkg.id,
-        ProductName: pkg.name,
-        ProductDescription: pkg.description,
-        Quantity: 1,
-        PricePerItem: Math.round(amount * 100), // Convert to öre
-        PriceIncludingVat: Math.round(amount * 100),
-        VatPercentage: 0,
-      }
-    ],
-    Customer: {
-      Email: user.email,
-      FirstName: user.firstName,
-      LastName: user.lastName,
-      MobileNumber: user.phone || '',
-    },
-    BillingAddress: {
-      FirstName: user.firstName,
-      LastName: user.lastName,
-      Email: user.email,
-    },
-    Gui: {
-      ColorScheme: 'White',
-      Locale: 'sv-SE'
-    },
-    Notifications: {
-      WebHookUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/payments/qliro/webhook`,
-      Pushed: true
-    },
-    ReturnUrls: {
-      Success: `${process.env.NEXT_PUBLIC_BASE_URL}/packages-store/success?purchase=${purchaseId}`,
-      Cancel: `${process.env.NEXT_PUBLIC_BASE_URL}/packages-store/cancel?purchase=${purchaseId}`,
-    }
-  };
-
+async function handleQliroPayment(purchaseId: string, amount: number, _settings: Record<string, string>, pkg: any, user: any) {
   try {
-    // Check if we're in development mode or if Qliro domains are not accessible
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const mockQliro = settings.qliro_mock_mode === 'true' || isDevelopment;
-    
-    if (mockQliro) {
-      // Return mock response for development/testing
-      console.log('Using mock Qliro response for development/testing');
-      return NextResponse.json({
-        success: true,
-        checkoutUrl: `/mock-qliro-checkout?purchase=${purchaseId}&amount=${amount}`,
-        purchaseId: purchaseId,
-        mock: true
-      });
+    // Ensure service is enabled via site_settings
+    const enabled = await qliroService.isEnabled();
+    if (!enabled) {
+      return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
 
-    // Create basic auth header
-    const auth = Buffer.from(`${apiKey}:${secret}`).toString('base64');
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
-    const response = await fetch(`${baseUrl}/v1/checkouts`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(checkoutData),
+    const checkout = await qliroService.createCheckout({
+      amount,
+      reference: purchaseId,
+      description: pkg?.name || `Paketköp ${purchaseId}`,
+      returnUrl: `${baseUrl}/packages-store/success?purchase=${purchaseId}`,
+      customerEmail: user?.email,
+      customerPhone: user?.phone,
+      customerFirstName: user?.firstName,
+      customerLastName: user?.lastName,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Qliro API Error Response:', errorText);
-      throw new Error(`Qliro API error: ${response.status} - ${errorText}`);
-    }
-
-    const result = await response.json();
 
     return NextResponse.json({
       success: true,
-      checkoutUrl: result.CheckoutMarkup || result.HtmlSnippet,
-      purchaseId: purchaseId
+      checkoutUrl: checkout.checkoutUrl,
+      purchaseId,
     });
   } catch (error) {
     console.error('Qliro payment error:', error);
-    
-    // If network error, fallback to mock mode
-    if (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND')) {
-      console.log('Network error detected, falling back to mock mode');
-      return NextResponse.json({
-        success: true,
-        checkoutUrl: `/mock-qliro-checkout?purchase=${purchaseId}&amount=${amount}`,
-        purchaseId: purchaseId,
-        mock: true,
-        fallback: true
-      });
-    }
-    
-    return NextResponse.json({ error: 'Qliro payment failed' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Qliro payment failed';
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }
 

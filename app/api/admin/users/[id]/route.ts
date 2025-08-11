@@ -47,47 +47,35 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     
     const body = await request.json();
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      role,
-      isActive,
-      inskriven,
-      customPrice,
-      personalNumber,
-      address,
-      postalCode,
-      city,
-      dateOfBirth,
-      password
-    } = body;
 
-    const updateData: any = {
-      firstName,
-      lastName,
-      email,
-      phone,
-      role,
-      isActive,
-      inskriven,
-      customPrice,
-      personalNumber,
-      address,
-      postalCode,
-      city,
-      dateOfBirth,
-      updatedAt: new Date(),
-    };
+    // Only include provided fields (partial updates per-section)
+    const allowedKeys = [
+      'firstName', 'lastName', 'email', 'phone', 'role', 'isActive', 'inskriven', 'customPrice',
+      'personalNumber', 'address', 'postalCode', 'city', 'dateOfBirth',
+      'riskEducation1', 'riskEducation2', 'knowledgeTest', 'drivingTest',
+      'sendInternalMessagesToEmail'
+    ] as const;
 
-    // Hash password if provided
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+    const updateData: any = { updatedAt: new Date() };
+
+    for (const key of allowedKeys) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) {
+        updateData[key] = body[key];
+      }
     }
 
-    // Set inskriven date if changing to inskriven
-    if (inskriven && !updateData.inskrivenDate) {
+    // Map teacherNotes -> notes column if provided
+    if (Object.prototype.hasOwnProperty.call(body, 'teacherNotes')) {
+      updateData.notes = body.teacherNotes;
+    }
+
+    // Hash password only when explicitly provided
+    if (Object.prototype.hasOwnProperty.call(body, 'password') && body.password) {
+      updateData.password = await bcrypt.hash(body.password, 10);
+    }
+
+    // Set inskrivenDate when toggling to true
+    if (Object.prototype.hasOwnProperty.call(body, 'inskriven') && body.inskriven === true) {
       updateData.inskrivenDate = new Date();
     }
 

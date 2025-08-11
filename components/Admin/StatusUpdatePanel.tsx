@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { CheckCircle, XCircle, AlertCircle, CreditCard, Save, Settings } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface StatusUpdatePanelProps {
   booking: any;
@@ -99,10 +100,10 @@ const StatusUpdatePanel: React.FC<StatusUpdatePanelProps> = ({ booking, onStatus
   const hasChanges = currentStatus !== booking.status || currentPaymentStatus !== booking.paymentStatus;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+    <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white relative z-20">
       <div className="flex items-center gap-2 mb-4">
-        <Settings className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-gray-800">Status Management</h3>
+        <Settings className="w-5 h-5 text-sky-300" />
+        <h3 className="text-lg font-extrabold">Status</h3>
       </div>
 
       <div className="space-y-6">
@@ -121,22 +122,23 @@ const StatusUpdatePanel: React.FC<StatusUpdatePanelProps> = ({ booking, onStatus
         <div className="grid md:grid-cols-2 gap-6">
           {/* Booking Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-200 mb-2">
               Bokningsstatus
             </label>
-            <select
-              value={currentStatus}
-              onChange={(e) => setCurrentStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Select value={currentStatus} onValueChange={(v) => setCurrentStatus(v)}>
+              <SelectTrigger className="w-full rounded-md bg-white/10 border border-white/20 text-white shadow-sm focus:ring-2 focus:ring-sky-400">
+                <SelectValue placeholder="Välj status" />
+              </SelectTrigger>
+              <SelectContent className="z-[60] bg-white/10 backdrop-blur-md border border-white/20 text-white">
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="hover:bg-white/20 focus:bg-white/20">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {currentStatus !== booking.status && (
-              <p className="mt-1 text-sm text-blue-600">
+              <p className="mt-1 text-sm text-sky-300">
                 Ändras från: {statusOptions.find(opt => opt.value === booking.status)?.label}
               </p>
             )}
@@ -144,22 +146,23 @@ const StatusUpdatePanel: React.FC<StatusUpdatePanelProps> = ({ booking, onStatus
 
           {/* Payment Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-slate-200 mb-2">
               Betalningsstatus
             </label>
-            <select
-              value={currentPaymentStatus}
-              onChange={(e) => setCurrentPaymentStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {paymentStatusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <Select value={currentPaymentStatus} onValueChange={(v) => setCurrentPaymentStatus(v)}>
+              <SelectTrigger className="w-full rounded-md bg-white/10 border border-white/20 text-white shadow-sm focus:ring-2 focus:ring-sky-400">
+                <SelectValue placeholder="Välj betalningsstatus" />
+              </SelectTrigger>
+              <SelectContent className="z-[60] bg-white/10 backdrop-blur-md border border-white/20 text-white">
+                {paymentStatusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="hover:bg-white/20 focus:bg-white/20">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {currentPaymentStatus !== booking.paymentStatus && (
-              <p className="mt-1 text-sm text-blue-600">
+              <p className="mt-1 text-sm text-sky-300">
                 Ändras från: {paymentStatusOptions.find(opt => opt.value === booking.paymentStatus)?.label}
               </p>
             )}
@@ -168,14 +171,14 @@ const StatusUpdatePanel: React.FC<StatusUpdatePanelProps> = ({ booking, onStatus
 
         {/* Update Button */}
         {hasChanges && (
-          <div className="flex justify-end pt-4 border-t border-gray-200">
+          <div className="flex justify-end pt-4 border-t border-white/10">
             <button
               onClick={handleStatusUpdate}
               disabled={isUpdating}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 isUpdating 
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  ? 'bg-white/20 text-white/50 cursor-not-allowed'
+                  : 'bg-sky-600 text-white hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400'
               }`}
             >
               <Save className="w-4 h-4" />
@@ -185,11 +188,11 @@ const StatusUpdatePanel: React.FC<StatusUpdatePanelProps> = ({ booking, onStatus
         )}
 
         {/* Status History Info */}
-        <div className="text-xs text-gray-500 space-y-1">
-          <p>Skapad: {new Date(booking.createdAt).toLocaleString('sv-SE')}</p>
-          <p>Senast uppdaterad: {new Date(booking.updatedAt).toLocaleString('sv-SE')}</p>
+        <div className="text-xs text-slate-300 space-y-1">
+          <p>Skapad: <span className="text-white">{new Date(booking.createdAt).toLocaleString('sv-SE')}</span></p>
+          <p>Senast uppdaterad: <span className="text-white">{new Date(booking.updatedAt).toLocaleString('sv-SE')}</span></p>
           {booking.completedAt && (
-            <p>Genomförd: {new Date(booking.completedAt).toLocaleString('sv-SE')}</p>
+            <p>Genomförd: <span className="text-white">{new Date(booking.completedAt).toLocaleString('sv-SE')}</span></p>
           )}
         </div>
       </div>

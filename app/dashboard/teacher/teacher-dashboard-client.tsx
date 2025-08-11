@@ -75,6 +75,16 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateBookings, setDateBookings] = useState<Booking[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [planSteps, setPlanSteps] = useState<BookingStep[]>([]);
+  const [planSelectedIds, setPlanSelectedIds] = useState<Set<string>>(new Set());
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [liveSteps, setLiveSteps] = useState<string[]>([]);
+  const [liveCurrentIdx, setLiveCurrentIdx] = useState(0);
+  const [liveNotes, setLiveNotes] = useState<Record<string, string>>({});
+  const [liveStars, setLiveStars] = useState<Record<string, 1 | 2 | 3>>({});
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
     fetchTodaysBookings();
@@ -184,26 +194,19 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
 
   const saveFeedback = async () => {
     if (!selectedBooking) return;
-
     try {
+      const loadingId = toast.loading('Sparar feedback...');
       for (const [stepId, data] of Object.entries(selectedSteps)) {
         await fetch('/api/teacher/feedback', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bookingId: selectedBooking.id,
-            stepIdentifier: stepId,
-            feedbackText: data.feedback,
-            valuation: data.valuation,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingId: selectedBooking.id, stepIdentifier: stepId, feedbackText: data.feedback, valuation: data.valuation }),
         });
       }
-      alert('Feedback sparad!');
+      toast.success('Feedback sparad', { id: loadingId });
     } catch (error) {
       console.error('Failed to save feedback:', error);
-      alert('Fel vid sparande av feedback');
+      toast.error('Fel vid sparande av feedback');
     }
   };
 
@@ -247,10 +250,110 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
       }
       fetchTodaysBookings();
       fetchUpcomingBookings();
-      alert('Booking assigned to you');
+      toast.success('Bokning tilldelad till dig');
     } catch (error) {
       console.error('Failed to assign booking:', error);
-      alert('Assignment failed');
+      toast.error('Kunde inte tilldela bokning');
+    }
+  };
+
+  const openPlan = async (booking: Booking) => {
+    try {
+      setSelectedBooking(booking);
+      setPlanOpen(true);
+      const res = await fetch(`/api/teacher/bookings/${booking.id}/plan`);
+      if (!res.ok) throw new Error('Failed to load plan');
+      const data = await res.json();
+      // Transform bookingSteps (already loaded) and plan
+      setPlanSteps(bookingSteps);
+      const selected = new Set<string>((data.plan || []).map((p: any) => p.stepIdentifier));
+      setPlanSelectedIds(selected);
+    } catch (e) {
+      console.error(e);
+      toast.error('Kunde inte ladda planeringen');
+    }
+  };
+
+  const savePlan = async () => {
+    if (!selectedBooking) return;
+    try {
+      setSavingPlan(true);
+      const loadingId = toast.loading('Sparar plan...');
+      const res = await fetch(`/api/teacher/bookings/${selectedBooking.id}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedStepIdentifiers: Array.from(planSelectedIds) }),
+      });
+      if (!res.ok) throw new Error('Failed to save plan');
+      toast.success('Planering sparad', { id: loadingId });
+      setPlanOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast.error('Kunde inte spara plan');
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const canStartLive = (booking: Booking) => {
+    const start = new Date(`${booking.scheduledDate}T${booking.startTime}`);
+    return new Date() >= start;
+  };
+
+  const openLive = async (booking: Booking) => {
+    try {
+      if (!canStartLive(booking)) {
+        toast.error('Lektion har inte startat ännu');
+        return;
+      }
+      setSelectedBooking(booking);
+      const res = await fetch(`/api/teacher/bookings/${booking.id}/live`);
+      if (!res.ok) throw new Error('Failed to load live data');
+      const data = await res.json();
+      setLiveSteps(data.steps || []);
+      setLiveCurrentIdx(0);
+      setLiveOpen(true);
+      // Start countdown timer
+      const end = new Date(`${booking.scheduledDate}T${booking.endTime}`);
+      const tick = () => {
+        const now = new Date();
+        const diff = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
+        const m = Math.floor(diff / 60).toString().padStart(2, '0');
+        const s = Math.floor(diff % 60).toString().padStart(2, '0');
+        setTimeLeft(`${m}:${s}`);
+      };
+      tick();
+      const interval = setInterval(tick, 1000);
+      const cleanup = () => clearInterval(interval);
+      // Stop timer when closing
+      const stopOnClose = () => {
+        cleanup();
+        setLiveOpen(false);
+      };
+      // attach handler reference on window scope
+      (window as any).__liveCleanup = stopOnClose;
+    } catch (e) {
+      console.error(e);
+      toast.error('Kunde inte starta live-läge');
+    }
+  };
+
+  const closeLive = () => {
+    if ((window as any).__liveCleanup) (window as any).__liveCleanup();
+    setLiveOpen(false);
+  };
+
+  const saveLiveNote = async (stepId: string) => {
+    if (!selectedBooking) return;
+    try {
+      await fetch('/api/teacher/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: selectedBooking.id, stepIdentifier: stepId, feedbackText: liveNotes[stepId] || '', valuation: liveStars[stepId] || null }),
+      });
+      toast.success('Sparad');
+    } catch (e) {
+      toast.error('Kunde inte spara');
     }
   };
 
@@ -358,11 +461,17 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
-                    onClick={() => setSelectedBooking(booking)}
+                    onClick={() => openPlan(booking)}
                     className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors text-sm shadow-inner"
                   >
                     <FaEdit className="inline mr-1" />
-                    Utbildningskort
+                    Planera
+                  </button>
+                  <button
+                    onClick={() => openLive(booking)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white transition-colors text-sm shadow-lg"
+                  >
+                    Starta live
                   </button>
                   
                   <button
@@ -525,11 +634,17 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
                 
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button
-                    onClick={() => setSelectedBooking(booking)}
+                    onClick={() => openPlan(booking)}
                     className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors text-sm shadow-inner"
                   >
                     <FaEdit className="inline mr-1" />
-                    Utbildningskort
+                    Planera
+                  </button>
+                  <button
+                    onClick={() => openLive(booking)}
+                    className="px-4 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-600 text-white transition-colors text-sm shadow-lg"
+                  >
+                    Starta live
                   </button>
                   
                   <button
@@ -757,8 +872,103 @@ const TeacherDashboardClient: React.FC<TeacherDashboardClientProps> = ({ user })
         )}
       </div>
 
-      {/* Booking Steps Modal */}
-      {selectedBooking && renderBookingSteps()}
+      {/* Plan Modal */}
+      {planOpen && selectedBooking && (
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setPlanOpen(false)} />
+          <div className="relative z-[11010] rounded-2xl bg-slate-900/95 border border-white/10 text-white shadow-2xl w-[min(96vw,1000px)] max-h-[92vh] overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-extrabold">Planering – {selectedBooking.userName}</h3>
+                <p className="text-slate-300 text-sm">{selectedBooking.lessonTypeName} • {formatTime(selectedBooking.startTime)}–{formatTime(selectedBooking.endTime)}</p>
+              </div>
+              <button onClick={() => setPlanOpen(false)} className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Stäng</button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(92vh-112px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Object.entries(groupStepsByCategory(planSteps)).map(([category, steps]) => (
+                  <div key={category} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                    <h4 className="font-semibold mb-2">{category}</h4>
+                    <div className="space-y-2">
+                      {steps.map((s) => (
+                        <label key={s.id} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={planSelectedIds.has(s.stepNumber ? String(s.stepNumber) : String(s.id))}
+                            onChange={(e) => {
+                              const key = s.stepNumber ? String(s.stepNumber) : String(s.id);
+                              setPlanSelectedIds(prev => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(key); else next.delete(key);
+                                return next;
+                              });
+                            }}
+                          />
+                          <span>{s.subcategory}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-white/10 flex justify-end gap-2">
+              <button onClick={() => setPlanOpen(false)} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Avbryt</button>
+              <button onClick={savePlan} disabled={savingPlan} className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white">
+                {savingPlan ? 'Sparar...' : 'Spara plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Mode Modal */}
+      {liveOpen && selectedBooking && (
+        <div className="fixed inset-0 z-[11000] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={closeLive} />
+          <div className="relative z-[11010] rounded-2xl bg-slate-900/95 border border-white/10 text-white shadow-2xl w-[min(96vw,800px)] max-h-[92vh] overflow-hidden">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-extrabold">Live-läge</h3>
+                <p className="text-slate-300 text-sm">Tid kvar: <span className="font-bold text-emerald-300">{timeLeft}</span></p>
+              </div>
+              <button onClick={closeLive} className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Stäng</button>
+            </div>
+            <div className="p-4 space-y-4">
+              {liveSteps.length === 0 ? (
+                <p className="text-slate-300">Inga planerade steg.</p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <button onClick={() => setLiveCurrentIdx(Math.max(0, liveCurrentIdx - 1))} className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Föregående</button>
+                    <div className="text-sm text-slate-300">Steg {liveCurrentIdx + 1} av {liveSteps.length}</div>
+                    <button onClick={() => setLiveCurrentIdx(Math.min(liveSteps.length - 1, liveCurrentIdx + 1))} className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Nästa</button>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <h4 className="text-lg font-bold mb-2">{liveSteps[liveCurrentIdx]}</h4>
+                    <div className="flex items-center gap-2 mb-3">
+                      {[1,2,3].map((v) => (
+                        <button key={v} onClick={async () => { setLiveStars(prev => ({ ...prev, [liveSteps[liveCurrentIdx]]: v as 1|2|3 })); await saveLiveNote(liveSteps[liveCurrentIdx]); }} className={`px-3 py-1 rounded-lg border ${liveStars[liveSteps[liveCurrentIdx]] === v ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-white/10 border-white/20'}`}>{v}★</button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={liveNotes[liveSteps[liveCurrentIdx]] || ''}
+                      onChange={(e) => setLiveNotes(prev => ({ ...prev, [liveSteps[liveCurrentIdx]]: e.target.value }))}
+                      onFocus={(e) => { e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                      className="w-full p-3 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      rows={4}
+                      placeholder="Anteckningar..."
+                    />
+                    <div className="mt-3 flex justify-end">
+                      <button onClick={() => saveLiveNote(liveSteps[liveCurrentIdx])} className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500">Spara notering</button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Slider Styles */}
       <style jsx>{`

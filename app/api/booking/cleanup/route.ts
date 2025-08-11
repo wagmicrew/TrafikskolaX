@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'cleanup_expired') {
-      // Clean up temporary bookings older than 15 minutes
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+      // Clean up temporary bookings older than 10 minutes
+      const fifteenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
       // Clean up expired temporary regular bookings
       const expiredBookings = await db

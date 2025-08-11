@@ -47,12 +47,7 @@ export async function GET(request: NextRequest) {
     const blocked = await db
       .select()
       .from(blockedSlots)
-      .where(
-        and(
-          lte(blockedSlots.startDate, selectedDate),
-          gte(blockedSlots.endDate, selectedDate)
-        )
-      );
+      .where(eq(blockedSlots.date, selectedDate));
 
     // Build available slots
     const availableSlots: Array<{ startTime: string; endTime: string }> = [];
@@ -65,11 +60,11 @@ export async function GET(request: NextRequest) {
 
       // Check if this time slot overlaps with any blocked slot
       const isBlocked = blocked.some(block => {
-        if (!block.startTime || !block.endTime) return false;
+        if (!block.timeStart || !block.timeEnd) return block.isAllDay;
         return (
-          (block.startTime <= startTime && block.endTime > startTime) ||
-          (block.startTime < endTime && block.endTime >= endTime) ||
-          (block.startTime >= startTime && block.endTime <= endTime)
+          (block.timeStart <= startTime && block.timeEnd > startTime) ||
+          (block.timeStart < endTime && block.timeEnd >= endTime) ||
+          (block.timeStart >= startTime && block.timeEnd <= endTime)
         );
       });
 

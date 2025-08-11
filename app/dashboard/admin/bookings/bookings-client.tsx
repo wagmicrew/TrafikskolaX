@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Calendar, 
   Clock, 
@@ -75,6 +75,9 @@ export default function BookingsClient({
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const { toast } = useToast();
+  const [warning, setWarning] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   const handleUserChange = (userId: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -88,6 +91,30 @@ export default function BookingsClient({
     const params = new URLSearchParams(window.location.search);
     params.set('page', page.toString());
     router.push(`/dashboard/admin/bookings?${params.toString()}`);
+  };
+
+  const handleClearTemp = async () => {
+    setIsProcessing(true);
+    const t = toast({ title: 'Rensar temporära bokningar...' });
+    try {
+      const res = await fetch('/api/dashboard/admin/qliro/order-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clearTemp', payload: {} })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Rensning misslyckades');
+      t.update({ title: 'Temporära bokningar rensade' });
+      setTimeout(() => t.dismiss(), 1200);
+      // Refresh current view
+      router.refresh?.();
+      window.location.reload();
+    } catch (e: any) {
+      t.update({ title: 'Fel vid rensning', description: e.message || 'Misslyckades', variant: 'destructive' });
+      setTimeout(() => t.dismiss(), 2000);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleBookingSelection = (bookingId: string) => {
@@ -108,130 +135,120 @@ export default function BookingsClient({
 
   const handleBulkUnbook = async () => {
     if (selectedBookings.length === 0) {
-      toast.error('Välj bokningar att avboka');
+      toast({ title: 'Fel', description: 'Välj bokningar att avboka', variant: 'destructive' });
       return;
     }
-
-    if (!confirm(`Är du säker på att du vill avboka ${selectedBookings.length} bokningar? Detta kommer att skicka e-post och återbetala krediter.`)) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/admin/bookings/bulk-unbook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingIds: selectedBookings })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(result.message);
-        setSelectedBookings([]);
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Fel vid avbokning');
+    setWarning(`Är du säker på att du vill avboka ${selectedBookings.length} bokningar? Detta skickar e-post och återbetalar krediter.`);
+    setConfirmAction(() => async () => {
+      setWarning(null);
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/admin/bookings/bulk-unbook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingIds: selectedBookings })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          toast({ title: 'Klart', description: result.message, variant: 'default' });
+          setSelectedBookings([]);
+          router.refresh();
+        } else {
+          toast({ title: 'Fel', description: result.error || 'Fel vid avbokning', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Error bulk unbooking:', error);
+        toast({ title: 'Fel', description: 'Fel vid avbokning', variant: 'destructive' });
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('Error bulk unbooking:', error);
-      toast.error('Fel vid avbokning');
-    } finally {
-      setIsProcessing(false);
-    }
+    });
   };
 
   const handleBulkDelete = async () => {
     if (selectedBookings.length === 0) {
-      toast.error('Välj bokningar att ta bort');
+      toast({ title: 'Fel', description: 'Välj bokningar att ta bort', variant: 'destructive' });
       return;
     }
-
-    if (!confirm(`Är du säker på att du vill ta bort ${selectedBookings.length} bokningar permanent? Detta går inte att ångra.`)) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/admin/bookings/bulk-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingIds: selectedBookings })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success(result.message);
-        setSelectedBookings([]);
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Fel vid borttagning');
+    setWarning(`Ta bort ${selectedBookings.length} bokningar permanent? Detta går inte att ångra.`);
+    setConfirmAction(() => async () => {
+      setWarning(null);
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/admin/bookings/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingIds: selectedBookings })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          toast({ title: 'Klart', description: result.message, variant: 'default' });
+          setSelectedBookings([]);
+          router.refresh();
+        } else {
+          toast({ title: 'Fel', description: result.error || 'Fel vid borttagning', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Error bulk deleting:', error);
+        toast({ title: 'Fel', description: 'Fel vid borttagning', variant: 'destructive' });
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('Error bulk deleting:', error);
-      toast.error('Fel vid borttagning');
-    } finally {
-      setIsProcessing(false);
-    }
+    });
   };
 
   const handleRemoveTeacher = async (teacherId: string) => {
-    if (!confirm('Är du säker på att du vill ta bort denna lärare? Detta kommer att avregistrera läraren från alla bokningar och ta bort användarkontot permanent.')) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/admin/teachers/remove', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teacherId })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success('Lärare borttagen framgångsrikt');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Fel vid borttagning av lärare');
+    setWarning('Ta bort denna lärare permanent och avregistrera från alla bokningar?');
+    setConfirmAction(() => async () => {
+      setWarning(null);
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/admin/teachers/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ teacherId })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          toast({ title: 'Klart', description: 'Lärare borttagen', variant: 'default' });
+          router.refresh();
+        } else {
+          toast({ title: 'Fel', description: result.error || 'Fel vid borttagning av lärare', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Error removing teacher:', error);
+        toast({ title: 'Fel', description: 'Fel vid borttagning av lärare', variant: 'destructive' });
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('Error removing teacher:', error);
-      toast.error('Fel vid borttagning av lärare');
-    } finally {
-      setIsProcessing(false);
-    }
+    });
   };
 
   const handleDeleteBooking = async (bookingId: string) => {
-    if (!confirm('Är du säker på att du vill ta bort denna bokning permanent? Detta går inte att ångra.')) {
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/admin/bookings/bulk-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingIds: [bookingId] })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success('Bokning borttagen framgångsrikt');
-        router.refresh();
-      } else {
-        toast.error(result.error || 'Fel vid borttagning av bokning');
+    setWarning('Ta bort denna bokning permanent? Detta går inte att ångra.');
+    setConfirmAction(() => async () => {
+      setWarning(null);
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/admin/bookings/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookingIds: [bookingId] })
+        });
+        const result = await response.json();
+        if (response.ok) {
+          toast({ title: 'Klart', description: 'Bokning borttagen', variant: 'default' });
+          router.refresh();
+        } else {
+          toast({ title: 'Fel', description: result.error || 'Fel vid borttagning av bokning', variant: 'destructive' });
+        }
+      } catch (error) {
+        console.error('Error deleting booking:', error);
+        toast({ title: 'Fel', description: 'Fel vid borttagning av bokning', variant: 'destructive' });
+      } finally {
+        setIsProcessing(false);
       }
-    } catch (error) {
-      console.error('Error deleting booking:', error);
-      toast.error('Fel vid borttagning av bokning');
-    } finally {
-      setIsProcessing(false);
-    }
+    });
   };
 
   const getStatusIcon = (status: string | null) => {
@@ -272,6 +289,22 @@ export default function BookingsClient({
 
   return (
     <div className="text-slate-100">
+      {/* Glass warning dialog */}
+      {warning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertCircle className="w-6 h-6 text-yellow-400" />
+              <h3 className="text-lg font-semibold text-white">Bekräfta</h3>
+            </div>
+            <p className="text-slate-300 mb-6">{warning}</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setWarning(null); setConfirmAction(null); }} className="px-4 py-2 rounded-lg text-white border border-white/20 hover:bg-white/10">Avbryt</button>
+              <button onClick={() => confirmAction && confirmAction()} className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white">Fortsätt</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-white flex items-center gap-2 drop-shadow-sm">
           <Calendar className="w-8 h-8 text-sky-300" />
@@ -291,7 +324,21 @@ export default function BookingsClient({
               </option>
             ))}
           </select>
-            
+          <button
+            onClick={handleClearTemp}
+            disabled={isProcessing}
+            className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-50`}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Rensar...
+              </>
+            ) : (
+              <>Rensa temporära bokningar</>
+            )}
+          </button>
+
             <button
               onClick={() => {
                 const params = new URLSearchParams(window.location.search);

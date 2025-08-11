@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let userId = null;
+    let userId: string | null = null;
     let isGuestBooking = false;
     let currentUserId = null; // The person making the booking
     let currentUserRole = null;
@@ -78,19 +78,21 @@ export async function POST(request: NextRequest) {
     if (token) {
       try {
         const payload = await verifyToken(token.value);
-        currentUserId = payload.userId;
-        
-        // Get current user's role
-        const currentUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, currentUserId));
-        
-        if (currentUser.length > 0) {
-          currentUserRole = currentUser[0].role;
+        if (payload && (payload as any).userId) {
+          currentUserId = (payload as any).userId as string;
+          
+          // Get current user's role
+          const currentUser = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, currentUserId));
+          
+          if (currentUser.length > 0) {
+            currentUserRole = currentUser[0].role;
+          }
+          
+          userId = currentUserId;
         }
-        
-        userId = payload.userId;
       } catch (error) {
         // Invalid token, continue as guest
       }
@@ -181,22 +183,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If booking for a student as Admin or Teacher
+    // If booking for a specific student as Admin or Teacher, ensure the booking is created for that student
     if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
-      // For admin/teacher bookings, create with dummy information first
-      // The booking will be updated with the selected student later
-      isGuestBooking = true;
-      // Use new variables for guest information
-      const adminGuestName = 'Temporary';
-      const adminGuestEmail = `orderid-${Date.now()}@dintrafikskolahlm.se`;
-      const adminGuestPhone = '0000000000';
-      const adminUserId = null; // Don't set userId yet, will be updated later
-      
-      // Use these variables throughout the rest of the function
-      const finalGuestName = adminGuestName;
-      const finalGuestEmail = adminGuestEmail;
-      const finalGuestPhone = adminGuestPhone;
-      const finalUserId = adminUserId;
+      userId = studentId;
+      isGuestBooking = false;
     }
 
     // Check for booking conflicts before proceeding (for regular lessons only)
@@ -260,7 +250,7 @@ export async function POST(request: NextRequest) {
           .insert(handledarBookings)
           .values({
             sessionId,
-            studentId: userId,
+            studentId: userId!,
             supervisorName: guestName || '',
             supervisorEmail: guestEmail || '',
             supervisorPhone: guestPhone || '',
@@ -284,7 +274,7 @@ export async function POST(request: NextRequest) {
         const [booking] = await db
           .insert(bookings)
           .values({
-            userId,
+            userId: userId!,
             lessonTypeId: sessionId!,
             scheduledDate,
             startTime,
@@ -461,6 +451,42 @@ export async function POST(request: NextRequest) {
             }, alreadyPaid);
           }
 
+          // If Qliro was requested, create a checkout and return its details
+          if (paymentMethod === 'qliro') {
+            try {
+              const qliroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payments/qliro/create-checkout`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  amount: totalPrice,
+                  reference: `booking_${booking.id}`,
+                  description: `Handledarkurs ${format(new Date(session.date), 'yyyy-MM-dd')} ${session.startTime}`,
+                  returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bokningar/${booking.id}`,
+                }),
+              });
+
+              if (!qliroResponse.ok) {
+                throw new Error('Failed to create Qliro checkout');
+              }
+
+              const qliroData = await qliroResponse.json();
+
+              return NextResponse.json({
+                booking,
+                qliroCheckout: {
+                  checkoutId: qliroData.checkoutId,
+                  checkoutUrl: qliroData.checkoutUrl,
+                },
+                message: 'Handledar booking created. Complete payment through Qliro to confirm.'
+              });
+            } catch (error) {
+              console.error('Error creating Qliro checkout (handledar):', error);
+              // Fall through to default response below if Qliro fails
+            }
+          }
+
           return NextResponse.json({ 
             booking,
             message: alreadyPaid ?
@@ -537,7 +563,7 @@ export async function POST(request: NextRequest) {
             .returning();
 
           // Send email notification
-          const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+           const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
           if (userEmail) {
             await sendBookingNotification(userEmail, booking, true);
           }
@@ -553,8 +579,8 @@ export async function POST(request: NextRequest) {
         // Create the booking with temporary status
         const [booking] = await db
           .insert(bookings)
-          .values({
-            userId,
+            .values({
+            userId: userId!,
             lessonTypeId: sessionId!,
             scheduledDate,
             startTime,
@@ -617,7 +643,7 @@ export async function POST(request: NextRequest) {
                 amount: totalPrice,
                 reference: `booking_${booking.id}`, // Prefix to distinguish from package purchases
                 description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
-                returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bookings/${booking.id}`,
+                returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bokningar/${booking.id}`,
               }),
             });
 
@@ -838,7 +864,7 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
-    `${baseUrl}/dashboard/student/bookings/${booking.id}`;
+    `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
   
   try {
     if (alreadyPaid) {
@@ -949,7 +975,7 @@ async function saveInternalMessage(userId: string | null, booking: any, alreadyP
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
-    `${baseUrl}/dashboard/student/bookings/${booking.id}`;
+    `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
   
   const subject = alreadyPaid ? 
     '✅ Din körlektion är bekräftad!' : 

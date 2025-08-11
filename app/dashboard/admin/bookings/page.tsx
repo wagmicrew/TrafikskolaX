@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { bookings, users, lessonTypes } from '@/lib/db/schema';
-import { gte, desc, eq, and, sql } from 'drizzle-orm';
+import { gte, desc, eq, and, sql, not, like } from 'drizzle-orm';
 import BookingsClient from './bookings-client';
 
 export const dynamic = 'force-dynamic';
@@ -82,6 +82,12 @@ export default async function BookingsPage({
       email: users.email,
     })
     .from(users)
+    .where(
+      and(
+        not(like(users.email, 'orderid-%@dintrafikskolahlm.se')),
+        not(eq(users.firstName, 'Temporary'))
+      )
+    )
     .orderBy(users.firstName, users.lastName);
 
   return (

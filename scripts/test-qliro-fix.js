@@ -56,17 +56,7 @@ async function testQliroCheckout() {
           
           if (res.statusCode === 200 && response.success) {
             console.log('\n✅ SUCCESS: Qliro checkout API is working!');
-            
-            if (response.mock || response.fallback) {
-              console.log('🎭 Using mock mode (expected in development)');
-              
-              if (response.fallback) {
-                console.log('🔄 Fallback activated due to network issues');
-                console.log('   This means the fix is working correctly!');
-              }
-            } else {
-              console.log('🌐 Real Qliro API connection established');
-            }
+            console.log('🌐 Qliro API connection established (no mock fallback in system)');
             
             console.log(`🔗 Checkout URL: ${response.checkoutUrl}`);
             resolve(response);
@@ -130,10 +120,6 @@ async function testQliroStatus() {
             if (response.available) {
               console.log('🟢 Qliro is available');
               console.log(`🌍 Environment: ${response.environment}`);
-              
-              if (response.mock) {
-                console.log('🎭 Mock mode enabled (development)');
-              }
             } else {
               console.log('🟡 Qliro not available');
               console.log(`📝 Reason: ${response.reason}`);
@@ -179,7 +165,7 @@ async function main() {
     console.log('🎉 All tests passed! Qliro integration is working correctly.');
     console.log('\n💡 Summary:');
     console.log('   - The "fetch failed" error has been fixed');
-    console.log('   - Fallback to mock mode works when API is unreachable');
+    console.log('   - If the API is unreachable, Qliro will be marked unavailable (no mock fallback)');
     console.log('   - Booking payments should now work without errors');
     
   } catch (error) {

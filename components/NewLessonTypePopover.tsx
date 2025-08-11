@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { X, Save, BookOpen } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { X, Save, BookOpen, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,20 +75,15 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
       <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Glassmorphism Container */}
-        <div className="relative bg-white/20 backdrop-blur-xl border border-white/30 rounded-xl shadow-2xl">
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 via-transparent to-blue-500/30 rounded-xl"></div>
-          
-          {/* Content */}
-          <div className="relative z-10 p-6 sm:p-8">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
+          <div className="p-6 sm:p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <BookOpen className="w-6 h-6 text-white drop-shadow-lg" />
-                <h2 className="text-2xl font-bold text-white drop-shadow-lg">
+                <BookOpen className="w-6 h-6 text-sky-400" />
+                <h2 className="text-2xl font-bold text-white">
                   Ny Lektionstyp
                 </h2>
               </div>
@@ -106,7 +101,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Name */}
               <div>
-                <Label htmlFor="name" className="text-white font-medium drop-shadow-sm">
+                <Label htmlFor="name" className="text-white font-medium">
                   Namn *
                 </Label>
                 <Input
@@ -122,7 +117,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
 
               {/* Description */}
               <div>
-                <Label htmlFor="description" className="text-white font-medium drop-shadow-sm">
+                <Label htmlFor="description" className="text-white font-medium">
                   Beskrivning
                 </Label>
                 <Textarea
@@ -137,7 +132,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
               {/* Duration and Price Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="durationMinutes" className="text-white font-medium drop-shadow-sm">
+                  <Label htmlFor="durationMinutes" className="text-white font-medium">
                     Längd (minuter) *
                   </Label>
                   <Input
@@ -156,7 +151,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
                 </div>
 
                 <div>
-                  <Label htmlFor="price" className="text-white font-medium drop-shadow-sm">
+                  <Label htmlFor="price" className="text-white font-medium">
                     Pris (SEK) *
                   </Label>
                   <Input
@@ -179,7 +174,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
               {/* Student Price and Sale Price Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="priceStudent" className="text-white font-medium drop-shadow-sm">
+                <Label htmlFor="priceStudent" className="text-white font-medium">
                     Studentpris (SEK)
                   </Label>
                   <Input
@@ -198,7 +193,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
                 </div>
 
                 <div>
-                  <Label htmlFor="salePrice" className="text-white font-medium drop-shadow-sm">
+                  <Label htmlFor="salePrice" className="text-white font-medium">
                     Reapris (SEK)
                   </Label>
                   <Input
@@ -225,7 +220,7 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
                   {...register('isActive')}
                   className="w-4 h-4 rounded border-2 border-white/30 bg-white/10 text-blue-600 focus:ring-blue-500 focus:ring-2"
                 />
-                <Label htmlFor="isActive" className="text-white font-medium drop-shadow-sm">
+                <Label htmlFor="isActive" className="text-white font-medium">
                   Aktiv (synlig för bokningar)
                 </Label>
               </div>
@@ -236,18 +231,18 @@ export default function NewLessonTypePopover({ onClose, onSave }: NewLessonTypeP
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50 transition-all duration-200"
+                  className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200"
                 >
                   Avbryt
                 </Button>
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white border-0 transition-all duration-200 backdrop-blur-sm"
+                  className="flex-1 bg-sky-500 hover:bg-sky-600 text-white border-0 transition-all duration-200 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Sparar...
                     </>
                   ) : (

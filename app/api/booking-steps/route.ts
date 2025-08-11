@@ -19,15 +19,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Only teachers and admins can access booking steps
-    if (user.role !== 'teacher' && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    // Students can read steps for learning view as read-only
+    // if (user.role !== 'teacher' && user.role !== 'admin') {
+    //   return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    // }
 
     const steps = await db
       .select()
       .from(bookingSteps)
-      .orderBy(asc(bookingSteps.stepNumber), asc(bookingSteps.id));
+      .orderBy(asc(bookingSteps.category), asc(bookingSteps.stepNumber));
 
     return NextResponse.json({ steps });
   } catch (error) {

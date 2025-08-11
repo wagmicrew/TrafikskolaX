@@ -7,6 +7,8 @@ import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/lib/hooks/useAuth"
 import { Toaster } from "react-hot-toast"
 import { CookieConsent } from "@/components/CookieConsent"
+import React from 'react'
+import ImpersonationBanner from '@/components/ImpersonationBanner'
 
 const inter = Inter({ subsets: ["latin"] })
 const playfair = Playfair_Display({ subsets: ["latin"] })
@@ -210,6 +212,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <AuthProvider>
+          <ImpersonationBanner />
           <Navigation />
           {children}
           <Footer />

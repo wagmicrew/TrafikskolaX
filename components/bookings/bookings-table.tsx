@@ -7,8 +7,7 @@ import { sv } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, Calendar } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -42,6 +41,8 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState<string>("");
+  const [cancellationError, setCancellationError] = useState<string>("");
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -65,6 +66,8 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
   const handleDeleteClick = (booking: Booking) => {
     setSelectedBooking(booking);
     setShowDeleteDialog(true);
+    setCancellationReason("");
+    setCancellationError("");
   };
 
   const handleMoveClick = (booking: Booking) => {
@@ -74,27 +77,37 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
 
   const handleDelete = async () => {
     if (!selectedBooking) return;
+    if (!cancellationReason.trim()) {
+      setCancellationError("Vänligen ange en anledning för avbokning");
+      return;
+    }
     
     setIsProcessing(true);
     try {
+      const loadingId = toast.loading("Avbokar...");
       const response = await fetch(`/api/bookings/${selectedBooking.id}`, {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: cancellationReason }),
       });
 
       if (!response.ok) {
-        throw new Error("Kunde inte avboka lektionen");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Kunde inte avboka lektionen");
       }
 
-      toast.success("Bokning borttagen");
+      toast.success("Bokningen har avbokats.", { id: loadingId });
       
       onRefresh?.();
     } catch (error) {
       console.error("Error deleting booking:", error);
-      toast.error(error.message || "Kunde inte ta bort bokningen");
+      toast.error(error instanceof Error ? error.message : "Kunde inte avboka bokningen");
     } finally {
       setIsProcessing(false);
       setShowDeleteDialog(false);
       setSelectedBooking(null);
+      setCancellationReason("");
+      setCancellationError("");
     }
   };
 
@@ -170,17 +183,17 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
   };
 
   return (
-    <div className={`rounded-lg border shadow-sm bg-white ${compact ? 'text-sm' : ''}`}>
+    <div className={`rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-white shadow-xl ${compact ? 'text-sm' : ''}`}>
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50/50">
-            <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Datum & Tid</TableHead>
-            <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Lektionstyp</TableHead>
-            <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Status</TableHead>
-            <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Betalning</TableHead>
-            {userRole !== "student" && <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Elev</TableHead>}
-            {userRole === "admin" && <TableHead className={`font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Handledare</TableHead>}
-            <TableHead className={`text-right font-semibold text-gray-700 ${compact ? 'py-2' : 'py-3'}`}>Åtgärder</TableHead>
+          <TableRow className="bg-white/5">
+            <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Datum & Tid</TableHead>
+            <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Lektionstyp</TableHead>
+            <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Status</TableHead>
+            <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Betalning</TableHead>
+            {userRole !== "student" && <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Elev</TableHead>}
+            {userRole === "admin" && <TableHead className={`font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Handledare</TableHead>}
+            <TableHead className={`text-right font-semibold text-white ${compact ? 'py-2' : 'py-3'}`}>Åtgärder</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -196,15 +209,18 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
               const isUpcoming = bookingDate >= new Date() && booking.status !== 'completed' && booking.status !== 'cancelled';
               
               return (
-                <TableRow key={booking.id} className={`hover:bg-gray-50/50 transition-colors ${isUpcoming ? 'border-l-4 border-l-blue-400' : ''}`}>
+                <TableRow
+                  key={booking.id}
+                  className={`transition-all ${isUpcoming ? 'border-l-4 border-l-blue-400' : ''} hover:outline hover:outline-1 hover:outline-emerald-400 hover:outline-offset-[-2px]`}
+                >
                   <TableCell className="py-4">
                     {formatDateTime(booking.date, booking.time)}
                   </TableCell>
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-medium text-gray-900">{booking.type || 'Okänd typ'}</span>
+                    <span className="font-medium text-white">{booking.type || 'Okänd typ'}</span>
                     {booking.instructorName && (
-                      <span className="text-xs text-gray-500">Lärare: {booking.instructorName}</span>
+                      <span className="text-xs text-slate-300">Lärare: {booking.instructorName}</span>
                     )}
                   </div>
                 </TableCell>
@@ -225,57 +241,56 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
                 </TableCell>
                 {userRole !== "student" && (
                   <TableCell>
-                    <div className="font-medium">{booking.studentName}</div>
+                    <div className="font-medium text-white">{booking.studentName}</div>
                   </TableCell>
                 )}
                 {userRole === "admin" && (
                   <TableCell>
-                    <div className="font-medium">{booking.instructorName || "Ej tilldelad"}</div>
+                    <div className="font-medium text-white">{booking.instructorName || "Ej tilldelad"}</div>
                   </TableCell>
                 )}
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Öppna meny</span>
-                        <MoreHorizontal className="h-4 w-4" />
+                  {userRole === 'student' ? (
+                    <div className="flex justify-end items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs border-white/20 text-white hover:bg-white/10"
+                        onClick={() => router.push(`/dashboard/student/bokningar/${booking.id}`)}
+                      >
+                        Visa detaljer
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          const detailsUrl = userRole === 'student' 
-                            ? `/dashboard/student/bokningar/${booking.id}`
-                            : `/dashboard/bookings/${booking.id}`;
-                          router.push(detailsUrl);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        <span>Visa detaljer</span>
-                      </DropdownMenuItem>
-                      
-                      {(userRole === "admin" || userRole === "teacher") && (
-                        <DropdownMenuItem
-                          onClick={() => handleMoveClick(booking)}
-                          className="cursor-pointer"
-                          disabled={isProcessing}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          <span>Flytta tid</span>
-                        </DropdownMenuItem>
-                      )}
-                      
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(booking)}
-                        className="cursor-pointer text-destructive focus:text-destructive"
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 px-3 text-xs"
                         disabled={isProcessing}
+                        onClick={() => handleDeleteClick(booking)}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Avboka</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        Avboka
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => router.push(`/dashboard/bookings/${booking.id}`)}
+                      >
+                        Visa detaljer
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 px-3 text-xs"
+                        disabled={isProcessing}
+                        onClick={() => handleDeleteClick(booking)}
+                      >
+                        Avboka
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
               );
@@ -285,21 +300,48 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
       </Table>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[11000] bg-slate-900/95 border border-white/10 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Är du säker på att du vill avboka denna lektion?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Denna åtgärd kan inte ångras. Detta kommer att ta bort bokningen permanent.
+            <AlertDialogTitle className="text-white">Avboka lektion</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-300">
+              Är du säker på att du vill avboka denna lektion? Denna åtgärd kan inte ångras.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="mt-2">
+            <label htmlFor="cancel-reason" className="block text-sm font-medium text-white mb-2">Anledning för avbokning *</label>
+            <textarea
+              id="cancel-reason"
+              rows={3}
+              value={cancellationReason}
+              onChange={(e) => { setCancellationReason(e.target.value); setCancellationError(""); }}
+              disabled={isProcessing}
+              placeholder="Beskriv kort varför du avbokar"
+              className="w-full rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/40 p-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+            {cancellationError && (
+              <p className="mt-2 text-sm text-red-300">{cancellationError}</p>
+            )}
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel 
+              disabled={isProcessing}
+              className="bg-white/10 hover:bg-white/20 border border-white/20 text-white"
+            >
+              Behåll
+            </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-600 hover:bg-red-500 text-white"
               disabled={isProcessing}
             >
-              {isProcessing ? "Bearbetar..." : "Ja, avboka"}
+              {isProcessing ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Avbokar...
+                </span>
+              ) : (
+                "Ja, avboka"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

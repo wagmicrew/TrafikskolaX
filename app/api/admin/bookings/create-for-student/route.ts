@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, handledarSessions, handledarBookings, userCredits } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
@@ -29,6 +29,12 @@ export async function POST(request: NextRequest) {
       paymentStatus = 'paid',
       status = 'confirmed',
       notes,
+      // Handledar-specific optional fields
+      sessionId, // specific handledar session ID when lessonType is handledar
+      supervisorName,
+      supervisorEmail,
+      supervisorPhone,
+      useHandledarCredit = false,
     } = body;
 
     // Validate required fields
@@ -47,18 +53,119 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
-    // Verify lesson type exists
-    const lessonType = await db
-      .select()
-      .from(lessonTypes)
-      .where(eq(lessonTypes.id, lessonTypeId))
-      .limit(1);
+    // Handledar special ID handling
+    const isHandledarGroup = lessonTypeId === 'handledarutbildning-group';
+    let lessonType: any[] = [];
+    let isHandledar = false;
+    if (!isHandledarGroup) {
+      // Verify lesson type exists
+      lessonType = await db
+        .select()
+        .from(lessonTypes)
+        .where(eq(lessonTypes.id, lessonTypeId))
+        .limit(1);
 
-    if (lessonType.length === 0) {
-      return NextResponse.json({ error: 'Lesson type not found' }, { status: 404 });
+      if (lessonType.length === 0) {
+        return NextResponse.json({ error: 'Lesson type not found' }, { status: 404 });
+      }
+      isHandledar = (lessonType[0]?.name || '').toLowerCase().includes('handledar');
+    } else {
+      isHandledar = true;
     }
 
-    // Check for existing bookings that conflict with this timeslot
+    // Handledar branch
+    if (isHandledar) {
+      if (!sessionId || sessionId === 'handledarutbildning-group') {
+        return NextResponse.json({ error: 'Välj en specifik handledarutbildning', requireSessionSelection: true }, { status: 400 });
+      }
+
+      // Fetch session
+      const sessionRows = await db
+        .select()
+        .from(handledarSessions)
+        .where(and(eq(handledarSessions.id, sessionId), eq(handledarSessions.isActive, true)))
+        .limit(1);
+
+      if (!sessionRows.length) {
+        return NextResponse.json({ error: 'Session hittades inte' }, { status: 404 });
+      }
+      const session = sessionRows[0];
+
+      // Require supervisor details
+      if (!supervisorName || (!supervisorEmail && !supervisorPhone)) {
+        return NextResponse.json({ error: 'Handledarinformation krävs (namn och email eller telefon)' }, { status: 400 });
+      }
+
+      // If credits requested, deduct one handledar credit
+      if (useHandledarCredit) {
+        const creditRows = await db
+          .select()
+          .from(userCredits)
+          .where(and(eq(userCredits.userId, studentId), eq(userCredits.creditType, 'handledar')));
+
+        const firstWithCredits = creditRows.find(c => (c.creditsRemaining || 0) > 0);
+        if (!firstWithCredits) {
+          return NextResponse.json({ error: 'Inga handledarkrediter tillgängliga' }, { status: 400 });
+        }
+
+        await db.update(userCredits)
+          .set({ creditsRemaining: firstWithCredits.creditsRemaining - 1, updatedAt: new Date() })
+          .where(eq(userCredits.id, firstWithCredits.id));
+      }
+
+      // Increment participant count
+      await db
+        .update(handledarSessions)
+        .set({ currentParticipants: sql`${handledarSessions.currentParticipants} + 1` })
+        .where(eq(handledarSessions.id, sessionId));
+
+      // Create handledar booking
+      const [hBooking] = await db
+        .insert(handledarBookings)
+        .values({
+          sessionId,
+          studentId,
+          supervisorName,
+          supervisorEmail: supervisorEmail || null,
+          supervisorPhone: supervisorPhone || null,
+          price: totalPrice,
+          paymentStatus: useHandledarCredit || paymentStatus === 'paid' ? 'paid' : 'pending',
+          paymentMethod: useHandledarCredit ? 'credits' : paymentMethod,
+          status: useHandledarCredit || paymentStatus === 'paid' ? 'confirmed' : 'pending',
+          bookedBy: authResult.user?.id || studentId,
+          swishUUID: uuidv4(),
+        })
+        .returning();
+
+      // Send emails: supervisor + student via template engine
+      try {
+        const { EmailService } = await import('@/lib/email/email-service');
+        const context = {
+          user: { id: student[0].id, email: student[0].email, firstName: student[0].firstName, lastName: student[0].lastName, role: student[0].role },
+          booking: {
+            id: hBooking.id,
+            scheduledDate: String(session.date),
+            startTime: String(session.startTime),
+            endTime: String(session.endTime),
+            lessonTypeName: 'Handledarutbildning',
+            totalPrice: String(totalPrice),
+          },
+          customData: {
+            supervisorName,
+            supervisorEmail: supervisorEmail || '',
+            supervisorPhone: supervisorPhone || ''
+          }
+        } as any;
+        // Ensure template exists/receivers set in admin; this call will use configured receivers
+        await EmailService.sendTriggeredEmail('handledar_booking_confirmed' as any, context);
+      } catch (e) {
+        console.error('Failed to send handledar emails', e);
+      }
+
+      return NextResponse.json({ booking: hBooking, message: 'Handledarutbildning bokad' });
+    }
+
+    // Regular lesson branch
     const existingBookings = await db
       .select()
       .from(bookings)

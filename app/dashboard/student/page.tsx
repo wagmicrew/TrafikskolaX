@@ -35,6 +35,10 @@ export default function Studentsidan() {
       const creditsRes = await fetch('/api/user/credits');
       const creditsData = await creditsRes.json();
       
+      // Fetch user packages
+      const packagesRes = await fetch('/api/user/packages');
+      const packagesData = await packagesRes.json();
+      
       // Fetch feedback
       const feedbackRes = await fetch('/api/student/feedback');
       const feedbackData = await feedbackRes.json();
@@ -77,6 +81,7 @@ export default function Studentsidan() {
       setDashboardData({
         bookings: sortedBookings,
         credits: creditsData.credits || [],
+        userPackages: packagesData.packages || [],
         feedback: feedbackData.feedback || [],
         stats: {
           totalBookings,
@@ -128,6 +133,7 @@ export default function Studentsidan() {
       user={mappedUser}
       bookings={dashboardData.bookings}
       credits={dashboardData.credits}
+      userPackages={dashboardData.userPackages}
       feedback={dashboardData.feedback}
       stats={dashboardData.stats}
     />

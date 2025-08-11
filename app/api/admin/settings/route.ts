@@ -46,6 +46,7 @@ export async function GET(request: Request) {
       site_name: 'Din Trafikskola Hässleholm',
       schoolname: 'Din Trafikskola Hässleholm',
       school_phonenumber: '',
+      internal_messages_enabled: true,
       
       // Payment settings
       swish_number: '',
@@ -102,6 +103,7 @@ export async function PUT(request: Request) {
       site_name: 'general',
       schoolname: 'general',
       school_phonenumber: 'general',
+      internal_messages_enabled: 'general',
       
       // Payment settings
       swish_number: 'payment',

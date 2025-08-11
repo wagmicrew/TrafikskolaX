@@ -1,25 +1,73 @@
-import { createClient } from 'redis';
+// Optional Redis client with in-memory fallback (no dependency required in dev)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+let createClient: any;
+let redisAvailable = false;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  ({ createClient } = require('redis'));
+  redisAvailable = true;
+} catch (_e) {
+  console.warn('[redis] Module not found. Falling back to in-memory cache.');
+}
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
+// In-memory fallback store with TTL
+type MemoryEntry = { value: any; expiresAt: number };
+const memoryStore = new Map<string, MemoryEntry>();
 
-redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err);
-});
+function memoryGet(key: string) {
+  const entry = memoryStore.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt && Date.now() > entry.expiresAt) {
+    memoryStore.delete(key);
+    return null;
+  }
+  return entry.value;
+}
 
-redisClient.on('connect', () => {
-  console.log('Redis Client Connected');
-});
+function memorySet(key: string, value: any, ttlSec: number) {
+  const expiresAt = ttlSec > 0 ? Date.now() + ttlSec * 1000 : 0;
+  memoryStore.set(key, { value, expiresAt });
+}
 
-// Connect to Redis
-if (!redisClient.isOpen) {
-  redisClient.connect().catch(console.error);
+const redisClient: any = redisAvailable
+  ? createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' })
+  : {
+      isOpen: false,
+      connect: async () => {},
+      on: () => {},
+      async get(_key: string) {
+        const val = memoryGet(_key);
+        return val != null ? JSON.stringify(val) : null;
+      },
+      async setEx(_key: string, ttl: number, value: string) {
+        try {
+          memorySet(_key, JSON.parse(value), ttl);
+        } catch {
+          memorySet(_key, value, ttl);
+        }
+      },
+      async del(_key: string) {
+        memoryStore.delete(_key);
+      },
+      async exists(_key: string) {
+        return memoryGet(_key) != null ? 1 : 0;
+      },
+    };
+
+if (redisAvailable) {
+  redisClient.on('error', (err: any) => {
+    console.error('Redis Client Error:', err);
+  });
+  redisClient.on('connect', () => {
+    console.log('Redis Client Connected');
+  });
+  if (!redisClient.isOpen) {
+    redisClient.connect().catch(console.error);
+  }
 }
 
 export default redisClient;
 
-// Cache utility functions
 export const cache = {
   async get(key: string) {
     try {
@@ -33,7 +81,11 @@ export const cache = {
 
   async set(key: string, value: any, ttl: number = 3600) {
     try {
-      await redisClient.setEx(key, ttl, JSON.stringify(value));
+      if (redisAvailable) {
+        await redisClient.setEx(key, ttl, JSON.stringify(value));
+      } else {
+        memorySet(key, value, ttl);
+      }
       return true;
     } catch (error) {
       console.error('Redis set error:', error);
@@ -43,7 +95,11 @@ export const cache = {
 
   async del(key: string) {
     try {
-      await redisClient.del(key);
+      if (redisAvailable) {
+        await redisClient.del(key);
+      } else {
+        memoryStore.delete(key);
+      }
       return true;
     } catch (error) {
       console.error('Redis del error:', error);
@@ -53,26 +109,23 @@ export const cache = {
 
   async exists(key: string) {
     try {
-      return await redisClient.exists(key) > 0;
+      if (redisAvailable) {
+        return (await redisClient.exists(key)) > 0;
+      } else {
+        return memoryGet(key) != null;
+      }
     } catch (error) {
       console.error('Redis exists error:', error);
       return false;
     }
   },
 
-  // Cache with automatic key generation
   async cacheWithKey(prefix: string, params: any, fn: () => Promise<any>, ttl: number = 3600) {
     const key = `${prefix}:${JSON.stringify(params)}`;
-    
-    // Try to get from cache first
     const cached = await this.get(key);
-    if (cached) {
-      return cached;
-    }
-    
-    // If not in cache, execute function and cache result
+    if (cached) return cached;
     const result = await fn();
     await this.set(key, result, ttl);
     return result;
-  }
-}; 
+  },
+};

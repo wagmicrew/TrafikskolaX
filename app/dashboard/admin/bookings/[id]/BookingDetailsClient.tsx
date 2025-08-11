@@ -51,9 +51,13 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   const [bookingData, setBookingData] = useState(booking);
-  const [bookingSteps, setBookingSteps] = useState([]);
-  const [existingFeedback, setExistingFeedback] = useState([]);
-  const [selectedSteps, setSelectedSteps] = useState([]);
+  const [bookingSteps, setBookingSteps] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [existingFeedback, setExistingFeedback] = useState<any[]>([]);
+  const [selectedSteps, setSelectedSteps] = useState<any[]>([]);
+  const [plannedSet, setPlannedSet] = useState<Set<string>>(new Set());
+  const [statusByCategory, setStatusByCategory] = useState<Record<string, 'green'|'orange'|'red'|'unknown'>>({});
+  const [isPlanDirty, setIsPlanDirty] = useState(false);
   const [isLoadingSteps, setIsLoadingSteps] = useState(false);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,11 +67,28 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     valuation: 5
   });
 
+  // Modals for feedback
+  const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
+  const [generalValuation, setGeneralValuation] = useState<number>(5);
+  const [generalText, setGeneralText] = useState<string>('');
+
+  const [isStepModalOpen, setIsStepModalOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<any>(null);
+  const [stepValuation, setStepValuation] = useState<number>(5);
+  const [stepText, setStepText] = useState<string>('');
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<string>('');
+  const [categoryValuation, setCategoryValuation] = useState<number>(5);
+  const [categoryText, setCategoryText] = useState<string>('');
+
   // Load booking steps and existing feedback
   useEffect(() => {
     if (activeTab === 'planning' || activeTab === 'feedback') {
       loadBookingSteps();
       loadExistingFeedback();
+      loadPlan();
+      loadEducationSummary();
     }
   }, [activeTab, booking.id]);
 
@@ -77,7 +98,8 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       const response = await fetch('/api/admin/booking-steps');
       if (response.ok) {
         const data = await response.json();
-        setBookingSteps(data);
+        const steps = Array.isArray(data?.steps) ? data.steps : Array.isArray(data) ? data : [];
+        setBookingSteps(steps);
       }
     } catch (error) {
       console.error('Error loading booking steps:', error);
@@ -92,6 +114,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       if (response.ok) {
         const data = await response.json();
         setExistingFeedback(data);
+        // Precheck planned steps from existing feedback as suggestions (do not set plannedSet here)
       }
     } catch (error) {
       console.error('Error loading feedback:', error);
@@ -99,19 +122,41 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     setIsLoadingFeedback(false);
   };
 
-  const handleStepSelection = (stepId, stepInfo) => {
-    setSelectedSteps(prev => {
-      const existing = prev.find(s => s.stepId === stepId);
-      if (existing) {
-        return prev.filter(s => s.stepId !== stepId);
-      } else {
-        return [...prev, {
-          stepId,
-          stepInfo,
-          valuation: 5,
-          feedbackText: ''
-        }];
+  const loadPlan = async () => {
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}/plan`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlannedSet(new Set<string>(data.planned || []));
+        setIsPlanDirty(false);
       }
+    } catch (e) {
+      console.error('Error loading plan:', e);
+    }
+  };
+
+  const loadEducationSummary = async () => {
+    if (!booking.userId) return;
+    try {
+      const res = await fetch(`/api/admin/users/${booking.userId}/education-summary`);
+      if (res.ok) {
+        const data = await res.json();
+        setStatusByCategory(data.statusByCategory || {});
+      }
+    } catch (e) {
+      console.error('Error loading education summary:', e);
+    }
+  };
+
+  const stepIdentifierOf = (s: any) => `${s.category}-${s.subcategory}`;
+
+  const handlePlanToggle = (step: any) => {
+    const key = stepIdentifierOf(step);
+    setPlannedSet(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      setIsPlanDirty(true);
+      return next;
     });
   };
 
@@ -170,6 +215,26 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
       });
     }
     setIsSaving(false);
+  };
+
+  const savePlan = async () => {
+    try {
+      const planned = Array.from(plannedSet);
+      const res = await fetch(`/api/admin/bookings/${booking.id}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planned }),
+      });
+      if (res.ok) {
+        toast.success('Planering sparad');
+        setIsPlanDirty(false);
+      } else {
+        toast.error('Kunde inte spara planering');
+      }
+    } catch (e) {
+      console.error('Save plan error:', e);
+      toast.error('Fel vid sparande');
+    }
   };
 
   const startEditingFeedback = (feedbackItem) => {
@@ -311,6 +376,176 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     setIsSaving(false);
   };
 
+  // Time-gate: allow feedback only after lesson start + 45 minutes
+  const canGiveFeedback = (): boolean => {
+    try {
+      const dateStr = booking.scheduledDate as string; // yyyy-mm-dd
+      const startStr = (booking.startTime as string)?.slice(0,5) || '00:00'; // HH:MM
+      const [h, m] = startStr.split(':').map((n: string) => parseInt(n, 10));
+      const threshold = new Date(dateStr + 'T00:00:00');
+      threshold.setHours(h || 0, m || 0, 0, 0);
+      threshold.setMinutes(threshold.getMinutes() + 45);
+      return new Date() >= threshold;
+    } catch {
+      return true; // fail-open if parsing fails
+    }
+  };
+
+  const openGuarded = (openFn: () => void) => {
+    if (!canGiveFeedback()) {
+      toast.error('Bokningen måste vara genomförd. Vänta 45 minuter efter lektionens slut.');
+      return;
+    }
+    openFn();
+  };
+
+  // Star summary (1-3) from existing feedback on planned steps
+  const computeStars = (): number => {
+    const plannedIds = Array.from(plannedSet);
+    if (plannedIds.length === 0) return 0;
+    const vals: number[] = [];
+    existingFeedback.forEach((fb: any) => {
+      if (fb.bookingId === booking.id && typeof fb.valuation === 'number' && plannedIds.includes(fb.stepIdentifier)) {
+        vals.push(fb.valuation);
+      }
+    });
+    if (vals.length === 0) return 0;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg >= 8) return 3;
+    if (avg >= 5) return 2;
+    return 1;
+  };
+
+  const renderStars = (count: number) => (
+    <div className="flex items-center gap-2">
+      {[1,2,3].map(i => (
+        <Star key={i} className={`w-7 h-7 ${i <= count ? 'text-yellow-400 fill-yellow-400' : 'text-slate-400'}`} />
+      ))}
+    </div>
+  );
+
+  const plannedStepsGrouped = (): Record<string, any[]> => {
+    const map: Record<string, any[]> = {};
+    const byId = new Map<string, any>();
+    bookingSteps.forEach((s: any) => byId.set(`${s.category}-${s.subcategory}`, s));
+    plannedSet.forEach(key => {
+      const step = byId.get(key);
+      if (step) {
+        (map[step.category] ||= []).push(step);
+      }
+    });
+    return map;
+  };
+
+  const saveStepFeedbackModal = async () => {
+    if (!currentStep) return;
+    if (!canGiveFeedback()) {
+      toast.error('Bokningen måste vara genomförd. Vänta 45 minuter efter lektionens slut.');
+      return;
+    }
+    setIsSaving(true);
+    const loadingToast = toast.loading('Sparar feedback...');
+    try {
+      const payload = [{
+        bookingId: booking.id,
+        userId: booking.userId,
+        stepIdentifier: `${currentStep.category}-${currentStep.subcategory}`,
+        feedbackText: stepText,
+        valuation: stepValuation,
+        isFromTeacher: true,
+      }];
+      const res = await fetch(`/api/admin/bookings/${booking.id}/feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback: payload })
+      });
+      if (res.ok) {
+        toast.success('Feedback sparad', { id: loadingToast });
+        setIsStepModalOpen(false);
+        setCurrentStep(null);
+        setStepText('');
+        setStepValuation(5);
+        loadExistingFeedback();
+      } else {
+        toast.error('Kunde inte spara', { id: loadingToast });
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Fel vid sparande', { id: loadingToast });
+    }
+    setIsSaving(false);
+  };
+
+  const saveCategoryFeedbackModal = async () => {
+    if (!currentCategory) return;
+    if (!canGiveFeedback()) {
+      toast.error('Bokningen måste vara genomförd. Vänta 45 minuter efter lektionens slut.');
+      return;
+    }
+    setIsSaving(true);
+    const loadingToast = toast.loading('Sparar kategorifeedback...');
+    try {
+      const payload = [{
+        bookingId: booking.id,
+        userId: booking.userId,
+        stepIdentifier: `category::${currentCategory}`,
+        feedbackText: categoryText,
+        valuation: categoryValuation,
+        isFromTeacher: true,
+      }];
+      const res = await fetch(`/api/admin/bookings/${booking.id}/feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback: payload })
+      });
+      if (res.ok) {
+        toast.success('Kategorifeedback sparad', { id: loadingToast });
+        setIsCategoryModalOpen(false);
+        setCurrentCategory('');
+        setCategoryText('');
+        setCategoryValuation(5);
+        loadExistingFeedback();
+      } else {
+        toast.error('Kunde inte spara', { id: loadingToast });
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Fel vid sparande', { id: loadingToast });
+    }
+    setIsSaving(false);
+  };
+
+  const saveGeneralFeedbackModal = async () => {
+    if (!canGiveFeedback()) {
+      toast.error('Bokningen måste vara genomförd. Vänta 45 minuter efter lektionens slut.');
+      return;
+    }
+    setIsSaving(true);
+    const loadingToast = toast.loading('Sparar allmän feedback...');
+    try {
+      const payload = [{
+        bookingId: booking.id,
+        userId: booking.userId,
+        stepIdentifier: 'Allmän kommentar',
+        feedbackText: generalText,
+        valuation: generalValuation,
+        isFromTeacher: true,
+      }];
+      const res = await fetch(`/api/admin/bookings/${booking.id}/feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback: payload })
+      });
+      if (res.ok) {
+        toast.success('Allmän feedback sparad', { id: loadingToast });
+        setIsGeneralModalOpen(false);
+        setGeneralText('');
+        setGeneralValuation(5);
+        loadExistingFeedback();
+      } else {
+        toast.error('Kunde inte spara', { id: loadingToast });
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Fel vid sparande', { id: loadingToast });
+    }
+    setIsSaving(false);
+  };
+
   const getStatusBadge = (status) => {
     if (!status) return null;
     switch (status) {
@@ -355,7 +590,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto text-white">
       <div className="mb-6">
         <Link
           href="/dashboard/admin/bookings"
@@ -366,28 +601,28 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-white">Bokningsdetaljer</h1>
+      <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden">
+        <div className="px-6 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-extrabold drop-shadow">Bokningsdetaljer</h1>
             <div className="flex gap-2">
-              <button onClick={() => setShowMoveModal(true)} className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                <Edit className="w-5 h-5 text-white" />
+              <button onClick={() => setShowMoveModal(true)} className="p-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg transition-colors">
+                <Edit className="w-5 h-5" />
               </button>
-              <button onClick={() => setShowDeleteModal(true)} className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
-                <Trash2 className="w-5 h-5 text-white" />
+              <button onClick={() => setShowDeleteModal(true)} className="p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-lg transition-colors">
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-white/10">
           <div className="flex space-x-4 px-6">
             <button 
               onClick={() => setActiveTab('details')} 
               className={`py-3 px-4 text-sm font-medium transition-colors ${
                 activeTab === 'details' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
-                : 'text-gray-600 hover:text-blue-500'
+                ? 'text-white border-b-2 border-sky-400' 
+                : 'text-slate-300 hover:text-white'
               }`}>
               <BookOpen className="w-5 h-5 inline-block mr-2"/>
               Detaljer
@@ -396,8 +631,8 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
               onClick={() => setActiveTab('planning')} 
               className={`py-3 px-4 text-sm font-medium transition-colors ${
                 activeTab === 'planning' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
-                : 'text-gray-600 hover:text-blue-500'
+                ? 'text-white border-b-2 border-sky-400' 
+                : 'text-slate-300 hover:text-white'
               }`}>
               <ClipboardList className="w-5 h-5 inline-block mr-2"/>
               Planering
@@ -406,8 +641,8 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
               onClick={() => setActiveTab('feedback')} 
               className={`py-3 px-4 text-sm font-medium transition-colors ${
                 activeTab === 'feedback' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
-                : 'text-gray-600 hover:text-blue-500'
+                ? 'text-white border-b-2 border-sky-400' 
+                : 'text-slate-300 hover:text-white'
               }`}>
               <MessageSquare className="w-5 h-5 inline-block mr-2"/>
               Feedback
@@ -416,8 +651,8 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
               onClick={() => setActiveTab('status')} 
               className={`py-3 px-4 text-sm font-medium transition-colors ${
                 activeTab === 'status' 
-                ? 'text-blue-600 border-b-2 border-blue-600' 
-                : 'text-gray-600 hover:text-blue-500'
+                ? 'text-white border-b-2 border-sky-400' 
+                : 'text-slate-300 hover:text-white'
               }`}>
               <Settings className="w-5 h-5 inline-block mr-2"/>
               Status
@@ -453,43 +688,43 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
             {/* Main Information */}
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-sky-300" />
                   Lektionsinformation
                 </h2>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Datum:</span>
-                    <span className="font-medium">{formatDate(booking.scheduledDate)}</span>
+                    <span className="text-slate-300">Datum:</span>
+                    <span className="font-semibold text-white">{formatDate(booking.scheduledDate)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tid:</span>
-                    <span className="font-medium">
+                    <span className="text-slate-300">Tid:</span>
+                    <span className="font-semibold text-white">
                       {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Lektionstyp:</span>
-                    <span className="font-medium">{booking.lessonTypeName || booking.lessonType}</span>
+                    <span className="text-slate-300">Lektionstyp:</span>
+                    <span className="font-semibold text-white">{booking.lessonTypeName || booking.lessonType}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Pris:</span>
-                    <span className="font-medium">{booking.totalPrice || booking.lessonTypePrice} kr</span>
+                    <span className="text-slate-300">Pris:</span>
+                    <span className="font-semibold text-white">{booking.totalPrice || booking.lessonTypePrice} kr</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <User className="w-5 h-5 text-sky-300" />
                   Kundinformation
                 </h2>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Namn:</span>
-                    <span className="font-medium">
+                    <span className="text-slate-300">Namn:</span>
+                    <span className="font-semibold text-white">
                       {booking.userFirstName && booking.userLastName 
                         ? `${booking.userFirstName} ${booking.userLastName}`
                         : booking.guestName || 'N/A'
@@ -497,19 +732,19 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">E-post:</span>
-                    <span className="font-medium">{booking.userEmail || booking.guestEmail || 'N/A'}</span>
+                    <span className="text-slate-300">E-post:</span>
+                    <span className="font-semibold text-white">{booking.userEmail || booking.guestEmail || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Telefon:</span>
-                    <span className="font-medium">{booking.userPhone || booking.guestPhone || 'N/A'}</span>
+                    <span className="text-slate-300">Telefon:</span>
+                    <span className="font-semibold text-white">{booking.userPhone || booking.guestPhone || 'N/A'}</span>
                   </div>
                   {booking.userId && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Användar-ID:</span>
+                      <span className="text-slate-300">Användar-ID:</span>
                       <Link 
                         href={`/dashboard/admin/users/${booking.userId}`}
-                        className="font-medium text-blue-600 hover:text-blue-800"
+                        className="font-semibold text-sky-300 hover:text-white"
                       >
                         {booking.userId}
                       </Link>
@@ -522,19 +757,19 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
             {/* Car Information */}
             {booking.carId && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <Car className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Car className="w-5 h-5 text-sky-300" />
                   Bilinformation
                 </h2>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Bil:</span>
-                    <span className="font-medium">{booking.carName}</span>
+                    <span className="text-slate-300">Bil:</span>
+                    <span className="font-semibold text-white">{booking.carName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Registreringsnummer:</span>
-                    <span className="font-medium">{booking.carRegistration}</span>
+                    <span className="text-slate-300">Registreringsnummer:</span>
+                    <span className="font-semibold text-white">{booking.carRegistration}</span>
                   </div>
                 </div>
               </div>
@@ -543,19 +778,19 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
             {/* Invoice Information */}
             {booking.invoiceNumber && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-sky-300" />
                   Fakturainformation
                 </h2>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fakturanummer:</span>
-                    <span className="font-medium">{booking.invoiceNumber}</span>
+                    <span className="text-slate-300">Fakturanummer:</span>
+                    <span className="font-semibold text-white">{booking.invoiceNumber}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Fakturadatum:</span>
-                    <span className="font-medium">{formatDate(booking.invoiceDate)}</span>
+                    <span className="text-slate-300">Fakturadatum:</span>
+                    <span className="font-semibold text-white">{formatDate(booking.invoiceDate)}</span>
                   </div>
                 </div>
               </div>
@@ -564,20 +799,20 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
             {/* Notes */}
             {booking.notes && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-800">Anteckningar</h2>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-gray-700 whitespace-pre-wrap">{booking.notes}</p>
+                <h2 className="text-lg font-semibold text-white">Anteckningar</h2>
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <p className="text-slate-200 whitespace-pre-wrap">{booking.notes}</p>
                 </div>
               </div>
             )}
 
             {/* Timestamps */}
-            <div className="pt-4 border-t border-gray-200 text-sm text-gray-500">
+            <div className="pt-4 border-t border-white/10 text-sm text-slate-300">
               <div className="grid md:grid-cols-2 gap-4">
-                <div>Skapad: {formatDateTime(booking.createdAt)}</div>
-                <div>Uppdaterad: {formatDateTime(booking.updatedAt)}</div>
+                <div>Skapad: <span className="text-white">{formatDateTime(booking.createdAt)}</span></div>
+                <div>Uppdaterad: <span className="text-white">{formatDateTime(booking.updatedAt)}</span></div>
                 {booking.completedAt && (
-                  <div>Genomförd: {formatDateTime(booking.completedAt)}</div>
+                  <div>Genomförd: <span className="text-white">{formatDateTime(booking.completedAt)}</span></div>
                 )}
               </div>
             </div>
@@ -588,200 +823,285 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
           <div className="p-6">
             <h2 className="text-xl font-bold mb-4">Planera lektion</h2>
             {isLoadingSteps ? (
-              <div>Laddar...</div>
+              <div className="text-slate-300">Laddar...</div>
             ) : (
-              <div className="space-y-4">
-                {bookingSteps.map(step => (
-                  <div key={step.id} className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      id={`step-${step.id}`}
-                      checked={selectedSteps.some(s => s.stepId === step.id)}
-                      onChange={() => handleStepSelection(step.id, step)}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor={`step-${step.id}`} className="ml-3 text-gray-700">
-                      {step.category}: {step.subcategory}
-                    </label>
+              <div className="space-y-6">
+                <div className="mb-2">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Sök efter steg..."
+                    className="w-full md:w-80 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-slate-300"
+                  />
+                </div>
+                {Object.entries(
+                  bookingSteps
+                    .filter((s:any)=>{
+                      const q = searchQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        s.category?.toLowerCase().includes(q) ||
+                        s.subcategory?.toLowerCase().includes(q) ||
+                        s.description?.toLowerCase().includes(q)
+                      );
+                    })
+                    .reduce((acc: Record<string, any[]>, s: any) => {
+                      (acc[s.category] ||= []).push(s);
+                      return acc;
+                    }, {})
+                ).map(([category, steps]: [string, any[]]) => (
+                  <div key={category} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                          statusByCategory[category] === 'green' ? 'bg-green-500/30 text-green-300'
+                          : statusByCategory[category] === 'orange' ? 'bg-yellow-500/30 text-yellow-300'
+                          : statusByCategory[category] === 'red' ? 'bg-rose-500/30 text-rose-300'
+                          : 'bg-slate-500/30 text-slate-300'
+                        }`}>
+                          {!statusByCategory[category] || statusByCategory[category] === 'unknown' ? '?' : '!' }
+                        </span>
+                        <h3 className="text-lg font-extrabold text-white drop-shadow">{category}</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => {
+                          const toAdd = new Set(plannedSet);
+                          steps.forEach(s => toAdd.add(stepIdentifierOf(s)));
+                          setPlannedSet(toAdd);
+                          setIsPlanDirty(true);
+                        }} className="px-2 py-1 text-xs rounded bg-white/10 border border-white/20">Välj alla</button>
+                        <button onClick={() => {
+                          const toDel = new Set(plannedSet);
+                          steps.forEach(s => toDel.delete(stepIdentifierOf(s)));
+                          setPlannedSet(toDel);
+                          setIsPlanDirty(true);
+                        }} className="px-2 py-1 text-xs rounded bg-white/10 border border-white/20">Rensa</button>
+                      </div>
+                    </div>
+                    <div className="p-4 grid md:grid-cols-2 gap-3">
+                      {steps.map(step => {
+                        const key = stepIdentifierOf(step);
+                        const checked = plannedSet.has(key);
+                        return (
+                          <label key={key} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => handlePlanToggle(step)}
+                              className="h-6 w-6 text-sky-400 bg-white/10 border-white/20 rounded focus:ring-sky-400"
+                            />
+                            <span className="text-white">
+                              <span className="font-semibold">{step.subcategory}</span>
+                              {step.description ? <span className="text-slate-300"> — {step.description}</span> : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {isPlanDirty && (
+              <div className="fixed left-0 right-0 bottom-0 flex justify-center z-50 pointer-events-none">
+                <div className="m-4 pointer-events-auto rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-2xl px-4 py-2 flex items-center gap-3">
+                  <span className="text-white text-sm">Ändringar ej sparade</span>
+                  <button onClick={savePlan} className="px-3 py-1 rounded-lg bg-sky-500 text-white hover:bg-sky-600 text-sm flex items-center gap-1">
+                    <Save className="w-4 h-4" /> Spara planering
+                  </button>
+                </div>
               </div>
             )}
           </div>
         )}
 
         {activeTab === 'feedback' && (
-          <div className="p-6">
-            <h2 className="text-xl font-bold mb-4">Ge feedback</h2>
-            <div className="space-y-6">
-              {/* Existing Feedback */}
+          <div className="p-6 space-y-6">
+            {/* Top summary: stars and add general feedback button */}
+            <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Befintlig Feedback</h3>
-                {isLoadingFeedback ? <div>Laddar...</div> : (
-                  <div className="space-y-3">
-                    {existingFeedback.map(fb => (
-                      <div key={fb.id} className="p-4 bg-gray-100 rounded-lg border">
-                        {editingFeedback?.id === fb.id ? (
-                          /* Edit Mode */
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <h4 className="font-bold text-gray-800">{fb.stepIdentifier}</h4>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={saveEditedFeedback}
-                                  disabled={isSaving}
-                                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-green-300"
-                                >
-                                  <Save className="w-4 h-4 inline mr-1" />
-                                  {isSaving ? 'Sparar...' : 'Spara'}
-                                </button>
-                                <button
-                                  onClick={cancelEditingFeedback}
-                                  className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
-                                >
-                                  Avbryt
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Värdering (1-10)</label>
-                              <input
-                                type="range"
-                                min="1"
-                                max="10"
-                                value={editingFeedback.valuation}
-                                onChange={e => updateEditingFeedback('valuation', parseInt(e.target.value))}
-                                className="w-full"
-                              />
-                              <div className="text-center font-bold">{editingFeedback.valuation}</div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Kommentar</label>
-                              <textarea
-                                value={editingFeedback.feedbackText}
-                                onChange={e => updateEditingFeedback('feedbackText', e.target.value)}
-                                className="w-full p-2 border rounded-md"
-                                rows="3"
-                              ></textarea>
-                            </div>
-                          </div>
-                        ) : (
-                          /* View Mode */
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-bold text-gray-800">{fb.stepIdentifier}</h4>
-                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{fb.valuation}/10</span>
-                              </div>
-                              <p className="text-gray-700">{fb.feedbackText}</p>
-                            </div>
-                            <div className="flex gap-2 ml-4">
-                              <button
-                                onClick={() => startEditingFeedback(fb)}
-                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                              >
-                                <Edit className="w-4 h-4 inline mr-1" />
-                                Redigera
-                              </button>
-                              <button
-                                onClick={() => deleteFeedback(fb.id)}
-                                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                              >
-                                <Trash2 className="w-4 h-4 inline mr-1" />
-                                Ta bort
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {existingFeedback.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">Ingen feedback finns ännu.</p>
-                    )}
-                  </div>
-                )}
+                <h3 className="text-lg font-extrabold text-white drop-shadow mb-1">Sammanfattning</h3>
+                <div>{renderStars(computeStars())}</div>
               </div>
+              <button
+                onClick={() => openGuarded(() => setIsGeneralModalOpen(true))}
+                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" /> Lägg till allmän feedback
+              </button>
+            </div>
 
-              {/* Freetext Feedback Form */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-semibold">Lägg till allmän feedback</h3>
-                <div className="p-4 border rounded-lg bg-blue-50">
-                  <h4 className="font-bold mb-3">Allmän kommentar</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Värdering (1-10)</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="10" 
-                        value={freetextFeedback.valuation}
-                        onChange={e => setFreetextFeedback(prev => ({ ...prev, valuation: parseInt(e.target.value) }))}
-                        className="w-full"
-                      />
-                      <div className="text-center font-bold">{freetextFeedback.valuation}</div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Kommentar</label>
-                      <textarea
-                        value={freetextFeedback.feedbackText}
-                        onChange={e => setFreetextFeedback(prev => ({ ...prev, feedbackText: e.target.value }))}
-                        className="w-full p-2 border rounded-md"
-                        rows="3"
-                        placeholder="Skriv din allmänna feedback här..."
-                      ></textarea>
-                    </div>
-                    <button 
-                      onClick={saveFreetextFeedback} 
-                      disabled={isSaving || !freetextFeedback.feedbackText.trim()}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-300"
+            {/* Planned categories with feedback actions */}
+            <div className="space-y-6">
+              {Object.entries(plannedStepsGrouped()).map(([category, steps]) => (
+                <div key={category} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <h3 className="text-lg font-extrabold text-white drop-shadow">{category}</h3>
+                    <button
+                      onClick={() => openGuarded(() => { setCurrentCategory(category); setIsCategoryModalOpen(true); })}
+                      className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm"
                     >
-                      <Plus className="w-4 h-4 inline mr-1" />
-                      {isSaving ? 'Sparar...' : 'Spara allmän feedback'}
+                      Lämna kategorifeedback
                     </button>
                   </div>
-                </div>
-              </div>
-
-              {/* New Feedback Form */}
-              {selectedSteps.length > 0 && (
-                <div className="space-y-4 pt-4 border-t">
-                  <h3 className="text-lg font-semibold">Ny steg-specifik feedback</h3>
-                  {selectedSteps.map(step => (
-                    <div key={step.stepId} className="p-4 border rounded-lg">
-                      <h4 className="font-bold">{step.stepInfo.category}: {step.stepInfo.subcategory}</h4>
-                      <div className="mt-2">
-                        <label className="block text-sm font-medium text-gray-700">Värdering (1-10)</label>
-                        <input 
-                          type="range" 
-                          min="1" 
-                          max="10" 
-                          value={step.valuation}
-                          onChange={e => updateStepFeedback(step.stepId, 'valuation', parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                        <div className="text-center font-bold">{step.valuation}</div>
+                  <div className="p-4 grid md:grid-cols-2 gap-3">
+                    {steps.map((s: any) => (
+                      <div key={`${s.category}-${s.subcategory}`} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between gap-3">
+                        <div className="text-white"><span className="font-semibold">{s.subcategory}</span>{s.description ? <span className="text-slate-300"> — {s.description}</span> : null}</div>
+                        <button
+                          onClick={() => openGuarded(() => { setCurrentStep(s); setIsStepModalOpen(true); })}
+                          className="px-3 py-1 rounded bg-sky-600/90 hover:bg-sky-600 text-white text-sm"
+                        >
+                          Ge feedback
+                        </button>
                       </div>
-                      <div className="mt-2">
-                        <label className="block text-sm font-medium text-gray-700">Kommentar</label>
-                        <textarea
-                          value={step.feedbackText}
-                          onChange={e => updateStepFeedback(step.stepId, 'feedbackText', e.target.value)}
-                          className="w-full mt-1 p-2 border rounded-md"
-                          rows="2"
-                        ></textarea>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {Object.keys(plannedStepsGrouped()).length === 0 && (
+                <div className="text-slate-300">Inga planerade steg för denna bokning.</div>
+              )}
+            </div>
+
+            {/* Existing feedback list (compact) */}
+            <div className="rounded-2xl bg-white/5 border border-white/10 p-4">
+              <h3 className="text-lg font-semibold text-white mb-3">Befintlig feedback</h3>
+              {isLoadingFeedback ? (
+                <div className="text-slate-300">Laddar...</div>
+              ) : (
+                <div className="space-y-2">
+                  {existingFeedback.map((fb: any) => (
+                    <div key={fb.id} className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-white truncate">{fb.stepIdentifier}</h4>
+                          {typeof fb.valuation === 'number' && (
+                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-sky-200 text-xs border border-white/20">{fb.valuation}/10</span>
+                          )}
+                        </div>
+                        <p className="text-slate-200 whitespace-pre-wrap break-words">{fb.feedbackText}</p>
+                      </div>
+                      <div className="flex gap-2 ml-2 shrink-0">
+                        <button onClick={() => startEditingFeedback(fb)} className="px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs rounded">Redigera</button>
+                        <button onClick={() => deleteFeedback(fb.id)} className="px-2 py-1 bg-rose-600/90 hover:bg-rose-600 text-white text-xs rounded">Ta bort</button>
                       </div>
                     </div>
                   ))}
-                  <button 
-                    onClick={saveFeedback} 
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-                  >
-                    {isSaving ? 'Sparar...' : 'Spara steg-feedback'}
-                  </button>
+                  {existingFeedback.length === 0 && (
+                    <div className="text-slate-300">Ingen feedback finns ännu.</div>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* Edit inline modal fallback (existing) */}
+            {editingFeedback && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60" onClick={cancelEditingFeedback} />
+                <div className="relative w-full max-w-lg mx-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-4">
+                  <h4 className="text-white font-extrabold mb-3">Redigera feedback</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Värdering (1-10)</label>
+                      <input type="range" min="1" max="10" value={editingFeedback.valuation}
+                        onChange={e => updateEditingFeedback('valuation', parseInt(e.target.value))} className="w-full" />
+                      <div className="text-center font-bold text-white">{editingFeedback.valuation}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Kommentar</label>
+                      <textarea value={editingFeedback.feedbackText} onChange={e => updateEditingFeedback('feedbackText', e.target.value)}
+                        className="w-full p-2 rounded-md bg-white/10 border border-white/20 text-white" rows={3} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={cancelEditingFeedback} className="px-3 py-1 rounded bg-white/10 border border-white/20 text-white">Avbryt</button>
+                      <button onClick={saveEditedFeedback} disabled={isSaving} className="px-3 py-1 rounded bg-sky-600/90 hover:bg-sky-600 text-white">
+                        {isSaving ? 'Sparar...' : 'Spara'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* General feedback modal */}
+            {isGeneralModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setIsGeneralModalOpen(false)} />
+                <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-5">
+                  <h4 className="text-white font-extrabold mb-3">Allmän feedback</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Värdering (1-10)</label>
+                      <input type="range" min="1" max="10" value={generalValuation} onChange={e => setGeneralValuation(parseInt(e.target.value))} className="w-full" />
+                      <div className="text-center font-bold text-white">{generalValuation}</div>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Kommentar</label>
+                      <textarea value={generalText} onChange={e => setGeneralText(e.target.value)} className="w-full p-2 rounded-md bg-white/10 border border-white/20 text-white" rows={4} placeholder="Skriv din allmänna feedback här..." />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setIsGeneralModalOpen(false)} className="px-3 py-1 rounded bg-white/10 border border-white/20 text-white">Avbryt</button>
+                      <button onClick={saveGeneralFeedbackModal} disabled={isSaving || !generalText.trim()} className="px-3 py-1 rounded bg-sky-600/90 hover:bg-sky-600 text-white">
+                        {isSaving ? 'Sparar...' : 'Spara'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step feedback modal */}
+            {isStepModalOpen && currentStep && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setIsStepModalOpen(false)} />
+                <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-5">
+                  <h4 className="text-white font-extrabold mb-1">{currentStep.category}</h4>
+                  <div className="text-slate-300 mb-3">{currentStep.subcategory}</div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setStepValuation(3)} className={`px-3 py-1 rounded ${stepValuation===3?'bg-rose-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Behöver träning</button>
+                      <button onClick={() => setStepValuation(6)} className={`px-3 py-1 rounded ${stepValuation===6?'bg-yellow-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Sådär</button>
+                      <button onClick={() => setStepValuation(9)} className={`px-3 py-1 rounded ${stepValuation===9?'bg-green-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Bra</button>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Kommentar</label>
+                      <textarea value={stepText} onChange={e => setStepText(e.target.value)} className="w-full p-2 rounded-md bg-white/10 border border-white/20 text-white" rows={4} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setIsStepModalOpen(false)} className="px-3 py-1 rounded bg-white/10 border border-white/20 text-white">Avbryt</button>
+                      <button onClick={saveStepFeedbackModal} disabled={isSaving || !stepText.trim()} className="px-3 py-1 rounded bg-sky-600/90 hover:bg-sky-600 text-white">{isSaving?'Sparar...':'Spara'}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Category feedback modal */}
+            {isCategoryModalOpen && currentCategory && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setIsCategoryModalOpen(false)} />
+                <div className="relative w-full max-w-xl mx-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl p-5">
+                  <h4 className="text-white font-extrabold mb-3">{currentCategory}</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setCategoryValuation(3)} className={`px-3 py-1 rounded ${categoryValuation===3?'bg-rose-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Behöver träning</button>
+                      <button onClick={() => setCategoryValuation(6)} className={`px-3 py-1 rounded ${categoryValuation===6?'bg-yellow-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Sådär</button>
+                      <button onClick={() => setCategoryValuation(9)} className={`px-3 py-1 rounded ${categoryValuation===9?'bg-green-600/90 text-white':'bg-white/10 text-slate-200 border border-white/20'}`}>Bra</button>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-slate-300 mb-1">Kommentar</label>
+                      <textarea value={categoryText} onChange={e => setCategoryText(e.target.value)} className="w-full p-2 rounded-md bg-white/10 border border-white/20 text-white" rows={4} />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setIsCategoryModalOpen(false)} className="px-3 py-1 rounded bg-white/10 border border-white/20 text-white">Avbryt</button>
+                      <button onClick={saveCategoryFeedbackModal} disabled={isSaving || !categoryText.trim()} className="px-3 py-1 rounded bg-sky-600/90 hover:bg-sky-600 text-white">{isSaving?'Sparar...':'Spara'}</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

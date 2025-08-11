@@ -26,7 +26,7 @@ export type EmailTriggerType =
   | 'new_password'
   | 'swish_payment_verification';
 
-export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user';
+export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user' | 'supervisor';
 
 interface EmailContext {
   user?: {
@@ -266,6 +266,8 @@ const allSuccess = results.every(result => result === true);
       case 'specific_user':
         // TODO: Fetch specific user email from database if needed
         return null;
+      case 'supervisor':
+        return (context as any).customData?.supervisorEmail || null;
       default:
         return null;
     }

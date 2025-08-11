@@ -13,7 +13,9 @@ interface TimeSlot {
   available: boolean
   unavailable: boolean
   hasBooking: boolean
-  isWithinThreeHours: boolean
+  isWithinTwoHours?: boolean
+  callForBooking?: boolean
+  callPhone?: string
   gradient: 'green' | 'red'
   clickable: boolean
 }
@@ -57,10 +59,10 @@ export function WeekCalendar({
     setLoading(true)
     try {
       const weekDates = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i))
-      const startDate = format(weekDates[0], 'yyyy-MM-dd')
-      const endDate = format(weekDates[6], 'yyyy-MM-dd')
+      const dateKeys = weekDates.map(d => format(d, 'yyyy-MM-dd'))
 
-      const response = await fetch(`/api/booking/slots?startDate=${startDate}&endDate=${endDate}&duration=${lessonType?.durationMinutes}`)
+      // Use precise visible-slots API to compute slots strictly from DB
+      const response = await fetch(`/api/booking/visible-slots?dates=${encodeURIComponent(dateKeys.join(','))}`)
       const data = await response.json()
 
       if (data.success) {
@@ -298,30 +300,31 @@ export function WeekCalendar({
                 </div>
                 ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || []).map((slot) => (
+                  {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || [])
+                    .filter((slot) => slot.clickable)
+                    .map((slot) => (
                     <Button
                       key={slot.time}
                       variant={selectedTime === slot.time ? "default" : "outline"}
                       size="sm"
-                      disabled={!slot.clickable}
-                      onClick={() => slot.clickable && handleTimeSelect(slot.time)}
+                      onClick={() => handleTimeSelect(slot.time)}
                       className={`
                         ${selectedTime === slot.time 
                           ? 'bg-red-600 hover:bg-red-700 text-white' 
                           : ''
                         }
-                        ${!slot.clickable ? 'opacity-50 cursor-not-allowed' : ''}
                         ${slot.gradient === 'green' && slot.clickable 
                           ? 'bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 font-semibold' 
                           : ''
                         }
-                        ${slot.gradient === 'red' && !slot.clickable 
-                          ? 'bg-white border-2 border-red-500 text-red-700 font-semibold' 
-                          : ''
-                        }
                       `}
                     >
-                      {slot.time}
+                      <span className="flex flex-col items-center leading-tight">
+                        <span>{slot.time}</span>
+                        {slot.callForBooking && (
+                          <span className="text-[10px] font-medium text-red-600">Ring för bokning{slot.callPhone ? `: ${slot.callPhone}` : ''}</span>
+                        )}
+                      </span>
                     </Button>
                   ))}
                 </div>

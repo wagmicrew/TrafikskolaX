@@ -24,6 +24,7 @@ import {
   Calendar,
   FileText
 } from 'lucide-react';
+import { ImageCropper } from '@/components/ui/image-cropper';
 
 interface UserData {
   firstName: string;
@@ -55,6 +56,8 @@ function SettingsClient() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
@@ -88,9 +91,20 @@ function SettingsClient() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setAvatarFile(e.target.files[0]);
+      const file = e.target.files[0]
+      setAvatarFile(file);
+      const url = URL.createObjectURL(file)
+      setAvatarPreview(url)
+      setCropOpen(true)
     }
   };
+
+  const handleCropped = (file: File) => {
+    setAvatarFile(file)
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    setAvatarPreview(URL.createObjectURL(file))
+    setCropOpen(false)
+  }
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,8 +186,9 @@ function SettingsClient() {
       if (!response.ok) throw new Error('Failed to upload avatar');
 
       addToast({ type: 'success', message: 'Profilbilden har uppdaterats!' });
-      if (refreshUser) refreshUser();
+      if (refreshUser) await refreshUser();
       setAvatarFile(null);
+      if (avatarPreview) { URL.revokeObjectURL(avatarPreview); setAvatarPreview(null) }
     } catch (error) {
       addToast({ type: 'error', message: 'Kunde inte ladda upp profilbilden.' });
     } finally {
@@ -427,7 +442,7 @@ function SettingsClient() {
               <div className="space-y-6">
                 <div className="flex items-center space-x-6">
                   <Avatar className="w-20 h-20">
-                    <AvatarImage src={userData?.profileImage} />
+                    <AvatarImage src={avatarPreview || userData?.profileImage} />
                     <AvatarFallback className="bg-white/10 text-white text-xl">
                       {userData?.firstName?.[0]}{userData?.lastName?.[0]}
                     </AvatarFallback>
@@ -467,6 +482,9 @@ function SettingsClient() {
           </Card>
         </TabsContent>
       </Tabs>
+      {cropOpen && avatarPreview && (
+        <ImageCropper src={avatarPreview} aspect={1} onCancel={()=>{ setCropOpen(false); }} onCropped={handleCropped} />
+      )}
     </div>
   );
 }

@@ -38,6 +38,7 @@ export default function AdminDashboard() {
     totalRevenue: 0,
     unreadMessages: 0
   });
+  const [internalMessagesEnabled, setInternalMessagesEnabled] = useState(true);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -47,6 +48,11 @@ export default function AdminDashboard() {
 
     // Fetch dashboard stats
     fetchStats();
+    // Fetch internal messages toggle
+    fetch('/api/admin/settings')
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data) => setInternalMessagesEnabled(Boolean(data?.settings?.internal_messages_enabled)))
+      .catch(() => setInternalMessagesEnabled(true));
   }, [user, router]);
 
   const fetchStats = async () => {
@@ -102,6 +108,13 @@ export default function AdminDashboard() {
       href: '/dashboard/admin/settings',
       icon: FaCog,
       color: 'bg-gray-500'
+    },
+    {
+      title: 'Qliro-betalningar',
+      description: 'Hantera Qliro-betalningar',
+      href: '/dashboard/admin/settings/qliro',
+      icon: FaCreditCard,
+      color: 'bg-rose-500'
     },
     {
       title: 'E-postmallar',
@@ -225,13 +238,15 @@ export default function AdminDashboard() {
             <span>Inställningar</span>
           </Button>
           
-          <Button 
-            onClick={() => router.push('/dashboard/meddelande')}
-            className="h-auto p-4 flex flex-col items-center space-y-2 bg-indigo-500 hover:bg-indigo-600 text-white"
-          >
-            <FaEnvelope className="h-6 w-6" />
-            <span>Meddelanden</span>
-          </Button>
+          {internalMessagesEnabled && (
+            <Button 
+              onClick={() => router.push('/dashboard/meddelande')}
+              className="h-auto p-4 flex flex-col items-center space-y-2 bg-indigo-500 hover:bg-indigo-600 text-white"
+            >
+              <FaEnvelope className="h-6 w-6" />
+              <span>Meddelanden</span>
+            </Button>
+          )}
         </div>
       </div>
 

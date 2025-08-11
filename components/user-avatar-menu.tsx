@@ -1,6 +1,6 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -38,8 +38,10 @@ import { Badge as BadgeComponent } from "@/components/ui/badge"
 
 export const UserAvatarMenu = memo(function UserAvatarMenu() {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout, refreshUser } = useAuth()
   const { unreadCount } = useMessages()
+  const [messagesEnabled, setMessagesEnabled] = useState(true)
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
   if (!user) return null
 
@@ -87,6 +89,40 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
     }
   };
 
+  useEffect(() => {
+    // Probe unread endpoint to get disabled flag with minimal overhead
+    fetch('/api/messages/unread-count')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setMessagesEnabled(data?.disabled !== true))
+      .catch(() => setMessagesEnabled(true))
+    // Check if currently impersonating
+    fetch('/api/auth/impersonation-status')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setIsImpersonating(Boolean(data?.impersonating)))
+      .catch(() => setIsImpersonating(false))
+  }, [])
+
+  const handleRestoreAdmin = async () => {
+    try {
+      const res = await fetch('/api/auth/impersonate', { method: 'DELETE' })
+      if (res.ok) {
+        try {
+          const data = await res.json()
+          if (data?.token) {
+            try { localStorage.setItem('auth-token', data.token) } catch {}
+            document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`
+          } else {
+            try { localStorage.removeItem('auth-token') } catch {}
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
+          }
+        } catch {}
+      }
+    } finally {
+      router.push('/dashboard/admin')
+      try { await refreshUser?.() } catch {}
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -101,7 +137,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          {unreadCount > 0 && (
+          {messagesEnabled && unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white ring-2 ring-white shadow-lg">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
@@ -139,6 +175,19 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
         <DropdownMenuSeparator />
         
         <DropdownMenuGroup>
+          {isImpersonating && (
+            <DropdownMenuItem
+              onClick={handleRestoreAdmin}
+              className="cursor-pointer hover:bg-yellow-50 text-yellow-700"
+            >
+              <Shield className="mr-3 h-4 w-4" />
+              <div className="flex-1">
+                <span className="font-medium">Återgå till admin</span>
+                <p className="text-xs text-yellow-700/80">Avsluta tillfällig användarsession</p>
+              </div>
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuItem
             onClick={() => router.push(dashboardUrl)}
             className="cursor-pointer hover:bg-slate-50"
@@ -150,35 +199,26 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
             </div>
           </DropdownMenuItem>
           
-          <DropdownMenuItem
-            onClick={() => router.push("/dashboard/meddelande")}
-            className="cursor-pointer hover:bg-slate-50"
-          >
-            <MessageCircle className="mr-3 h-4 w-4 text-slate-600" />
-            <div className="flex-1">
-              <span className="font-medium">Meddelanden</span>
-              <p className="text-xs text-slate-500">Hantera dina meddelanden</p>
-            </div>
-            {unreadCount > 0 && (
-              <BadgeComponent variant="secondary" className="ml-auto bg-red-100 text-red-800 border-red-200">
-                {unreadCount}
-              </BadgeComponent>
-            )}
-          </DropdownMenuItem>
+          {messagesEnabled && (
+            <DropdownMenuItem
+              onClick={() => router.push("/dashboard/meddelande")}
+              className="cursor-pointer hover:bg-slate-50"
+            >
+              <MessageCircle className="mr-3 h-4 w-4 text-slate-600" />
+              <div className="flex-1">
+                <span className="font-medium">Meddelanden</span>
+                <p className="text-xs text-slate-500">Hantera dina meddelanden</p>
+              </div>
+              {unreadCount > 0 && (
+                <BadgeComponent variant="secondary" className="ml-auto bg-red-100 text-red-800 border-red-200">
+                  {unreadCount}
+                </BadgeComponent>
+              )}
+            </DropdownMenuItem>
+          )}
           
           {user.role === "student" && (
             <>
-              <DropdownMenuItem
-                onClick={() => router.push("/dashboard/utbildningskort")} 
-                className="cursor-pointer hover:bg-slate-50"
-              >
-                <FileText className="mr-3 h-4 w-4 text-slate-600" />
-                <div className="flex-1">
-                  <span className="font-medium">Utbildningskort</span>
-                  <p className="text-xs text-slate-500">Se din utbildningsstatus</p>
-                </div>
-              </DropdownMenuItem>
-              
               <DropdownMenuItem
                 onClick={() => router.push("/dashboard/student/feedback")} 
                 className="cursor-pointer hover:bg-slate-50"
@@ -186,7 +226,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
                 <Star className="mr-3 h-4 w-4 text-slate-600" />
                 <div className="flex-1">
                   <span className="font-medium">Feedback</span>
-                  <p className="text-xs text-slate-500">Ge feedback på lektioner</p>
+                  <p className="text-xs text-slate-500">Se dina omdömen</p>
                 </div>
               </DropdownMenuItem>
             </>

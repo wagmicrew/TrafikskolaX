@@ -4,6 +4,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
+import { generateCustomerNumber } from '@/lib/utils/customer-number';
 
 // GET all users
 export async function GET(request: NextRequest) {
@@ -22,6 +23,51 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// POST create user (admin)
+export async function POST(request: NextRequest) {
+  try {
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const body = await request.json();
+    const { email, password, firstName, lastName, phone, role = 'student' } = body;
+
+    if (!email || !password || !firstName || !lastName) {
+      return NextResponse.json({ error: 'Alla obligatoriska fält måste fyllas i' }, { status: 400 });
+    }
+
+    // Ensure email unique
+    const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (existing.length > 0) {
+      return NextResponse.json({ error: 'E-postadressen används redan' }, { status: 400 });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const values: any = {
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      phone,
+      role,
+      isActive: true,
+    };
+    if (role === 'student') {
+      values.customerNumber = await generateCustomerNumber();
+    }
+
+    const inserted = await db.insert(users).values(values).returning();
+    const created = inserted[0];
+    const { password: _omit, ...withoutPwd } = created as any;
+    return NextResponse.json({ message: 'Användare skapad', user: withoutPwd }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return NextResponse.json({ error: 'Internt serverfel' }, { status: 500 });
   }
 }
 

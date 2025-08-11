@@ -88,7 +88,7 @@ export default function SlotsClient() {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -121,6 +121,33 @@ export default function SlotsClient() {
     fetchBlockedSlots();
     fetchExtraSlots();
   }, []);
+
+  // Ensure calendar is default on entry
+  useEffect(() => {
+    setShowCalendar(true);
+  }, []);
+
+  const handleResetMonFri = async () => {
+    const confirmed = confirm('Detta rensar ALLA tidsluckor, extra/blockerade tider samt ALLA bokningar. Fortsätt?');
+    if (!confirmed) return;
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/admin/slots/reset', { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({} as any));
+        toast({ title: 'Fel', description: err.error || 'Misslyckades att återställa schema', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Klart', description: 'Standardtider (Mån–Fre) återställda', variant: 'default' });
+      await Promise.all([fetchSlots(), fetchBlockedSlots(), fetchExtraSlots()]);
+      setShowCalendar(true);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Fel', description: 'Misslyckades att återställa schema', variant: 'destructive' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const fetchSlots = async () => {
     try {
@@ -557,6 +584,14 @@ export default function SlotsClient() {
           >
             <CalendarDays className="w-4 h-4 mr-2" />
             {showCalendar ? 'Lista' : 'Kalender'}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleResetMonFri}
+            disabled={isUpdating}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />} Återställ (Mån–Fre)
           </Button>
         </div>
       </div>

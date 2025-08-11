@@ -2,28 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import jwt from 'jsonwebtoken';
+import { getUserFromRequest } from '@/lib/auth/jwt';
 
-// Helper function to validate JWT and get user ID
-async function getUserFromToken(request: NextRequest) {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '');
-  
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-    return decoded.userId;
-  } catch (error) {
-    return null;
-  }
+// Helper that supports Authorization header or cookie and uses app-wide JWT secret fallback
+async function getUserId(request: NextRequest): Promise<string | null> {
+  const user = getUserFromRequest(request);
+  return user?.userId || null;
 }
 
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserFromToken(request);
+    const userId = await getUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -64,7 +54,7 @@ export async function GET(request: NextRequest) {
 // PUT - Update user profile
 export async function PUT(request: NextRequest) {
   try {
-    const userId = await getUserFromToken(request);
+    const userId = await getUserId(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

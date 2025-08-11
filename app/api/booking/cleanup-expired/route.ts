@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Clean up temporary bookings older than 15 minutes
-    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    // Clean up temporary bookings older than 10 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
     // Clean up expired temporary regular bookings
     const expiredRegularBookings = await db

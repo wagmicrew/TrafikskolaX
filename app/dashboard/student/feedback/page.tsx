@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StudentFeedbackClient from './student-feedback-client';
+import StudentHeader from '../StudentHeader';
+import { FaCommentDots } from 'react-icons/fa';
 
 export default function StudentFeedbackPage() {
   const { user, isLoading } = useAuth();
@@ -60,10 +62,15 @@ export default function StudentFeedbackPage() {
   }
 
   return (
-    <StudentFeedbackClient 
-      user={user}
-      feedback={feedbackData.feedback}
-      total={feedbackData.total}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
+      <div className="px-6 pt-8">
+        <StudentHeader title="Feedback" icon={<FaCommentDots className="text-sky-300" />} />
+      </div>
+      <StudentFeedbackClient 
+        user={user}
+        feedback={feedbackData.feedback}
+        total={feedbackData.total}
+      />
+    </div>
   );
 }

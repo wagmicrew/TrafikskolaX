@@ -10,9 +10,7 @@ import {
   FaCreditCard,
   FaMobileAlt,
   FaSpinner,
-  FaCopy,
-  FaCheckCircle,
-  FaEuroSign
+  FaCheckCircle
 } from 'react-icons/fa';
 
 interface Package {
@@ -39,6 +37,10 @@ import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useEffect } from 'react';
+import StudentHeader from '@/app/dashboard/student/StudentHeader';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface PackagesStoreClientProps {
   user: User;
@@ -150,7 +152,7 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           
           setSwishPaymentData({
             amount: effectivePrice,
-            message: `Paket: ${pkg.name}`,
+            message: `Paket ${pkg.name} - Order ${data.purchaseId}`,
             purchaseId: data.purchaseId,
             swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231'
           });
@@ -187,24 +189,9 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   };
   
   const handleSwishConfirm = async (purchaseId: string): Promise<void> => {
-    try {
-      const statusResponse = await fetch('/api/packages/confirm-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseId }),
-      });
-      
-      if (statusResponse.ok) {
-        toast.success('Tack för din betalning! Dina krediter kommer att aktiveras så snart vi bekräftar betalningen.');
-      } else {
-        const errorData = await statusResponse.json();
-        throw new Error(errorData.error || 'Kunde inte bekräfta betalningen');
-      }
-    } catch (error) {
-      console.error('Payment confirmation error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid bekräftelse av betalning';
-      toast.error(errorMessage);
-    }
+    // For Swish, we show a confirmation message and wait for manual/admin verification or webhook
+    toast.success('Tack! Vi verifierar din Swish-betalning snarast.');
+    setShowSwishDialog(false);
   };
 
   const handleQliroConfirm = async (): Promise<void> => {
@@ -213,7 +200,7 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-900 to-gray-800">
+    <div className="min-h-screen p-6 bg-gray-50">
       {/* Payment Dialogs */}
       <SwishPaymentDialog
         isOpen={showSwishDialog}
@@ -222,6 +209,7 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           id: swishPaymentData.purchaseId,
           totalPrice: swishPaymentData.amount
         }}
+        mode="package"
         onConfirm={() => handleSwishConfirm(swishPaymentData.purchaseId)}
       />
       
@@ -234,86 +222,85 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
         onConfirm={handleQliroConfirm}
       />
       
-      {/* Glassmorphism Container */}
-      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl max-w-7xl mx-auto">
-        {/* Background gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 via-transparent to-pink-500/20 rounded-2xl"></div>
-        
-        {/* Content Container */}
-        <div className="relative z-10 p-8">
+      {/* Content Container */}
+      <div className="max-w-7xl mx-auto">
+        <div className="p-4 md:p-6">
       
       {/* Main Content */}
       {/* Header */}
+      <div className="mb-6">
+        <StudentHeader title="Paketbutik" />
+      </div>
       <div className="text-center mb-8">
-        <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-lg">
-          <FaShoppingCart className="inline-block mr-4 text-purple-300" />
+        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
+          <FaShoppingCart className="inline-block mr-3 text-gray-500" />
           Paketbutik
         </h1>
-        <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8 drop-shadow-sm">
-          Välj mellan våra populära paket och spara pengar på dina körlektioner!
+        <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto mb-6">
+          Välj mellan våra populära paket och spara pengar på dina körlektioner.
         </p>
         
-        {/* Payment Method Selector with glassmorphism */}
-        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 mb-12 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-sm">Välj betalningsmetod</h2>
-          <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-            <button
-              onClick={() => setPaymentMethod('swish')}
-              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${
-                paymentMethod === 'swish'
-                  ? 'border-blue-400/50 bg-blue-500/20 text-blue-100'
-                  : 'border-white/20 hover:border-blue-300/50 text-white/80 hover:text-white'
-              }`}
-            >
-              <FaMobileAlt className="text-2xl" />
-              <span className="font-medium">Swish</span>
-            </button>
-            
-            <button
-              onClick={() => qliroAvailable && setPaymentMethod('qliro')}
-              disabled={!qliroAvailable}
-              className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-2 relative ${
-                !qliroAvailable 
-                  ? 'border-white/10 bg-gray-500/20 text-gray-400 cursor-not-allowed opacity-60'
-                  : paymentMethod === 'qliro'
-                  ? 'border-purple-400/50 bg-purple-500/20 text-purple-100'
-                  : 'border-white/20 hover:border-purple-300/50 text-white/80 hover:text-white'
-              }`}
-              title={!qliroAvailable ? qliroStatusMessage : 'Välj Qliro som betalningsmetod'}
-            >
-              <div className="flex items-center gap-1">
-                <FaCreditCard className="text-2xl" />
-                {qliroStatusLoading && <FaSpinner className="text-sm animate-spin" />}
+        {/* Payment Method Selector */}
+        <Card className="mb-10 max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Välj betalningsmetod</CardTitle>
+            <CardDescription>Välj hur du vill betala ditt paket.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!qliroStatusLoading && !qliroAvailable && (
+              <div className="mb-4">
+                <Badge variant="destructive">{qliroStatusMessage || 'Qliro är otillgänglig just nu'}</Badge>
               </div>
-              <span className="font-medium">Qliro</span>
-              {!qliroAvailable && (
-                <span className="text-xs text-center mt-1">Otillgänglig</span>
-              )}
-            </button>
-          </div>
-        </div>
+            )}
+            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+              <Button
+                onClick={() => setPaymentMethod('swish')}
+                variant={paymentMethod === 'swish' ? 'default' : 'outline'}
+                className="p-4 rounded-xl flex flex-col items-center justify-center gap-2"
+              >
+                <FaMobileAlt className="text-2xl" />
+                <span className="font-medium">Swish</span>
+              </Button>
+              
+              <Button
+                onClick={() => qliroAvailable && setPaymentMethod('qliro')}
+                disabled={!qliroAvailable}
+                variant={paymentMethod === 'qliro' ? 'default' : 'outline'}
+                className="p-4 rounded-xl flex flex-col items-center justify-center gap-2 relative"
+                title={!qliroAvailable ? qliroStatusMessage : 'Välj Qliro som betalningsmetod'}
+              >
+                <div className="flex items-center gap-1">
+                  <FaCreditCard className="text-2xl" />
+                  {qliroStatusLoading && <FaSpinner className="text-sm animate-spin" />}
+                </div>
+                <span className="font-medium">Qliro</span>
+                {!qliroAvailable && (
+                  <span className="text-xs text-center mt-1">Otillgänglig</span>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Packages Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {packages.map((pkg) => {
           const effectivePrice = getEffectivePrice(pkg);
           const savings = getSavingsPercentage(pkg);
           const isPopular = savings > 15;
 
           return (
-            <div 
+            <Card 
               key={pkg.id} 
-              className={`relative bg-white rounded-2xl shadow-xl overflow-hidden transform hover:scale-105 transition-all duration-300 ${
-                isPopular ? 'ring-4 ring-purple-500' : ''
-              }`}
+              className={`relative border border-gray-200 rounded-xl shadow-sm overflow-hidden transition-shadow duration-200 hover:shadow-md`}
             >
               {/* Popular Badge */}
               {isPopular && (
                 <div className="absolute top-4 right-4 z-10">
-                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                    <FaStar className="text-yellow-300" />
-                    POPULÄR
+                  <div className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <FaStar className="text-amber-600" />
+                    Populär
                   </div>
                 </div>
               )}
@@ -321,9 +308,9 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
               {/* Savings Badge */}
               {savings > 0 && (
                 <div className="absolute top-4 left-4 z-10">
-                  <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                  <div className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                     <FaPercent />
-                    SPARA {savings}%
+                    Spara {savings}%
                   </div>
                 </div>
               )}
@@ -331,22 +318,22 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
               <div className="p-6">
                 {/* Package Header */}
                 <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{pkg.name}</h3>
-                  <p className="text-gray-600">{pkg.description}</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{pkg.name}</h3>
+                  <p className="text-gray-600 text-sm">{pkg.description}</p>
                 </div>
 
                 {/* Price */}
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="text-4xl font-bold text-gray-800">{effectivePrice}</span>
-                    <span className="text-xl text-gray-600">kr</span>
+                    <span className="text-3xl font-extrabold text-gray-900">{effectivePrice}</span>
+                    <span className="text-lg text-gray-600">kr</span>
                   </div>
                   
                   {savings > 0 && (
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-sm text-gray-500 line-through">{pkg.price} kr</span>
-                      <span className="text-sm text-green-600 font-semibold">
-                        Du sparar {pkg.price - effectivePrice} kr!
+                      <span className="text-sm text-green-700 font-medium">
+                        Du sparar {pkg.price - effectivePrice} kr
                       </span>
                     </div>
                   )}
@@ -354,7 +341,7 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
 
                 {/* Package Contents */}
                 <div className="mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Innehåller:</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">Innehåller</h4>
                   <ul className="space-y-2">
                     {pkg.features.map((feature: string, index: number) => (
                       <li key={index} className="flex items-center gap-2 text-sm">
@@ -366,7 +353,7 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
                 </div>
 
                 {/* Payment Method Indicator */}
-                <div className="mb-6 flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg">
+                <div className="mb-6 flex items-center justify-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   {paymentMethod === 'swish' ? (
                     <>
                       <FaMobileAlt className="text-blue-500" />
@@ -374,21 +361,17 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
                     </>
                   ) : (
                     <>
-                      <FaCreditCard className="text-purple-500" />
+                      <FaCreditCard className="text-indigo-600" />
                       <span className="font-medium text-gray-700">Betalas med Qliro</span>
                     </>
                   )}
                 </div>
 
                 {/* Purchase Button */}
-                <button
+                <Button
                   onClick={() => handlePurchase(pkg.id)}
                   disabled={loading}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                    isPopular
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
-                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className="w-full py-3.5 rounded-xl font-semibold text-base transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -398,12 +381,12 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
                   ) : (
                     <>
                       <FaShoppingCart />
-                      Köp Nu
+                      Köp nu
                     </>
                   )}
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -411,47 +394,39 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
       {/* Empty State */}
       {packages.length === 0 && (
         <div className="text-center py-16">
-          <FaGift className="text-6xl text-gray-400 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold text-gray-600 mb-2">Inga paket tillgängliga</h3>
-          <p className="text-gray-500">Kom tillbaka senare för fantastiska erbjudanden!</p>
+          <FaGift className="text-5xl text-gray-400 mx-auto mb-3" />
+          <h3 className="text-xl font-bold text-gray-900 mb-1">Inga paket tillgängliga</h3>
+          <p className="text-gray-600">Kom tillbaka senare för fler erbjudanden.</p>
         </div>
       )}
 
       {/* Info Section */}
-      <div className="max-w-4xl mx-auto mt-16 bg-white rounded-2xl shadow-lg p-8">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
-          Varför välja våra paket?
-        </h2>
+      <div className="max-w-4xl mx-auto mt-16 bg-white border border-gray-200 rounded-xl shadow-sm p-8">
+        <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Varför välja våra paket?</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl text-green-600">kr</span>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Spara Pengar</h3>
-            <p className="text-gray-600">
-              Få mer värde för dina pengar med våra paketpriser
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Spara pengar</h3>
+            <p className="text-gray-600">Få mer värde för dina pengar med våra paketpriser.</p>
           </div>
           
           <div className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaCheck className="text-2xl text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Flexibilitet</h3>
-            <p className="text-gray-600">
-              Använd dina credits när det passar dig bäst
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Flexibilitet</h3>
+            <p className="text-gray-600">Använd dina credits när det passar dig bäst.</p>
           </div>
           
           <div className="text-center">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <FaStar className="text-2xl text-purple-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Kvalitet</h3>
-            <p className="text-gray-600">
-              Samma höga kvalitet på alla våra lektioner
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Kvalitet</h3>
+            <p className="text-gray-600">Samma höga kvalitet på alla våra lektioner.</p>
           </div>
         </div>
       </div>

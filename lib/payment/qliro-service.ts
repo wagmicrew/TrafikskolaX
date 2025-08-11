@@ -4,12 +4,13 @@ import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
 import crypto from 'crypto';
 
-interface QliroSettings {
+  interface QliroSettings {
   enabled: boolean;
   merchantId: string;
   apiKey: string;
   apiUrl: string;
-  webhookSecret: string;
+    webhookSecret: string;
+    apiSecret: string;
   environment: 'production' | 'sandbox';
 }
 
@@ -38,6 +39,19 @@ interface QliroCheckoutRequest {
     MobileNumber?: number;
     JuridicalType?: string;
   };
+}
+
+class QliroApiError extends Error {
+  status?: number;
+  statusText?: string;
+  body?: string;
+  constructor(message: string, init?: { status?: number; statusText?: string; body?: string }) {
+    super(message);
+    this.name = 'QliroApiError';
+    this.status = init?.status;
+    this.statusText = init?.statusText;
+    this.body = init?.body;
+  }
 }
 
 export class QliroService {
@@ -98,8 +112,9 @@ export class QliroService {
         enabled: true,
         merchantId: isProduction ? settingsMap['qliro_prod_merchant_id'] : settingsMap['qliro_merchant_id'],
         apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
-        apiUrl: isProduction ? settingsMap['qliro_prod_api_url'] : 'https://playground.qliro.com',
+        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://api.qliro.com') : (settingsMap['qliro_dev_api_url'] || 'https://playground.qliro.com'),
         webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
+        apiSecret: settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || '',
         environment
       };
 
@@ -118,6 +133,59 @@ export class QliroService {
       });
       throw error;
     }
+  }
+
+  private generateAuthHeader(payload: any): string {
+    const payloadString = payload ? JSON.stringify(payload) : '';
+    const secret = this.settings?.apiSecret || '';
+    const input = payloadString + secret;
+    // Compute SHA256 and encode Base64
+    const hash = crypto.createHash('sha256').update(input).digest('base64');
+    return `Qliro ${hash}`;
+  }
+
+  public async getOrder(orderId: string): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl}/checkout/merchantapi/orders/${encodeURIComponent(orderId)}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': this.generateAuthHeader(null),
+    };
+    const res = await fetch(url, { method: 'GET', headers });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`Qliro GetOrder error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
+    }
+    return JSON.parse(text);
+  }
+
+  public async adminPost(path: string, payload: any): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': this.generateAuthHeader(payload),
+    };
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`Qliro admin POST error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
+    }
+    return text ? JSON.parse(text) : {};
+  }
+
+  public async adminGet(path: string): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+    const headers: Record<string, string> = {
+      'Authorization': this.generateAuthHeader(null),
+    };
+    const res = await fetch(url, { method: 'GET', headers });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`Qliro admin GET error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
+    }
+    return text ? JSON.parse(text) : {};
   }
 
   public async isEnabled(): Promise<boolean> {
@@ -159,15 +227,25 @@ export class QliroService {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     
     // Use the correct Qliro API structure based on their documentation
+
+    // Generate short-lived token for status push URL (valid for 3 hours)
+    const pushToken = crypto.randomUUID();
+    try {
+      const { cache } = await import('@/lib/redis/client');
+      await cache.set(`qliro:push:${pushToken}`, { reference: params.reference, createdAt: Date.now() }, 60 * 60 * 3);
+    } catch (e) {
+      logger.warn('payment', 'Redis not available for Qliro push token; proceeding without token');
+    }
+
     const checkoutRequest: QliroCheckoutRequest = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: params.reference,
       Currency: 'SEK',
       Country: 'SE',
       Language: 'sv-se',
-      MerchantTermsUrl: `${baseUrl}/terms`,
-      MerchantConfirmationUrl: `${baseUrl}/booking/confirmation`,
-      MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/webhook`,
+      MerchantTermsUrl: `${baseUrl}/kopvillkor`,
+      MerchantConfirmationUrl: params.returnUrl,
+      MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
       OrderItems: [
         {
           MerchantReference: params.reference,
@@ -195,6 +273,7 @@ export class QliroService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': this.generateAuthHeader(checkoutRequest),
         },
         body: JSON.stringify(checkoutRequest),
         signal: controller.signal,
@@ -216,7 +295,11 @@ export class QliroService {
           body: responseText,
           reference: params.reference
         });
-        throw new Error(`Qliro API error: ${response.status} ${response.statusText}`);
+        throw new QliroApiError(`Qliro API error: ${response.status} ${response.statusText}` , {
+          status: response.status,
+          statusText: response.statusText,
+          body: responseText
+        });
       }
 
       const checkoutData = JSON.parse(responseText);
@@ -227,41 +310,42 @@ export class QliroService {
         environment: settings.environment
       });
 
+      // Require a valid payment link from Qliro; do not fallback to mock
+      if (!checkoutData.PaymentLink) {
+        throw new Error('Qliro did not return a PaymentLink');
+      }
+
       return {
         checkoutId: checkoutData.OrderId?.toString() || params.reference,
-        checkoutUrl: checkoutData.PaymentLink || `${baseUrl}/mock-qliro-checkout?purchase=${params.reference}&amount=${params.amount}`,
+        checkoutUrl: checkoutData.PaymentLink,
         merchantReference: params.reference,
       };
     } catch (error) {
+      if ((error as any)?.name === 'AbortError') {
+        logger.error('payment', 'Failed to create Qliro checkout (timeout/abort)', {
+          reference: params.reference
+        });
+        throw new QliroApiError('Qliro API timeout/abort');
+      }
+
+      if (error instanceof QliroApiError) {
+        logger.error('payment', 'Failed to create Qliro checkout', {
+          error: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          body: error.body,
+          reference: params.reference
+        });
+        throw error;
+      }
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
       logger.error('payment', 'Failed to create Qliro checkout', {
         error: errorMessage,
         reference: params.reference
       });
-
-      // Check if it's a network error (fetch failed, timeout, etc.)
-      if (errorMessage.includes('fetch failed') || 
-          errorMessage.includes('AbortError') || 
-          errorMessage.includes('ENOTFOUND') ||
-          errorMessage.includes('ECONNREFUSED') ||
-          errorMessage.includes('timeout')) {
-        
-        logger.warn('payment', 'Network error detected, falling back to mock mode', {
-          error: errorMessage,
-          reference: params.reference
-        });
-
-        // Return mock checkout for development/testing
-        return {
-          checkoutId: `mock_${params.reference}`,
-          checkoutUrl: `${baseUrl}/mock-qliro-checkout?purchase=${params.reference}&amount=${params.amount}`,
-          merchantReference: params.reference,
-        };
-      }
-
-      // Re-throw non-network errors
-      throw error;
+      // Always propagate errors; no mock fallback
+      throw new Error(errorMessage);
     }
   }
 
@@ -343,14 +427,24 @@ export class QliroService {
         message: `Successfully connected to Qliro ${settings.environment} environment`,
         details: {
           checkoutId: result.checkoutId,
+          checkoutUrl: result.checkoutUrl,
           environment: settings.environment,
           merchantId: settings.merchantId
         }
       };
     } catch (error) {
-      logger.error('payment', 'Qliro connection test failed', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      if (error instanceof QliroApiError) {
+        logger.error('payment', 'Qliro connection test failed', {
+          error: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          body: error.body
+        });
+      } else {
+        logger.error('payment', 'Qliro connection test failed', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
 
       // Update test status as failed
       await db
@@ -361,9 +455,15 @@ export class QliroService {
         })
         .where(eq(siteSettings.key, 'qliro_test_passed'));
 
+      const fallbackMessage = error instanceof Error ? error.message : 'Connection test failed';
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Connection test failed'
+        message: fallbackMessage,
+        details: error instanceof QliroApiError ? {
+          status: error.status,
+          statusText: error.statusText,
+          body: error.body
+        } : undefined
       };
     }
   }

@@ -79,9 +79,10 @@ export function doesAnyBookingOverlapWithSlot(
       }
     }
 
+    const normalize = (t: any) => (typeof t === 'string' ? t.slice(0,5) : String(t).slice(0,5));
     return doesBookingOverlapWithSlot(
-      booking.startTime,
-      booking.endTime,
+      normalize(booking.startTime),
+      normalize(booking.endTime),
       slotStart,
       slotEnd
     );

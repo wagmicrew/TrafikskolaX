@@ -1,3 +1,73 @@
+## Qliro Checkout Integration (Overview)
+
+This document summarizes our Qliro integration in rule-based chunks for quick onboarding and AI tooling. For the official API, see the Qliro docs: [Qliro API Docs](https://developers.qliro.com/docs/api).
+
+### Environment and Settings
+- Read settings from `site_settings` with `category = 'payment'`.
+- Enable flags:
+  - `qliro_prod_enabled = 'true'` → Production
+  - `qliro_enabled = 'true'` → Sandbox
+- Keys per environment (single source of truth):
+  - Production: `qliro_prod_api_key`, `qliro_prod_merchant_id`, `qliro_prod_api_url`
+  - Sandbox: `qliro_api_key`, `qliro_merchant_id`, `qliro_dev_api_url` (defaults to `https://playground.qliro.com` if missing)
+- Webhook secret: `qliro_webhook_secret` (fallback: `qliro_secret`)
+- If both flags are enabled, Production is selected.
+
+### Service
+- File: `lib/payment/qliro-service.ts`
+- Responsibilities:
+  - Load and cache settings (5 min)
+  - `isEnabled()` and `getEnvironment()` helpers
+  - `createCheckout({ amount, reference, description, returnUrl, customer... })`
+    - Builds request payload per Qliro
+    - Calls `POST {apiUrl}/checkout/merchantapi/Orders`
+    - Returns `{ checkoutId, checkoutUrl, merchantReference }`
+  - No mock or fallback modes. Errors are propagated to the caller.
+
+### Routes
+- Create checkout: `POST /api/payments/qliro/create-checkout`
+  - Validates payload, checks `qliroService.isEnabled()`, invokes `createCheckout`
+  - Returns `{ checkoutUrl, checkoutId }`
+
+- Status check: `GET /api/payments/qliro/status`
+  - Performs live reachability check to the configured API URL (HEAD, then GET if needed) with a 5s timeout.
+  - Returns `{ available, environment, apiUrl, reason?, message? }`.
+
+- Webhook: `POST /api/payments/qliro/webhook`
+  - Receives order updates from Qliro
+  - Verifies and updates purchase/payment state
+  - Credits user where appropriate
+
+### Packages Purchase Flow
+- Client: `app/packages-store/packages-store-client.tsx`
+  - User selects a package and payment method (Swish or Qliro)
+  - Calls `POST /api/packages/purchase` with `{ packageId, paymentMethod }`
+  - For Swish: opens a Swish QR dialog; finalization: `POST /api/packages/confirm-payment`
+  - For Qliro: receives `checkoutUrl` and opens `QliroPaymentDialog`
+
+- API: `app/api/packages/purchase/route.ts`
+  - Validates user and package, creates `package_purchases` row (pending)
+  - For Swish: returns deep link/QR data; confirmation handled by admin or webhook
+  - For Qliro: builds checkout via environment-specific base URL and returns `checkoutUrl`
+
+### Availability and Connectivity Rules
+- Environment selection comes strictly from `site_settings` (ignore `NODE_ENV`).
+- Availability requires BOTH valid credentials AND live connectivity to the chosen API URL.
+- Connectivity check: HTTP HEAD to base URL; falls back to GET if HEAD fails; 5s timeout.
+- If unreachable or misconfigured, the API responds with `available: false` and `reason` (e.g., `connectivity`, `configuration`).
+- Frontend must disable Qliro payment option when `available` is false and show the returned message.
+- No mock or dev fallback is allowed anywhere in the flow.
+
+### Data Model (relevant tables)
+- `packages`, `package_contents`, `package_purchases`, `user_credits`, `site_settings`
+
+### Notes
+- Treat driving lessons as 0% VAT in price mapping.
+- Always log payment events via `lib/logging/logger.ts` for traceability.
+- Use minimal PII in logs.
+
+References: [Qliro API Documentation](https://developers.qliro.com/docs/api)
+
 # Qliro One Integration
 
 ## Configuration

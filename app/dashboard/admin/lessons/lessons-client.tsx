@@ -89,6 +89,8 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
   const [isNewPackagePopoverOpen, setIsNewPackagePopoverOpen] = useState(false);
   const [isEditPackagePopoverOpen, setIsEditPackagePopoverOpen] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [deleteLessonTarget, setDeleteLessonTarget] = useState<Lesson | null>(null);
+  const [deletePackageTarget, setDeletePackageTarget] = useState<Package | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -155,14 +157,13 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
     }
   };
 
-  const handleDeleteLesson = async (lesson: Lesson) => {
-    const hasBookings = lesson.bookingCount > 0;
-    const confirmMessage = hasBookings
-      ? `This lesson type has ${lesson.bookingCount} booking(s). It will be archived instead of deleted to preserve booking history. Continue?`
-      : `Are you sure you want to delete "${lesson.name}"? This action cannot be undone.`;
+  const handleDeleteLesson = (lesson: Lesson) => {
+    setDeleteLessonTarget(lesson);
+  };
 
-    if (!confirm(confirmMessage)) return;
-
+  const confirmDeleteLesson = async () => {
+    if (!deleteLessonTarget) return;
+    const lesson = deleteLessonTarget;
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/lesson-types/${lesson.id}`, {
@@ -171,18 +172,19 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(result.message || 'Lesson type processed successfully');
+        toast.success(result.message || 'Lektionstypen har behandlats');
         // Refresh page to show updates
         window.location.reload();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to process lesson type');
+        toast.error(error.error || 'Kunde inte behandla lektionstypen');
       }
     } catch (error) {
-      toast.error('Failed to process lesson type');
-      console.error('Error processing lesson type:', error);
+      toast.error('Ett fel uppstod vid borttagning/arkivering');
+      console.error('Fel vid behandling av lektionstyp:', error);
     } finally {
       setIsLoading(false);
+      setDeleteLessonTarget(null);
     }
   };
 
@@ -191,14 +193,13 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
     setIsEditPackagePopoverOpen(true);
   };
 
-  const handleDeletePackage = async (pkg: Package) => {
-    const hasPurchases = pkg.purchaseCount > 0;
-    const confirmMessage = hasPurchases
-      ? `This package has ${pkg.purchaseCount} purchase(s). It will be archived instead of deleted to preserve purchase history. Continue?`
-      : `Are you sure you want to delete "${pkg.name}"? This will also delete all package contents. This action cannot be undone.`;
+  const handleDeletePackage = (pkg: Package) => {
+    setDeletePackageTarget(pkg);
+  };
 
-    if (!confirm(confirmMessage)) return;
-
+  const confirmDeletePackage = async () => {
+    if (!deletePackageTarget) return;
+    const pkg = deletePackageTarget;
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/packages?id=${pkg.id}`, {
@@ -207,18 +208,19 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(result.message || 'Package processed successfully');
+        toast.success(result.message || 'Paketet har behandlats');
         // Refresh page to show updates
         window.location.reload();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to process package');
+        toast.error(error.error || 'Kunde inte behandla paketet');
       }
     } catch (error) {
-      toast.error('Failed to process package');
-      console.error('Error processing package:', error);
+      toast.error('Ett fel uppstod vid borttagning/arkivering');
+      console.error('Fel vid behandling av paket:', error);
     } finally {
       setIsLoading(false);
+      setDeletePackageTarget(null);
     }
   };
 
@@ -272,7 +274,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
                 <button
                   onClick={() => handleDeleteLesson(lesson)}
                   className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                  title={lesson.bookingCount > 0 ? 'Archive lesson' : 'Delete lesson'}
+                  title={lesson.bookingCount > 0 ? 'Arkivera lektion' : 'Radera lektion'}
                 >
                   {lesson.bookingCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                 </button>
@@ -530,7 +532,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
                   <button
                     onClick={() => handleDeletePackage(pkg)}
                     className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                    title={pkg.purchaseCount > 0 ? 'Archive package' : 'Delete package'}
+                    title={pkg.purchaseCount > 0 ? 'Arkivera paket' : 'Radera paket'}
                   >
                     {pkg.purchaseCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
                   </button>
@@ -555,6 +557,65 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
         </div>
       </div>
 
+      {/* Delete Lesson Confirm Dialog */}
+      <Dialog open={!!deleteLessonTarget} onOpenChange={(open) => !open && setDeleteLessonTarget(null)}>
+        <DialogContent className="w-full max-w-md p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Trash2 className="w-6 h-6 text-rose-400" />
+                  <h3 className="text-lg font-semibold text-white">Bekräfta {deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'arkivering' : 'radering'}</h3>
+                </div>
+                <button onClick={() => setDeleteLessonTarget(null)} className="text-white/70 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-slate-300 mb-6">
+                {deleteLessonTarget && deleteLessonTarget.bookingCount > 0
+                  ? `Lektionstypen har ${deleteLessonTarget.bookingCount} bokning(ar). Den kommer att arkiveras för att bevara historik. Vill du fortsätta?`
+                  : `Vill du radera "${deleteLessonTarget?.name}"? Detta kan inte ångras.`}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button onClick={() => setDeleteLessonTarget(null)} className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg">Avbryt</Button>
+                <Button onClick={confirmDeleteLesson} disabled={isLoading} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg disabled:opacity-50">
+                  {isLoading ? 'Bearbetar...' : (deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'Arkivera' : 'Radera')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Package Confirm Dialog */}
+      <Dialog open={!!deletePackageTarget} onOpenChange={(open) => !open && setDeletePackageTarget(null)}>
+        <DialogContent className="w-full max-w-md p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Trash2 className="w-6 h-6 text-rose-400" />
+                  <h3 className="text-lg font-semibold text-white">Bekräfta {deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'arkivering' : 'radering'}</h3>
+                </div>
+                <button onClick={() => setDeletePackageTarget(null)} className="text-white/70 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-slate-300 mb-6">
+                {deletePackageTarget && deletePackageTarget.purchaseCount > 0
+                  ? `Paketet har ${deletePackageTarget.purchaseCount} köp. Det kommer att arkiveras för att bevara historik. Vill du fortsätta?`
+                  : `Vill du radera "${deletePackageTarget?.name}"? Detta kommer även att ta bort paketets innehåll och kan inte ångras.`}
+              </p>
+              <div className="flex gap-3 justify-end">
+                <Button onClick={() => setDeletePackageTarget(null)} className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg">Avbryt</Button>
+                <Button onClick={confirmDeletePackage} disabled={isLoading} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg disabled:opacity-50">
+                  {isLoading ? 'Bearbetar...' : (deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'Arkivera' : 'Radera')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="flex gap-4 mt-8">
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
           <span className="text-lg font-semibold">Totalt Lektioner</span>

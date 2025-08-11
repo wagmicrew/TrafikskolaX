@@ -19,28 +19,45 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Fetch all users unless student, excluding temporary users
-    const availableUsersQuery = user.role !== 'student'
-      ? db.select().from(users).where(
-          and(
-            ne(users.id, user.userId), // exclude self
-            not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
-            not(like(users.email, 'temp-%@%')), // exclude other temp patterns
-            not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
-          )
-        )
-      : db
-          .select()
-          .from(users)
-          .where(
-            and(
-              or(eq(users.role, 'teacher'), eq(users.role, 'admin')),
-              not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
-              not(like(users.email, 'temp-%@%')), // exclude other temp patterns
-              not(eq(users.firstName, 'Temporary')) // exclude users with temporary name
-            )
-          );
-    const availableUsers = await availableUsersQuery;
+    // Optional filters: role=student|teacher|admin, inskriven=true|false, excludeSelf=false
+    const { searchParams } = new URL(request.url);
+    const roleFilter = searchParams.get('role');
+    const inskrivenParam = searchParams.get('inskriven') || searchParams.get('enrolledOnly');
+    const excludeSelfParam = searchParams.get('excludeSelf');
+    const inskrivenOnly = !!inskrivenParam && ['1', 'true', 'yes'].includes(inskrivenParam.toLowerCase());
+    const excludeSelf = excludeSelfParam === 'false' ? false : true; // default true
+
+    // Build base conditions
+    const baseConds = [
+      not(like(users.email, 'orderid-%@dintrafikskolahlm.se')), // exclude temporary users
+      not(like(users.email, 'temp-%@%')), // exclude other temp patterns
+      not(eq(users.firstName, 'Temporary')), // exclude users with temporary name
+    ];
+    if (excludeSelf && user.userId) {
+      baseConds.push(ne(users.id, user.userId));
+    }
+
+    // Role scoping: students may only see teachers/admin regardless of filters
+    if (user.role === 'student') {
+      baseConds.push(or(eq(users.role, 'teacher'), eq(users.role, 'admin')));
+    } else if (roleFilter) {
+      // Admin/teacher can filter by role explicitly
+      if (roleFilter === 'student' || roleFilter === 'teacher' || roleFilter === 'admin') {
+        baseConds.push(eq(users.role, roleFilter as any));
+      }
+    }
+
+    if (inskrivenOnly) {
+      baseConds.push(eq(users.inskriven, true));
+    }
+
+    const availableUsers = await db
+      .select()
+      .from(users)
+      .where(and(
+        // spread all conditions; drizzle and() accepts varargs
+        ...baseConds
+      ));
 
     return NextResponse.json({ users: availableUsers });
   } catch (error) {

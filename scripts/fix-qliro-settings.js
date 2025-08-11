@@ -96,7 +96,7 @@ async function main() {
 
     if (isConfigured) {
       console.log('🎉 Qliro is now configured for sandbox testing!');
-      console.log('   The application should now fall back to mock mode gracefully if the API is unreachable.');
+      console.log('   Note: There is no mock fallback. If the API is unreachable, Qliro will be marked unavailable.');
     } else {
       console.log('⚠️  Please check your database settings or run this script again.');
     }

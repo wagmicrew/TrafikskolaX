@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { bookings, handledarBookings, users, blockedSlots } from '@/lib/db/schema';
 import { doTimeRangesOverlap } from '@/lib/utils/time-overlap';
-import { eq, and } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
@@ -26,18 +25,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Only allow confirmation of temporary bookings
+      // Idempotent: if already processed, return success
       if (booking.status !== 'temp') {
-        return NextResponse.json({ error: 'Booking is not temporary' }, { status: 400 });
+        return NextResponse.json({
+          booking,
+          message: booking.paymentStatus === 'pending'
+            ? 'Handledar booking already pending verification'
+            : 'Handledar booking already processed'
+        });
       }
 
-      // Ensure not confirming into a blocked time (safety check)
-      const blocked = await db.select().from(blockedSlots).where(eq(blockedSlots.date, booking.scheduledDate));
-      const allDayBlocked = blocked.some(b => b.isAllDay);
-      const timeBlocked = blocked.some(b => b.timeStart && b.timeEnd && doTimeRangesOverlap(booking.startTime, booking.endTime, b.timeStart, b.timeEnd));
-      if (allDayBlocked || timeBlocked) {
-        return NextResponse.json({ error: 'Tiden är blockerad. Kan inte bekräfta bokning.' }, { status: 400 });
-      }
+      // Skipping blocked slot check here because handledar bookings reference session time via sessionId
 
       // Update booking with guest information and payment status
       const updateData: any = {
@@ -52,7 +50,15 @@ export async function POST(request: NextRequest) {
 
       // Handle different payment methods
       if (paymentMethod === 'swish') {
-        updateData.status = 'payment_avvaktande';
+        // Mark booking as confirmed even if payment is pending
+        updateData.status = 'confirmed';
+        updateData.paymentStatus = 'pending';
+      } else if (paymentMethod === 'credits') {
+        // Credits: mark fully confirmed and paid
+        updateData.status = 'confirmed';
+        updateData.paymentStatus = 'confirmed';
+      } else if (paymentMethod === 'pay_at_location') {
+        updateData.status = 'confirmed';
         updateData.paymentStatus = 'pending';
       } else {
         updateData.status = 'confirmed';
@@ -96,9 +102,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Only allow confirmation of temporary bookings
+      // Idempotent: if already processed, return success
       if (booking.status !== 'temp') {
-        return NextResponse.json({ error: 'Booking is not temporary' }, { status: 400 });
+        return NextResponse.json({
+          booking,
+          message: booking.paymentStatus === 'pending'
+            ? 'Booking already pending verification'
+            : 'Booking already processed'
+        });
       }
 
       // Ensure not confirming into a blocked time (safety check)
@@ -122,7 +133,15 @@ export async function POST(request: NextRequest) {
 
       // Handle different payment methods
       if (paymentMethod === 'swish') {
-        updateData.status = 'payment_avvaktande';
+        // Mark booking as confirmed even if payment is pending
+        updateData.status = 'confirmed';
+        updateData.paymentStatus = 'pending';
+      } else if (paymentMethod === 'credits') {
+        // Credits: mark fully confirmed and paid
+        updateData.status = 'confirmed';
+        updateData.paymentStatus = 'confirmed';
+      } else if (paymentMethod === 'pay_at_location') {
+        updateData.status = 'confirmed';
         updateData.paymentStatus = 'pending';
       } else {
         updateData.status = 'confirmed';

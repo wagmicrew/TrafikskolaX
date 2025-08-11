@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import { Switch } from '@/components/ui/switch';
 import toast from 'react-hot-toast';
@@ -25,9 +27,11 @@ import {
   CheckCircle,
   AlertCircle,
   Settings as SettingsIcon,
-  AlertTriangle
+  AlertTriangle,
+  Edit,
+  Copy
 } from 'lucide-react';
-import { ResetSiteButton } from '@/components/admin/ResetSiteButton';
+import { ResetSiteButton } from '@/components/Admin/ResetSiteButton';
 
 interface Settings {
   // Email settings
@@ -51,6 +55,7 @@ interface Settings {
   site_name: string;
   schoolname: string;
   school_phonenumber: string;
+    internal_messages_enabled: boolean;
   
 // Qliro API URLs
   qliro_dev_api_url: string;
@@ -68,6 +73,10 @@ interface Settings {
   qliro_prod_enabled: boolean;
   qliro_prod_merchant_id: string;
   qliro_prod_api_key: string;
+  // Social links (optional)
+  social_facebook?: string;
+  social_instagram?: string;
+  social_tiktok?: string;
 }
 
 interface TestResult {
@@ -78,6 +87,20 @@ interface TestResult {
   data: any;
   error?: string;
 }
+
+type CronExamples = {
+  linuxCron: string;
+  curlNow: string;
+  windowsPowerShellOneLiner: string;
+  windowsSchtasks: string;
+};
+
+type CronInfo = {
+  endpoint: string;
+  validated: boolean;
+  probe: { status: number; body: any };
+  examples: CronExamples;
+};
 
 export default function SettingsClient() {
   const [settings, setSettings] = useState<Settings>({
@@ -102,6 +125,10 @@ export default function SettingsClient() {
     site_name: 'Din Trafikskola Hässleholm',
     schoolname: 'Din Trafikskola Hässleholm',
     school_phonenumber: '',
+    internal_messages_enabled: true,
+    social_facebook: '',
+    social_instagram: '',
+    social_tiktok: '',
     swish_number: '',
     swish_enabled: false,
     qliro_api_key: '',
@@ -113,6 +140,10 @@ export default function SettingsClient() {
     qliro_prod_merchant_id: '',
     qliro_prod_api_key: '',
   });
+
+  // Cron setup dialog state
+  const [cronDialogOpen, setCronDialogOpen] = useState(false);
+  const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -120,6 +151,10 @@ export default function SettingsClient() {
   const [exportTestResults, setExportTestResults] = useState<any>(null);
   const [qliroTestOpen, setQliroTestOpen] = useState(false);
   const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
+  const [editEmail, setEditEmail] = useState(false);
+  const [editSchool, setEditSchool] = useState(false);
+  const [editSite, setEditSite] = useState(false);
+  const [editPayment, setEditPayment] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -616,26 +651,47 @@ export default function SettingsClient() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto text-white">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <Link href="/dashboard/admin/settings/qliro">
+          <Card className="bg-white/10 border border-white/20 hover:bg-white/15 transition-colors cursor-pointer">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-sky-600/30 text-sky-300">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Qliro-betalningar</CardTitle>
+                  <CardDescription className="text-slate-300">Visa, exportera, skapa betalningar</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+      </div>
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="email" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
+          <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Mail className="w-4 h-4" />
             E-postinställningar
           </TabsTrigger>
-          <TabsTrigger value="school" className="flex items-center gap-2">
+          <TabsTrigger value="school" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Building className="w-4 h-4" />
             Skolinformation
           </TabsTrigger>
-          <TabsTrigger value="site" className="flex items-center gap-2">
+          <TabsTrigger value="site" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Globe className="w-4 h-4" />
             Webbplatsinställningar
           </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2">
+          <TabsTrigger value="payment" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <CreditCard className="w-4 h-4" />
             Betalningsinställningar
           </TabsTrigger>
-          <TabsTrigger value="troubleshooting" className="flex items-center gap-2">
+          <TabsTrigger value="useful" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+            <SettingsIcon className="w-4 h-4" />
+            Nyttigt
+          </TabsTrigger>
+          <TabsTrigger value="troubleshooting" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <AlertTriangle className="w-4 h-4" />
             <span className="hidden sm:inline">Felsökning</span>
           </TabsTrigger>
@@ -643,14 +699,22 @@ export default function SettingsClient() {
 
         {/* Email Settings Tab */}
         <TabsContent value="email">
-          <Card>
-            <CardHeader>
-              <CardTitle>E-postinställningar</CardTitle>
-              <CardDescription>
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <CardTitle className="text-white font-extrabold drop-shadow">E-postinställningar</CardTitle>
+              <CardDescription className="text-slate-300">
                 Konfigurera hur e-postmeddelanden skickas från systemet
               </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => setEditEmail((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20">
+                  <Edit className="w-4 h-4 text-white" />
+                </button>
+                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className={`space-y-6 ${editEmail ? '' : 'opacity-60 pointer-events-none'}`}> 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="use-sendgrid">Använd SendGrid</Label>
@@ -700,7 +764,7 @@ export default function SettingsClient() {
                </div>
 
               {settings.use_sendgrid && (
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-4 border-t border-white/10">
                   <div className="space-y-2">
                     <Label htmlFor="sendgrid-api-key">
                       <Key className="w-4 h-4 inline mr-2" />
@@ -718,7 +782,7 @@ export default function SettingsClient() {
               )}
 
               {settings.use_smtp && (
-                <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-4 pt-4 border-t border-white/10">
                   <div className="space-y-2">
                     <Label htmlFor="smtp-host">
                       <Building className="w-4 h-4 inline mr-2" />
@@ -789,7 +853,7 @@ export default function SettingsClient() {
                 </div>
               )}
 
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t border-white/10">
                 <div className="space-y-2">
                   <Label htmlFor="from-name">
                     <User className="w-4 h-4 inline mr-2" />
@@ -849,116 +913,25 @@ export default function SettingsClient() {
                 </div>
 
                                  {/* Initialize School Email Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={initializeSchoolEmail}
-                     className="w-full"
-                   >
-                     <SettingsIcon className="w-4 h-4 mr-2" />
-                     Initiera skolans e-postinställning
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Klicka här om skolans e-postadress inte visas ovan
-                   </p>
-                 </div>
+                  {/* moved to Nyttigt tab */}
 
                  {/* Initialize All Email Settings Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={initializeAllEmailSettings}
-                     className="w-full"
-                   >
-                     <SettingsIcon className="w-4 h-4 mr-2" />
-                     Initiera alla e-postinställningar
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Lägger till alla nödvändiga e-postinställningar i databasen
-                   </p>
-                 </div>
+                  {/* moved to Nyttigt tab */}
 
                  {/* Add Swish Payment Template Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={addSwishPaymentTemplate}
-                     className="w-full"
-                   >
-                     <DollarSign className="w-4 h-4 mr-2" />
-                     Lägg till Swish betalningsmall
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Lägger till e-postmall för Swish betalningsverifiering
-                   </p>
-                 </div>
+                  {/* moved to Nyttigt tab */}
 
                  {/* Add Enum Value Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={addEnumValue}
-                     className="w-full"
-                   >
-                     <SettingsIcon className="w-4 h-4 mr-2" />
-                     Lägg till enum värde
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Lägger till swish_payment_verification till email_trigger_type enum
-                   </p>
-                 </div>
+                  {/* moved to Nyttigt tab */}
 
                  {/* Test Swish Confirmation Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={testSwishConfirmation}
-                     className="w-full"
-                   >
-                     <CheckCircle className="w-4 h-4 mr-2" />
-                     Testa Swish bekräftelse
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Testar Swish betalningsverifiering e-postmall
-                   </p>
-                 </div>
+                  {/* moved to Nyttigt tab */}
 
                  {/* Update Swish Template Receiver Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={updateSwishTemplateReceiver}
-                     className="w-full"
-                   >
-                     <AtSign className="w-4 h-4 mr-2" />
-                     Uppdatera Swish mall till skol-e-post
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Ändrar Swish mall från admin till skol-e-post
-                   </p>
-                 </div>
+                 {/* moved to Nyttigt tab */}
 
                  {/* Add School Receiver Type Button */}
-                 <div className="pt-4 border-t">
-                   <Button
-                     type="button"
-                     variant="outline"
-                     onClick={addSchoolReceiverType}
-                     className="w-full"
-                   >
-                     <AtSign className="w-4 h-4 mr-2" />
-                     Lägg till school receiver type
-                   </Button>
-                   <p className="text-xs text-muted-foreground mt-2">
-                     Lägger till 'school' till email_receiver_type enum
-                   </p>
-                 </div>
+                 {/* moved to Nyttigt tab */}
               </div>
             </CardContent>
           </Card>
@@ -966,14 +939,22 @@ export default function SettingsClient() {
 
         {/* School Information Tab */}
         <TabsContent value="school">
-          <Card>
-            <CardHeader>
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Skolinformation</CardTitle>
               <CardDescription>
                 Grundläggande information om trafikskolan
               </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => setEditSchool((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className={`space-y-6 ${editSchool ? '' : 'opacity-60 pointer-events-none'}`}> 
               <div className="space-y-2">
                 <Label htmlFor="schoolname">
                   <Building className="w-4 h-4 inline mr-2" />
@@ -1044,14 +1025,33 @@ export default function SettingsClient() {
 
         {/* Site Settings Tab */}
         <TabsContent value="site">
-          <Card>
-            <CardHeader>
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Webbplatsinställningar</CardTitle>
               <CardDescription>
                 Allmänna inställningar för webbplatsen
               </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => setEditSite((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${editSite ? '' : 'opacity-60 pointer-events-none'}`}> 
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                <div>
+                  <Label htmlFor="internal-messages-enabled" className="text-white">Interna meddelanden</Label>
+                  <p className="text-sm text-slate-300">Stäng av för att dölja interna meddelanden och sluta räkna olästa</p>
+                </div>
+                <Switch
+                  id="internal-messages-enabled"
+                  checked={settings.internal_messages_enabled}
+                  onCheckedChange={(checked) => updateSetting('internal_messages_enabled', checked)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="site-name">
                   <Building className="w-4 h-4 inline mr-2" />
@@ -1080,20 +1080,172 @@ export default function SettingsClient() {
                   Används för att generera länkar i e-postmeddelanden
                 </p>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Facebook-länk</Label>
+                  <Input value={settings.social_facebook || ''} onChange={(e) => updateSetting('social_facebook', e.target.value)} placeholder="https://facebook.com/dinskola" />
+                </div>
+                <div>
+                  <Label>Instagram-länk</Label>
+                  <Input value={settings.social_instagram || ''} onChange={(e) => updateSetting('social_instagram', e.target.value)} placeholder="https://instagram.com/dinskola" />
+                </div>
+                <div>
+                  <Label>TikTok-länk</Label>
+                  <Input value={settings.social_tiktok || ''} onChange={(e) => updateSetting('social_tiktok', e.target.value)} placeholder="https://tiktok.com/@dinskola" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Useful Tab: collect setup/init/test actions */}
+        <TabsContent value="useful">
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-white font-extrabold drop-shadow">Nyttigt</CardTitle>
+              <CardDescription className="text-slate-300">Snabbåtgärder för initiering och test</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid md:grid-cols-2 gap-3">
+                <Button onClick={initializeSchoolEmail} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Initiera skolans e-postinställning
+                </Button>
+                <Button onClick={initializeAllEmailSettings} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Initiera alla e-postinställningar
+                </Button>
+                <Button onClick={initializeSchoolPhonenumber} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <Phone className="w-4 h-4 mr-2" /> Initiera skolans telefonnummer
+                </Button>
+                <Button onClick={addSwishPaymentTemplate} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <DollarSign className="w-4 h-4 mr-2" /> Lägg till Swish betalningsmall
+                </Button>
+                <Button onClick={addEnumValue} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Lägg till enum värde
+                </Button>
+                <Button onClick={updateSwishTemplateReceiver} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <AtSign className="w-4 h-4 mr-2" /> Uppdatera Swish mall till skol-e-post
+                </Button>
+                <Button onClick={addSchoolReceiverType} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <AtSign className="w-4 h-4 mr-2" /> Lägg till school receiver type
+                </Button>
+                <Button onClick={testSwishConfirmation} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <CheckCircle className="w-4 h-4 mr-2" /> Testa Swish bekräftelse
+                </Button>
+                <Button
+                  onClick={async () => {
+                    const appUrl = prompt('Ange APP URL (t.ex. https://dintrafikskolahlm.se)');
+                    const cronSecret = prompt('Ange CRON_SECRET som servern kommer validera');
+                    if (!appUrl || !cronSecret) return;
+                    const t = toast.loading('Sätter upp cron...');
+                    try {
+                      const res = await fetch('/api/admin/system/run-cron-setup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ appUrl, cronSecret })
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Misslyckades att generera instruktioner');
+                      setCronInfo({
+                        endpoint: data.endpoint,
+                        validated: !!data.validated,
+                        probe: data.probe || { status: 0, body: null },
+                        examples: data.examples,
+                      });
+                      setCronDialogOpen(true);
+                      toast.success(data.validated ? 'Instruktioner klara (validering OK)' : 'Instruktioner klara (validering misslyckades)', { id: t });
+                    } catch (e: any) {
+                      toast.error(e.message || 'Fel vid cron-setup', { id: t });
+                    }
+                  }}
+                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                >
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Sätt upp cron för temp-rensning
+                </Button>
+                {/* Cron instructions dialog */}
+                <Dialog open={cronDialogOpen} onOpenChange={setCronDialogOpen}>
+                  <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Cron-instruktioner för temp-rensning</DialogTitle>
+                    </DialogHeader>
+                    {cronInfo ? (
+                      <div className="space-y-4 text-slate-200">
+                        <div className="text-sm">
+                          Endpoint: <code className="bg-black/30 px-1 py-0.5 rounded">{cronInfo.endpoint}</code>
+                          <span className={`ml-2 text-xs ${cronInfo.validated ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {cronInfo.validated ? 'Validerad' : 'Ej validerad – kontrollera URL/secret'}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">Kör nu (cURL)</div>
+                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.curlNow); toast('Kopierad'); } catch {} }}>
+                              <Copy className="w-4 h-4 mr-1" /> Kopiera
+                            </Button>
+                          </div>
+                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.curlNow}</pre>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">Linux cron (var 5:e minut)</div>
+                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.linuxCron); toast('Kopierad'); } catch {} }}>
+                              <Copy className="w-4 h-4 mr-1" /> Kopiera
+                            </Button>
+                          </div>
+                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.linuxCron}</pre>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">Windows PowerShell (engångskörning)</div>
+                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.windowsPowerShellOneLiner); toast('Kopierad'); } catch {} }}>
+                              <Copy className="w-4 h-4 mr-1" /> Kopiera
+                            </Button>
+                          </div>
+                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.windowsPowerShellOneLiner}</pre>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">Windows Schemalagd uppgift (var 5:e minut)</div>
+                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.windowsSchtasks); toast('Kopierad'); } catch {} }}>
+                              <Copy className="w-4 h-4 mr-1" /> Kopiera
+                            </Button>
+                          </div>
+                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.windowsSchtasks}</pre>
+                        </div>
+                    
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setCronDialogOpen(false)}>Stäng</Button>
+                          <Button onClick={async () => {
+                            const all = `# Endpoint\n${cronInfo.endpoint}\n\n# Kör nu (cURL)\n${cronInfo.examples.curlNow}\n\n# Linux cron\n${cronInfo.examples.linuxCron}\n\n# Windows PowerShell\n${cronInfo.examples.windowsPowerShellOneLiner}\n\n# Windows Schemalagd uppgift\n${cronInfo.examples.windowsSchtasks}\n`;
+                            try { await navigator.clipboard.writeText(all); toast('Allt kopierat'); } catch {}
+                          }}>Kopiera allt</Button>
+                        </DialogFooter>
+                      </div>
+                    ) : null}
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Payment Settings Tab */}
         <TabsContent value="payment">
-          <Card>
-            <CardHeader>
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Betalningsinställningar</CardTitle>
               <CardDescription>
                 Konfigurera betalningsmetoder och API-nycklar
               </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => setEditPayment((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className={`space-y-6 ${editPayment ? '' : 'opacity-60 pointer-events-none'}`}> 
               {/* Swish Settings */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1147,13 +1299,11 @@ export default function SettingsClient() {
                 {settings.qliro_enabled && (
                   <div className="space-y-4 pl-4">
                     {/* Environment Selection */}
-                    <div className="bg-blue-50 p-4 rounded-lg border">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="qliro-use-prod">Produktionsmiljö</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Växla mellan utvecklings- och produktionsmiljö
-                          </p>
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <div className="text-white font-semibold">Produktionsmiljö</div>
+                          <div className="text-sm text-slate-300">Växla mellan utvecklings- och produktionsmiljö</div>
                         </div>
                         <Switch
                           id="qliro-use-prod"
@@ -1161,15 +1311,14 @@ export default function SettingsClient() {
                           onCheckedChange={(checked) => updateSetting('qliro_use_prod_env', checked)}
                         />
                       </div>
-                      
-                      <div className="text-sm font-medium text-blue-800">
-                        Aktuell miljö: {settings.qliro_use_prod_env ? 'Produktion' : 'Utveckling/Sandbox'}
+                      <div className="text-sm text-slate-200">
+                        Aktuell miljö: <span className="font-bold">{settings.qliro_use_prod_env ? 'Produktion' : 'Utveckling/Sandbox'}</span>
                       </div>
                     </div>
 
                     {/* API URLs Configuration */}
-                    <div className="space-y-4 border-t pt-4">
-                      <h4 className="font-medium text-gray-800">API-konfiguration</h4>
+                    <div className="space-y-4 border-t border-white/10 pt-4">
+                      <h4 className="font-medium text-white">API-konfiguration</h4>
                       
                       <div className="space-y-2">
                         <Label htmlFor="qliro-dev-api-url">
@@ -1280,86 +1429,38 @@ export default function SettingsClient() {
 
 {/* Troubleshooting Tab */}
         <TabsContent value="troubleshooting">
-          <Card>
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
             <CardHeader>
-              <CardTitle>API Felsökning</CardTitle>
-              <CardDescription>Testa krediterings-API för diagnostik</CardDescription>
+              <CardTitle className="text-white font-extrabold drop-shadow">Felsökning</CardTitle>
+              <CardDescription className="text-slate-300">Diagnostik och tester</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="test-user-id">Test Användar-ID</Label>
-                <Input
-                  id="test-user-id"
-                  value={testUserId}
-                  onChange={(e) => setTestUserId(e.target.value)}
-                  placeholder="Ange användar-ID för test"
-                />
+                <Label htmlFor="test-user-id" className="text-slate-200">Test Användar-ID</Label>
+                <Input id="test-user-id" value={testUserId} onChange={(e) => setTestUserId(e.target.value)} placeholder="Ange användar-ID för test" className="bg-white/10 border-white/20 text-white placeholder:text-slate-400" />
               </div>
-              
-              <div className="flex gap-2">
-                <Button
-                  onClick={runTests}
-                  disabled={testing}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {testing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Kör test...
-                    </>
-                  ) : (
-                    'Kör krediterings-API-test'
-                  )}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={runTests} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  {testing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Kör test...</>) : 'Kör krediterings-API-test'}
                 </Button>
-
-                <Button
-                  onClick={testQliroPayment}
-                  disabled={testing || !testUserId}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Test Qliro Payment
+                <Button onClick={testQliroPayment} disabled={testing || !testUserId} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <CreditCard className="w-4 h-4 mr-2" /> Test Qliro Payment
                 </Button>
-
-                                 <Button
-                   onClick={testSendGridEmail}
-                   disabled={testing || !testUserId}
-                   className="bg-green-600 hover:bg-green-700"
-                 >
-                   <Mail className="w-4 h-4 mr-2" />
-                   Testa SendGrid
-                 </Button>
-
-                 <Button
-                   onClick={testContactEmail}
-                   disabled={testing}
-                   className="bg-blue-600 hover:bg-blue-700"
-                 >
-                   <Mail className="w-4 h-4 mr-2" />
-                   Testa Kontaktformulär
-                 </Button>
-
-                 <Button
-                   onClick={testContactEmailDesign}
-                   disabled={testing}
-                   className="bg-green-600 hover:bg-green-700"
-                 >
-                   <Mail className="w-4 h-4 mr-2" />
-                   Testa Kontaktformulär Design
-                 </Button>
-
-                 <Button
-                   onClick={testExportFunctions}
-                   disabled={testing}
-                   className="bg-yellow-600 hover:bg-yellow-700"
-                 >
-                   <DollarSign className="w-4 h-4 mr-2" />
-                   Testa Export-funktioner
-                 </Button>
+                <Button onClick={testSendGridEmail} disabled={testing || !testUserId} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <Mail className="w-4 h-4 mr-2" /> Testa SendGrid
+                </Button>
+                <Button onClick={testContactEmail} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär
+                </Button>
+                <Button onClick={testContactEmailDesign} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär Design
+                </Button>
+                <Button onClick={testExportFunctions} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                  <DollarSign className="w-4 h-4 mr-2" /> Testa Export-funktioner
+                </Button>
               </div>
-              
-              <div className="text-sm text-muted-foreground p-4 bg-gray-50 rounded">
-                <p><strong>Observera:</strong></p>
+              <div className="text-sm text-slate-200 p-4 rounded-xl bg-white/5 border border-white/10">
+                <p className="font-semibold">Observera:</p>
                 <ul className="list-disc list-inside space-y-1 mt-2">
                   <li>Krediterings-testet kontrollerar att API:et fungerar korrekt</li>
                   <li>SendGrid-testet skickar en e-post till användarens e-postadress</li>
@@ -1370,20 +1471,20 @@ export default function SettingsClient() {
               </div>
               {testResults.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold">Test Resultat:</h4>
+                  <h4 className="font-semibold text-white">Test Resultat:</h4>
                   {testResults.map((result, index) => (
-                    <div key={index} className={`p-4 border rounded ${result.success ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+                    <div key={index} className={`p-4 rounded-xl border ${result.success ? 'border-green-500/50 bg-green-500/10' : 'border-rose-500/50 bg-rose-500/10'}`}>
                       <div className="flex items-center justify-between mb-2">
-                        <strong>{result.method} {result.endpoint}</strong>
-                        <span className={`px-2 py-1 rounded text-sm ${result.success ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                        <strong className="text-white">{result.method} {result.endpoint}</strong>
+                        <span className={`px-2 py-1 rounded text-sm ${result.success ? 'bg-green-600 text-white' : 'bg-rose-600 text-white'}`}>
                           {result.status} {result.success ? 'OK' : 'Fel'}
                         </span>
                       </div>
-                      <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
+                      <pre className="bg-white/5 border border-white/10 p-2 rounded overflow-x-auto text-xs text-slate-200">
                         {JSON.stringify(result.data, null, 2)}
                       </pre>
                       {result.error && (
-                        <p className="mt-2 text-red-600">Error: {result.error}</p>
+                        <p className="mt-2 text-rose-300">Error: {result.error}</p>
                       )}
                     </div>
                   ))}
@@ -1391,8 +1492,8 @@ export default function SettingsClient() {
               )}
               {exportTestResults && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold">Export Test Resultat:</h4>
-                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
+                  <h4 className="font-semibold text-white">Export Test Resultat:</h4>
+                  <pre className="bg-white/5 border border-white/10 p-2 rounded overflow-x-auto text-xs text-slate-200">
                     {JSON.stringify(exportTestResults, null, 2)}
                   </pre>
                 </div>

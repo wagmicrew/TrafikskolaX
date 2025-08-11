@@ -1,0 +1,80 @@
+{"timestamp":"2025-08-10T17:15:59.822Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:16:00.272Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:16:00.273Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:16:00.274Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754846160273","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:16:00.296Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754846160273"}}
+{"timestamp":"2025-08-10T17:16:00.296Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:20:47.214Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:20:47.268Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:20:47.269Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:20:47.271Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754846447270","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:20:47.491Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754846447270"}}
+{"timestamp":"2025-08-10T17:20:47.492Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:35:49.916Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:35:50.388Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:35:50.389Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:35:50.390Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754847350390","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:35:50.415Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754847350390"}}
+{"timestamp":"2025-08-10T17:35:50.416Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:35:53.724Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:35:53.725Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754847353725","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:35:53.727Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754847353725"}}
+{"timestamp":"2025-08-10T17:35:53.727Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:37:56.131Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:37:56.749Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:37:56.751Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:37:56.752Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754847476752","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:37:56.797Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754847476752"}}
+{"timestamp":"2025-08-10T17:37:56.798Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:39:24.324Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:39:24.660Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:39:24.661Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:39:24.662Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754847564662","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:39:24.688Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754847564662"}}
+{"timestamp":"2025-08-10T17:39:24.689Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:50:41.594Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:50:41.911Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:50:41.913Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:50:41.914Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754848241913","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:50:42.217Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754848241913"}}
+{"timestamp":"2025-08-10T17:50:42.219Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T17:58:09.117Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T17:58:09.483Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:58:09.484Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T17:58:09.485Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754848689485","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T17:58:09.510Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754848689485"}}
+{"timestamp":"2025-08-10T17:58:09.511Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T18:07:17.513Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T18:07:17.964Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T18:07:17.966Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T18:07:17.967Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754849237967","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T18:07:18.364Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754849237967"}}
+{"timestamp":"2025-08-10T18:07:18.365Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T19:19:33.820Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T19:19:34.154Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T19:19:34.155Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T19:19:34.156Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754853574156","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T19:19:34.184Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754853574156"}}
+{"timestamp":"2025-08-10T19:19:34.185Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T20:25:05.055Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754857496399","amount":750,"description":"Bokning: B-körkort"}}
+{"timestamp":"2025-08-10T20:25:05.057Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T20:25:05.592Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T20:25:05.593Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754857496399","amount":750,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T20:25:05.627Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754857496399"}}
+{"timestamp":"2025-08-10T20:25:05.628Z","level":"error","category":"payment","message":"Failed to create Qliro checkout session","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T21:11:52.215Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754860307890","amount":750,"description":"Bokning: B-körkort"}}
+{"timestamp":"2025-08-10T21:11:52.216Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T21:11:52.698Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T21:11:52.703Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754860307890","amount":750,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T21:11:52.735Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754860307890"}}
+{"timestamp":"2025-08-10T21:11:52.736Z","level":"error","category":"payment","message":"Failed to create Qliro checkout session","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-10T21:20:49.492Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T21:20:50.067Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T21:20:50.195Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"1ba4283e-b521-4a80-bcb1-00f68cf1dc59","amount":5445,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T21:20:50.227Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"1ba4283e-b521-4a80-bcb1-00f68cf1dc59"}}
+{"timestamp":"2025-08-10T21:23:22.028Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-10T21:23:22.426Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T21:23:22.430Z","level":"info","category":"payment","message":"Testing Qliro connection","data":{"environment":"sandbox","merchantId":"100","apiUrl":"https://playground.qliro.com"}}
+{"timestamp":"2025-08-10T21:23:22.436Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"test_1754861002435","amount":1,"environment":"sandbox"}}
+{"timestamp":"2025-08-10T21:23:22.618Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"test_1754861002435"}}
+{"timestamp":"2025-08-10T21:23:22.619Z","level":"error","category":"payment","message":"Qliro connection test failed","data":{"error":"fetch failed"}}

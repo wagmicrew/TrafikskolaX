@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/client';
-import { slotSettings, blockedSlots } from '@/lib/db/schema';
+import { slotSettings, blockedSlots, bookings, extraSlots } from '@/lib/db/schema';
 import { eq, and, or, gte, lte } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 
@@ -249,5 +249,41 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating slot:', error);
     return NextResponse.json({ error: 'Failed to create slot' }, { status: 500 });
+  }
+}
+
+// Reset endpoint: truncate slots, blocked, extra and bookings, then seed Mon–Fri schedule
+export async function PATCH(request: NextRequest) {
+  try {
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const op = searchParams.get('op');
+    if (op !== 'reset') {
+      return NextResponse.json({ error: 'Unsupported operation' }, { status: 400 });
+    }
+
+    const body = await request.json().catch(() => ({}) as any);
+    const days: number[] = Array.isArray(body.days) ? body.days : [1,2,3,4,5];
+    const timeStart: string = body.timeStart || '08:00';
+    const timeEnd: string = body.timeEnd || '17:00';
+    const adminMinutes: number = typeof body.adminMinutes === 'number' ? body.adminMinutes : 15;
+
+    // Danger: clear data
+    await db.delete(bookings).where(eq(bookings.status, bookings.status)); // delete all
+    await db.delete(blockedSlots).where(eq(blockedSlots.id, blockedSlots.id));
+    await db.delete(extraSlots).where(eq(extraSlots.id, extraSlots.id));
+    await db.delete(slotSettings).where(eq(slotSettings.id, slotSettings.id));
+
+    // Seed slots Mon–Fri
+    const toInsert = days.map((d) => ({ dayOfWeek: d, timeStart, timeEnd, adminMinutes, isActive: true }));
+    const inserted = await db.insert(slotSettings).values(toInsert).returning();
+    return NextResponse.json({ message: 'Reset done', insertedCount: inserted.length });
+  } catch (error) {
+    console.error('Reset slots error:', error);
+    return NextResponse.json({ error: 'Failed to reset slots' }, { status: 500 });
   }
 }

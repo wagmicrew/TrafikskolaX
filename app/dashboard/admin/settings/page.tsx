@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -20,8 +21,27 @@ const SettingsClient = dynamic(
 export default function SettingsPage() {
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-gray-900">Administratörsinställningar</h1>
+      <div className="mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Administratörsinställningar</h1>
+            <p className="text-slate-300 mt-1">Konfigurera funktioner och utseende för systemet</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/admin/settings/qliro"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+            >
+              Hantera Qliro-betalningar
+            </Link>
+            <Link
+              href="/dashboard/admin/settings/database-updates"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+            >
+              Databasuppdateringar
+            </Link>
+          </div>
+        </div>
         <Suspense fallback={
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
@@ -34,23 +54,16 @@ export default function SettingsPage() {
         position="top-right"
         toastOptions={{
           duration: 4000,
-          style: {
-            background: '#ffffff',
-            color: '#1f2937',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          },
           success: {
             iconTheme: {
-              primary: '#dc2626',
-              secondary: '#ffffff',
+              primary: '#0ea5e9',
+              secondary: '#0b1220',
             },
           },
           error: {
             iconTheme: {
-              primary: '#dc2626',
-              secondary: '#ffffff',
+              primary: '#ef4444',
+              secondary: '#0b1220',
             },
           },
         }}

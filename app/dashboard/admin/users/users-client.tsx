@@ -16,6 +16,7 @@ import {
   CreditCard,
   AlertTriangle,
   FileText,
+  Shield,
 } from 'lucide-react';
 
 interface User {
@@ -59,6 +60,7 @@ export default function UsersClient({
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [exportPdf, setExportPdf] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
   const handleSkrivIn = async (userId: string) => {
     setLoadingSkriv(userId);
@@ -123,6 +125,50 @@ export default function UsersClient({
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setUserToDelete(null);
+  };
+
+  const handleImpersonate = async (targetUser: User) => {
+    setImpersonatingId(targetUser.id);
+    try {
+      const res = await fetch('/api/auth/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUser.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({} as any));
+        alert(data?.error || 'Kunde inte hämta användarsession');
+        return;
+      }
+      const data = await res.json().catch(() => ({} as any));
+      if (data?.adminToken) {
+        try { localStorage.setItem('admin-session-token', data.adminToken); } catch {}
+      }
+      if (data?.token) {
+        try { localStorage.setItem('auth-token', data.token); } catch {}
+        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
+        try {
+          const payload = JSON.parse(atob((data.token as string).split('.')[1] || ''));
+          const role = payload?.role || targetUser.role;
+          const href = role === 'admin' ? '/dashboard/admin' : role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
+          window.location.href = href;
+          return;
+        } catch {
+          // Fallback to targetUser.role if decoding fails
+          const href = targetUser.role === 'admin' ? '/dashboard/admin' : targetUser.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
+          window.location.href = href;
+          return;
+        }
+      } else {
+        // No token returned; fallback navigation based on role
+        const href = targetUser.role === 'admin' ? '/dashboard/admin' : targetUser.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
+        window.location.href = href;
+      }
+    } catch (e) {
+      alert('Misslyckades att hämta användarsession');
+    } finally {
+      setImpersonatingId(null);
+    }
   };
 
   const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -249,6 +295,13 @@ export default function UsersClient({
                     <Link href={`/dashboard/admin/users/${user.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white">
                       Hantera
                     </Link>
+                    <button
+                      onClick={() => handleImpersonate(user)}
+                      disabled={impersonatingId === user.id}
+                      className="px-3 py-1 rounded bg-amber-500/90 hover:bg-amber-500 text-black disabled:opacity-50"
+                    >
+                      <Shield className="w-4 h-4 inline mr-1" /> {impersonatingId === user.id ? 'Hämtar...' : 'Gå till användarsession'}
+                    </button>
                     
                     <button 
                       onClick={() => handleDeleteClick(user)}

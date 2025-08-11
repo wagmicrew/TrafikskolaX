@@ -32,6 +32,66 @@ import { Badge } from '@/components/ui/badge';
 export default function HelpPage() {
   const { user } = useAuth();
   const router = useRouter();
+  
+  function SchoolContact() {
+    const [phone, setPhone] = React.useState<string>('');
+    const [email, setEmail] = React.useState<string>('');
+    React.useEffect(() => {
+      (async () => {
+        try {
+          const res = await fetch('/api/admin/settings', { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            setPhone(data.settings?.school_phonenumber || '');
+            setEmail(data.settings?.school_email || '');
+          }
+        } catch {}
+      })();
+    }, []);
+    return (
+      <ul className="space-y-1 text-sm text-gray-600">
+        {phone && <li>• <strong>Ring oss:</strong> {phone}</li>}
+        {email && <li>• <strong>E-post:</strong> {email}</li>}
+      </ul>
+    );
+  }
+
+  function SocialLinks() {
+    const [links, setLinks] = React.useState<{ facebook?: string; instagram?: string; tiktok?: string }>({});
+    React.useEffect(() => {
+      (async () => {
+        try {
+          const res = await fetch('/api/admin/settings', { method: 'GET' });
+          if (res.ok) {
+            const data = await res.json();
+            setLinks({
+              facebook: data.settings?.social_facebook || '',
+              instagram: data.settings?.social_instagram || '',
+              tiktok: data.settings?.social_tiktok || '',
+            });
+          }
+        } catch {}
+      })();
+    }, []);
+    const hasAny = links.facebook || links.instagram || links.tiktok;
+    if (!hasAny) return null;
+    return (
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <h3 className="font-semibold mb-2">📣 Sociala medier</h3>
+        <ul className="space-y-1 text-sm text-gray-600">
+          {links.facebook && (
+            <li>• <a className="underline text-blue-600" href={links.facebook} target="_blank" rel="noreferrer">Facebook</a></li>
+          )}
+          {links.instagram && (
+            <li>• <a className="underline text-pink-600" href={links.instagram} target="_blank" rel="noreferrer">Instagram</a></li>
+          )}
+          {links.tiktok && (
+            <li>• <a className="underline text-black" href={links.tiktok} target="_blank" rel="noreferrer">TikTok</a></li>
+          )}
+        </ul>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!user) {
@@ -287,12 +347,11 @@ export default function HelpPage() {
       </div>
 
       <Tabs defaultValue="booking" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="booking">Boka Lektioner</TabsTrigger>
-          <TabsTrigger value="dashboard">Min Dashboard</TabsTrigger>
-          <TabsTrigger value="credits">Krediter & Betalning</TabsTrigger>
-          <TabsTrigger value="support">Support</TabsTrigger>
-        </TabsList>
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="booking">Boka Lektioner</TabsTrigger>
+            <TabsTrigger value="dashboard">Din sida</TabsTrigger>
+            <TabsTrigger value="support">Support</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="booking" className="space-y-6">
           <Card>
@@ -333,7 +392,6 @@ export default function HelpPage() {
                   <li>• <strong>Avbokning:</strong> Gratis upp till 24h före, avgift efter det</li>
                   <li>• <strong>Försening:</strong> Kom i tid, försening kan påverka din lektion</li>
                   <li>• <strong>Väder:</strong> Lektioner genomförs även vid dåligt väder</li>
-                  <li>• <strong>Körkort:</strong> Ta med ditt körkort till varje lektion</li>
                 </ul>
               </div>
             </CardContent>
@@ -345,7 +403,7 @@ export default function HelpPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FaBookOpen className="text-blue-600" />
-                Din Dashboard
+                Din sida
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -358,7 +416,7 @@ export default function HelpPage() {
                   <li>• <strong>Kommande lektioner</strong> - Dina bokade lektioner</li>
                   <li>• <strong>Genomförda lektioner</strong> - Din utveckling</li>
                   <li>• <strong>Tillgängliga krediter</strong> - Dina lektionskrediter</li>
-                  <li>• <strong>Meddelanden</strong> - Viktiga uppdateringar från skolan</li>
+                  
                 </ul>
               </div>
 
@@ -372,75 +430,11 @@ export default function HelpPage() {
                 </ul>
               </div>
 
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">📱 Mobil användning</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• <strong>Responsiv design:</strong> Fungerar perfekt på mobil</li>
-                  <li>• <strong>Snabb bokning:</strong> Boka lektioner direkt från telefonen</li>
-                  <li>• <strong>Påminnelser:</strong> Få push-notifikationer för lektioner</li>
-                  <li>• <strong>Offline:</strong> Se dina bokningar även utan internet</li>
-                </ul>
-              </div>
+              
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="credits" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FaCoins className="text-yellow-600" />
-                Krediter & Betalning
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">💰 Lektionskrediter</h3>
-                <p className="text-sm text-gray-700 mb-3">
-                  Krediter är ett bekvämt sätt att betala för lektioner:
-                </p>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• <strong>Köp krediter:</strong> Köp paket med lektionskrediter</li>
-                  <li>• <strong>Spara pengar:</strong> Krediter är ofta billigare än enstaka lektioner</li>
-                  <li>• <strong>Enkel bokning:</strong> Använd krediter direkt vid bokning</li>
-                  <li>• <strong>Gåva:</strong> Perfekt som present till någon som ska ta körkort</li>
-                </ul>
-              </div>
-
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">💳 Betalningsmetoder</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-3 bg-white rounded border">
-                    <h4 className="font-semibold text-green-600">Swish</h4>
-                    <p className="text-sm text-gray-600">Snabb betalning direkt från din telefon. Du får QR-kod att skanna.</p>
-                  </div>
-                  <div className="p-3 bg-white rounded border">
-                    <h4 className="font-semibold text-blue-600">Qliro</h4>
-                    <p className="text-sm text-gray-600">Betala i avbetalningar. Perfekt för dyrare paket.</p>
-                  </div>
-                  <div className="p-3 bg-white rounded border">
-                    <h4 className="font-semibold text-purple-600">Krediter</h4>
-                    <p className="text-sm text-gray-600">Använd dina förköpta lektionskrediter.</p>
-                  </div>
-                  <div className="p-3 bg-white rounded border">
-                    <h4 className="font-semibold text-orange-600">Faktura</h4>
-                    <p className="text-sm text-gray-600">Betala via faktura (endast för företag).</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">🔒 Säker betalning</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• <strong>Krypterad:</strong> Alla betalningar är säkra och krypterade</li>
-                  <li>• <strong>Ingen lagring:</strong> Vi lagrar aldrig dina kortuppgifter</li>
-                  <li>• <strong>Bekräftelse:</strong> Du får alltid bekräftelse på betalning</li>
-                  <li>• <strong>Återbetalning:</strong> Möjlighet till återbetalning vid avbokning</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="support" className="space-y-6">
           <Card>
@@ -453,12 +447,7 @@ export default function HelpPage() {
             <CardContent className="space-y-4">
               <div className="bg-red-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">🚨 Akut hjälp</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• <strong>Ring oss:</strong> 0123-456789 (måndag-fredag 8-17)</li>
-                  <li>• <strong>E-post:</strong> info@trafikskolan.se</li>
-                  <li>• <strong>Chatt:</strong> Tillgänglig på hemsidan under öppettider</li>
-                  <li>• <strong>WhatsApp:</strong> 070-123 45 67 för snabb hjälp</li>
-                </ul>
+                <SchoolContact />
               </div>
 
               <div className="bg-green-50 p-4 rounded-lg">
@@ -479,15 +468,7 @@ export default function HelpPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">📚 Resurser</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• <strong>Körkortsboken:</strong> Digital version tillgänglig</li>
-                  <li>• <strong>Videor:</strong> Instruktiva videor på vår YouTube-kanal</li>
-                  <li>• <strong>App:</strong> Ladda ner vår mobilapp för enklare hantering</li>
-                  <li>• <strong>Sociala medier:</strong> Följ oss för tips och uppdateringar</li>
-                </ul>
-              </div>
+              <SocialLinks />
             </CardContent>
           </Card>
         </TabsContent>

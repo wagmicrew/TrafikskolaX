@@ -16,6 +16,8 @@ interface SwishPaymentDialogProps {
   }
   bookingData?: any // Full booking data for creating the booking
   onConfirm: () => void
+  customMessage?: string
+  mode?: 'booking' | 'package'
 }
 
 export function SwishPaymentDialog({ 
@@ -23,7 +25,9 @@ export function SwishPaymentDialog({
   onClose, 
   booking,
   bookingData,
-  onConfirm 
+  onConfirm,
+  customMessage,
+  mode = 'booking'
 }: SwishPaymentDialogProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
   const [isPaying, setIsPaying] = useState(false)
@@ -31,7 +35,7 @@ export function SwishPaymentDialog({
 
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
-  const message = `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
+  const message = customMessage || `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
 
   useEffect(() => {
     if (isOpen) {
@@ -117,6 +121,11 @@ export function SwishPaymentDialog({
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
     try {
+      if (mode === 'package') {
+        toast({ title: 'Tack!', description: 'Vi verifierar din Swish-betalning snarast.' })
+        onConfirm()
+        return
+      }
       // If we have booking data, update the existing temporary booking
       if (bookingData) {
         // Update the existing temporary booking with final payment method and guest info

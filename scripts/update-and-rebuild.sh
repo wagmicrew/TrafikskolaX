@@ -86,21 +86,34 @@ perform_git_pull() {
 check_new_dependencies() {
     print_header "Checking for new dependencies"
     
-    # Compare pre/post pull
-    if git diff --name-only "$PRE_HASH".."$POST_HASH" | grep -E "(package\.json|package-lock\.json)" >/dev/null; then
+    # Compare pre/post pull (fallback if PRE_HASH undefined)
+    local base_range
+    if [ -n "${PRE_HASH:-}" ] && [ -n "${POST_HASH:-}" ]; then
+      base_range="$PRE_HASH..$POST_HASH"
+    else
+      base_range="HEAD~1..HEAD"
+    fi
+    if git diff --name-only "$base_range" | grep -E "(package\.json|package-lock\.json)" >/dev/null; then
         print_status "Dependencies have changed, installing new packages..."
         
         # Install dependencies (prefer deterministic CI install if lockfile exists)
         if [ -f package-lock.json ]; then
-            print_status "Running npm ci..."
-            if ! npm ci; then
-                print_error "npm ci failed"
-                exit 1
+            print_status "Running npm ci (no-audit, no-fund, prefer-offline)..."
+            if ! npm ci --no-audit --no-fund --prefer-offline; then
+                print_warning "npm ci failed, cleaning cache and retrying..."
+                npm cache clean --force || true
+                if ! npm ci --no-audit --no-fund; then
+                    print_warning "npm ci still failing, falling back to npm install..."
+                    if ! npm install --no-audit --no-fund; then
+                        print_error "Failed to install dependencies"
+                        exit 1
+                    fi
+                fi
             fi
         else
-            print_status "Running npm install (no lockfile)..."
-            if ! npm install; then
-                print_error "npm install failed"
+            print_status "Running npm install (no lockfile, no-audit, no-fund)..."
+            if ! npm install --no-audit --no-fund; then
+                print_error "Failed to install dependencies"
                 exit 1
             fi
         fi
@@ -114,8 +127,9 @@ check_new_dependencies() {
 
 check_node_npm() {
     print_header "Checking Node.js and npm versions"
-    node -v || { print_error "Node.js not found"; exit 1; }
-    npm -v || { print_error "npm not found"; exit 1; }
+    export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
+    node -v || { print_error "Node.js not found in PATH"; exit 1; }
+    npm -v || { print_error "npm not found in PATH"; exit 1; }
 }
 
 run_build() {

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
+import { db } from '@/lib/db';
+import { siteSettings } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 function generateAuthHeader(payload: any, secret: string): string {
   const payloadString = payload ? JSON.stringify(payload) : '';
@@ -14,14 +17,24 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuthAPI('admin');
   if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
   try {
-    const {
+    const bodyJson = await request.json().catch(() => ({}));
+    let {
       apiUrl,
-      apiKey = 'QTEST',
-      apiSecret = 'vbQpPxuqvE4K',
+      apiKey,
+      apiSecret,
       customer = {}
-    } = await request.json();
+    } = bodyJson || {};
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se';
+    // Load defaults from site_settings if not provided in request
+    try {
+      const rows = await db.select().from(siteSettings).where(eq(siteSettings.category, 'payment'));
+      const map = rows.reduce((acc: Record<string, string>, s: any) => { acc[s.key] = s.value || ''; return acc; }, {} as Record<string, string>);
+      if (!apiKey) apiKey = map['qliro_api_key'] || map['qliro_prod_api_key'] || apiKey;
+      if (!apiSecret) apiSecret = map['qliro_api_secret'] || map['qliro_secret'] || apiSecret;
+      if (!apiUrl) apiUrl = map['qliro_dev_api_url'] || map['qliro_prod_api_url'] || 'https://playground.qliro.com';
+    } catch {}
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
     const envApiUrl = apiUrl || 'https://playground.qliro.com';
 
     const reference = `test_${Date.now()}`;

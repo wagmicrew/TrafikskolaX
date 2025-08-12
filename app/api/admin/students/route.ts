@@ -1,24 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { verifyToken } from '@/lib/auth/jwt';
-import { cookies } from 'next/headers';
 import { eq, and, not, like } from 'drizzle-orm';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const excludeTemp = searchParams.get('excludeTemp') === 'true';
-    // Check if user is logged in and is admin or teacher
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token');
-    
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const inskrivenOnly = (searchParams.get('inskrivenOnly') || 'true').toLowerCase() !== 'false';
 
-    const payload = await verifyToken(token.value);
-    if (!payload || (payload.role !== 'admin' && payload.role !== 'teacher')) {
+    // Auth using common helper; allow admin or teacher
+    const auth = await requireAuthAPI();
+    if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (auth.user.role !== 'admin' && auth.user.role !== 'teacher') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -37,10 +32,15 @@ export async function GET(request: NextRequest) {
         excludeTemp
           ? and(
               eq(users.role, 'student'),
+              inskrivenOnly ? eq(users.inskriven, true) : eq(users.inskriven, users.inskriven),
               not(like(users.email, 'orderid-%@dintrafikskolahlm.se')),
+              not(like(users.email, 'temp-%@%')),
               not(eq(users.firstName, 'Temporary'))
             )
-          : eq(users.role, 'student')
+          : and(
+              eq(users.role, 'student'),
+              inskrivenOnly ? eq(users.inskriven, true) : eq(users.inskriven, users.inskriven)
+            )
       )
       .orderBy(users.firstName, users.lastName);
 

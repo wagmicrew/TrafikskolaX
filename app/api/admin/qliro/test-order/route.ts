@@ -59,21 +59,47 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    const res = await fetch(`${envApiUrl}/checkout/merchantapi/Orders`, {
+    const url = `${envApiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': generateAuthHeader(body, apiSecret),
+    } as Record<string, string>;
+
+    const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': generateAuthHeader(body, apiSecret),
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
     const text = await res.text();
     if (!res.ok) {
-      return NextResponse.json({ error: 'Qliro API error', details: text }, { status: res.status });
+      return NextResponse.json({
+        error: 'Qliro API error',
+        url,
+        status: res.status,
+        statusText: res.statusText,
+        responseText: text,
+        request: {
+          payload: { ...body, MerchantApiKey: body.MerchantApiKey ? '***' : undefined },
+          authorizationPreview: (headers.Authorization || '').replace(/^Qliro\s+/, '').slice(0, 12) + '...'
+        }
+      }, { status: res.status });
     }
     const data = JSON.parse(text);
-    return NextResponse.json({ success: true, order: data, checkoutUrl: data.PaymentLink, orderId: data.OrderId, merchantReference: reference });
+    return NextResponse.json({
+      success: true,
+      url,
+      request: {
+        payload: { ...body, MerchantApiKey: body.MerchantApiKey ? '***' : undefined },
+        authorizationPreview: (headers.Authorization || '').replace(/^Qliro\s+/, '').slice(0, 12) + '...'
+      },
+      status: res.status,
+      statusText: res.statusText,
+      order: data,
+      checkoutUrl: data.PaymentLink,
+      orderId: data.OrderId,
+      merchantReference: reference
+    });
   } catch (e) {
     return NextResponse.json({ error: 'Failed to create test order', details: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 });
   }

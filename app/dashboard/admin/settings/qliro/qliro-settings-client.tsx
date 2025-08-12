@@ -480,8 +480,18 @@ export default function QliroSettingsClient() {
                 const res = await fetch('/api/admin/qliro/test-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
                 const data = await res.json();
                 setTestOrderResult(data);
-                if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa testorder');
-                toast.success('Testorder skapad', { id: t, position: 'top-right' });
+                // Toast detailed steps
+                if (data.url) toast(`POST ${data.url}`, { position: 'top-right' });
+                if (data.request) toast(`Payload skickad`, { position: 'top-right' });
+                if (!res.ok) {
+                  toast.error(`Fel ${data.status}: ${data.statusText || data.error || 'Qliro API error'}`, { id: t, position: 'top-right' });
+                  if (data.responseText) {
+                    toast(`Svar: ${String(data.responseText).slice(0, 180)}...`, { position: 'top-right' });
+                  }
+                } else {
+                  toast.success(`OK ${data.status}: PaymentLink mottagen`, { id: t, position: 'top-right' });
+                  if (data.checkoutUrl) toast(`PaymentLink: ${data.checkoutUrl}`, { position: 'top-right' });
+                }
               } catch (e: any) {
                 setTestOrderResult({ error: e?.message || 'Okänt fel' });
                 toast.error(e.message || 'Misslyckades att skapa testorder', { id: t, position: 'top-right' });

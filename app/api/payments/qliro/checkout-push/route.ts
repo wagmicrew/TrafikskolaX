@@ -1,31 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Lightweight status push endpoint for Qliro checkout status updates
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.text();
-    // Accept and no-op for now; logs can be added via logger if needed
-    return NextResponse.json({ received: true, length: body.length }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed' }, { status: 500 });
-  }
-}
-
-export async function OPTIONS() {
-  // Allow preflight checks
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
-}
-
-import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, packagePurchases, userCredits, packageContents, users } from '@/lib/db/schema';
+import { bookings, packagePurchases, userCredits, packageContents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { cache } from '@/lib/redis/client';
 
@@ -106,6 +81,18 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+export async function OPTIONS() {
+  // Allow preflight checks
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
 
 

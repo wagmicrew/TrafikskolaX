@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       customer = {}
     } = await request.json();
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se';
     const envApiUrl = apiUrl || 'https://playground.qliro.com';
 
     const reference = `test_${Date.now()}`;

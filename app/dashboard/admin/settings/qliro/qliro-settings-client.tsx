@@ -108,6 +108,8 @@ export default function QliroSettingsClient() {
   const [creatingTest, setCreatingTest] = useState(false);
   const [prereqLoading, setPrereqLoading] = useState(false);
   const [prereqResult, setPrereqResult] = useState<any>(null);
+  const [testOrderRunning, setTestOrderRunning] = useState(false);
+  const [testOrderResult, setTestOrderResult] = useState<any>(null);
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -467,6 +469,26 @@ export default function QliroSettingsClient() {
               Kontrollera förkrav
             </Button>
             <Button variant="outline" onClick={async () => {
+              setTestOrderRunning(true);
+              setTestOrderResult(null);
+              const t = toast.loading('Skapar testorder via API...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
+              try {
+                const res = await fetch('/api/admin/qliro/test-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                const data = await res.json();
+                setTestOrderResult(data);
+                if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa testorder');
+                toast.success('Testorder skapad', { id: t, position: 'top-right' });
+              } catch (e: any) {
+                setTestOrderResult({ error: e?.message || 'Okänt fel' });
+                toast.error(e.message || 'Misslyckades att skapa testorder', { id: t, position: 'top-right' });
+              } finally {
+                setTestOrderRunning(false);
+              }
+            }} disabled={testOrderRunning}>
+              {testOrderRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Testorder (API)
+            </Button>
+            <Button variant="outline" onClick={async () => {
               const t = toast.loading('Rensar temporära ordrar...', { position: 'top-right' });
               try {
                 const res = await fetch('/api/dashboard/admin/qliro/order-management', {
@@ -608,6 +630,12 @@ export default function QliroSettingsClient() {
                   </div>
                 ))}
               </div>
+            </div>
+          ) : null}
+          {testOrderResult ? (
+            <div className="space-y-2">
+              <div className="text-sm text-slate-300">Testorder-resultat</div>
+              <pre className="bg-slate-900/50 border border-white/10 rounded-lg p-3 text-xs overflow-auto">{JSON.stringify(testOrderResult, null, 2)}</pre>
             </div>
           ) : null}
         </CardContent>

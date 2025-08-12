@@ -1,0 +1,12 @@
+{"timestamp":"2025-08-12T05:04:31.061Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754975069139","amount":500,"description":"Bokning: Introduktion"}}
+{"timestamp":"2025-08-12T05:04:31.066Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-12T05:04:31.652Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","apiUrl":"https://playground.qliro.com","hasApiKey":true,"hasApiSecret":true}}
+{"timestamp":"2025-08-12T05:04:31.653Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754975069139","amount":500,"environment":"sandbox"}}
+{"timestamp":"2025-08-12T05:04:31.689Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754975069139"}}
+{"timestamp":"2025-08-12T05:04:31.691Z","level":"error","category":"payment","message":"Failed to create Qliro checkout session","data":{"error":"fetch failed"}}
+{"timestamp":"2025-08-12T05:12:04.521Z","level":"info","category":"payment","message":"Creating Qliro checkout session","data":{"reference":"booking-1754975523897","amount":500,"description":"Bokning: Introduktion"}}
+{"timestamp":"2025-08-12T05:12:04.524Z","level":"debug","category":"payment","message":"Loading Qliro settings from database"}
+{"timestamp":"2025-08-12T05:12:04.572Z","level":"info","category":"payment","message":"Qliro settings loaded successfully","data":{"environment":"sandbox","apiUrl":"https://playground.qliro.com","hasApiKey":true,"hasApiSecret":true}}
+{"timestamp":"2025-08-12T05:12:04.574Z","level":"info","category":"payment","message":"Creating Qliro checkout","data":{"reference":"booking-1754975523897","amount":500,"environment":"sandbox"}}
+{"timestamp":"2025-08-12T05:12:04.601Z","level":"error","category":"payment","message":"Failed to create Qliro checkout","data":{"error":"fetch failed","reference":"booking-1754975523897"}}
+{"timestamp":"2025-08-12T05:12:04.603Z","level":"error","category":"payment","message":"Failed to create Qliro checkout session","data":{"error":"fetch failed"}}

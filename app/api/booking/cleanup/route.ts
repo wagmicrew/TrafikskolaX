@@ -25,8 +25,8 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Only allow cleanup of temporary bookings
-      if (booking.status !== 'temp') {
+      // Allow cleanup of temporary or stale cancelled bookings
+      if (booking.status !== 'temp' && booking.status !== 'cancelled') {
         return NextResponse.json({ error: 'Cannot cancel non-temporary booking' }, { status: 400 });
       }
 
@@ -66,15 +66,8 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Cannot cancel non-temporary booking' }, { status: 400 });
       }
 
-      // Soft delete the booking by setting deletedAt timestamp
-      await db
-        .update(bookings)
-        .set({ 
-          deletedAt: new Date(),
-          status: 'cancelled',
-          updatedAt: new Date()
-        })
-        .where(eq(bookings.id, bookingId));
+      // Permanently delete
+      await db.delete(bookings).where(eq(bookings.id, bookingId));
 
       return NextResponse.json({ 
         message: 'Temporary booking cleaned up successfully',

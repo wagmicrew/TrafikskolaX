@@ -12,6 +12,15 @@ export default function HandledarSessionManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentSession, setCurrentSession] = useState(null);
+  const [isAddBookingOpen, setIsAddBookingOpen] = useState(false);
+  const [bookingForm, setBookingForm] = useState({
+    supervisorName: '',
+    supervisorEmail: '',
+    supervisorPhone: '',
+    studentId: '',
+    sendPaymentEmail: true,
+  });
+  const [students, setStudents] = useState([]);
   const [formData, setFormData] = useState({
     title: 'Handledarutbildning',
     description: 'Handledarkurs enligt Transportstyrelsens krav. Kursen behandlar bland annat trafiksäkerhet, pedagogik, ansvar och skyldigheter för handledare. Obligatorisk för alla som ska handleda någon med körkortstillstånd.',
@@ -82,6 +91,29 @@ export default function HandledarSessionManager() {
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
+  };
+
+  const openAddBooking = async (session) => {
+    setCurrentSession(session);
+    setBookingForm({ supervisorName: '', supervisorEmail: '', supervisorPhone: '', studentId: '', sendPaymentEmail: true });
+    try {
+      const res = await fetch('/api/admin/users');
+      const all = await res.json();
+      const onlyStudents = (all || []).filter((u:any) => String(u.role).toLowerCase() === 'student');
+      setStudents(onlyStudents);
+    } catch {}
+    setIsAddBookingOpen(true);
+  };
+
+  const submitAddBooking = async () => {
+    if (!currentSession) return;
+    const url = `/api/admin/handledar-sessions/${currentSession.id}/add-booking`;
+    const payload = { ...bookingForm, studentId: bookingForm.studentId || null };
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (res.ok) {
+      setIsAddBookingOpen(false);
+      await fetchSessions();
+    }
   };
 
   const handleFormChange = (e) => {
@@ -162,6 +194,7 @@ export default function HandledarSessionManager() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <Button onClick={() => handleOpenDialog(session)} variant="outline" size="sm">Redigera</Button>
                   <Button onClick={() => handleDelete(session.id)} variant="destructive" size="sm" className="ml-2">Ta bort</Button>
+                  <Button onClick={() => openAddBooking(session)} size="sm" className="ml-2 bg-green-600 hover:bg-green-700 text-white">Lägg till deltagare</Button>
                 </td>
               </tr>
             ))}
@@ -299,6 +332,60 @@ export default function HandledarSessionManager() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Booking Dialog */}
+      <Dialog open={isAddBookingOpen} onOpenChange={setIsAddBookingOpen}>
+        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          <div className="dialog-glassmorphism relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-transparent to-blue-500/20 rounded-xl"></div>
+            <div className="relative z-10 p-6 sm:p-8">
+              <DialogHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
+                    Lägg till deltagare
+                  </DialogTitle>
+                  <button onClick={() => setIsAddBookingOpen(false)} className="text-white/70 hover:text-white transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-white">Handledarens namn</Label>
+                  <Input value={bookingForm.supervisorName} onChange={(e)=>setBookingForm({...bookingForm, supervisorName: e.target.value})} className="bg-white/5 border-white/20 text-white" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-white">E-post</Label>
+                    <Input type="email" value={bookingForm.supervisorEmail} onChange={(e)=>setBookingForm({...bookingForm, supervisorEmail: e.target.value})} className="bg-white/5 border-white/20 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-white">Telefon</Label>
+                    <Input value={bookingForm.supervisorPhone} onChange={(e)=>setBookingForm({...bookingForm, supervisorPhone: e.target.value})} className="bg-white/5 border-white/20 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-white">Koppla till användare (valfritt)</Label>
+                  <select value={bookingForm.studentId} onChange={(e)=>setBookingForm({...bookingForm, studentId: e.target.value})} className="w-full rounded-lg bg-white/5 border border-white/20 text-white p-2">
+                    <option value="">Ingen</option>
+                    {students.map((s:any)=> (
+                      <option key={s.id} value={s.id}>{`${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input id="sendPaymentEmail" type="checkbox" checked={bookingForm.sendPaymentEmail} onChange={(e)=>setBookingForm({...bookingForm, sendPaymentEmail: e.target.checked})} className="w-4 h-4" />
+                  <Label htmlFor="sendPaymentEmail" className="text-white">Skicka betalningsinformation (Swish)</Label>
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={()=>setIsAddBookingOpen(false)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+                  <Button onClick={submitAddBooking} className="bg-green-600 hover:bg-green-700 text-white">Lägg till</Button>
+                </div>
+              </div>
             </div>
           </div>
         </DialogContent>

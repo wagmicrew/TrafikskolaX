@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
-import { handledarSessions, handledarBookings, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { handledarSessions, handledarBookings, users, userCredits } from '@/lib/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
+import { EmailService } from '@/lib/email/email-service';
 
 export async function GET(
   request: NextRequest,
@@ -77,7 +78,8 @@ export async function GET(
       teacherName: session[0].teacherName && session[0].teacherLastName 
         ? `${session[0].teacherName} ${session[0].teacherLastName}` 
         : 'Ingen lärare tilldelad',
-      spotsLeft: session[0].maxParticipants - session[0].currentParticipants,
+      // Exclude temporary placeholders from participant count
+      spotsLeft: Number(session[0].maxParticipants) - (bookings.filter(b => b.supervisorName !== 'Temporary').length),
       bookings: bookings.map(booking => ({
         ...booking,
         studentName: booking.studentName && booking.studentLastName 
@@ -163,38 +165,137 @@ export async function DELETE(
 
     const { id: sessionId } = await params;
 
-    // Check if there are any confirmed bookings
-    const confirmedBookings = await db
-      .select()
-      .from(handledarBookings)
-      .where(
-        and(
-          eq(handledarBookings.sessionId, sessionId),
-          eq(handledarBookings.paymentStatus, 'paid')
-        )
-      );
-
-    if (confirmedBookings.length > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete session with confirmed bookings' 
-      }, { status: 400 });
-    }
-
-    // Soft delete by setting isActive to false
-    const deletedSession = await db
-      .update(handledarSessions)
-      .set({
-        isActive: false,
-        updatedAt: new Date(),
+    // Load session details for email context
+    const [session] = await db
+      .select({
+        id: handledarSessions.id,
+        title: handledarSessions.title,
+        date: handledarSessions.date,
+        startTime: handledarSessions.startTime,
+        endTime: handledarSessions.endTime,
       })
-      .where(eq(handledarSessions.id, sessionId))
-      .returning();
+      .from(handledarSessions)
+      .where(eq(handledarSessions.id, sessionId));
 
-    if (deletedSession.length === 0) {
+    if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Session deleted successfully' });
+    // Fetch all bookings for the session
+    const bookings = await db
+      .select({
+        id: handledarBookings.id,
+        studentId: handledarBookings.studentId,
+        supervisorName: handledarBookings.supervisorName,
+        supervisorEmail: handledarBookings.supervisorEmail,
+        supervisorPhone: handledarBookings.supervisorPhone,
+        price: handledarBookings.price,
+        paymentStatus: handledarBookings.paymentStatus,
+        bookedBy: handledarBookings.bookedBy,
+        createdAt: handledarBookings.createdAt,
+        studentEmail: users.email,
+        studentFirst: users.firstName,
+        studentLast: users.lastName,
+      })
+      .from(handledarBookings)
+      .leftJoin(users, eq(handledarBookings.studentId, users.id))
+      .where(eq(handledarBookings.sessionId, sessionId));
+
+    let emailsSent = 0;
+    let creditsGranted = 0;
+
+    for (const b of bookings) {
+      try {
+        const hasStudent = !!b.studentId;
+        const studentName = [b.studentFirst, b.studentLast].filter(Boolean).join(' ').trim();
+        const studentEmail = (b.studentEmail || '').trim();
+        const supervisorEmail = (b.supervisorEmail || '').trim();
+
+        // Grant handledar credit to student when applicable
+        if (hasStudent && b.studentId) {
+          // Try find existing handledar credit row
+          const existing = await db
+            .select({ id: userCredits.id, creditsRemaining: userCredits.creditsRemaining, creditsTotal: userCredits.creditsTotal })
+            .from(userCredits)
+            .where(
+              and(
+                eq(userCredits.userId, b.studentId),
+                eq(userCredits.creditType, 'handledar' as any)
+              )
+            )
+            .limit(1);
+          if (existing.length > 0) {
+            await db
+              .update(userCredits)
+              .set({
+                creditsRemaining: (Number(existing[0].creditsRemaining || 0) + 1) as any,
+                creditsTotal: (Number(existing[0].creditsTotal || 0) + 1) as any,
+                updatedAt: new Date(),
+              })
+              .where(eq(userCredits.id, (existing[0] as any).id));
+          } else {
+            await db.insert(userCredits).values({
+              userId: b.studentId,
+              lessonTypeId: null,
+              handledarSessionId: null,
+              creditsRemaining: 1,
+              creditsTotal: 1,
+              creditType: 'handledar' as any,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as any);
+          }
+          creditsGranted++;
+        }
+
+        // Build recipients and email content
+        const recipients: string[] = [];
+        if (hasStudent && studentEmail) recipients.push(studentEmail);
+        if (supervisorEmail && (!hasStudent || supervisorEmail.toLowerCase() !== studentEmail.toLowerCase())) {
+          recipients.push(supervisorEmail);
+        }
+
+        const when = `${new Date(String(session.date)).toLocaleDateString('sv-SE')} kl ${String(session.startTime).slice(0,5)}-${String(session.endTime).slice(0,5)}`;
+        const subject = 'Handledarutbildning inställd';
+        const bodyForStudent = `
+          <p>Hej ${studentName || 'deltagare'},</p>
+          <p>Din anmälda handledarutbildning (${session.title}) ${when} har tyvärr blivit inställd.</p>
+          <p>Vi har lagt till en handledarkredit på ditt konto så att du kan boka om utan kostnad.</p>
+          <p>Besök vår sida för att boka en ny tid.</p>
+        `;
+        const bodyForSupervisor = `
+          <p>Hej ${b.supervisorName || ''},</p>
+          <p>Din anmälda handledarutbildning (${session.title}) ${when} har tyvärr blivit inställd.</p>
+          <p>Vänligen kontakta skolan för ombokning eller återbetalning.</p>
+        `;
+
+        if (recipients.length > 0) {
+          // If has student, prefer student wording; otherwise supervisor wording
+          const html = hasStudent ? bodyForStudent : bodyForSupervisor;
+          await EmailService.sendEmail({
+            to: recipients.join(','),
+            subject,
+            html,
+            messageType: 'general',
+            userId: hasStudent ? (b.studentId as any) : null,
+          });
+          emailsSent += recipients.length;
+        }
+
+        // Remove the booking after notifying
+        await db.delete(handledarBookings).where(eq(handledarBookings.id, b.id));
+      } catch (err) {
+        console.error('Failed to process booking cancellation', b.id, err);
+      }
+    }
+
+    // Soft delete the session
+    await db
+      .update(handledarSessions)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(handledarSessions.id, sessionId));
+
+    return NextResponse.json({ message: 'Session cancelled and removed', emailsSent, creditsGranted });
   } catch (error) {
     console.error('Error deleting handledar session:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -152,6 +152,7 @@ export const extraSlots = pgTable('extra_slots', {
   timeStart: time('time_start').notNull(),
   timeEnd: time('time_end').notNull(),
   reason: text('reason'),
+  reservedForUserId: uuid('reserved_for_user_id').references(() => users.id),
   createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

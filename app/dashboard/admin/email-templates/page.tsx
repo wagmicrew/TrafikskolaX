@@ -42,6 +42,7 @@ type EmailTriggerType =
   | 'teacher_daily_bookings'
   | 'teacher_feedback_reminder'
   | 'new_password'
+  | 'handledar_booking_confirmed'
   ;
 
 type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'specific_user';
@@ -954,6 +955,7 @@ export default function EmailTemplatesPage() {
       moved_booking: 'Flyttad bokning',
       cancelled_booking: 'Avbokad bokning',
       booking_reminder: 'Bokningspåminnelse',
+      booking_confirmed: 'Bokning bekräftad',
       credits_reminder: 'Kreditpåminnelse',
       payment_reminder: 'Betalningspåminnelse',
       payment_confirmation_request: 'Betalningsbekräftelse',
@@ -962,7 +964,8 @@ export default function EmailTemplatesPage() {
       feedback_received: 'Feedback mottagen',
       teacher_daily_bookings: 'Dagens bokningar (lärare)',
       teacher_feedback_reminder: 'Feedbackpåminnelse (lärare)',
-      new_password: 'Nytt lösenord'
+      new_password: 'Nytt lösenord',
+      handledar_booking_confirmed: 'Handledar bekräftad'
     };
     return names[triggerType] || triggerType;
   };
@@ -982,14 +985,34 @@ export default function EmailTemplatesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
               <Mail className="w-7 h-7 text-sky-400" /> E-postmallar
             </h1>
             <p className="text-slate-300 mt-1">Hantera och redigera e-postmallar för olika händelser</p>
           </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Återställ alla mallar till standardutseende? Alla egna ändringar går förlorade.')) return;
+                    const t = toast.loading('Återställer standardmallar...');
+                    try {
+                      const res = await fetch('/api/admin/email-templates/seed-reminders', { method: 'POST' });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Kunde inte återställa mallar');
+                      toast.success('Standardmallar applicerade', { id: t });
+                      await fetchTemplates();
+                    } catch (e: any) {
+                      toast.error(e.message || 'Fel vid återställning', { id: t });
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/20 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Återställ standardmallar
+                </button>
+              </div>
         </div>
       </div>
 

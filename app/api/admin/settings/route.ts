@@ -56,6 +56,8 @@ export async function GET(request: Request) {
       qliro_merchant_id: '',
       qliro_sandbox: true,
       qliro_enabled: false,
+      // Maps/API
+      google_maps_api_key: '',
     };
 
     const mergedSettings = { ...defaultSettings, ...settingsMap };
@@ -104,6 +106,7 @@ export async function PUT(request: Request) {
       schoolname: 'general',
       school_phonenumber: 'general',
       internal_messages_enabled: 'general',
+      google_maps_api_key: 'general',
       
       // Payment settings
       swish_number: 'payment',

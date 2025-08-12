@@ -24,7 +24,10 @@ export type EmailTriggerType =
   | 'awaiting_school_confirmation'
   | 'pending_school_confirmation'
   | 'new_password'
-  | 'swish_payment_verification';
+  | 'swish_payment_verification'
+  | 'handledar_payment_reminder'
+  | 'booking_payment_reminder'
+  | 'package_payment_reminder';
 
 export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user' | 'supervisor';
 
@@ -59,6 +62,10 @@ interface EmailContext {
 }
 
 function applyRedTemplate(htmlContent: string): string {
+  // If content already contains our standard wrapper, don't wrap again
+  if (htmlContent.includes('data-standard-email="1"')) {
+    return htmlContent;
+  }
   // Wrap the content in a div with class for red theme (logo removed as requested)
   return `
     <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
@@ -76,6 +83,23 @@ function applyRedTemplate(htmlContent: string): string {
 }
 
 export class EmailService {
+  /**
+   * Direct send wrapper for simple emails
+   */
+  static async sendEmail(args: { to: string; subject: string; html: string; messageType?: string; userId?: string | null }): Promise<boolean> {
+    try {
+      await sendEmail({
+        to: args.to,
+        subject: args.subject,
+        html: args.html,
+        messageType: args.messageType || 'general',
+      });
+      return true;
+    } catch (error) {
+      console.error('EmailService.sendEmail failed', error);
+      return false;
+    }
+  }
   /**
    * Send email based on trigger type
    */
@@ -183,12 +207,30 @@ const allSuccess = results.every(result => result === true);
       processed = processed.replace(/\{\{teacher\.fullName\}\}/g, `${context.teacher.firstName} ${context.teacher.lastName}`);
     }
 
-    // Replace custom data
+    // Replace custom data (supports nested objects like {{links.bookingPaymentUrl}})
     if (context.customData) {
-      Object.entries(context.customData).forEach(([key, value]) => {
+      const flatten = (obj: any, prefix = ''): Record<string, any> => {
+        return Object.keys(obj).reduce((acc: Record<string, any>, k: string) => {
+          const val: any = (obj as any)[k];
+          const keyPath = prefix ? `${prefix}.${k}` : k;
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            Object.assign(acc, flatten(val, keyPath));
+          } else {
+            acc[keyPath] = val;
+          }
+          return acc;
+        }, {} as Record<string, any>);
+      };
+      const flat = flatten(context.customData);
+      Object.entries(flat).forEach(([key, value]) => {
         const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
         processed = processed.replace(regex, String(value));
       });
+    }
+
+    // Convenience: booking.shortId
+    if (context.booking?.id) {
+      processed = processed.replace(/\{\{booking\.shortId\}\}/g, context.booking.id.slice(0, 7));
     }
 
     // Get schoolname from database
@@ -224,7 +266,9 @@ const allSuccess = results.every(result => result === true);
     }
 
     // Replace system variables
+    const standardLoginUrl = 'https://www.dintrafikskolahlm.se/login';
     processed = processed.replace(/\{\{appUrl\}\}/g, process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se');
+    processed = processed.replace(/\{\{loginUrl\}\}/g, standardLoginUrl);
     processed = processed.replace(/\{\{schoolName\}\}/g, schoolname);
     processed = processed.replace(/\{\{schoolPhone\}\}/g, schoolPhonenumber);
     processed = processed.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());

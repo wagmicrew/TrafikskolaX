@@ -54,10 +54,7 @@ export async function POST(request: NextRequest) {
             </div>
             <p>Vänligen kontrollera Swish-appen för att verifiera betalningen och bekräfta bokningen.</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="{{appUrl}}/dashboard/admin/bookings" 
-                 style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Gå till admin-panel
-              </a>
+              {{customData.adminActionButtons}}
             </div>
             <p style="color: #666; font-size: 12px;">Detta är ett automatiskt meddelande från {{schoolName}}.</p>
           </div>

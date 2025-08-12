@@ -68,13 +68,13 @@ export function doesAnyBookingOverlapWithSlot(
   slotEnd: string,
   excludeExpired: boolean = true
 ): boolean {
-  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
   return bookings.some(booking => {
     // Exclude expired temporary and on_hold bookings if requested
     if (excludeExpired && (booking.status === 'temp' || booking.status === 'on_hold')) {
       const bookingCreatedAt = new Date(booking.createdAt || 0);
-      if (bookingCreatedAt < tenMinutesAgo) {
+      if (bookingCreatedAt < fifteenMinutesAgo) {
         return false;
       }
     }

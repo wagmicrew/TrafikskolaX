@@ -44,13 +44,52 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
     pricePerParticipant: 500,
   });
 
+  // Add booking modal state
+  const [addOpenFor, setAddOpenFor] = useState<string | null>(null);
+  const [addForm, setAddForm] = useState({
+    supervisorName: '',
+    supervisorEmail: '',
+    supervisorPhone: '',
+    studentId: '',
+    sendPaymentEmail: true,
+  });
+  const [studentOptions, setStudentOptions] = useState<any[]>([]);
+
+  // Refresh from admin API so counts exclude temporary
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const res = await fetch('/api/admin/handledar-sessions');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.sessions)) setSessions(data.sessions);
+        }
+        // load students list (exclude temp)
+        const ures = await fetch('/api/admin/users');
+        if (ures.ok) {
+          const all = await ures.json();
+          const students = (all||[])
+            .filter((u:any)=>String(u.role).toLowerCase()==='student' && (u.firstName!=='Temporary'))
+            .map((u:any)=>({ id:u.id, label:`${u.firstName||''} ${u.lastName||''}`.trim()||u.email }));
+          setStudentOptions(students);
+        }
+      } catch {}
+    };
+    refresh();
+  }, []);
+
   const loadParticipants = async (sessionId: string) => {
     try {
-      setShowParticipantsFor(sessionId);
+      // toggle open/close
+      if (showParticipantsFor === sessionId) {
+        setShowParticipantsFor(null);
+        return;
+      }
       const res = await fetch(`/api/admin/handledar-sessions/${sessionId}/participants`);
       if (!res.ok) throw new Error('Kunde inte hämta deltagare');
       const data = await res.json();
       setParticipants(prev => ({ ...prev, [sessionId]: data.participants || [] }));
+      setShowParticipantsFor(sessionId);
     } catch (e: any) {
       toast.error(e.message || 'Fel vid hämtning av deltagare');
     }
@@ -157,7 +196,12 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
                   <div className="flex items-center gap-2 text-slate-200 text-sm">
                     <Users className="w-4 h-4" /> Bokade: <span className="font-bold text-white">{s.currentParticipants}/{s.maxParticipants}</span>
                   </div>
-                  <Button variant="outline" onClick={()=>loadParticipants(s.id)} className="border-white/20 text-white"><Eye className="w-4 h-4 mr-1" /> Deltagare</Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={()=>loadParticipants(s.id)} className="border-white/20 text-white">
+                      <Eye className="w-4 h-4 mr-1" /> Deltagare
+                    </Button>
+                    <Button onClick={()=>{ setAddOpenFor(s.id); setAddForm({ supervisorName:'', supervisorEmail:'', supervisorPhone:'', studentId:'', sendPaymentEmail:true }); }} className="bg-green-600 hover:bg-green-500 text-white">Lägg till</Button>
+                  </div>
                 </div>
                 {showParticipantsFor===s.id && (
                   <div className="rounded-xl bg-white/5 border border-white/10 p-3">
@@ -231,6 +275,55 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
             <Button onClick={createSession} disabled={creating} className="bg-emerald-600 hover:bg-emerald-500">
               {creating ? <Loader2 className="w-4 h-4 animate-spin"/> : 'Skapa'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add participant dialog */}
+      <Dialog open={!!addOpenFor} onOpenChange={(o)=>{ if(!o) setAddOpenFor(null); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Lägg till deltagare</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-slate-200">Handledarens namn</Label>
+              <Input value={addForm.supervisorName} onChange={e=>setAddForm(f=>({...f, supervisorName:e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-200">E-post</Label>
+                <Input type="email" value={addForm.supervisorEmail} onChange={e=>setAddForm(f=>({...f, supervisorEmail:e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+              </div>
+              <div>
+                <Label className="text-slate-200">Telefon</Label>
+                <Input value={addForm.supervisorPhone} onChange={e=>setAddForm(f=>({...f, supervisorPhone:e.target.value}))} className="bg-white/10 border-white/20 text-white" />
+              </div>
+            </div>
+            <div>
+              <Label className="text-slate-200">Koppla till användare (valfritt)</Label>
+              <div className="relative">
+                <select value={addForm.studentId} onChange={e=>setAddForm(f=>({...f, studentId:e.target.value}))} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
+                  <option value="">Ingen</option>
+                  {studentOptions.map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input id="sendPay" type="checkbox" checked={addForm.sendPaymentEmail} onChange={e=>setAddForm(f=>({...f, sendPaymentEmail:e.target.checked}))} className="w-4 h-4" />
+              <Label htmlFor="sendPay" className="text-slate-200">Skicka betalningsinformation (Swish)</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setAddOpenFor(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+            <Button onClick={async()=>{
+              if(!addOpenFor) return;
+              const res = await fetch(`/api/admin/handledar-sessions/${addOpenFor}/add-booking`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(addForm)});
+              if(res.ok){ toast.success('Deltagare tillagd'); setAddOpenFor(null); } else { const e=await res.json().catch(()=>({})); toast.error(e.error||'Kunde inte lägga till'); }
+            }} className="bg-emerald-600 hover:bg-emerald-500">Lägg till</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

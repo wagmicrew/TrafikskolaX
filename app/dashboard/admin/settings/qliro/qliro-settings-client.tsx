@@ -106,6 +106,8 @@ export default function QliroSettingsClient() {
   const [selectedPackageId, setSelectedPackageId] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [creatingTest, setCreatingTest] = useState(false);
+  const [prereqLoading, setPrereqLoading] = useState(false);
+  const [prereqResult, setPrereqResult] = useState<any>(null);
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -445,6 +447,25 @@ export default function QliroSettingsClient() {
             <Button onClick={onTestConnection} disabled={testing}>
               {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <TestTube className="w-4 h-4 mr-2" />} Testa anslutning
             </Button>
+            <Button variant="secondary" onClick={async () => {
+              setPrereqLoading(true);
+              setPrereqResult(null);
+              const t = toast.loading('Kontrollerar Qliro-förkrav...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
+              try {
+                const res = await fetch('/api/admin/qliro/prereq');
+                const data = await res.json();
+                setPrereqResult(data);
+                if (!res.ok) throw new Error(data.error || 'Misslyckades att verifiera förkrav');
+                toast.success('Förkrav kontrollerade', { id: t, position: 'top-right' });
+              } catch (e: any) {
+                toast.error(e.message || 'Misslyckades att verifiera förkrav', { id: t, position: 'top-right' });
+              } finally {
+                setPrereqLoading(false);
+              }
+            }} disabled={prereqLoading}>
+              {prereqLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Kontrollera förkrav
+            </Button>
             <Button variant="outline" onClick={async () => {
               const t = toast.loading('Rensar temporära ordrar...', { position: 'top-right' });
               try {
@@ -572,6 +593,22 @@ export default function QliroSettingsClient() {
             <pre className="bg-slate-900/50 border border-white/10 rounded-lg p-3 text-xs overflow-auto">
 {JSON.stringify(testResult, null, 2)}
             </pre>
+          ) : null}
+          {prereqResult ? (
+            <div className="space-y-2">
+              <div className="text-sm text-slate-300">Miljö: <span className="font-semibold">{prereqResult.environment}</span></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {(prereqResult.checks || []).map((c: any) => (
+                  <div key={c.key} className={`rounded-lg border p-2 text-xs ${c.status === 'ok' ? 'border-emerald-500/40' : c.status === 'warn' ? 'border-amber-500/40' : 'border-red-500/40'}`}>
+                    <div className="font-medium">{c.label}</div>
+                    <div className="mt-1 text-slate-400">Status: {c.status}</div>
+                    {c.details ? (
+                      <pre className="mt-1 bg-slate-900/40 rounded p-2 overflow-auto">{JSON.stringify(c.details, null, 2)}</pre>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </CardContent>
       </Card>

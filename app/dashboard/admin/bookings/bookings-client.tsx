@@ -117,6 +117,29 @@ export default function BookingsClient({
     }
   };
 
+  const handleArchiveCancelled = async () => {
+    setIsProcessing(true);
+    const t = toast({ title: 'Arkiverar avbrutna bokningar...' });
+    try {
+      const res = await fetch('/api/admin/bookings/archive-cancelled', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: 15 })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Arkivering misslyckades');
+      t.update({ title: 'Klart', description: `Arkiverade ${data.archived} avbrutna bokningar` });
+      setTimeout(() => t.dismiss(), 1200);
+      router.refresh?.();
+      window.location.reload();
+    } catch (e: any) {
+      t.update({ title: 'Fel vid arkivering', description: e.message || 'Misslyckades', variant: 'destructive' });
+      setTimeout(() => t.dismiss(), 2000);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleBookingSelection = (bookingId: string) => {
     setSelectedBookings(prev => 
       prev.includes(bookingId) 
@@ -336,6 +359,21 @@ export default function BookingsClient({
               </>
             ) : (
               <>Rensa temporära bokningar</>
+            )}
+          </button>
+
+          <button
+            onClick={handleArchiveCancelled}
+            disabled={isProcessing}
+            className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-50`}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Arkiverar...
+              </>
+            ) : (
+              <>Arkivera avbrutna (15 min+)</>
             )}
           </button>
 

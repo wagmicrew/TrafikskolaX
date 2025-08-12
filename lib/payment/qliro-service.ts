@@ -6,13 +6,12 @@ import crypto from 'crypto';
 
   interface QliroSettings {
   enabled: boolean;
-  merchantId: string;
   apiKey: string;
   apiUrl: string;
     webhookSecret: string;
     apiSecret: string;
   environment: 'production' | 'sandbox';
-}
+ }
 
 interface QliroOrderItem {
   MerchantReference: string;
@@ -110,7 +109,6 @@ export class QliroService {
 
       this.settings = {
         enabled: true,
-        merchantId: isProduction ? settingsMap['qliro_prod_merchant_id'] : settingsMap['qliro_merchant_id'],
         apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
         apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://api.qliro.com') : (settingsMap['qliro_dev_api_url'] || 'https://playground.qliro.com'),
         webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
@@ -122,8 +120,9 @@ export class QliroService {
 
       logger.info('payment', `Qliro settings loaded successfully`, {
         environment,
-        merchantId: this.settings.merchantId,
-        apiUrl: this.settings.apiUrl
+        apiUrl: this.settings.apiUrl,
+        hasApiKey: !!this.settings.apiKey,
+        hasApiSecret: !!this.settings.apiSecret
       });
 
       return this.settings;
@@ -135,13 +134,26 @@ export class QliroService {
     }
   }
 
+  // Generate Authorization header like our working test route
   private generateAuthHeader(payload: any): string {
-    const payloadString = payload ? JSON.stringify(payload) : '';
-    const secret = this.settings?.apiSecret || '';
-    const input = payloadString + secret;
-    // Compute SHA256 and encode Base64
-    const hash = crypto.createHash('sha256').update(input).digest('base64');
-    return `Qliro ${hash}`;
+    try {
+      const payloadString = typeof payload === 'string' ? payload : (payload ? JSON.stringify(payload) : '');
+      const input = payloadString + (this.settings?.apiSecret || '');
+      const hash = crypto.createHash('sha256').update(input).digest('base64');
+      return `Qliro ${hash}`;
+    } catch {
+      return '';
+    }
+  }
+
+  private sanitizeMerchantReference(reference: string): string {
+    // Allow only A-Z a-z 0-9 _ - and max 25 chars
+    const cleaned = (reference || '')
+      .replace(/[^A-Za-z0-9_-]/g, '')
+      .slice(0, 25);
+    if (cleaned.length > 0) return cleaned;
+    // Fallback
+    return `ref_${Date.now()}`.slice(0, 25);
   }
 
   public async getOrder(orderId: string): Promise<any> {
@@ -225,6 +237,7 @@ export class QliroService {
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const merchantReference = this.sanitizeMerchantReference(params.reference);
     
     // Use the correct Qliro API structure based on their documentation
 
@@ -237,45 +250,77 @@ export class QliroService {
       logger.warn('payment', 'Redis not available for Qliro push token; proceeding without token');
     }
 
-    const checkoutRequest: QliroCheckoutRequest = {
+    const checkoutRequest: any = {
       MerchantApiKey: settings.apiKey,
-      MerchantReference: params.reference,
+      MerchantReference: merchantReference,
       Currency: 'SEK',
       Country: 'SE',
       Language: 'sv-se',
       MerchantTermsUrl: `${baseUrl}/kopvillkor`,
+      MerchantIntegrityPolicyUrl: `${baseUrl}/integritetspolicy`,
       MerchantConfirmationUrl: params.returnUrl,
       MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
       OrderItems: [
         {
-          MerchantReference: params.reference,
+          MerchantReference: merchantReference,
           Description: params.description,
           Type: 'Product',
           Quantity: 1,
           PricePerItemIncVat: params.amount,
           PricePerItemExVat: params.amount,
-          VatRate: 0, // 0% VAT for driving lessons
-        }
+          VatRate: 0,
+        },
       ],
-      CustomerInformation: params.customerEmail ? {
+    };
+
+    // Optional customer pre-fill
+    if (params.customerEmail || params.customerPhone) {
+      checkoutRequest.CustomerInformation = {
         Email: params.customerEmail,
         MobileNumber: params.customerPhone ? parseInt(params.customerPhone.replace(/\D/g, '')) : undefined,
         JuridicalType: 'Physical',
-      } : undefined,
-    };
+      };
+    }
+
+    // Optional colors if present in site settings (best-effort, does not affect auth)
+    try {
+      const settingsRows = await db.select().from(siteSettings);
+      const map = settingsRows.reduce((acc: Record<string, string>, s: any) => { acc[s.key] = s.value || ''; return acc; }, {} as Record<string, string>);
+      if (map['qliro_primary_color']) {
+        (checkoutRequest as any).PrimaryColor = map['qliro_primary_color'];
+      }
+      if (map['qliro_cta_color']) {
+        (checkoutRequest as any).CallToActionColor = map['qliro_cta_color'];
+      }
+    } catch {}
 
     try {
       // First check if we can reach the API (with timeout)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`${settings.apiUrl}/checkout/merchantapi/Orders`, {
+      // Prepare string body ONCE to ensure auth token exactly matches payload
+      const bodyString = JSON.stringify(checkoutRequest);
+
+      const url = `${settings.apiUrl}/checkout/merchantapi/Orders`;
+      const authHeader = this.generateAuthHeader(bodyString);
+
+      logger.debug('payment', 'Qliro request prepared', {
+        url,
+        environment: settings.environment,
+        payloadPreview: bodyString.slice(0, 200),
+        tokenPreview: authHeader.replace(/^Qliro\s+/, '').slice(0, 12) + '...'
+      });
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': this.generateAuthHeader(checkoutRequest),
+          'Accept': 'application/json',
+          'Authorization': authHeader,
         },
-        body: JSON.stringify(checkoutRequest),
+        // Send plain body (same as working test route)
+        body: bodyString,
         signal: controller.signal,
       });
 
@@ -289,10 +334,16 @@ export class QliroService {
       });
 
       if (!response.ok) {
+        // Try to decode structured error
+        let errorJson: any = null;
+        try { errorJson = JSON.parse(responseText); } catch {}
         logger.error('payment', 'Qliro checkout creation failed', {
           status: response.status,
           statusText: response.statusText,
           body: responseText,
+          errorCode: errorJson?.ErrorCode,
+          errorMessage: errorJson?.ErrorMessage,
+          errorReference: errorJson?.ErrorReference,
           reference: params.reference
         });
         throw new QliroApiError(`Qliro API error: ${response.status} ${response.statusText}` , {
@@ -318,7 +369,7 @@ export class QliroService {
       return {
         checkoutId: checkoutData.OrderId?.toString() || params.reference,
         checkoutUrl: checkoutData.PaymentLink,
-        merchantReference: params.reference,
+        merchantReference,
       };
     } catch (error) {
       if ((error as any)?.name === 'AbortError') {
@@ -428,8 +479,7 @@ export class QliroService {
         details: {
           checkoutId: result.checkoutId,
           checkoutUrl: result.checkoutUrl,
-          environment: settings.environment,
-          merchantId: settings.merchantId
+          environment: settings.environment
         }
       };
     } catch (error) {

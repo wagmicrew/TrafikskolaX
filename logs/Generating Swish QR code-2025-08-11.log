@@ -1,0 +1,15 @@
+{"timestamp":"2025-08-11T14:38:42.063Z","level":"info","category":"Generating Swish QR code","message":{"payee":"","amount":"1500.00","message":"Handledar 2025-08-08...","format":"png","size":300}}
+{"timestamp":"2025-08-11T14:47:48.831Z","level":"info","category":"Generating Swish QR code","message":{"payee":"","amount":"1500.00","message":"Handledar 2025-08-08...","format":"png","size":300}}
+{"timestamp":"2025-08-11T15:11:21.347Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d37e2946...","format":"png","size":240}}
+{"timestamp":"2025-08-11T15:14:04.504Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d37e2946...","format":"png","size":240}}
+{"timestamp":"2025-08-11T15:14:04.507Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d37e2946...","format":"png","size":240}}
+{"timestamp":"2025-08-11T15:26:44.308Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d37e2946...","format":"png","size":240}}
+{"timestamp":"2025-08-11T15:58:19.271Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d7106a4e...","format":"png","size":240}}
+{"timestamp":"2025-08-11T19:43:36.880Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}
+{"timestamp":"2025-08-11T19:50:10.301Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}
+{"timestamp":"2025-08-11T19:51:55.506Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}
+{"timestamp":"2025-08-11T20:04:52.208Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}
+{"timestamp":"2025-08-11T20:37:33.059Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d7106a4e...","format":"png","size":240}}
+{"timestamp":"2025-08-11T20:43:50.176Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"1500","message":"Handledar d7106a4e...","format":"png","size":240}}
+{"timestamp":"2025-08-11T20:55:24.379Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}
+{"timestamp":"2025-08-11T21:05:30.126Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","amount":"750","message":"Bokning 0ef649b8...","format":"png","size":240}}

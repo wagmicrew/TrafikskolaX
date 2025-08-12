@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
-import { handledarSessions, users } from '@/lib/db/schema';
-import { eq, desc, gte } from 'drizzle-orm';
+import { handledarSessions, users, handledarBookings } from '@/lib/db/schema';
+import { eq, desc, and, lt, ne } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +17,23 @@ export async function GET(request: NextRequest) {
     const user = await verifyToken(token);
     if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Cleanup: remove stale temporary/unpaid handledar bookings (older than 15 minutes)
+    try {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+      await db
+        .delete(handledarBookings)
+        .where(
+          and(
+            lt(handledarBookings.createdAt as any, fifteenMinutesAgo as any),
+            ne(handledarBookings.paymentStatus as any, 'paid' as any),
+            ne(handledarBookings.status as any, 'confirmed' as any),
+            eq(handledarBookings.supervisorName as any, 'Temporary' as any)
+          )
+        );
+    } catch (e) {
+      console.error('Failed to cleanup stale handledar bookings', e);
     }
 
     const sessions = await db
@@ -41,13 +58,30 @@ export async function GET(request: NextRequest) {
       .where(eq(handledarSessions.isActive, true))
       .orderBy(desc(handledarSessions.date));
 
-    const formattedSessions = sessions.map(session => ({
-      ...session,
-      teacherName: session.teacherName && session.teacherLastName 
-        ? `${session.teacherName} ${session.teacherLastName}` 
-        : 'Ingen lärare tilldelad',
-      spotsLeft: session.maxParticipants - session.currentParticipants,
-    }));
+    // Compute participant counts excluding temporary names
+    const sessionIds = sessions.map(s => s.id);
+    const bookings = sessionIds.length ? await db
+      .select({ sessionId: handledarBookings.sessionId, supervisorName: handledarBookings.supervisorName })
+      .from(handledarBookings)
+      .where(and(eq(handledarBookings.status as any, 'pending' as any), ne(handledarBookings.supervisorName as any, 'Temporary' as any))) : [];
+
+    const countMap: Record<string, number> = {};
+    for (const b of bookings) {
+      const key = String(b.sessionId);
+      countMap[key] = (countMap[key] || 0) + 1;
+    }
+
+    const formattedSessions = sessions.map(session => {
+      const computed = countMap[String(session.id)] || 0;
+      return {
+        ...session,
+        currentParticipants: computed,
+        teacherName: session.teacherName && session.teacherLastName 
+          ? `${session.teacherName} ${session.teacherLastName}` 
+          : 'Ingen lärare tilldelad',
+        spotsLeft: Number(session.maxParticipants) - computed,
+      };
+    });
 
     return NextResponse.json({ sessions: formattedSessions });
   } catch (error) {

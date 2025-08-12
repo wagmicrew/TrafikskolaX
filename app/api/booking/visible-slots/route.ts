@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots, extraSlots, lessonTypes, siteSettings } from '@/lib/db/schema';
 import { and, inArray, or, eq } from 'drizzle-orm';
 import { doTimeRangesOverlap, doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/auth/jwt';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +19,17 @@ export async function GET(request: NextRequest) {
       .split(',')
       .map((s) => s.trim())
       .filter((s) => /\d{4}-\d{2}-\d{2}/.test(s));
+    // Identify current user (to filter reserved extra slots)
+    let currentUserId: string | null = null;
+    try {
+      const cookieStore = await cookies();
+      const token = cookieStore.get('auth-token');
+      if (token) {
+        const payload = await verifyToken(token.value);
+        if (payload && (payload as any).userId) currentUserId = (payload as any).userId as string;
+      }
+    } catch {}
+
 
     if (dateStrings.length === 0) {
       return NextResponse.json({ error: 'No valid dates provided' }, { status: 400 });
@@ -94,14 +107,14 @@ export async function GET(request: NextRequest) {
 
     const blockedByDate: Record<string, any[]> = {};
     for (const bl of allBlocked) {
-      const key = bl.date as unknown as string;
+      const key = (bl.date instanceof Date ? bl.date.toISOString().split('T')[0] : String(bl.date));
       if (!blockedByDate[key]) blockedByDate[key] = [];
       blockedByDate[key].push(bl);
     }
 
     const extrasByDate: Record<string, any[]> = {};
     for (const ex of allExtras) {
-      const key = ex.date as unknown as string;
+      const key = (ex.date instanceof Date ? ex.date.toISOString().split('T')[0] : String(ex.date));
       if (!extrasByDate[key]) extrasByDate[key] = [];
       extrasByDate[key].push(ex);
     }
@@ -111,6 +124,68 @@ export async function GET(request: NextRequest) {
     const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
     const result: Record<string, any[]> = {};
+
+    // Cleanup stale temp/on_hold unpaid bookings older than 15 minutes
+    try {
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      // Archive stale cancelled bookings into bookings_old for traceability, then remove
+      const idsResult = await db.execute(sql`
+        SELECT id FROM bookings WHERE status = 'cancelled' AND updated_at < ${fifteenMinutesAgo}
+      `);
+      const ids = (idsResult as any)?.rows?.map((r: any) => r.id) || [];
+      if (ids.length > 0) {
+        await db.execute(sql`
+        INSERT INTO bookings_old (
+          id, student_id, teacher_id, car_id, invoice_id,
+          booking_date, duration, lesson_type, price, payment_status,
+          notes, is_completed, is_cancelled, cancel_reason,
+          created_at, updated_at
+        )
+        SELECT b.id, b.user_id, b.teacher_id, b.car_id, b.invoice_number,
+               (b.scheduled_date::timestamp + b.start_time), b.duration_minutes,
+               (CASE
+                  WHEN lower(coalesce(lt.name, 'b')) LIKE '%b%' THEN 'b_license'
+                  WHEN lower(coalesce(lt.name, '')) LIKE '%a%' THEN 'a_license'
+                  WHEN lower(coalesce(lt.name, '')) LIKE '%taxi%' THEN 'taxi_license'
+                  WHEN lower(coalesce(lt.name, '')) LIKE '%theory%' THEN 'theory'
+                  ELSE 'assessment'
+                END)::lesson_type,
+               b.total_price::numeric,
+               (CASE
+                  WHEN b.payment_status = 'paid' THEN 'paid'
+                  WHEN b.payment_status = 'failed' THEN 'failed'
+                  WHEN b.payment_status = 'refunded' THEN 'refunded'
+                  ELSE 'pending'
+                END)::payment_status,
+               b.notes,
+               coalesce(b.is_completed, false),
+               true,
+               'auto-archived (stale cancelled)',
+               b.created_at, b.updated_at
+        FROM bookings b
+        LEFT JOIN lesson_types lt ON lt.id = b.lesson_type_id
+        WHERE b.id = ANY(${ids}::uuid[])
+        ON CONFLICT (id) DO NOTHING
+      `);
+        await db.execute(sql`UPDATE internal_messages SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])`);
+        await db.execute(sql`UPDATE payment_history SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])`);
+        await db.execute(sql`DELETE FROM booking_plan_items WHERE booking_id = ANY(${ids}::uuid[])`);
+        await db.execute(sql`DELETE FROM user_feedback WHERE booking_id = ANY(${ids}::uuid[])`);
+        await db.execute(sql`DELETE FROM bookings WHERE id = ANY(${ids}::uuid[])`);
+      }
+      await db.execute(
+        sql`DELETE FROM bookings 
+            WHERE (status = 'temp' OR status = 'on_hold') 
+              AND (payment_status IS NULL OR payment_status = 'unpaid')
+              AND created_at < ${fifteenMinutesAgo}`
+      );
+      // Also remove cancelled bookings as stale so they never block slots
+      await db.execute(
+        sql`DELETE FROM bookings 
+            WHERE status = 'cancelled' 
+              AND updated_at < ${fifteenMinutesAgo}`
+      );
+    } catch {}
 
     const normalizeTime = (t: any) => (typeof t === 'string' ? t.slice(0, 5) : String(t).slice(0, 5));
     const hasExactBooking = (
@@ -133,6 +208,13 @@ export async function GET(request: NextRequest) {
       });
       const dayBlocked = blockedByDate[dateStr] || [];
       const dayExtras = extrasByDate[dateStr] || [];
+
+      // If the whole day is blocked, skip returning any slots for this date
+      const isDayAllBlocked = dayBlocked.some((b) => b.isAllDay);
+      if (isDayAllBlocked) {
+        result[dateStr] = [];
+        continue;
+      }
 
       const timeSlots: Array<{ time: string; available: boolean; unavailable: boolean; clickable: boolean; gradient: 'green' | 'red'; callForBooking?: boolean; callPhone?: string; isExtraSlot?: boolean; reason?: string }>
         = [];
@@ -157,32 +239,66 @@ export async function GET(request: NextRequest) {
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
         const clickable = !hasBooking && !isWithinTwoHours;
-        timeSlots.push({
-          time: slot.timeStart,
-          available: clickable,
-          unavailable: !clickable,
-          clickable,
-          gradient: clickable ? 'green' : 'red',
-          ...(isWithinTwoHours ? { callForBooking: true, callPhone: contactPhone || undefined } : {}),
-        });
+        if (clickable) {
+          timeSlots.push({
+            time: slot.timeStart,
+            available: true,
+            unavailable: false,
+            clickable: true,
+            gradient: 'green',
+          });
+        } else if (isWithinTwoHours && !hasBooking) {
+          // Show as call-to-book within two hours
+          timeSlots.push({
+            time: slot.timeStart,
+            available: false,
+            unavailable: true,
+            clickable: false,
+            gradient: 'red',
+            callForBooking: true,
+            callPhone: contactPhone || undefined,
+          });
+        }
       }
 
       // Add extra slots, following same rules
       for (const extra of dayExtras) {
+        // If reserved for a specific user, only include when it matches
+        if (extra.reservedForUserId && extra.reservedForUserId !== currentUserId) continue;
+        // Skip extras that overlap a blocked interval
+        const extraBlocked = dayBlocked.some((b) => {
+          if (!b.timeStart || !b.timeEnd) return false;
+          return doTimeRangesOverlap(extra.timeStart, extra.timeEnd, b.timeStart, b.timeEnd);
+        });
+        if (extraBlocked) continue;
+
         const hasBooking = doesAnyBookingOverlapWithSlot(dayBookings, extra.timeStart, extra.timeEnd, false);
         const slotDateTime = new Date(`${dateStr}T${extra.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
         const clickable = !hasBooking && !isWithinTwoHours;
-        timeSlots.push({
-          time: extra.timeStart,
-          available: clickable,
-          unavailable: !clickable,
-          clickable,
-          gradient: clickable ? 'green' : 'red',
-          isExtraSlot: true,
-          reason: extra.reason || undefined,
-          ...(isWithinTwoHours ? { callForBooking: true, callPhone: contactPhone || undefined } : {}),
-        });
+        if (clickable) {
+          timeSlots.push({
+            time: extra.timeStart,
+            available: true,
+            unavailable: false,
+            clickable: true,
+            gradient: 'green',
+            isExtraSlot: true,
+            reason: extra.reason || undefined,
+          });
+        } else if (isWithinTwoHours && !hasBooking) {
+          timeSlots.push({
+            time: extra.timeStart,
+            available: false,
+            unavailable: true,
+            clickable: false,
+            gradient: 'red',
+            isExtraSlot: true,
+            reason: extra.reason || undefined,
+            callForBooking: true,
+            callPhone: contactPhone || undefined,
+          });
+        }
       }
 
       // Merge extras with base slots, ensure uniqueness by time and prefer blocked where conflicts
@@ -192,21 +308,40 @@ export async function GET(request: NextRequest) {
       }
       // Ensure extras are included and override base
       for (const ex of dayExtras) {
+        if (ex.reservedForUserId && ex.reservedForUserId !== currentUserId) continue;
         const t = ex.timeStart;
+        const extraBlocked = dayBlocked.some((b) => {
+          if (!b.timeStart || !b.timeEnd) return false;
+          return doTimeRangesOverlap(ex.timeStart, ex.timeEnd, b.timeStart, b.timeEnd);
+        });
+        if (extraBlocked) continue;
         const hasBooking = doesAnyBookingOverlapWithSlot(dayBookings, ex.timeStart, ex.timeEnd, false);
         const slotDateTime = new Date(`${dateStr}T${ex.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
         const clickable = !hasBooking && !isWithinTwoHours;
-        merged[t] = {
-          time: ex.timeStart,
-          available: clickable,
-          unavailable: !clickable,
-          clickable,
-          gradient: clickable ? 'green' : 'red',
-          isExtraSlot: true,
-          reason: ex.reason || undefined,
-          ...(isWithinTwoHours ? { callForBooking: true, callPhone: contactPhone || undefined } : {}),
-        };
+        if (clickable) {
+          merged[t] = {
+            time: ex.timeStart,
+            available: true,
+            unavailable: false,
+            clickable: true,
+            gradient: 'green',
+            isExtraSlot: true,
+            reason: ex.reason || undefined,
+          };
+        } else if (isWithinTwoHours && !hasBooking) {
+          merged[t] = {
+            time: ex.timeStart,
+            available: false,
+            unavailable: true,
+            clickable: false,
+            gradient: 'red',
+            isExtraSlot: true,
+            reason: ex.reason || undefined,
+            callForBooking: true,
+            callPhone: contactPhone || undefined,
+          };
+        }
       }
       const mergedArray = Object.values(merged).sort((a: any, b: any) => a.time.localeCompare(b.time));
       result[dateStr] = mergedArray;

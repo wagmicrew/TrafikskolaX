@@ -29,12 +29,6 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              href="/dashboard/admin/settings/qliro"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
-            >
-              Hantera Qliro-betalningar
-            </Link>
-            <Link
               href="/dashboard/admin/settings/database-updates"
               className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
             >

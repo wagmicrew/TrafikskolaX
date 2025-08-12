@@ -7,14 +7,14 @@ import { qliroService } from '@/lib/payment/qliro-service';
 
 export const runtime = 'nodejs';
 
-export async function POST(_request: NextRequest, context: { params: { id: string } }) {
+export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuthAPI('admin');
     if (!auth.success) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
 
     // Load purchase
     const purchaseRows = await db

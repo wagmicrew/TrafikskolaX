@@ -77,6 +77,8 @@ interface Settings {
   social_facebook?: string;
   social_instagram?: string;
   social_tiktok?: string;
+  // Maps
+  google_maps_api_key?: string;
 }
 
 interface TestResult {
@@ -139,6 +141,7 @@ export default function SettingsClient() {
     qliro_prod_enabled: false,
     qliro_prod_merchant_id: '',
     qliro_prod_api_key: '',
+    google_maps_api_key: '',
   });
 
   // Cron setup dialog state
@@ -1051,6 +1054,21 @@ export default function SettingsClient() {
                   checked={settings.internal_messages_enabled}
                   onCheckedChange={(checked) => updateSetting('internal_messages_enabled', checked)}
                 />
+              </div>
+              {/* Google Maps API Key */}
+              <div className="space-y-2">
+                <Label htmlFor="google-maps-api-key">
+                  <Key className="w-4 h-4 inline mr-2" />
+                  Google Maps API-nyckel
+                </Label>
+                <Input
+                  id="google-maps-api-key"
+                  type="password"
+                  placeholder="AIza..."
+                  value={settings.google_maps_api_key || ''}
+                  onChange={(e) => updateSetting('google_maps_api_key', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">Används för kartor och vägbeskrivning på betalnings- och informationssidor.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="site-name">

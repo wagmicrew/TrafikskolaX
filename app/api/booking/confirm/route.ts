@@ -239,6 +239,10 @@ async function getUserEmail(userId: string) {
 async function sendSwishPaymentNotification(booking: any, isHandledar: boolean = false) {
   try {
     const { EmailService } = await import('@/lib/email/email-service');
+    const jwt = (await import('jsonwebtoken')).default as typeof import('jsonwebtoken');
+    const { siteSettings } = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
+    const { db } = await import('@/lib/db');
     
     let userDetails = null;
     const userId = booking.userId || booking.studentId;
@@ -246,6 +250,19 @@ async function sendSwishPaymentNotification(booking: any, isHandledar: boolean =
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       userDetails = user;
     }
+
+    // Generate signed admin action URLs
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret';
+    const payloadBase = {
+      type: 'swish_action',
+      bookingId: booking.id,
+      sessionType: isHandledar ? 'handledar' : 'regular',
+    } as const;
+    const approveToken = jwt.sign({ ...payloadBase, decision: 'confirm' }, jwtSecret, { expiresIn: '30m' });
+    const denyToken = jwt.sign({ ...payloadBase, decision: 'deny' }, jwtSecret, { expiresIn: '30m' });
+    const adminApproveUrl = `${baseUrl}/api/admin/swish/email-action?token=${encodeURIComponent(approveToken)}`;
+    const adminDenyUrl = `${baseUrl}/api/admin/swish/email-action?token=${encodeURIComponent(denyToken)}`;
 
     const emailContext = {
       user: userDetails ? {
@@ -270,6 +287,15 @@ async function sendSwishPaymentNotification(booking: any, isHandledar: boolean =
         totalPrice: booking.totalPrice?.toString() || booking.price?.toString() || '0',
         swishUUID: booking.swishUUID,
         paymentMethod: booking.paymentMethod
+      },
+      customData: {
+        adminApproveUrl,
+        adminDenyUrl,
+        adminActionButtons: `
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${adminApproveUrl}" style="background:#16a34a;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700;margin-right:8px;">Bekräfta betalning</a>
+            <a href="${adminDenyUrl}" style="background:#dc2626;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700;">Ingen betalning mottagen</a>
+          </div>`
       }
     };
 

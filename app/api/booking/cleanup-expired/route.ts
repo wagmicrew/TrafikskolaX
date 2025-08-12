@@ -13,24 +13,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Clean up temporary bookings older than 10 minutes
-    const fifteenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    // Clean up temporary/cancelled bookings older than 15 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // Clean up expired temporary regular bookings
-    const expiredRegularBookings = await db
-      .update(bookings)
-      .set({ 
-        deletedAt: new Date(),
-        status: 'cancelled',
-        updatedAt: new Date()
-      })
-      .where(
-        and(
-          eq(bookings.status, 'temp'),
-          lt(bookings.createdAt, fifteenMinutesAgo)
-        )
-      )
-      .returning({ id: bookings.id });
+    // Permanently delete expired temps and stale cancelled
+    const expiredRegularBookings = await db.execute(sql`
+      DELETE FROM bookings
+      WHERE (status = 'temp' AND created_at < ${fifteenMinutesAgo})
+         OR (status = 'cancelled' AND updated_at < ${fifteenMinutesAgo})
+      RETURNING id
+    `);
 
     // Clean up expired pending handledar bookings
     const expiredHandledarBookings = await db
@@ -64,14 +57,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const totalCleaned = expiredRegularBookings.length + expiredHandledarBookings.length;
+    const totalCleaned = (expiredRegularBookings as any)?.rows?.length || 0 + expiredHandledarBookings.length;
 
     console.log(`Cleaned up ${totalCleaned} expired bookings (${expiredRegularBookings.length} regular, ${expiredHandledarBookings.length} handledar)`);
 
     return NextResponse.json({ 
       success: true,
       message: `Cleaned up ${totalCleaned} expired bookings`,
-      regularBookings: expiredRegularBookings.length,
+      regularBookings: ((expiredRegularBookings as any)?.rows?.length || 0),
       handledarBookings: expiredHandledarBookings.length,
       cleanupTime: new Date().toISOString()
     });

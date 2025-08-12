@@ -36,6 +36,7 @@ async function getSendGridApiKey(): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
+    // Note: stale temp/on_hold cleanup now runs in slot endpoints
     // Rate limit booking creation (10/min per IP)
     const ip = getRequestIp(request.headers as any);
     const rl = rateLimit({ key: `booking:create:${ip}`, limit: 10, windowMs: 60_000 });

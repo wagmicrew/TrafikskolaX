@@ -3,8 +3,10 @@
 let createClient: any;
 let redisAvailable = false;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  ({ createClient } = require('redis'));
+  // Avoid static bundler resolution when package isn't installed
+  // eslint-disable-next-line no-eval
+  const req = eval('require');
+  ({ createClient } = req('redis'));
   redisAvailable = true;
 } catch (_e) {
   console.warn('[redis] Module not found. Falling back to in-memory cache.');

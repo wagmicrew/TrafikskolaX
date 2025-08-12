@@ -302,12 +302,16 @@ export function WeekCalendar({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || [])
                     .filter((slot) => slot.clickable)
-                    .map((slot) => (
+                    .map((slot) => {
+                      const raw = slot.time as string
+                      const hhmm = typeof raw === 'string' ? raw.slice(0, 5) : String(raw).slice(0, 5)
+                      const display = hhmm.replace(':', '.')
+                      return (
                     <Button
-                      key={slot.time}
+                      key={raw}
                       variant={selectedTime === slot.time ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handleTimeSelect(slot.time)}
+                      onClick={() => handleTimeSelect(hhmm)}
                       className={`
                         ${selectedTime === slot.time 
                           ? 'bg-red-600 hover:bg-red-700 text-white' 
@@ -318,15 +322,15 @@ export function WeekCalendar({
                           : ''
                         }
                       `}
-                    >
+                      >
                       <span className="flex flex-col items-center leading-tight">
-                        <span>{slot.time}</span>
+                        <span>{display}</span>
                         {slot.callForBooking && (
                           <span className="text-[10px] font-medium text-red-600">Ring för bokning{slot.callPhone ? `: ${slot.callPhone}` : ''}</span>
                         )}
                       </span>
                     </Button>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>

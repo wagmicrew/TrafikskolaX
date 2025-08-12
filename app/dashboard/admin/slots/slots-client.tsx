@@ -63,6 +63,7 @@ interface ExtraSlot {
   timeStart: string;
   timeEnd: string;
   reason: string | null;
+  reservedForUserId?: string | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -114,12 +115,17 @@ export default function SlotsClient() {
     timeStart: '09:00',
     timeEnd: '10:00',
     reason: '',
+    reservedForUserId: '' as string | null,
   });
+
+  // Users for reserving extra slots
+  const [usersForSelect, setUsersForSelect] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     fetchSlots();
     fetchBlockedSlots();
     fetchExtraSlots();
+    fetchUsersForExtra();
   }, []);
 
   // Ensure calendar is default on entry
@@ -182,6 +188,31 @@ export default function SlotsClient() {
       }
     } catch (error) {
       console.error('Error fetching extra slots:', error);
+    }
+  };
+
+  const fetchUsersForExtra = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      if (response.ok) {
+        const all = await response.json();
+        const filtered = (all || []).filter((u: any) => {
+          const email: string = (u.email || '').toLowerCase();
+          const isTempEmail = /^orderid-.*@dintrafikskolahlm\.se$/.test(email) || /^temp-.*@/.test(email);
+          const isTempName = (u.firstName || '') === 'Temporary';
+          const isStudent = String(u.role || '').toLowerCase() === 'student';
+          return isStudent && !isTempEmail && !isTempName;
+        });
+        const mapped = filtered
+          .map((u: any) => ({
+            id: u.id,
+            name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
+          }))
+          .sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setUsersForSelect(mapped);
+      }
+    } catch (error) {
+      console.error('Error fetching users for extra slots:', error);
     }
   };
 
@@ -308,7 +339,7 @@ export default function SlotsClient() {
   const handleUpdateSlot = async (slot: SlotSetting) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/slots/${slot.id}`, {
+      const response = await fetch(`/api/admin/slots`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slot),
@@ -345,7 +376,7 @@ export default function SlotsClient() {
   const handleUpdateBlockedSlot = async (blocked: BlockedSlot) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/blocked-slots/${blocked.id}`, {
+      const response = await fetch(`/api/admin/blocked-slots`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(blocked),
@@ -382,7 +413,7 @@ export default function SlotsClient() {
   const handleUpdateExtraSlot = async (extra: ExtraSlot) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/extra-slots/${extra.id}`, {
+      const response = await fetch(`/api/admin/extra-slots`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(extra),
@@ -419,7 +450,7 @@ export default function SlotsClient() {
   const handleDeleteSlot = async (id: string) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/slots/${id}`, {
+      const response = await fetch(`/api/admin/slots?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -453,7 +484,7 @@ export default function SlotsClient() {
   const handleDeleteBlockedSlot = async (id: string) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/blocked-slots/${id}`, {
+      const response = await fetch(`/api/admin/blocked-slots?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -487,7 +518,7 @@ export default function SlotsClient() {
   const handleDeleteExtraSlot = async (id: string) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/extra-slots/${id}`, {
+      const response = await fetch(`/api/admin/extra-slots?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -544,6 +575,7 @@ export default function SlotsClient() {
       timeStart: '09:00',
       timeEnd: '10:00',
       reason: '',
+      reservedForUserId: '',
     });
   };
 
@@ -853,6 +885,11 @@ export default function SlotsClient() {
                           {extra.reason}
                         </div>
                       )}
+                      {extra.reservedForUserId && (
+                        <Badge variant="secondary" className="text-xs">
+                          Reserverad: {usersForSelect.find(u => u.id === extra.reservedForUserId)?.name || 'Okänd'}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -1105,6 +1142,25 @@ export default function SlotsClient() {
                   className="bg-white/5 border-white/20 text-white"
                 />
               </div>
+              <div>
+                <Label className="text-white">Reservera för användare (valfritt)</Label>
+                <Select
+                  value={extraForm.reservedForUserId ? extraForm.reservedForUserId : 'ALL'}
+                  onValueChange={(value) => setExtraForm({ ...extraForm, reservedForUserId: value === 'ALL' ? '' : value })}
+                >
+                  <SelectTrigger className="glassmorphism-dropdown-trigger relative z-[10001]">
+                    <SelectValue placeholder="Synlig för alla" />
+                  </SelectTrigger>
+                  <SelectContent className="glassmorphism-dropdown-content max-h-72 overflow-auto relative z-[10001]">
+                    <SelectItem value="ALL" className="glassmorphism-dropdown-item">Synlig för alla</SelectItem>
+                    {usersForSelect.map((u) => (
+                      <SelectItem key={u.id} value={u.id} className="glassmorphism-dropdown-item">
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
                 <Button
                   variant="outline"
@@ -1202,6 +1258,101 @@ export default function SlotsClient() {
                   onClick={() => handleUpdateSlot(editingSlot)}
                   disabled={isUpdating}
                   className="bg-sky-500 hover:bg-sky-600 text-white"
+                >
+                  {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Uppdatera
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Extra Slot Modal with Glassmorphism */}
+      {editingExtra && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[90]">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Redigera Extra Tidslucka</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditingExtra(null)}
+                className="text-white hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-white">Datum</Label>
+                <Input
+                  type="date"
+                  value={editingExtra.date}
+                  onChange={(e) => setEditingExtra({ ...(editingExtra as any), date: e.target.value })}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white">Starttid</Label>
+                  <Input
+                    type="time"
+                    value={editingExtra.timeStart}
+                    onChange={(e) => setEditingExtra({ ...(editingExtra as any), timeStart: e.target.value })}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <Label className="text-white">Sluttid</Label>
+                  <Input
+                    type="time"
+                    value={editingExtra.timeEnd}
+                    onChange={(e) => setEditingExtra({ ...(editingExtra as any), timeEnd: e.target.value })}
+                    className="bg-white/5 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-white">Anledning (valfritt)</Label>
+                <Input
+                  type="text"
+                  value={editingExtra.reason || ''}
+                  onChange={(e) => setEditingExtra({ ...(editingExtra as any), reason: e.target.value })}
+                  className="bg-white/5 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-white">Reservera för användare (valfritt)</Label>
+                <Select
+                  value={editingExtra.reservedForUserId ? editingExtra.reservedForUserId : 'ALL'}
+                  onValueChange={(value) => setEditingExtra({ ...(editingExtra as any), reservedForUserId: value === 'ALL' ? '' : value })}
+                >
+                  <SelectTrigger className="glassmorphism-dropdown-trigger relative z-[10001]">
+                    <SelectValue placeholder="Synlig för alla" />
+                  </SelectTrigger>
+                  <SelectContent className="glassmorphism-dropdown-content max-h-72 overflow-auto relative z-[10001]">
+                    <SelectItem value="ALL" className="glassmorphism-dropdown-item">Synlig för alla</SelectItem>
+                    {usersForSelect.map((u) => (
+                      <SelectItem key={u.id} value={u.id} className="glassmorphism-dropdown-item">
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingExtra(null)}
+                  className="text-white border-white/20 hover:bg-white/10"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  onClick={() => handleUpdateExtraSlot(editingExtra)}
+                  disabled={isUpdating}
+                  className="bg-green-500 hover:bg-green-600 text-white"
                 >
                   {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Uppdatera

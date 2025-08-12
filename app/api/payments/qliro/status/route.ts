@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
       : (settingsMap.qliro_dev_api_url || 'https://playground.qliro.com');
     
     const apiKey = useProduction ? settingsMap.qliro_prod_api_key : settingsMap.qliro_api_key;
-    const merchantId = useProduction ? settingsMap.qliro_prod_merchant_id : settingsMap.qliro_merchant_id;
+    const apiSecret = settingsMap.qliro_api_secret || settingsMap.qliro_secret || '';
 
-    if (!apiKey || !merchantId) {
+    if (!apiKey || !apiSecret) {
       return NextResponse.json({
         available: false,
         reason: 'configuration',

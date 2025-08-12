@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { extraSlots } from '@/lib/db/schema';
+import { extraSlots, users } from '@/lib/db/schema';
 import { eq, gte, lte, and } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { date, timeStart, timeEnd, reason } = body;
+    const { date, timeStart, timeEnd, reason, reservedForUserId } = body;
 
     if (!date || !timeStart || !timeEnd) {
       return NextResponse.json({ 
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         timeStart,
         timeEnd,
         reason,
+        reservedForUserId: reservedForUserId || null,
         createdBy: authResult.user.userId,
       })
       .returning();
@@ -114,7 +115,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, date, timeStart, timeEnd, reason } = body;
+    const { id, date, timeStart, timeEnd, reason, reservedForUserId } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
@@ -150,6 +151,7 @@ export async function PUT(request: NextRequest) {
         timeStart,
         timeEnd,
         reason,
+        reservedForUserId: reservedForUserId === undefined ? undefined as any : (reservedForUserId || null),
         updatedAt: new Date(),
       })
       .where(eq(extraSlots.id, id))

@@ -182,16 +182,20 @@ export default function QliroSettingsClient() {
   const loadUsersAndPackages = useCallback(async () => {
     try {
       const [uRes, pRes] = await Promise.all([
-        fetch("/api/users?role=student&inskriven=true"),
+        // Use admin-scoped endpoint that filters out temporary users reliably
+        fetch("/api/admin/students?excludeTemp=true"),
         fetch("/api/packages"),
       ]);
       const uJson = await uRes.json();
       const pJson = await pRes.json();
-      const uList = (uJson.users || []) as any[];
+      const uList = (uJson.students || uJson.users || []) as any[];
       const pList = (Array.isArray(pJson) ? pJson : (pJson.packages || [])) as any[];
-      setUsers(
-        uList.map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email }))
-      );
+      // Filter to enrolled students only (inskriven) and sort by name
+      const filtered = uList
+        .filter((u) => u?.inskriven === true)
+        .map((u) => ({ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email }))
+        .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, 'sv'));
+      setUsers(filtered);
       setPackages(
         pList.map((p) => ({ id: p.id, name: p.name, isActive: !!p.isActive }))
       );

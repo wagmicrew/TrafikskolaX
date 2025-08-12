@@ -528,6 +528,40 @@ export default function EmailTemplatesPage() {
     return true;
   };
 
+  // Keep caret stable while typing: save on selection/keydown/input, restore after state updates
+  useEffect(() => {
+    const editor = wysiwygRef.current;
+    if (!editor) return;
+    const handleBeforeInput = () => saveSelection();
+    const handleKeyDown = () => saveSelection();
+    const handleMouseUp = () => saveSelection();
+    const handleSelectionChange = () => {
+      // Only record selection if it's inside the editor
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      if (isNodeInsideEditor(range.startContainer) && isNodeInsideEditor(range.endContainer)) {
+        selectedRangeRef.current = range.cloneRange();
+      }
+    };
+    editor.addEventListener('beforeinput', handleBeforeInput);
+    editor.addEventListener('keydown', handleKeyDown);
+    editor.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      editor.removeEventListener('beforeinput', handleBeforeInput);
+      editor.removeEventListener('keydown', handleKeyDown);
+      editor.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, []);
+
+  // Whenever edited HTML updates, try to restore caret to last saved position
+  useEffect(() => {
+    if (!wysiwygRef.current) return;
+    restoreSelection();
+  }, [editedTemplate?.htmlContent]);
+
   const insertHtml = (html: string) => {
     const editor = wysiwygRef.current;
     if (!editor) return;

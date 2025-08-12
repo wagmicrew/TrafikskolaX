@@ -302,7 +302,7 @@ export class QliroService {
       // Prepare string body ONCE to ensure auth token exactly matches payload
       const bodyString = JSON.stringify(checkoutRequest);
 
-      const url = `${settings.apiUrl}/checkout/merchantapi/Orders`;
+      const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders`;
       const authHeader = this.generateAuthHeader(bodyString);
 
       logger.debug('payment', 'Qliro request prepared', {

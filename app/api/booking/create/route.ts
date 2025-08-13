@@ -641,25 +641,14 @@ export async function POST(request: NextRequest) {
         // For Qliro payment method, create checkout session
         if (paymentMethod === 'qliro') {
           try {
-            // Create Qliro checkout for the booking
-            const qliroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payments/qliro/create-checkout`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                amount: totalPrice,
-                reference: `booking_${booking.id}`, // Prefix to distinguish from package purchases
-                description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
-                returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bokningar/${booking.id}`,
-              }),
+            // Create Qliro checkout for the booking via service
+            const { qliroService } = await import('@/lib/payment/qliro-service');
+            const qliroData = await qliroService.createCheckout({
+              amount: totalPrice,
+              reference: `booking_${booking.id}`,
+              description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
+              returnUrl: `/dashboard/student/bokningar/${booking.id}`,
             });
-
-            if (!qliroResponse.ok) {
-              throw new Error('Failed to create Qliro checkout');
-            }
-
-            const qliroData = await qliroResponse.json();
             
             return NextResponse.json({ 
               booking,

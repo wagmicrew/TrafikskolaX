@@ -24,24 +24,16 @@ export function QliroPaymentDialog({
   onConfirm 
 }: QliroPaymentDialogProps) {
   const [isPaying, setIsPaying] = useState(false)
+  const [iframeError, setIframeError] = useState(false)
   const { toast } = useToast()
 
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
     try {
-      // Open the Qliro checkout URL in a new tab
-      window.open(checkoutUrl, '_blank')
-
+      // No redirect; iframe will render the checkout below
       toast({
-        title: "Paying with Qliro",
-        description: "You will be redirected to the Qliro checkout page.",
-      })
-      onConfirm()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Unable to complete the payment. Please try again.",
-        variant: "destructive",
+        title: "Qliro checkout",
+        description: "Fönstret är öppet här nedan.",
       })
     } finally {
       setIsPaying(false)
@@ -50,7 +42,7 @@ export function QliroPaymentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] md:max-w-[600px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+      <DialogContent className="w-[96vw] max-w-[1200px] max-h-[95vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
         <DialogHeader className="sr-only">
           <DialogTitle>Qliro Payment</DialogTitle>
           <DialogDescription>Pay your amount via Qliro by visiting the checkout page.</DialogDescription>
@@ -91,28 +83,42 @@ export function QliroPaymentDialog({
                 </div>
               </div>
 
-              {/* Confirm Button */}
-              <Button
-                onClick={handlePaymentConfirm}
-                disabled={isPaying}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50"
-              >
-                {isPaying ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Confirming...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Proceed to Payment
-                  </>
-                )}
-              </Button>
+              {/* Embedded Checkout */}
+              {!iframeError ? (
+                <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-black/20">
+                  <iframe
+                    src={checkoutUrl}
+                    title="Qliro Checkout"
+                    className="w-full h-[70vh]"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    onError={() => setIframeError(true)}
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
+                  Det gick inte att bädda in Qliro-fönstret. Du kan öppna det i en ny flik nedan.
+                </div>
+              )}
 
-              <p className="text-xs text-white/60 text-center mt-4">
-                Clicking &quot;Proceed to Payment&quot; will open the Qliro checkout page in a new tab.
-              </p>
+              {/* Fallback/open button */}
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button onClick={handlePaymentConfirm} disabled={isPaying} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  {isPaying ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Öppnar...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Visa här i fönstret
+                    </>
+                  )}
+                </Button>
+                <Button variant="outline" onClick={() => window.open(checkoutUrl, '_blank', 'noopener,noreferrer')}>
+                  Öppna i ny flik
+                </Button>
+              </div>
             </div>
           </div>
         </div>

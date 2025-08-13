@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import SwishQR from '@/components/SwishQR';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
-import { Printer, CreditCard, MapPin, Calendar as CalendarIcon, Clock, CheckCircle2, MailCheck } from 'lucide-react';
+import { Printer, CreditCard, MapPin, Calendar as CalendarIcon, Clock, CheckCircle2, MailCheck, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 type Booking = {
@@ -38,6 +38,8 @@ export default function PaymentLandingClient({
   isPaid: boolean;
 }) {
   const [isGeneratingQliro, setIsGeneratingQliro] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [notified, setNotified] = useState(false);
 
   const amount = useMemo(() => Number(booking.price || session.pricePerParticipant || 0), [booking.price, session.pricePerParticipant]);
   const sessionDate = useMemo(() => format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: sv }), [session.date]);
@@ -69,6 +71,7 @@ export default function PaymentLandingClient({
   };
   const notifyPaid = async () => {
     try {
+      setIsNotifying(true);
       const res = await fetch('/api/handledar/payments/notify-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,8 +82,11 @@ export default function PaymentLandingClient({
         throw new Error(data.error || 'Kunde inte skicka betalningsbekräftelse');
       }
       toast.success('Tack! Skolan har meddelats.');
+      setNotified(true);
     } catch (e: any) {
       toast.error(e.message || 'Ett fel inträffade');
+    } finally {
+      setIsNotifying(false);
     }
   };
 
@@ -141,9 +147,13 @@ export default function PaymentLandingClient({
                   <div className="mt-3 text-sm text-amber-300">Swish-nummer saknas i inställningar.</div>
                 )}
                 <div className="mt-4 flex justify-center">
-                  <button onClick={notifyPaid} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 border border-white/20 hover:bg-white/20">
-                    <MailCheck className="h-4 w-4" /> Jag har betalat
-                  </button>
+                  {notified ? (
+                    <div className="text-sm text-white/80">Väntar på skolans bekräftelse</div>
+                  ) : (
+                    <button onClick={notifyPaid} disabled={isNotifying} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 border border-white/20 hover:bg-white/20 disabled:opacity-50">
+                      {isNotifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />} {isNotifying ? 'Skickar...' : 'Jag har betalat'}
+                    </button>
+                  )}
                 </div>
               </div>
 

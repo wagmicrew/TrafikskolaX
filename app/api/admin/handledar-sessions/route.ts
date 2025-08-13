@@ -3,10 +3,17 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { handledarSessions, users, handledarBookings } from '@/lib/db/schema';
-import { eq, desc, and, lt, ne } from 'drizzle-orm';
+import { eq, desc, and, lt, ne, or, gte, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
+    const url = new URL(request.url);
+    const scope = (url.searchParams.get('scope') || 'future').toLowerCase();
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+    const pageSize = 10;
+    const today = new Date();
+    // zero out time for date-only comparisons
+    today.setHours(0,0,0,0);
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
@@ -36,7 +43,8 @@ export async function GET(request: NextRequest) {
       console.error('Failed to cleanup stale handledar bookings', e);
     }
 
-    const sessions = await db
+    // Base select
+    let baseQuery = db
       .select({
         id: handledarSessions.id,
         title: handledarSessions.title,
@@ -55,15 +63,45 @@ export async function GET(request: NextRequest) {
       })
       .from(handledarSessions)
       .leftJoin(users, eq(handledarSessions.teacherId, users.id))
-      .where(eq(handledarSessions.isActive, true))
-      .orderBy(desc(handledarSessions.date));
+      .where(eq(handledarSessions.isActive, true));
+
+    if (scope === 'future') {
+      baseQuery = baseQuery.where(
+        and(eq(handledarSessions.isActive, true), gte(handledarSessions.date as any, today as any))
+      ).orderBy(desc(handledarSessions.date));
+    } else {
+      // past
+      baseQuery = baseQuery.where(
+        and(eq(handledarSessions.isActive, true), lt(handledarSessions.date as any, today as any))
+      ).orderBy(desc(handledarSessions.date));
+    }
+
+    let totalPages = 1;
+    if (scope === 'past') {
+      const totalRows = await db
+        .select({ count: sql`count(*)` })
+        .from(handledarSessions)
+        .where(and(eq(handledarSessions.isActive, true), lt(handledarSessions.date as any, today as any)));
+      const totalCount = Number(totalRows?.[0]?.count || 0);
+      totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+      const offset = (page - 1) * pageSize;
+      // Apply pagination
+      baseQuery = (baseQuery as any).limit(pageSize).offset(offset);
+    }
+
+    const sessions = await baseQuery;
 
     // Compute participant counts excluding temporary names
     const sessionIds = sessions.map(s => s.id);
     const bookings = sessionIds.length ? await db
-      .select({ sessionId: handledarBookings.sessionId, supervisorName: handledarBookings.supervisorName })
+      .select({ sessionId: handledarBookings.sessionId, supervisorName: handledarBookings.supervisorName, status: handledarBookings.status })
       .from(handledarBookings)
-      .where(and(eq(handledarBookings.status as any, 'pending' as any), ne(handledarBookings.supervisorName as any, 'Temporary' as any))) : [];
+      .where(
+        and(
+          ne(handledarBookings.supervisorName as any, 'Temporary' as any),
+          or(eq(handledarBookings.status as any, 'pending' as any), eq(handledarBookings.status as any, 'confirmed' as any))
+        )
+      ) : [];
 
     const countMap: Record<string, number> = {};
     for (const b of bookings) {
@@ -83,6 +121,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    if (scope === 'past') {
+      return NextResponse.json({ sessions: formattedSessions, page, totalPages });
+    }
     return NextResponse.json({ sessions: formattedSessions });
   } catch (error) {
     console.error('Error fetching handledar sessions:', error);

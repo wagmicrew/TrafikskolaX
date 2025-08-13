@@ -35,7 +35,7 @@ export function SwishPaymentDialog({
 
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
-  const message = customMessage || `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
+  const message = customMessage || (mode === 'package' ? `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`)
 
   useEffect(() => {
     if (isOpen) {
@@ -260,7 +260,7 @@ export function SwishPaymentDialog({
                   {message}
                 </div>
                 <div className="text-xs text-white/60 mt-2">
-                  Boknings-ID: {booking.id || 'Genereras...'}
+                  {mode === 'package' ? 'Order-ID' : 'Boknings-ID'}: {booking.id || 'Genereras...'}
                 </div>
               </div>
 
@@ -356,7 +356,7 @@ export function SwishPaymentDialog({
                 {isPaying ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Bekräftar...
+                    Skickar...
                   </>
                 ) : (
                   <>
@@ -367,7 +367,7 @@ export function SwishPaymentDialog({
               </Button>
 
               <p className="text-xs text-white/60 text-center mt-4">
-                När du klickar "Jag har betalat" kommer vi att verifiera din betalning
+                När du klickar "Jag har betalat" meddelas skolan och dina krediter aktiveras när betalningen verifierats.
               </p>
             </div>
           </div>

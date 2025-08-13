@@ -1,7 +1,6 @@
-// @ts-nocheck
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,20 +43,8 @@ interface PackageBuilderPopoverProps {
 }
 
 const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTypes, handledarSessions, initialPackage, onSave, onClose, onUpdate }: PackageBuilderPopoverProps) => {
-
-  // Defensive check to prevent runtime errors if lessonTypes is not a valid array
-  if (!Array.isArray(lessonTypes) || !Array.isArray(handledarSessions)) {
-    // This provides a fallback UI instead of crashing the application
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white shadow-2xl">
-          <h3 className="text-xl font-bold">Laddningsfel</h3>
-          <p className="mt-2 text-white/80">Ett fel uppstod vid laddning av paketbyggaren. Data kunde inte hämtas korrekt.</p>
-          <div className="mt-4 flex justify-end"><Button onClick={onClose} variant="outline" className="border-white/20">Stäng</Button></div>
-        </div>
-      </div>
-    );
-  }
+  // Defensive flag to avoid conditional hooks
+  const invalidData = !Array.isArray(lessonTypes) || !Array.isArray(handledarSessions);
 
   const [packageData, setPackageData] = useState<Package>(() => {
     if (initialPackage) {
@@ -85,7 +72,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
   const [savingContentId, setSavingContentId] = useState<string | null>(null);
   const [confirmEmptyOpen, setConfirmEmptyOpen] = useState(false);
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<Record<string, any>>();
+  const { handleSubmit } = useForm<Record<string, unknown>>();
 
   // Load existing package contents if editing
   useEffect(() => {
@@ -102,7 +89,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
         const contents = await response.json();
         setPackageData(prev => ({
           ...prev,
-          contents: contents.map((content: any) => ({
+          contents: contents.map((content: Record<string, unknown>) => ({
             id: content.id,
             lessonTypeId: content.lessonTypeId,
             handledarSessionId: content.handledarSessionId,
@@ -276,7 +263,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
     return lessonTypes.filter(lt => lt.isActive && !usedLessonTypeIds.includes(lt.id));
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async () => {
     try {
       setSubmitting(true);
       // Validate required fields
@@ -361,6 +348,13 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
       <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
           <div className="p-6 sm:p-8">
+            {invalidData ? (
+              <div>
+                <h3 className="text-xl font-bold text-white">Laddningsfel</h3>
+                <p className="mt-2 text-white/80">Ett fel uppstod vid laddning av paketbyggaren. Data kunde inte hämtas korrekt.</p>
+                <div className="mt-4 flex justify-end"><Button onClick={onClose} variant="outline" className="border-white/20">Stäng</Button></div>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3">
@@ -683,6 +677,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                 </Button>
               </div>
             </form>
+            )}
           </div>
         </div>
       </div>

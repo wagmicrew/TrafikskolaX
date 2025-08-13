@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
-import { handledarBookings, handledarSessions } from '@/lib/db/schema';
+import { handledarBookings, handledarSessions, users } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
+import { EmailService } from '@/lib/email/email-service';
 
 export async function DELETE(
   request: NextRequest,
@@ -23,12 +24,16 @@ export async function DELETE(
     }
 
     const { id: bookingId } = await params;
+    const body = await request.json().catch(() => ({}));
+    const confirmPaidRemoval = Boolean(body?.confirmPaidRemoval);
 
     // Get booking details first
     const booking = await db
       .select({
         id: handledarBookings.id,
         sessionId: handledarBookings.sessionId,
+        supervisorName: handledarBookings.supervisorName,
+        supervisorEmail: handledarBookings.supervisorEmail,
         paymentStatus: handledarBookings.paymentStatus,
       })
       .from(handledarBookings)
@@ -41,11 +46,44 @@ export async function DELETE(
 
     const bookingData = booking[0];
 
-    // Don't allow deletion of paid bookings
-    if (bookingData.paymentStatus === 'paid') {
+    // For paid bookings, require explicit confirmation flag
+    if (bookingData.paymentStatus === 'paid' && !confirmPaidRemoval) {
       return NextResponse.json({ 
-        error: 'Cannot remove confirmed bookings. Refund required.' 
+        error: 'Bokningen är betald. Bekräfta att du har gjort återbetalning (confirmPaidRemoval=true) för att avboka.' 
       }, { status: 400 });
+    }
+
+    // Fetch session details for email
+    const [session] = await db
+      .select({ id: handledarSessions.id, title: handledarSessions.title, date: handledarSessions.date, startTime: handledarSessions.startTime, endTime: handledarSessions.endTime })
+      .from(handledarSessions)
+      .where(eq(handledarSessions.id, bookingData.sessionId))
+      .limit(1);
+
+    // Send cancellation email to supervisor (best-effort)
+    if (bookingData.supervisorEmail) {
+      try {
+        const dateStr = session?.date ? new Date(session.date as any).toLocaleDateString('sv-SE') : '';
+        const timeStr = `${String(session?.startTime||'').slice(0,5)}–${String(session?.endTime||'').slice(0,5)}`;
+        const html = `
+<div data-standard-email="1">
+  <h1 style="margin:0 0 12px 0; font-size:22px;">Avbokning bekräftad</h1>
+  <p>Hej ${bookingData.supervisorName || ''},</p>
+  <p>Din bokning för handledarutbildning har avbokats.</p>
+  <div style="margin:16px 0; padding:12px; border-radius:12px; background:#0f172a; color:#fff;">
+    <div style="font-size:14px; opacity:0.9">Tid och datum</div>
+    <div style="font-size:24px; font-weight:800;">${dateStr} • ${timeStr}</div>
+    <div style="font-size:14px; opacity:0.9">${session?.title||'Handledarutbildning'}</div>
+  </div>
+  <p>Vid frågor, kontakta oss gärna.</p>
+  <p>Vänliga hälsningar,<br/>Din Trafikskola</p>
+  <hr style="border:none; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0;"/>
+  <div style="font-size:12px; opacity:0.7">Detta är ett automatiskt meddelande.</div>
+  </div>`;
+        await EmailService.sendEmail({ to: bookingData.supervisorEmail, subject: 'Avbokning – Handledarutbildning', html });
+      } catch (e) {
+        console.error('Failed to send handledar cancellation email', e);
+      }
     }
 
     // Delete the booking
@@ -84,9 +122,9 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { id: bookingId } = await params;
-    const body = await request.json();
-    const { action } = body;
+  const { id: bookingId } = await params;
+  const body = await request.json();
+  const { action } = body;
 
     if (action === 'remind') {
       // Update reminder status
@@ -110,6 +148,88 @@ export async function POST(
         message: 'Reminder sent successfully',
         booking: updatedBooking[0]
       });
+    }
+
+    if (action === 'move') {
+      const { targetSessionId } = body as { targetSessionId?: string };
+      if (!targetSessionId) {
+        return NextResponse.json({ error: 'targetSessionId is required' }, { status: 400 });
+      }
+
+      // Load booking and sessions
+      const [b] = await db
+        .select({ id: handledarBookings.id, sessionId: handledarBookings.sessionId, paymentStatus: handledarBookings.paymentStatus, supervisorEmail: handledarBookings.supervisorEmail, supervisorName: handledarBookings.supervisorName })
+        .from(handledarBookings)
+        .where(eq(handledarBookings.id, bookingId))
+        .limit(1);
+      if (!b) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+
+      const [currentSession] = await db
+        .select({ id: handledarSessions.id, title: handledarSessions.title, date: handledarSessions.date, startTime: handledarSessions.startTime, endTime: handledarSessions.endTime, max: handledarSessions.maxParticipants, current: handledarSessions.currentParticipants })
+        .from(handledarSessions)
+        .where(eq(handledarSessions.id, (b as any).sessionId))
+        .limit(1);
+      const [targetSession] = await db
+        .select({ id: handledarSessions.id, title: handledarSessions.title, date: handledarSessions.date, startTime: handledarSessions.startTime, endTime: handledarSessions.endTime, max: handledarSessions.maxParticipants, current: handledarSessions.currentParticipants })
+        .from(handledarSessions)
+        .where(eq(handledarSessions.id, targetSessionId))
+        .limit(1);
+
+      if (!targetSession) return NextResponse.json({ error: 'Target session not found' }, { status: 404 });
+
+      // Ensure target is in the future
+      if (targetSession.date && new Date(targetSession.date as any) < new Date()) {
+        return NextResponse.json({ error: 'Cannot move to a past session' }, { status: 400 });
+      }
+
+      // Optional capacity check (if using currentParticipants)
+      if (typeof targetSession.max === 'number' && typeof targetSession.current === 'number' && targetSession.current >= targetSession.max) {
+        return NextResponse.json({ error: 'Target session is full' }, { status: 400 });
+      }
+
+      // Perform move
+      await db
+        .update(handledarBookings)
+        .set({ sessionId: targetSessionId as any, updatedAt: new Date() })
+        .where(eq(handledarBookings.id, bookingId));
+
+      // Update counters if you maintain them
+      if (currentSession?.id) {
+        await db
+          .update(handledarSessions)
+          .set({ currentParticipants: sql`current_participants - 1`, updatedAt: new Date() })
+          .where(eq(handledarSessions.id, currentSession.id));
+      }
+      await db
+        .update(handledarSessions)
+        .set({ currentParticipants: sql`current_participants + 1`, updatedAt: new Date() })
+        .where(eq(handledarSessions.id, targetSession.id));
+
+      // Send move email (best-effort)
+      if ((b as any).supervisorEmail) {
+        try {
+          const dateStr = targetSession?.date ? new Date(targetSession.date as any).toLocaleDateString('sv-SE') : '';
+          const timeStr = `${String(targetSession?.startTime||'').slice(0,5)}–${String(targetSession?.endTime||'').slice(0,5)}`;
+          const html = `
+<div data-standard-email="1">
+  <h1 style="margin:0 0 12px 0; font-size:22px;">Bokningen har flyttats</h1>
+  <p>Hej ${(b as any).supervisorName || ''},</p>
+  <p>Din handledarutbildning har flyttats till följande tid:</p>
+  <div style=\"margin:16px 0; padding:12px; border-radius:12px; background:#0f172a; color:#fff;\">
+    <div style=\"font-size:14px; opacity:0.9\">Ny tid och datum</div>
+    <div style=\"font-size:24px; font-weight:800;\">${dateStr} • ${timeStr}</div>
+    <div style=\"font-size:14px; opacity:0.9\">${targetSession?.title||'Handledarutbildning'}</div>
+  </div>
+  <p>Vid frågor, kontakta oss gärna.</p>
+  <p>Vänliga hälsningar,<br/>Din Trafikskola</p>
+  <hr style=\"border:none; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0;\"/>
+  <div style=\"font-size:12px; opacity:0.7\">Detta är ett automatiskt meddelande.</div>
+</div>`;
+          await EmailService.sendEmail({ to: (b as any).supervisorEmail, subject: 'Flyttad bokning – Handledarutbildning', html });
+        } catch (e) { console.error('Failed to send handledar move email', e); }
+      }
+
+      return NextResponse.json({ message: 'Booking moved successfully' });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

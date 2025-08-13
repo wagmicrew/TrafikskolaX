@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
         if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         const p = rows[0] as any;
         const u = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
-        items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/packages-store` });
+        // Use dedicated cart entry for package payments
+        items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/cart?type=package&id=${p.id}` });
       } else {
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
       }
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       const purchaseRows = await db.select().from(packagePurchases).where(or(eq(packagePurchases.paymentStatus, 'pending' as any), eq(packagePurchases.paymentStatus, 'unpaid' as any)));
       for (const p of purchaseRows as any[]) {
         const u = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
-        items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/packages-store` });
+        items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/cart?type=package&id=${p.id}` });
       }
     }
 

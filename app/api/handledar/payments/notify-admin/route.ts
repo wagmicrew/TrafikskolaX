@@ -73,9 +73,12 @@ export async function POST(request: NextRequest) {
         }
       }
     } as any);
-    if (!ok) return NextResponse.json({ error: 'Kunde inte skicka e-post' }, { status: 500 });
+    if (!ok) {
+      // Treat partial delivery as success for UX; advise configuring school email
+      return NextResponse.json({ success: true, warning: 'E-post delvis skickad. Kontrollera mottagare (admin/school) och e-postinställningar.' });
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, delivered: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Internt fel' }, { status: 500 });
   }

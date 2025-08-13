@@ -13,7 +13,7 @@ try {
 }
 
 // In-memory fallback store with TTL
-type MemoryEntry = { value: any; expiresAt: number };
+type MemoryEntry = { value: unknown; expiresAt: number };
 const memoryStore = new Map<string, MemoryEntry>();
 
 function memoryGet(key: string) {
@@ -26,7 +26,7 @@ function memoryGet(key: string) {
   return entry.value;
 }
 
-function memorySet(key: string, value: any, ttlSec: number) {
+function memorySet(key: string, value: unknown, ttlSec: number) {
   const expiresAt = ttlSec > 0 ? Date.now() + ttlSec * 1000 : 0;
   memoryStore.set(key, { value, expiresAt });
 }
@@ -57,7 +57,7 @@ const redisClient: any = redisAvailable
     };
 
 if (redisAvailable) {
-  redisClient.on('error', (err: any) => {
+  redisClient.on('error', (err: unknown) => {
     console.error('Redis Client Error:', err);
   });
   redisClient.on('connect', () => {
@@ -81,7 +81,7 @@ export const cache = {
     }
   },
 
-  async set(key: string, value: any, ttl: number = 3600) {
+  async set(key: string, value: unknown, ttl: number = 3600) {
     try {
       if (redisAvailable) {
         await redisClient.setEx(key, ttl, JSON.stringify(value));
@@ -122,7 +122,7 @@ export const cache = {
     }
   },
 
-  async cacheWithKey(prefix: string, params: any, fn: () => Promise<any>, ttl: number = 3600) {
+  async cacheWithKey(prefix: string, params: unknown, fn: () => Promise<unknown>, ttl: number = 3600) {
     const key = `${prefix}:${JSON.stringify(params)}`;
     const cached = await this.get(key);
     if (cached) return cached;

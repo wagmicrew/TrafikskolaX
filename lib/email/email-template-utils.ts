@@ -44,8 +44,8 @@ export type EmailTemplateVariables = {
     currentDate: string;
   };
   
-  // Custom variables
-  [key: string]: any;
+  // Custom variables (extension point)
+  [key: string]: unknown;
 };
 
 /**

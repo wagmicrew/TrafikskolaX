@@ -1,12 +1,14 @@
 "use client";
 import React, { useMemo, useState } from 'react';
 import SwishQR from '@/components/SwishQR';
-import { Printer, CreditCard, CheckCircle2, MailCheck, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Printer, CreditCard, CheckCircle2, MailCheck, Calendar as CalendarIcon, Clock, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import QliroPopup from '@/components/payments/QliroPopup';
 
 export default function BookingPaymentClient({ booking, settings }: { booking: any; settings: { swishNumber: string; schoolName: string; schoolPhone?: string } }) {
   const [isGeneratingQliro, setIsGeneratingQliro] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [notified, setNotified] = useState(false);
   const [qliroUrl, setQliroUrl] = useState<string | null>(null);
   const [showQliro, setShowQliro] = useState(false);
   const amount = useMemo(() => Number(booking.totalPrice || 0), [booking.totalPrice]);
@@ -29,11 +31,14 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
 
   const notifyPaid = async () => {
     try {
+      setIsNotifying(true);
       const res = await fetch('/api/booking/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookingId: booking.id, sessionType: 'regular', paymentMethod: 'swish' }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Kunde inte meddela skolan');
       toast.success('Tack! Skolan har meddelats.');
+      setNotified(true);
     } catch (e: any) { toast.error(e.message || 'Fel'); }
+    finally { setIsNotifying(false); }
   };
 
   return (
@@ -63,9 +68,13 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
                   <div className="mt-3 text-sm text-amber-300">Swish-nummer saknas i inställningar.</div>
                 )}
                 <div className="mt-4 flex justify-center">
-                  <button onClick={notifyPaid} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 border border-white/20 hover:bg-white/20">
-                    <MailCheck className="h-4 w-4" /> Jag har betalat
-                  </button>
+                  {notified ? (
+                    <div className="text-sm text-white/80">Väntar på skolans bekräftelse</div>
+                  ) : (
+                    <button onClick={notifyPaid} disabled={isNotifying} className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 border border-white/20 hover:bg-white/20 disabled:opacity-50">
+                      {isNotifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <MailCheck className="h-4 w-4" />} {isNotifying ? 'Skickar...' : 'Jag har betalat'}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/5 p-4">

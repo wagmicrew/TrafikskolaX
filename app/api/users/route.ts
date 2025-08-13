@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     } else if (roleFilter) {
       // Admin/teacher can filter by role explicitly
       if (roleFilter === 'student' || roleFilter === 'teacher' || roleFilter === 'admin') {
-        baseConds.push(eq(users.role, roleFilter as any));
+        baseConds.push(eq(users.role, roleFilter as 'student' | 'teacher' | 'admin'));
       }
     }
 

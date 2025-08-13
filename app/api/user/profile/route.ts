@@ -59,7 +59,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await request.json() as Partial<{
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone?: string;
+      personalNumber?: string;
+      address?: string;
+      postalCode?: string;
+      city?: string;
+      workplace?: string;
+      workPhone?: string;
+      mobilePhone?: string;
+      dateOfBirth?: string | Date;
+    }>;
     
     // Validate required fields
     if (!body.firstName || !body.lastName || !body.email) {
@@ -90,7 +103,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       firstName: body.firstName,
       lastName: body.lastName,
       email: body.email,
@@ -107,7 +120,7 @@ export async function PUT(request: NextRequest) {
 
     // Handle date of birth
     if (body.dateOfBirth) {
-      updateData.dateOfBirth = new Date(body.dateOfBirth);
+      updateData.dateOfBirth = new Date(body.dateOfBirth as string);
     }
 
     // Update user profile

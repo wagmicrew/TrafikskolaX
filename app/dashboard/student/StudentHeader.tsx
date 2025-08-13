@@ -16,8 +16,7 @@ export default function StudentHeader({ title, icon, rightSlot }: { title: strin
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href="/dashboard/student" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Bokningar</Link>
         <Link href="/dashboard/student/feedback" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Feedback</Link>
-        {/* Meddelanden link is conditionally rendered via client wrapper */}
-        <MeddelandenLink />
+        {/* Meddelanden link disabled per request */}
         <Link href="/dashboard/settings" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Inställningar</Link>
       </div>
     </div>

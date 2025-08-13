@@ -33,14 +33,14 @@ import {
   Users
 } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { useMessages } from "@/lib/hooks/use-messages"
+// Polling disabled: remove messages hook
 import { Badge as BadgeComponent } from "@/components/ui/badge"
 
 export const UserAvatarMenu = memo(function UserAvatarMenu() {
   const router = useRouter()
   const { user, logout, refreshUser } = useAuth()
-  const { unreadCount } = useMessages()
-  const [messagesEnabled, setMessagesEnabled] = useState(true)
+  const unreadCount = 0
+  const [messagesEnabled, setMessagesEnabled] = useState(false)
   const [isImpersonating, setIsImpersonating] = useState(false)
 
   if (!user) return null
@@ -90,11 +90,6 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
   };
 
   useEffect(() => {
-    // Probe unread endpoint to get disabled flag with minimal overhead
-    fetch('/api/messages/unread-count')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setMessagesEnabled(data?.disabled !== true))
-      .catch(() => setMessagesEnabled(true))
     // Check if currently impersonating
     fetch('/api/auth/impersonation-status')
       .then(r => r.ok ? r.json() : Promise.reject())
@@ -137,7 +132,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          {messagesEnabled && unreadCount > 0 && (
+          {false && unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white ring-2 ring-white shadow-lg">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
@@ -199,7 +194,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
             </div>
           </DropdownMenuItem>
           
-          {messagesEnabled && (
+          {false && (
             <DropdownMenuItem
               onClick={() => router.push("/dashboard/meddelande")}
               className="cursor-pointer hover:bg-slate-50"

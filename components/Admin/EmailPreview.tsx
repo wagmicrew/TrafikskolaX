@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Eye, Code } from 'lucide-react';
+import { Loader2, Eye, Code, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState, useEffect, useRef } from 'react';

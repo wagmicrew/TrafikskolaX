@@ -45,14 +45,17 @@ import { Button } from '@/components/ui/button';
 interface PackagesStoreClientProps {
   user: User;
   packages: Package[];
+  hasActiveCredits?: boolean;
 }
 
-const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): ReactElement => {
+const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: PackagesStoreClientProps): ReactElement => {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('swish');
   const [loading, setLoading] = useState(false);
   const [showSwishDialog, setShowSwishDialog] = useState(false);
   const [showQliroDialog, setShowQliroDialog] = useState(false);
+  const [notifyingPaid, setNotifyingPaid] = useState(false);
+  const [paidNotified, setPaidNotified] = useState(false);
   
   // Qliro availability state
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true);
@@ -189,9 +192,21 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
   };
   
   const handleSwishConfirm = async (purchaseId: string): Promise<void> => {
-    // For Swish, we show a confirmation message and wait for manual/admin verification or webhook
-    toast.success('Tack! Vi verifierar din Swish-betalning snarast.');
-    setShowSwishDialog(false);
+    try {
+      // Notify admin like other Swish flows so they can clear/deny
+      const res = await fetch('/api/packages/notify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kunde inte meddela admin');
+      toast.success('Tack! Skolan har meddelats. Krediter aktiveras när betalningen verifierats.');
+    } catch (e: any) {
+      toast.error(e.message || 'Kunde inte meddela skolan');
+    } finally {
+      setShowSwishDialog(false);
+    }
   };
 
   const handleQliroConfirm = async (): Promise<void> => {
@@ -209,8 +224,17 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           id: swishPaymentData.purchaseId,
           totalPrice: swishPaymentData.amount
         }}
+        customMessage={swishPaymentData.message}
         mode="package"
-        onConfirm={() => handleSwishConfirm(swishPaymentData.purchaseId)}
+        onConfirm={async () => {
+          setNotifyingPaid(true);
+          try {
+            await handleSwishConfirm(swishPaymentData.purchaseId);
+            setPaidNotified(true);
+          } finally {
+            setNotifyingPaid(false);
+          }
+        }}
       />
       
       <QliroPaymentDialog
@@ -282,6 +306,16 @@ const PackagesStoreClient = ({ user, packages }: PackagesStoreClientProps): Reac
           </CardContent>
         </Card>
       </div>
+
+      {/* Inform user if they already have credits */}
+      {hasActiveCredits && (
+        <div className="max-w-3xl mx-auto mb-6">
+          <div className="rounded-xl border border-amber-300/50 bg-amber-50 text-amber-900 p-4">
+            <div className="font-semibold">Du har redan aktiva paketkrediter</div>
+            <p className="text-sm mt-1">Köper du ett till paket läggs fler krediter till ditt konto.</p>
+          </div>
+        </div>
+      )}
 
       {/* Packages Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Save, Users, Calendar, Clock, Plus, Eye, ChevronUp, ChevronDown } from 'lucide-react';
+import { Loader2, Save, Users, Calendar, Clock, Plus, Eye, ChevronUp, ChevronDown, MoveRight, Trash2, User as UserIcon, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -28,10 +28,15 @@ type Session = {
 };
 
 export default function HandledarKursClient({ sessions: initialSessions }: { sessions: Session[] }) {
-  const [sessions, setSessions] = useState<Session[]>(initialSessions);
+  const [tab, setTab] = useState<'future'|'past'>('future');
+  const [sessions, setSessions] = useState<Session[]>(initialSessions.filter(s=>new Date(s.date)>=new Date(new Date().toDateString())));
+  const [pastPage, setPastPage] = useState(1);
+  const [pastTotalPages, setPastTotalPages] = useState(1);
+  const [listLoading, setListLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [showParticipantsFor, setShowParticipantsFor] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Record<string, any[]>>({});
+  const [participantLoadingId, setParticipantLoadingId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newSession, setNewSession] = useState({
@@ -54,17 +59,30 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
     sendPaymentEmail: true,
   });
   const [studentOptions, setStudentOptions] = useState<any[]>([]);
+  const [moving, setMoving] = useState<{ bookingId: string, open: boolean, sessions: any[], targetId: string } | null>(null);
+  const [unbookingId, setUnbookingId] = useState<string | null>(null);
+  const [userPopup, setUserPopup] = useState<{ open: boolean, userId: string | null, user: any | null }>({ open: false, userId: null, user: null });
+  const [participantsDialog, setParticipantsDialog] = useState<{ open: boolean, sessionId: string | null, title: string }>({ open: false, sessionId: null, title: '' });
 
-  // Refresh from admin API so counts exclude temporary
+  // Refresh lists
+  const loadFuture = async () => {
+    setListLoading(true);
+    try {
+      const res = await fetch('/api/admin/handledar-sessions?scope=future');
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data.sessions)) setSessions(data.sessions); }
+    } finally { setListLoading(false); }
+  };
+  const loadPast = async (page=1) => {
+    setListLoading(true);
+    try {
+      const res = await fetch(`/api/admin/handledar-sessions?scope=past&page=${page}`);
+      if (res.ok) { const data = await res.json(); if (Array.isArray(data.sessions)) { setSessions(data.sessions); setPastPage(data.page||1); setPastTotalPages(data.totalPages||1); } }
+    } finally { setListLoading(false); }
+  };
   useEffect(() => {
     const refresh = async () => {
       try {
-        const res = await fetch('/api/admin/handledar-sessions');
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.sessions)) setSessions(data.sessions);
-        }
-        // load students list (exclude temp)
+        if (tab==='future') await loadFuture(); else await loadPast(pastPage);
         const ures = await fetch('/api/admin/users');
         if (ures.ok) {
           const all = await ures.json();
@@ -76,23 +94,49 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
       } catch {}
     };
     refresh();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  // Load user when popup opens
+  useEffect(() => {
+    const run = async () => {
+      if (userPopup.open && userPopup.userId) {
+        try {
+          const res = await fetch(`/api/admin/users/${userPopup.userId}`);
+          if (res.ok) {
+            const d = await res.json();
+            setUserPopup(prev => ({ ...prev, user: d.user }));
+          } else {
+            setUserPopup(prev => ({ ...prev, user: { firstName:'Okänd', lastName:'', email:'' } }));
+          }
+        } catch {
+          setUserPopup(prev => ({ ...prev, user: { firstName:'Okänd', lastName:'', email:'' } }));
+        }
+      }
+    };
+    run();
+  }, [userPopup.open, userPopup.userId]);
 
   const loadParticipants = async (sessionId: string) => {
     try {
-      // toggle open/close
-      if (showParticipantsFor === sessionId) {
-        setShowParticipantsFor(null);
-        return;
-      }
+      // open dialog and load
+      setParticipantLoadingId(sessionId);
       const res = await fetch(`/api/admin/handledar-sessions/${sessionId}/participants`);
       if (!res.ok) throw new Error('Kunde inte hämta deltagare');
       const data = await res.json();
       setParticipants(prev => ({ ...prev, [sessionId]: data.participants || [] }));
-      setShowParticipantsFor(sessionId);
+      setParticipantLoadingId(null);
+      // Also refresh sessions to update the Bokade count
+      try { if (tab==='future') await loadFuture(); else await loadPast(pastPage); } catch {}
     } catch (e: any) {
       toast.error(e.message || 'Fel vid hämtning av deltagare');
+      setParticipantLoadingId(null);
     }
+  };
+
+  const openParticipants = async (session: Session) => {
+    setParticipantsDialog({ open: true, sessionId: session.id, title: session.title });
+    await loadParticipants(session.id);
   };
 
   // Auto-close participants list after 10s if empty
@@ -140,13 +184,31 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-white">Handledarkurs</h1>
-        <Button onClick={() => setCreateOpen(true)} className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">
-          <Plus className="w-4 h-4 mr-1" /> Ny session
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg overflow-hidden border border-white/20">
+            <button onClick={()=>setTab('future')} className={`px-3 py-1.5 ${tab==='future'?'bg-white/20 text-white':'bg-white/10 text-slate-200'}`}>Kommande</button>
+            <button onClick={()=>{setTab('past'); setPastPage(1);}} className={`px-3 py-1.5 ${tab==='past'?'bg-white/20 text-white':'bg-white/10 text-slate-200'}`}>Tidigare</button>
+          </div>
+          {tab==='past' && (
+            <div className="flex items-center gap-2 text-slate-200">
+              <button disabled={pastPage<=1} onClick={async()=>{ const p=Math.max(1,pastPage-1); setPastPage(p); await loadPast(p); }} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 disabled:opacity-50">Föregående</button>
+              <span>Sida {pastPage} / {pastTotalPages}</span>
+              <button disabled={pastPage>=pastTotalPages} onClick={async()=>{ const p=Math.min(pastTotalPages,pastPage+1); setPastPage(p); await loadPast(p); }} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 disabled:opacity-50">Nästa</button>
+            </div>
+          )}
+          <Button onClick={() => setCreateOpen(true)} className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">
+            <Plus className="w-4 h-4 mr-1" /> Ny session
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-        {sessions.map(s => (
+        {listLoading && (
+          <div className="col-span-full flex items-center justify-center text-slate-200 gap-2 py-6">
+            <Loader2 className="w-5 h-5 animate-spin"/> Laddar innehåll…
+          </div>
+        )}
+        {!listLoading && sessions.map(s => (
           <Card key={s.id} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl">
             <CardHeader className="flex items-center justify-between">
               <CardTitle className="text-white font-extrabold">{s.title}</CardTitle>
@@ -197,28 +259,15 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
                     <Users className="w-4 h-4" /> Bokade: <span className="font-bold text-white">{s.currentParticipants}/{s.maxParticipants}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={()=>loadParticipants(s.id)} className="border-white/20 text-white">
+                    <Button variant="outline" onClick={()=>openParticipants(s)} className="border-white/20 text-white">
                       <Eye className="w-4 h-4 mr-1" /> Deltagare
                     </Button>
-                    <Button onClick={()=>{ setAddOpenFor(s.id); setAddForm({ supervisorName:'', supervisorEmail:'', supervisorPhone:'', studentId:'', sendPaymentEmail:true }); }} className="bg-green-600 hover:bg-green-500 text-white">Lägg till</Button>
+                    {tab==='future' && (
+                      <Button onClick={()=>{ setAddOpenFor(s.id); setAddForm({ supervisorName:'', supervisorEmail:'', supervisorPhone:'', studentId:'', sendPaymentEmail:true }); }} className="bg-green-600 hover:bg-green-500 text-white">Lägg till</Button>
+                    )}
                   </div>
                 </div>
-                {showParticipantsFor===s.id && (
-                  <div className="rounded-xl bg-white/5 border border-white/10 p-3">
-                    <h4 className="text-white font-semibold mb-2">Deltagarlista</h4>
-                    <div className="space-y-1">
-                      {(participants[s.id]||[]).map((p:any)=> (
-                        <div key={p.id} className="flex items-center justify-between text-white/90">
-                          <span>{p.supervisorName}</span>
-                          <span className="text-slate-300">{p.supervisorPhone || '-'}</span>
-                        </div>
-                      ))}
-                      {(participants[s.id]||[]).length===0 && (
-                        <div className="text-slate-300">Inga deltagare</div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Participants moved to dialog */}
               </div>
             </CardContent>
           </Card>
@@ -300,13 +349,13 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
                 <Input value={addForm.supervisorPhone} onChange={e=>setAddForm(f=>({...f, supervisorPhone:e.target.value}))} className="bg-white/10 border-white/20 text-white" />
               </div>
             </div>
-            <div>
+            <div className="relative z-[60]">
               <Label className="text-slate-200">Koppla till användare (valfritt)</Label>
               <div className="relative">
-                <select value={addForm.studentId} onChange={e=>setAddForm(f=>({...f, studentId:e.target.value}))} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
+                <select value={addForm.studentId} onChange={e=>setAddForm(f=>({...f, studentId:e.target.value}))} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none z-[60]">
                   <option value="">Ingen</option>
                   {studentOptions.map(s => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
+                    <option key={s.id} value={s.id} className="bg-slate-900 text-white">{s.label}</option>
                   ))}
                 </select>
                 <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
@@ -321,12 +370,198 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
             <Button variant="outline" onClick={()=>setAddOpenFor(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
             <Button onClick={async()=>{
               if(!addOpenFor) return;
-              const res = await fetch(`/api/admin/handledar-sessions/${addOpenFor}/add-booking`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(addForm)});
-              if(res.ok){ toast.success('Deltagare tillagd'); setAddOpenFor(null); } else { const e=await res.json().catch(()=>({})); toast.error(e.error||'Kunde inte lägga till'); }
+              const t = toast.loading('Lägger till deltagare...');
+              try{
+                const res = await fetch(`/api/admin/handledar-sessions/${addOpenFor}/add-booking`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(addForm)});
+                if(res.ok){
+                  toast.success('Deltagare tillagd',{id:t});
+                  setAddOpenFor(null);
+                  // refresh sessions count
+                  try{ if (tab==='future') await loadFuture(); else await loadPast(pastPage); }catch{}
+                } else {
+                  const e=await res.json().catch(()=>({}));
+                  toast.error(e.error||'Kunde inte lägga till',{id:t});
+                }
+              } finally {
+                // no-op
+              }
             }} className="bg-emerald-600 hover:bg-emerald-500">Lägg till</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Participants dialog */}
+      <Dialog open={participantsDialog.open} onOpenChange={(o)=>{ if(!o) setParticipantsDialog({ open:false, sessionId:null, title:'' }); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Deltagare – {participantsDialog.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {participantLoadingId===participantsDialog.sessionId && (
+              <div className="flex items-center gap-2 text-slate-200 py-2"><Loader2 className="w-4 h-4 animate-spin"/> Hämtar deltagare…</div>
+            )}
+            {participantsDialog.sessionId && (participants[participantsDialog.sessionId]||[]).map((p:any)=> (
+              <div key={p.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white/90">
+                <div className="flex flex-wrap items-center gap-2">
+                  {p.studentId ? (
+                    <button className="text-white hover:underline inline-flex items-center gap-1" onClick={() => setUserPopup({ open: true, userId: p.studentId, user: null })}>
+                      <UserIcon className="w-4 h-4" /> {p.supervisorName}
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-white/80 cursor-default">
+                      <UserIcon className="w-4 h-4" /> {p.supervisorName}
+                    </span>
+                  )}
+                  {p.paymentStatus === 'paid' ? (
+                    <span className="px-2 py-0.5 text-xs rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 whitespace-nowrap">Betald</span>
+                  ) : (
+                    <span className="px-2 py-0.5 text-xs rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 whitespace-nowrap">Ej betald</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" className="border-white/20 text-white w-full sm:w-auto justify-center" onClick={async()=>{
+                    try {
+                      const res = await fetch('/api/admin/handledar-sessions/future');
+                      const data = await res.json();
+                      setMoving({ bookingId: p.id, open: true, sessions: (data.sessions||[]), targetId: '' });
+                    } catch { toast.error('Kunde inte hämta framtida sessioner'); }
+                  }}>
+                    <MoveRight className="w-4 h-4 mr-1"/> Flytta
+                  </Button>
+                  <Button size="sm" variant="destructive" className="bg-red-600 hover:bg-red-500 w-full sm:w-auto justify-center" onClick={()=>setUnbookingId(p.id)}>
+                    <Trash2 className="w-4 h-4 mr-1"/> Avboka
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {participantsDialog.sessionId && (participants[participantsDialog.sessionId]||[]).length===0 && participantLoadingId!==participantsDialog.sessionId && (
+              <div className="text-slate-300">Inga deltagare</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move dialog */}
+      {moving?.open && (
+        <Dialog open={moving.open} onOpenChange={(o)=>{ if(!o) setMoving(null); }}>
+          <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-white">Flytta deltagare</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Label className="text-slate-200">Mål-session</Label>
+              <div className="relative z-[70]">
+                <select value={moving.targetId} onChange={e=>setMoving(m=>m?{...m,targetId:e.target.value}:m)} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
+                  <option value="">Välj framtida session</option>
+                  {moving.sessions.map((fs:any)=>(
+                    <option key={fs.id} value={fs.id} className="bg-slate-900 text-white">{fs.title} — {fs.date} {String(fs.startTime||'').slice(0,5)}-{String(fs.endTime||'').slice(0,5)}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={()=>setMoving(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+              <Button disabled={!moving.targetId} onClick={async()=>{
+                if(!moving?.targetId) return;
+                const t = toast.loading('Flyttar deltagare...');
+                try{
+                  const res = await fetch(`/api/admin/handledar-bookings/${moving.bookingId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'move', targetSessionId: moving.targetId })});
+                  if(res.ok){
+                    toast.success('Deltagare flyttad',{id:t});
+                    setMoving(null);
+                    // refresh sessions count
+                    try{ if (tab==='future') await loadFuture(); else await loadPast(pastPage); }catch{}
+                  } else {
+                    const e=await res.json().catch(()=>({}));
+                    toast.error(e.error||'Kunde inte flytta',{id:t});
+                  }
+                } finally {}
+              }} className="bg-emerald-600 hover:bg-emerald-500">Flytta</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Unbook confirm */}
+      <Dialog open={!!unbookingId} onOpenChange={(o)=>{ if(!o) setUnbookingId(null); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Avboka deltagare</DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-200">Är du säker på att du vill avboka deltagaren? Denna åtgärd kan inte ångras.</p>
+          {(() => {
+            const all = Object.values(participants).flat() as any[];
+            const b = all.find((x)=> x.id === unbookingId);
+            if (b?.paymentStatus === 'paid') {
+              return (
+                <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
+                  <div className="font-semibold mb-1">Bokningen är markerad som betald</div>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="accent-amber-400" onChange={(e)=> (window as any).__confirmPaidRemoval = e.target.checked} />
+                    <span>Jag har gjort en manuell återbetalning. Gå vidare och avboka.</span>
+                  </label>
+                </div>
+              );
+            }
+            return null;
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={()=>setUnbookingId(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+            <Button variant="destructive" onClick={async()=>{
+              if(!unbookingId) return;
+              const t = toast.loading('Avbokar...');
+              try{
+                const payload: any = {};
+                const all = Object.values(participants).flat() as any[];
+                const b = all.find((x)=> x.id === unbookingId);
+                if (b?.paymentStatus === 'paid') {
+                  payload.confirmPaidRemoval = Boolean((window as any).__confirmPaidRemoval);
+                  if (!payload.confirmPaidRemoval) {
+                    toast.error('Bekräfta återbetalning för att avboka betald bokning', { id: t });
+                    return;
+                  }
+                }
+                const res = await fetch(`/api/admin/handledar-bookings/${unbookingId}`, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                if(res.ok){
+                  toast.success('Avbokad',{id:t});
+                  setUnbookingId(null);
+                  // refresh sessions count
+                  try{ if (tab==='future') await loadFuture(); else await loadPast(pastPage); }catch{}
+                } else {
+                  const e=await res.json().catch(()=>({}));
+                  toast.error(e.error||'Kunde inte avboka',{id:t});
+                }
+              } finally {}
+            }}>Avboka</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User popup */}
+      {userPopup.open && (
+        <Dialog open={userPopup.open} onOpenChange={(o)=>{ if(!o) setUserPopup({ open:false, user: null, userId: null }); }}>
+          <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2"><UserIcon className="w-5 h-5"/> Användare</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {!userPopup.user && <div className="flex items-center gap-2 text-slate-200"><Loader2 className="w-4 h-4 animate-spin"/> Hämtar användare…</div>}
+              {userPopup.user && (
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                  <div className="text-lg font-bold">{userPopup.user.firstName} {userPopup.user.lastName}</div>
+                  <div className="text-slate-200">{userPopup.user.email}</div>
+                  {userPopup.user.phone && <div className="text-slate-300">{userPopup.user.phone}</div>}
+                  <div className="mt-3 flex items-center gap-2 text-slate-200"><span className="px-2 py-0.5 rounded bg-white/10 border border-white/20">{userPopup.user.role}</span>{userPopup.user.inskriven && <span className="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">Inskriven</span>}</div>
+                  <div className="mt-4">
+                    <a href={`/dashboard/admin/users/${userPopup.user.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">Öppna profilsida</a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

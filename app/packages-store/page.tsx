@@ -1,11 +1,13 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { packages, packageContents, lessonTypes } from '@/lib/db/schema';
+import { packages, packageContents, lessonTypes, userCredits } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import PackagesStoreClient from './packages-store-client';
 
-export default async function PackagesStorePage() {
+export default async function PackagesStorePage({ searchParams }: { searchParams?: Record<string, string | string[]> }) {
   const user = await requireAuth('student');
+  const params = searchParams || {};
+  const openPayment = (Array.isArray(params.openPayment) ? params.openPayment[0] : params.openPayment) || '';
 
   // Fetch all active packages with their contents
   const packagesData = await db
@@ -58,10 +60,22 @@ export default async function PackagesStorePage() {
     })
   );
 
+  // Determine if user already has active credits
+  const existingCredits = await db
+    .select({
+      creditsRemaining: userCredits.creditsRemaining,
+    })
+    .from(userCredits)
+    .where(eq(userCredits.userId, user.id));
+
+  const hasActiveCredits = existingCredits.some((c) => (Number(c.creditsRemaining) || 0) > 0);
+
   return (
     <PackagesStoreClient 
       user={user}
       packages={packagesWithContents}
+      hasActiveCredits={hasActiveCredits}
+      // openPayment could be used by the client to auto-open purchase dialog
     />
   );
 }

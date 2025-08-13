@@ -48,7 +48,10 @@ Payments
 - Qliro: /api/payments/qliro/create-checkout, /status, /webhook, admin dashboard helpers
 
 Packages
-- /api/packages/with-contents, /api/packages/purchase
+- /api/packages/with-contents, /api/packages/purchase, /api/packages/notify-admin
+
+Payments Admin
+- /api/admin/payments/swish/list, /confirm, /decline, /remind — includes type 'order' for package purchases; confirming 'order' adds credits and emails user
 
 Cron
 - /api/cron/daily-bookings

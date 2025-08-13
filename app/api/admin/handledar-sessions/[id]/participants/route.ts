@@ -18,6 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         supervisorName: handledarBookings.supervisorName,
         supervisorEmail: handledarBookings.supervisorEmail,
         supervisorPhone: handledarBookings.supervisorPhone,
+        studentId: handledarBookings.studentId,
         paymentStatus: handledarBookings.paymentStatus,
         status: handledarBookings.status,
         studentEmail: users.email,

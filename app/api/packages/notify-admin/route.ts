@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const user = userRows[0] as { id: string; email: string; firstName: string; lastName: string; role: string } | undefined;
     const pkg = pkgRows[0] as { name?: string } | undefined;
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret';
 
     // Signed admin confirm/deny links for the generic Swish moderation flow

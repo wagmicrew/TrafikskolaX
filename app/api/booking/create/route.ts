@@ -858,7 +858,7 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
   // Get the current domain from request headers or environment
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
@@ -969,7 +969,7 @@ async function saveInternalMessage(userId: string | null, booking: any, alreadyP
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
   // Get the current domain from environment
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;

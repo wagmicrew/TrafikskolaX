@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const booking = rows[0] as any;
 
     // Build signed admin approve/deny links
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret';
     const approveToken = jwt.sign({ type: 'swish_action', bookingId, sessionType: 'handledar', decision: 'confirm' }, jwtSecret, { expiresIn: '30m' });
     const denyToken = jwt.sign({ type: 'swish_action', bookingId, sessionType: 'handledar', decision: 'deny' }, jwtSecret, { expiresIn: '30m' });

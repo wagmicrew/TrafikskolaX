@@ -6,7 +6,7 @@ export default async function QliroStartPage({ params }: { params: Promise<{ ref
   const { reference } = await params;
 
   // Create checkout for the reference (booking_ or package_)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
   const createRes = await fetch(`${baseUrl}/api/payments/qliro/create-for-reference`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

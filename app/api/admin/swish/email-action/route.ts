@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       } else if (action === 'deny') {
         await db.update(handledarBookings).set({ status: 'cancelled' as 'cancelled', paymentStatus: 'failed' as 'failed', updatedAt: new Date() }).where(eq(handledarBookings.id, b.id));
       } else if (action === 'remind') {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
         if (b.supervisorEmail) {
           await EmailService.sendEmail({
             to: b.supervisorEmail,
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     } else if (action === 'deny') {
       await db.update(bookings).set({ status: 'cancelled' as 'cancelled', paymentStatus: 'failed' as 'failed', updatedAt: new Date() }).where(eq(bookings.id, b.id));
     } else if (action === 'remind') {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
       // No public page for regular bookings yet; send generic link
       // If guest email available, send to that; otherwise try user email
       let email: string | null = null;

@@ -8,7 +8,8 @@ import { logger } from '@/lib/logging/logger';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { amount, reference, description, returnUrl, customerEmail, customerPhone, customerFirstName, customerLastName } = body;
+    const { amount, reference, description, returnUrl } = body as { amount: number | string; reference: string; description: string; returnUrl: string };
+    let { customerEmail, customerPhone, customerFirstName, customerLastName } = body as { customerEmail?: string; customerPhone?: string; customerFirstName?: string; customerLastName?: string };
 
     // Validate required fields
     if (!amount || !reference || !description || !returnUrl) {
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
               .from(bookings)
               .where(eq(bookings.id, id))
               .limit(1);
-            const booking = rows[0] as any;
+            const booking = rows[0] as { id: string; userId: string } | undefined;
             if (booking?.userId) {
               const u = await db.select().from(users).where(eq(users.id, booking.userId)).limit(1);
               if (u[0]) {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
               .from(handledarBookings)
               .where(eq(handledarBookings.id, id))
               .limit(1);
-            const hb = rows[0] as any;
+            const hb = rows[0] as { studentId?: string; supervisorEmail?: string; supervisorPhone?: string } | undefined;
             if (hb?.studentId) {
               const u = await db.select().from(users).where(eq(users.id, hb.studentId)).limit(1);
               if (u[0]) {
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
               .from(packagePurchases)
               .where(eq(packagePurchases.id, id))
               .limit(1);
-            const p = rows[0] as any;
+            const p = rows[0] as { id: string; userId: string } | undefined;
             if (p?.userId) {
               const u = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
               if (u[0]) {
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Non-fatal; continue without enrichment
     }
 

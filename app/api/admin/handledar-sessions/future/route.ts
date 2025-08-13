@@ -18,8 +18,9 @@ export async function GET(_request: NextRequest) {
       .from(handledarSessions)
       .where(gt(handledarSessions.date as any, today as any));
     return NextResponse.json({ sessions });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal server error' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

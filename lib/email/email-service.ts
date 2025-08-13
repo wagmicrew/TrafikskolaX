@@ -58,7 +58,7 @@ interface EmailContext {
   admin?: {
     email: string;
   };
-  customData?: Record<string, any>;
+  customData?: Record<string, unknown>;
 }
 
 function applyRedTemplate(htmlContent: string): string {
@@ -209,17 +209,17 @@ const allSuccess = results.every(result => result === true);
 
     // Replace custom data (supports nested objects like {{links.bookingPaymentUrl}})
     if (context.customData) {
-      const flatten = (obj: any, prefix = ''): Record<string, any> => {
-        return Object.keys(obj).reduce((acc: Record<string, any>, k: string) => {
-          const val: any = (obj as any)[k];
+      const flatten = (obj: Record<string, unknown>, prefix = ''): Record<string, unknown> => {
+        return Object.keys(obj).reduce((acc: Record<string, unknown>, k: string) => {
+          const val: unknown = (obj as Record<string, unknown>)[k];
           const keyPath = prefix ? `${prefix}.${k}` : k;
           if (val && typeof val === 'object' && !Array.isArray(val)) {
-            Object.assign(acc, flatten(val, keyPath));
+            Object.assign(acc, flatten(val as Record<string, unknown>, keyPath));
           } else {
             acc[keyPath] = val;
           }
           return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, unknown>);
       };
       const flat = flatten(context.customData);
       Object.entries(flat).forEach(([key, value]) => {
@@ -311,7 +311,7 @@ const allSuccess = results.every(result => result === true);
         // TODO: Fetch specific user email from database if needed
         return null;
       case 'supervisor':
-        return (context as any).customData?.supervisorEmail || null;
+        return (context.customData as Record<string, unknown> | undefined)?.supervisorEmail as string | null || null;
       default:
         return null;
     }

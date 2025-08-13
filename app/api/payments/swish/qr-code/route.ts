@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Prepare the request payload for Swish QR API
     // Swish API requires minimum size of 300
     const apiSize = format === 'svg' ? undefined : Math.max(size, 300);
-    const qrPayload: any = {
+    const qrPayload: Record<string, unknown> = {
       format,
       size: apiSize,
       border,

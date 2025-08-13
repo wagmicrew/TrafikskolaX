@@ -110,15 +110,15 @@ export async function POST(request: NextRequest) {
       // Detect if optional column paid_at exists to avoid runtime errors on legacy DBs
       let paidAtExists = false;
       try {
-        const result: any = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1`);
-        const rows = Array.isArray(result) ? result : (result?.rows ?? []);
+        const result = await db.execute(sql`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1`) as unknown;
+        const rows = Array.isArray(result) ? (result as unknown[]) : ((result as { rows?: unknown[] } | undefined)?.rows ?? []);
         paidAtExists = rows.length > 0;
       } catch {
         paidAtExists = false;
       }
 
       // Update payment status (conditionally include paidAt)
-      const updateValues: any = {
+      const updateValues: Record<string, unknown> = {
         paymentStatus: 'paid',
         paymentReference: event.PaymentReference,
       };

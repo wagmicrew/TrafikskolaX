@@ -36,7 +36,7 @@ async function getEmailConfig(): Promise<{
     const settingsResults = await Promise.all(settingsPromises);
     
     // Helper function to get setting value
-    const getSetting = (index: number, defaultValue: any = '') => {
+    const getSetting = (index: number, defaultValue: string = '') => {
       const result = settingsResults[index];
       return result.length > 0 ? result[0].value : defaultValue;
     };

@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest) {
         createdAt: handledarBookings.createdAt,
       })
       .from(handledarBookings)
-      .where(or(eq(handledarBookings.paymentStatus, 'pending' as any), eq(handledarBookings.paymentStatus, 'unpaid' as any)));
+      .where(or(eq(handledarBookings.paymentStatus, 'pending' as 'pending'), eq(handledarBookings.paymentStatus, 'unpaid' as 'unpaid')));
 
     // Lesson bookings: unpaid/pending
     const bookingRows = await db
@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest) {
         createdAt: bookings.createdAt,
       })
       .from(bookings)
-      .where(or(eq(bookings.paymentStatus, 'pending' as any), eq(bookings.paymentStatus, 'unpaid' as any)));
+      .where(or(eq(bookings.paymentStatus, 'pending' as 'pending'), eq(bookings.paymentStatus, 'unpaid' as 'unpaid')));
 
     const userIds = bookingRows.map(b => b.userId).filter(Boolean) as string[];
     const usersMap: Record<string, { firstName: string | null; lastName: string | null; email: string | null; phone: string | null }> = {};
@@ -54,7 +54,7 @@ export async function GET(_request: NextRequest) {
     const purchaseRows = await db
       .select({ id: packagePurchases.id, userId: packagePurchases.userId, amount: packagePurchases.pricePaid, paymentStatus: packagePurchases.paymentStatus, createdAt: packagePurchases.createdAt })
       .from(packagePurchases)
-      .where(or(eq(packagePurchases.paymentStatus, 'pending' as any), eq(packagePurchases.paymentStatus, 'unpaid' as any)));
+      .where(or(eq(packagePurchases.paymentStatus, 'pending' as 'pending'), eq(packagePurchases.paymentStatus, 'unpaid' as 'unpaid')));
 
     const purchaseUserIds = purchaseRows.map(p => p.userId);
     if (purchaseUserIds.length) {
@@ -73,8 +73,8 @@ export async function GET(_request: NextRequest) {
         email: r.supervisorEmail || undefined,
         phone: r.supervisorPhone || undefined,
         amount: Number(r.amount || 0),
-        status: (r.paymentStatus as any) || 'pending',
-        createdAt: r.createdAt as any,
+        status: (r.paymentStatus as string) || 'pending',
+        createdAt: r.createdAt as Date,
       })),
       ...bookingRows.map(r => {
         const u = r.userId ? usersMap[r.userId] : undefined;
@@ -85,8 +85,8 @@ export async function GET(_request: NextRequest) {
           email: u?.email || undefined,
           phone: u?.phone || undefined,
           amount: Number(r.amount || 0),
-          status: (r.paymentStatus as any) || 'pending',
-          createdAt: r.createdAt as any,
+          status: (r.paymentStatus as string) || 'pending',
+          createdAt: r.createdAt as Date,
         };
       }),
       ...purchaseRows.map(r => {
@@ -98,8 +98,8 @@ export async function GET(_request: NextRequest) {
           email: u?.email || undefined,
           phone: u?.phone || undefined,
           amount: Number(r.amount || 0),
-          status: (r.paymentStatus as any) || 'pending',
-          createdAt: r.createdAt as any,
+          status: (r.paymentStatus as string) || 'pending',
+          createdAt: r.createdAt as Date,
         };
       }),
     ];

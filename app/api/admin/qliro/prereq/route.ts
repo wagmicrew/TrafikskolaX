@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
     const prodEnabled = map['qliro_prod_enabled'] === 'true';
     const sandboxEnabled = map['qliro_enabled'] === 'true';
     const useProd = prodEnabled;
-    const apiUrl = useProd ? (map['qliro_prod_api_url'] || 'https://api.qliro.com') : (map['qliro_dev_api_url'] || 'https://playground.qliro.com');
+    const apiUrl = useProd ? (map['qliro_prod_api_url'] || 'https://payments.qit.nu') : (map['qliro_dev_api_url'] || 'https://pago.qit.nu');
     const apiKey = useProd ? map['qliro_prod_api_key'] : map['qliro_api_key'];
     const apiSecret = map['qliro_api_secret'] || map['qliro_secret'] || '';
 
@@ -91,8 +91,9 @@ export async function GET(_request: NextRequest) {
       apiUrl,
       checks
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed to run prerequisites check' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Failed to run prerequisites check';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

@@ -15,11 +15,11 @@ export async function POST(request: NextRequest) {
     if (!id || !type) return NextResponse.json({ error: 'id and type required' }, { status: 400 });
 
     if (type === 'handledar') {
-      await db.update(handledarBookings).set({ paymentStatus: 'failed' as any, status: 'cancelled' as any, updatedAt: new Date() }).where(eq(handledarBookings.id, id));
+      await db.update(handledarBookings).set({ paymentStatus: 'failed' as 'failed', status: 'cancelled' as 'cancelled', updatedAt: new Date() }).where(eq(handledarBookings.id, id));
     } else if (type === 'booking') {
-      await db.update(bookings).set({ paymentStatus: 'failed' as any, status: 'cancelled' as any, updatedAt: new Date() }).where(eq(bookings.id, id));
+      await db.update(bookings).set({ paymentStatus: 'failed' as 'failed', status: 'cancelled' as 'cancelled', updatedAt: new Date() }).where(eq(bookings.id, id));
     } else if (type === 'order') {
-      await db.update(packagePurchases).set({ paymentStatus: 'failed' as any }).where(eq(packagePurchases.id, id));
+      await db.update(packagePurchases).set({ paymentStatus: 'failed' as 'failed' }).where(eq(packagePurchases.id, id));
     } else {
       return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
     }

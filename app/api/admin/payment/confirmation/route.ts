@@ -8,12 +8,28 @@ import { createPaymentConfirmationTemplate } from '@/lib/email/templates/payment
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
+type PaymentType = 'booking' | 'package' | 'handledar';
+
 interface PaymentInfo {
   amount: string;
   date: string;
   method: string;
   reference?: string;
   orderId?: string;
+}
+
+interface CustomerInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+interface PurchaseDetails {
+  type: PaymentType;
+  itemName: string;
+  itemDescription?: string;
+  date?: string;
+  time?: string;
 }
 
 export async function POST(request: Request) {
@@ -49,15 +65,15 @@ export async function POST(request: Request) {
     }
 
     // Handle different payment types
-    let purchaseDetails;
-    let customerInfo;
+    let purchaseDetails: PurchaseDetails | undefined;
+    let customerInfo: CustomerInfo | undefined;
     let itemName = '';
     let itemDescription = '';
     let itemDate;
     let itemTime;
     let updateResult;
 
-    switch (paymentType) {
+    switch (paymentType as PaymentType) {
       case 'booking':
         // Get booking details
         const bookingResult = await db
@@ -254,7 +270,7 @@ export async function POST(request: Request) {
     }
 
     // If sendEmail is true, send payment confirmation to customer
-    if (sendEmail && customerInfo.email) {
+    if (sendEmail && customerInfo?.email) {
       // Get email settings from database
       const settingsRows = await db
         .select()
@@ -292,7 +308,7 @@ export async function POST(request: Request) {
           orderId: paymentInfo.orderId
         },
         purchaseDetails: {
-          type: paymentType as any,
+          type: (paymentType as PaymentType),
           itemName: purchaseDetails.itemName,
           itemDescription: purchaseDetails.itemDescription,
           date: purchaseDetails.date,
@@ -314,7 +330,7 @@ export async function POST(request: Request) {
     }
 
     // If notifySchool is true, send notification to school contact email
-    if (notifySchool) {
+    if (notifySchool && purchaseDetails) {
       // Get school notification settings
       const notifySettingsRows = await db
         .select()
@@ -376,12 +392,12 @@ export async function POST(request: Request) {
         schoolNotified: notifySchool
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error confirming payment:', error);
     return NextResponse.json(
       { 
         error: 'Failed to confirm payment',
-        details: error.message || 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

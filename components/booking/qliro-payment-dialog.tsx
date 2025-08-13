@@ -111,7 +111,7 @@ export function QliroPaymentDialog({
               </Button>
 
               <p className="text-xs text-white/60 text-center mt-4">
-                Clicking "Proceed to Payment" will open the Qliro checkout page in a new tab.
+                Clicking &quot;Proceed to Payment&quot; will open the Qliro checkout page in a new tab.
               </p>
             </div>
           </div>

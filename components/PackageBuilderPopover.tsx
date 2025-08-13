@@ -174,7 +174,7 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
     }
   };
 
-  const updateContent = (id: string, field: keyof PackageContent, value: any) => {
+  const updateContent = (id: string, field: keyof PackageContent, value: unknown) => {
     setPackageData(prev => ({
       ...prev,
       contents: prev.contents.map(content => 
@@ -640,10 +640,10 @@ const PackageBuilderPopover: React.FC<PackageBuilderPopoverProps> = ({ lessonTyp
                     ))}
 
                     {!contentsLoading && packageData.contents.length === 0 && (
-                      <div className="text-center py-8 text-white/60">
+                  <div className="text-center py-8 text-white/60">
                         <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p>Inga innehåll tillagda ännu</p>
-                        <p className="text-sm">Klicka "Lägg till" för att lägga till lektioner och perks</p>
+                    <p className="text-sm">Klicka &quot;Lägg till&quot; för att lägga till lektioner och perks</p>
                       </div>
                     )}
                   </div>

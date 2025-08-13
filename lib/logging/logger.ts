@@ -6,7 +6,7 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'debug';
   category: 'payment' | 'booking' | 'email' | 'auth' | 'system';
   message: string;
-  data?: any;
+  data?: unknown;
   userId?: string;
   sessionId?: string;
 }
@@ -87,7 +87,7 @@ class Logger {
     level: LogEntry['level'],
     category: LogEntry['category'],
     message: string,
-    data?: any,
+    data?: unknown,
     userId?: string,
     sessionId?: string
   ) {
@@ -109,19 +109,19 @@ class Logger {
     }
   }
 
-  public info(category: LogEntry['category'], message: string, data?: any, userId?: string, sessionId?: string) {
+  public info(category: LogEntry['category'], message: string, data?: unknown, userId?: string, sessionId?: string) {
     this.log('info', category, message, data, userId, sessionId);
   }
 
-  public warn(category: LogEntry['category'], message: string, data?: any, userId?: string, sessionId?: string) {
+  public warn(category: LogEntry['category'], message: string, data?: unknown, userId?: string, sessionId?: string) {
     this.log('warn', category, message, data, userId, sessionId);
   }
 
-  public error(category: LogEntry['category'], message: string, data?: any, userId?: string, sessionId?: string) {
+  public error(category: LogEntry['category'], message: string, data?: unknown, userId?: string, sessionId?: string) {
     this.log('error', category, message, data, userId, sessionId);
   }
 
-  public debug(category: LogEntry['category'], message: string, data?: any, userId?: string, sessionId?: string) {
+  public debug(category: LogEntry['category'], message: string, data?: unknown, userId?: string, sessionId?: string) {
     this.log('debug', category, message, data, userId, sessionId);
   }
 

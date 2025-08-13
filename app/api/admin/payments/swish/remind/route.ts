@@ -23,12 +23,12 @@ export async function POST(request: NextRequest) {
       if (type === 'handledar') {
         const rows = await db.select().from(handledarBookings).where(eq(handledarBookings.id, id)).limit(1);
         if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-        const b = rows[0] as any;
+        const b = rows[0] as { id: string; supervisorEmail?: string | null; supervisorName?: string | null };
         items.push({ email: b.supervisorEmail, name: b.supervisorName || 'Handledar', link: `${baseUrl}/handledar/payment/${b.id}` });
       } else if (type === 'booking') {
         const rows = await db.select().from(bookings).where(eq(bookings.id, id)).limit(1);
         if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-        const b = rows[0] as any;
+        const b = rows[0] as { id: string; userId?: string | null; guestEmail?: string | null };
         let email: string | null | undefined = null;
         if (b.userId) {
           const u = await db.select().from(users).where(eq(users.id, b.userId)).limit(1);
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       } else if (type === 'order') {
         const rows = await db.select().from(packagePurchases).where(eq(packagePurchases.id, id)).limit(1);
         if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-        const p = rows[0] as any;
+        const p = rows[0] as { id: string; userId: string };
         const u = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
         // Use dedicated cart entry for package payments
         items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/cart?type=package&id=${p.id}` });
@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Remind all unpaid
-      const handledarRows = await db.select().from(handledarBookings).where(or(eq(handledarBookings.paymentStatus, 'pending' as any), eq(handledarBookings.paymentStatus, 'unpaid' as any)));
-      for (const b of handledarRows as any[]) items.push({ email: b.supervisorEmail, name: b.supervisorName || 'Handledar', link: `${baseUrl}/handledar/payment/${b.id}` });
-      const bookingRows = await db.select().from(bookings).where(or(eq(bookings.paymentStatus, 'pending' as any), eq(bookings.paymentStatus, 'unpaid' as any)));
-      for (const b of bookingRows as any[]) {
+      const handledarRows = await db.select().from(handledarBookings).where(or(eq(handledarBookings.paymentStatus, 'pending' as 'pending'), eq(handledarBookings.paymentStatus, 'unpaid' as 'unpaid')));
+      for (const b of handledarRows as Array<{ id: string; supervisorEmail?: string | null; supervisorName?: string | null }>) items.push({ email: b.supervisorEmail || undefined, name: b.supervisorName || 'Handledar', link: `${baseUrl}/handledar/payment/${b.id}` });
+      const bookingRows = await db.select().from(bookings).where(or(eq(bookings.paymentStatus, 'pending' as 'pending'), eq(bookings.paymentStatus, 'unpaid' as 'unpaid')));
+      for (const b of bookingRows as Array<{ id: string; userId?: string | null; guestEmail?: string | null }>) {
         let email: string | null | undefined = null;
         if (b.userId) {
           const u = await db.select().from(users).where(eq(users.id, b.userId)).limit(1);
@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
         // Use public booking payment page
         items.push({ email, name: 'Bokning', link: `${baseUrl}/booking/payment/${b.id}` });
       }
-      const purchaseRows = await db.select().from(packagePurchases).where(or(eq(packagePurchases.paymentStatus, 'pending' as any), eq(packagePurchases.paymentStatus, 'unpaid' as any)));
-      for (const p of purchaseRows as any[]) {
+      const purchaseRows = await db.select().from(packagePurchases).where(or(eq(packagePurchases.paymentStatus, 'pending' as 'pending'), eq(packagePurchases.paymentStatus, 'unpaid' as 'unpaid')));
+      for (const p of purchaseRows as Array<{ id: string; userId: string }>) {
         const u = await db.select().from(users).where(eq(users.id, p.userId)).limit(1);
         items.push({ email: u[0]?.email, name: 'Order', link: `${baseUrl}/cart?type=package&id=${p.id}` });
       }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           booking: { id: bookingId, scheduledDate, startTime: b?.startTime || '', endTime: b?.endTime || '', lessonTypeName: 'Körlektion', totalPrice: (b?.totalPrice != null ? String(b.totalPrice) : '0'), swishUUID: b?.swishUUID || '', paymentMethod: 'swish' },
           customData: { links: { bookingPaymentUrl: it.link } }
         } as any);
-      } else {
+    } else {
         await EmailService.sendTriggeredEmail('package_payment_reminder', {
           user: { id: '', email: it.email, firstName: it.name || 'Elev', lastName: '', role: 'student' },
           customData: { links: { packagesPaymentUrl: it.link } }
@@ -100,8 +100,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, reminded: items.length });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal server error' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Internal server error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

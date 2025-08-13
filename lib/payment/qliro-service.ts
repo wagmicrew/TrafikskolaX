@@ -110,7 +110,7 @@ export class QliroService {
       this.settings = {
         enabled: true,
         apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
-        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://api.qliro.com') : (settingsMap['qliro_dev_api_url'] || 'https://playground.qliro.com'),
+        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://payments.qit.nu') : (settingsMap['qliro_dev_api_url'] || 'https://pago.qit.nu'),
         webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
         apiSecret: settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || '',
         environment

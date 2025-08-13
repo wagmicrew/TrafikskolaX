@@ -15,12 +15,12 @@ export async function POST(request: NextRequest) {
     if (!id || !type) return NextResponse.json({ error: 'id and type required' }, { status: 400 });
 
     if (type === 'handledar') {
-      await db.update(handledarBookings).set({ paymentStatus: 'paid' as any, status: 'confirmed' as any, updatedAt: new Date() }).where(eq(handledarBookings.id, id));
+      await db.update(handledarBookings).set({ paymentStatus: 'paid' as 'paid', status: 'confirmed' as 'confirmed', updatedAt: new Date() }).where(eq(handledarBookings.id, id));
     } else if (type === 'booking') {
-      await db.update(bookings).set({ paymentStatus: 'paid' as any, status: 'confirmed' as any, updatedAt: new Date() }).where(eq(bookings.id, id));
+      await db.update(bookings).set({ paymentStatus: 'paid' as 'paid', status: 'confirmed' as 'confirmed', updatedAt: new Date() }).where(eq(bookings.id, id));
     } else if (type === 'order') {
       // Mark purchase as paid
-      await db.update(packagePurchases).set({ paymentStatus: 'paid' as any, paidAt: new Date() }).where(eq(packagePurchases.id, id));
+      await db.update(packagePurchases).set({ paymentStatus: 'paid' as 'paid', paidAt: new Date() }).where(eq(packagePurchases.id, id));
 
       // Fetch purchase details
       const purchaseRows = await db.select().from(packagePurchases).where(eq(packagePurchases.id, id)).limit(1);
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
       // Add credits to user from package contents
       const contents = await db.select().from(packageContents).where(eq(packageContents.packageId, purchase.packageId));
-      for (const content of contents as any[]) {
+      for (const content of contents as Array<{ contentType: 'lesson' | 'handledar' | 'text'; lessonTypeId?: string; handledarSessionId?: string; credits?: number }>) {
         const addAmount = Number(content.credits || 0);
         if (!addAmount) continue;
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
             await db.update(userCredits).set({
               creditsRemaining: Number(existing[0].creditsRemaining || 0) + addAmount,
               creditsTotal: Number(existing[0].creditsTotal || 0) + addAmount,
-              updatedAt: new Date() as any,
+            updatedAt: new Date(),
             }).where(eq(userCredits.id, (existing[0] as any).id));
           } else {
             await db.insert(userCredits).values({
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
               creditsRemaining: addAmount,
               creditsTotal: addAmount,
               packageId: purchase.packageId,
-              creditType: 'lesson' as any,
+          creditType: 'lesson',
             });
           }
         } else if (content.handledarSessionId || content.contentType === 'handledar') {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
             await db.update(userCredits).set({
               creditsRemaining: Number(existing[0].creditsRemaining || 0) + addAmount,
               creditsTotal: Number(existing[0].creditsTotal || 0) + addAmount,
-              updatedAt: new Date() as any,
+            updatedAt: new Date(),
             }).where(eq(userCredits.id, (existing[0] as any).id));
           } else {
             await db.insert(userCredits).values({
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
               creditsRemaining: addAmount,
               creditsTotal: addAmount,
               packageId: purchase.packageId,
-              creditType: 'handledar' as any,
+          creditType: 'handledar',
             });
           }
         }

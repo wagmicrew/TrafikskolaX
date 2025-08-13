@@ -1,14 +1,27 @@
 // Optional Redis client with in-memory fallback (no dependency required in dev)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-let createClient: any;
+type RedisEventHandler = (...args: unknown[]) => void;
+interface RedisClientLike {
+  isOpen?: boolean;
+  connect: () => Promise<void>;
+  on: (event: string, handler: RedisEventHandler) => void;
+  get: (key: string) => Promise<string | null>;
+  setEx: (key: string, ttl: number, value: string) => Promise<void>;
+  del: (key: string) => Promise<void>;
+  exists: (key: string) => Promise<number>;
+}
+
+let createClient: ((options: { url?: string }) => RedisClientLike) | null = null;
 let redisAvailable = false;
 try {
   // Avoid static bundler resolution when package isn't installed
   // eslint-disable-next-line no-eval
   const req = eval('require');
-  ({ createClient } = req('redis'));
+  const mod = req('redis') as unknown;
+  // Cast only at the boundary to a minimal interface we actually use
+  createClient = (mod as { createClient: (options: { url?: string }) => unknown }).createClient as unknown as (options: { url?: string }) => RedisClientLike;
   redisAvailable = true;
-} catch (_e) {
+} catch {
   console.warn('[redis] Module not found. Falling back to in-memory cache.');
 }
 
@@ -31,7 +44,7 @@ function memorySet(key: string, value: unknown, ttlSec: number) {
   memoryStore.set(key, { value, expiresAt });
 }
 
-const redisClient: any = redisAvailable
+const redisClient: RedisClientLike = redisAvailable && createClient
   ? createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' })
   : {
       isOpen: false,

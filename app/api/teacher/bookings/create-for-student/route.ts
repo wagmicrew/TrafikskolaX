@@ -124,7 +124,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function sendStudentNotification(student: any, booking: any, lessonType: any) {
+type StudentBasic = { id: string; email: string; firstName: string; lastName: string; role: string };
+type BookingBasic = { id: string; scheduledDate: string | Date; startTime: string; endTime: string; totalPrice?: number | string; swishUUID?: string; paymentMethod?: string };
+type LessonTypeBasic = { name?: string };
+
+async function sendStudentNotification(student: StudentBasic, booking: BookingBasic, lessonType: LessonTypeBasic) {
   try {
     // Use the email template service
     const { EmailService } = await import('@/lib/email/email-service');

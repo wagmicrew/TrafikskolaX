@@ -136,13 +136,14 @@ class EditorJsVariablesInlineTool {
   surround(range: Range) {
     if (!range) return;
     if (this.state) { this.unwrap(range); return; }
-    const token = prompt('Infoga variabeltoken, t.ex. {{user.firstName}}');
-    if (!token || !/^\{\{[\w\.]+\}\}$/.test(token)) { alert('Ogiltig token'); return; }
+    const inputToken = prompt('Infoga variabeltoken, t.ex. {{user.firstName}}');
+    if (!inputToken || !/^\{\{[\w\.]+\}\}$/.test(inputToken)) { alert('Ogiltig token'); return; }
     const span = document.createElement('span'); span.className='token-chip'; span.setAttribute('data-token', token); span.textContent = token;
     range.deleteContents(); range.insertNode(span);
   }
   wrap(_range: Range){}
   unwrap(_range: Range){}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   checkState(){}
 }
 
@@ -434,7 +435,7 @@ export default function EmailTemplatesPage() {
     if (!selectedTemplate) return [];
     const cats = TRIGGER_TO_CATEGORIES[selectedTemplate.triggerType] || ['system', 'user'];
     const items: VarItem[] = Object.entries(VAR_DOCS)
-      .filter(([token, meta]) => cats.includes(meta.category))
+      .filter(([, meta]) => cats.includes(meta.category))
       .map(([token, meta]) => ({ token, description: meta.description, category: meta.category }));
     // Ensure system vars always present
     Object.entries(VAR_DOCS).forEach(([token, meta]) => {
@@ -447,15 +448,15 @@ export default function EmailTemplatesPage() {
     return q ? items.filter(i => i.token.toLowerCase().includes(q) || i.description.toLowerCase().includes(q)) : items;
   })();
 
-  const insertToken = (token: string) => {
+  const insertToken = (tokenStr: string) => {
     if (useWysiwyg) {
-      insertHtml(token);
+      insertHtml(tokenStr);
     } else if (htmlTextareaRef.current) {
       const textarea = htmlTextareaRef.current;
       const start = textarea.selectionStart || 0;
       const end = textarea.selectionEnd || 0;
       const value = textarea.value || '';
-      const next = value.slice(0, start) + token + value.slice(end);
+      const next = value.slice(0, start) + tokenStr + value.slice(end);
       handleTemplateChange('htmlContent', next);
       // Restore caret after inserted token
       requestAnimationFrame(() => {
@@ -582,6 +583,7 @@ export default function EmailTemplatesPage() {
   }, []);
 
   // Initialize EditorJS when WYSIWYG is active and editor holder exists
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     let cancelled = false;
     const init = async () => {
@@ -739,11 +741,12 @@ export default function EmailTemplatesPage() {
 
   // Keep a separate initial HTML that we inject only on (re)mount to avoid React resetting caret
   const [editorInitialHtml, setEditorInitialHtml] = useState<string>('');
+  // Set initial HTML in the contenteditable holder when mount key changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (wysiwygRef.current && editorInitialHtml) {
       wysiwygRef.current.innerHTML = editorInitialHtml;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorMountKey]);
 
   const insertLink = () => {
@@ -1579,7 +1582,7 @@ export default function EmailTemplatesPage() {
                                   // Determine block index for insertion just after current block
                                   try {
                                     const currentIdx = editorJsRef.current?.blocks?.getCurrentBlockIndex?.();
-                                    const anchorNode = sel.anchorNode as Node | null;
+                                    const _anchorNode = sel.anchorNode as Node | null;
                                     // Prefer EditorJS current block index if available
                                     const baseIdx = (typeof currentIdx === 'number' && currentIdx >= 0) ? currentIdx : 0;
                                     nextInsertIdxRef.current = baseIdx + 1;

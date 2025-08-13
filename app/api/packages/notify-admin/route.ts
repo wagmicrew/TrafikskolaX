@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
     // Load purchase
     const rows = await db.select().from(packagePurchases).where(eq(packagePurchases.id, purchaseId)).limit(1);
     if (!rows.length) return NextResponse.json({ error: 'Order saknas' }, { status: 404 });
-    const purchase = rows[0] as any;
+    const purchase = rows[0] as { id: string; userId: string; packageId: string; pricePaid?: string | number; paymentReference?: string | null };
 
     // Load user and package for context
     const userRows = await db.select().from(users).where(eq(users.id, purchase.userId)).limit(1);
     const pkgRows = await db.select().from(packages).where(eq(packages.id, purchase.packageId)).limit(1);
-    const user = userRows[0] as any;
-    const pkg = pkgRows[0] as any;
+    const user = userRows[0] as { id: string; email: string; firstName: string; lastName: string; role: string } | undefined;
+    const pkg = pkgRows[0] as { name?: string } | undefined;
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret';
@@ -62,15 +62,16 @@ export async function POST(request: NextRequest) {
             <a href="${adminDenyUrl}" style="background:#dc2626;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700;">Ingen betalning mottagen</a>
           </div>`,
       }
-    } as any);
+    } as Record<string, unknown>);
 
     if (!ok) {
       return NextResponse.json({ success: true, warning: 'E-post delvis skickad. Kontrollera e-postinställningar.' });
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internt fel' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Internt fel';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

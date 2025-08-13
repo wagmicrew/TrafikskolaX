@@ -1,5 +1,4 @@
 
-// @ts-nocheck
 "use client";
 
 import { useState } from "react";
@@ -20,6 +19,7 @@ interface UserDetailProps {
     firstName: string;
     lastName: string;
     email: string;
+    phone?: string;
     role: "student" | "teacher" | "admin";
     isActive: boolean;
     inskriven: boolean;
@@ -81,17 +81,15 @@ export default function UserDetailClient({ user }: UserDetailProps) {
 
   const handleSaveDetails = async () => {
     try {
-      const {
-        password: _omitPwd,
-        confirmPassword: _omitConfirm,
-        personalNumber: _omitPersonal,
-        riskEducation1: _omitR1,
-        riskEducation2: _omitR2,
-        knowledgeTest: _omitKT,
-        drivingTest: _omitDT,
-        teacherNotes: _omitNotes,
-        ...general
-      } = formData as any;
+      const general: typeof formData = { ...formData };
+      delete (general as any).password;
+      delete (general as any).confirmPassword;
+      delete (general as any).personalNumber;
+      delete (general as any).riskEducation1;
+      delete (general as any).riskEducation2;
+      delete (general as any).knowledgeTest;
+      delete (general as any).drivingTest;
+      delete (general as any).teacherNotes;
 
       const response = await fetch(`/api/admin/users/${user.id}`, {
         method: 'PUT',
@@ -107,7 +105,7 @@ export default function UserDetailClient({ user }: UserDetailProps) {
       } else {
         toast({ title: 'Fel', description: 'Kunde inte spara uppgifter', variant: 'destructive' });
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Fel', description: 'Ett fel uppstod vid sparande', variant: 'destructive' });
     }
   };
@@ -128,7 +126,7 @@ export default function UserDetailClient({ user }: UserDetailProps) {
       } else {
         toast({ title: 'Fel', description: 'Kunde inte generera lösenord', variant: 'destructive' });
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Fel', description: 'Ett fel uppstod vid generering', variant: 'destructive' });
     }
   };
@@ -159,7 +157,7 @@ const handlePasswordChange = async () => {
 
   const handleSaveEducation = async () => {
     try {
-      const payload: any = {
+    const payload = {
         personalNumber: formData.personalNumber,
         riskEducation1: formData.riskEducation1,
         riskEducation2: formData.riskEducation2,
@@ -195,7 +193,7 @@ const handlePasswordChange = async () => {
         password: formData.password || 'Password123!',
         firstName: formData.firstName,
         lastName: formData.lastName,
-        phone: (formData as any).phone || '',
+        phone: formData.phone || '',
         role: formData.role,
       };
       const res = await fetch('/api/admin/users', {
@@ -211,7 +209,7 @@ const handlePasswordChange = async () => {
       toast({ title: 'Klart', description: 'Användare skapad', variant: 'default' });
       setShowCreateDialog(false);
       router.push(`/dashboard/admin/users/${data.user.id}`);
-    } catch (e) {
+    } catch {
       toast({ title: 'Fel', description: 'Misslyckades att skapa användare', variant: 'destructive' });
     } finally {
       setCreating(false);
@@ -252,7 +250,7 @@ const handlePasswordChange = async () => {
       toast({ title: 'Aktivt', description: 'Tillfällig användarsession satt', variant: 'default' });
       setShowImpersonationBar(true);
       router.push('/dashboard/student');
-    } catch (e) {
+    } catch {
       toast({ title: 'Fel', description: 'Misslyckades att hämta användarsession', variant: 'destructive' });
     } finally {
       setImpersonating(false);
@@ -305,8 +303,8 @@ return (
                 <Input placeholder="Förnamn" value={formData.firstName} onChange={(e) => setFormData((prev)=>({...prev, firstName: e.target.value}))} className="bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
                 <Input placeholder="Efternamn" value={formData.lastName} onChange={(e) => setFormData((prev)=>({...prev, lastName: e.target.value}))} className="bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
                 <Input placeholder="E-post" type="email" value={formData.email} onChange={(e) => setFormData((prev)=>({...prev, email: e.target.value}))} className="bg-white/10 border-white/20 text-white placeholder:text-slate-300 col-span-1 md:col-span-2" />
-                <Input placeholder="Telefon (valfritt)" value={(formData as any).phone || ''} onChange={(e) => setFormData((prev)=>({...prev, phone: e.target.value as any}))} className="bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
-                <Select value={formData.role} onValueChange={(value: any) => setFormData((prev)=>({...prev, role: value}))}>
+                <Input placeholder="Telefon (valfritt)" value={formData.phone || ''} onChange={(e) => setFormData((prev)=>({...prev, phone: e.target.value}))} className="bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
+                <Select value={formData.role} onValueChange={handleRoleChange}>
                   <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Roll" /></SelectTrigger>
                   <SelectContent className="bg-slate-900/90 text-white border-white/10 z-[100]">
                     <SelectItem value="student">Student</SelectItem>

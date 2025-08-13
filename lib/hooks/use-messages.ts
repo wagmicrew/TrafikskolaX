@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 // Global state for unread count
 let globalUnreadCount = 0;
-let globalListeners: Array<(count: number) => void> = [];
+const globalListeners: Array<(count: number) => void> = [];
 
 const notifyListeners = (count: number) => {
   globalUnreadCount = count;

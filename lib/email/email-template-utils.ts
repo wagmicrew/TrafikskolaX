@@ -197,7 +197,7 @@ export function validateTemplateHtml(html: string): { isValid: boolean; issues: 
  */
 export function formatTemplateHtml(html: string): string {
   // Remove all existing whitespace between tags
-  let formatted = html
+  const formatted = html
     .replace(/\s*<\/?(\w+)[^>]*?>\s*/g, (match) => match.trim())
     .replace(/\s+/g, ' ')
     .trim();

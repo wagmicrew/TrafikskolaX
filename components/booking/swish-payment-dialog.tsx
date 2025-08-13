@@ -14,7 +14,16 @@ interface SwishPaymentDialogProps {
     id?: string
     totalPrice: number
   }
-  bookingData?: any // Full booking data for creating the booking
+  bookingData?: {
+    lessonType?: { type?: string; name?: string; durationMinutes?: number };
+    selectedDate?: Date;
+    selectedTime?: string;
+    totalPrice?: number;
+    guestName?: string;
+    guestEmail?: string;
+    guestPhone?: string;
+    studentId?: string;
+  }
   onConfirm: () => void
   customMessage?: string
   mode?: 'booking' | 'package'
@@ -38,77 +47,48 @@ export function SwishPaymentDialog({
   const message = customMessage || (mode === 'package' ? `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`)
 
   useEffect(() => {
-    if (isOpen) {
-      generateQRCode()
-    }
-  }, [isOpen])
-
-  const generateQRCode = async () => {
-    try {
-      // Prepare request payload for official Swish QR API
-      const requestPayload = {
-        payee: swishNumber.replace(/\s/g, ''),
-        amount: amount.toString(),
-        message: message,
-        format: 'png',
-        size: 256,
-        transparent: false,
-        border: 2
-      };
-      
-      // Call our API endpoint to generate QR code using official Swish API
-      const response = await fetch('/api/payments/swish/qr-code', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload),
-      });
-      
-      if (response.ok) {
-        // Get the image blob and create object URL
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setQrCodeUrl(objectUrl);
-      } else {
-        throw new Error('Failed to generate QR code from API');
-      }
-    } catch (error) {
-      console.error("Failed to generate QR code:", error);
-      
-      // Fallback to local generation
+    if (!isOpen) return;
+    (async () => {
       try {
-        const swishData = {
-          version: 1,
-          payee: {
-            value: swishNumber.replace(/\s/g, ''),
-            editable: false
-          },
-          amount: {
-            value: amount,
-            editable: false
-          },
-          message: {
-            value: message,
-            editable: false
-          }
+        const requestPayload = {
+          payee: swishNumber.replace(/\s/g, ''),
+          amount: amount.toString(),
+          message: message,
+          format: 'png',
+          size: 256,
+          transparent: false,
+          border: 2
         };
-
-        const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishData))}`;
-        const qrUrl = await QRCode.toDataURL(swishUrl, {
-          width: 256,
-          margin: 2,
-          color: {
-            dark: '#1f2937',
-            light: '#ffffff'
-          }
+        const response = await fetch('/api/payments/swish/qr-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
         });
-        setQrCodeUrl(qrUrl);
-      } catch (fallbackError) {
-        console.error("Fallback QR generation also failed:", fallbackError);
+        if (response.ok) {
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          setQrCodeUrl(objectUrl);
+          return;
+        }
+        throw new Error('Failed to generate QR code from API');
+      } catch (_error) {
+        console.error("Failed to generate QR code:", _error);
+        try {
+          const swishData = {
+            version: 1,
+            payee: { value: swishNumber.replace(/\s/g, ''), editable: false },
+            amount: { value: amount, editable: false },
+            message: { value: message, editable: false }
+          };
+          const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishData))}`;
+          const qrUrl = await QRCode.toDataURL(swishUrl, { width: 256, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
+          setQrCodeUrl(qrUrl);
+        } catch (fallbackError) {
+          console.error("Fallback QR generation also failed:", fallbackError);
+        }
       }
-    }
-  }
+    })();
+  }, [isOpen, swishNumber, amount, message]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -367,7 +347,7 @@ export function SwishPaymentDialog({
               </Button>
 
               <p className="text-xs text-white/60 text-center mt-4">
-                När du klickar "Jag har betalat" meddelas skolan och dina krediter aktiveras när betalningen verifierats.
+                När du klickar &quot;Jag har betalat&quot; meddelas skolan och dina krediter aktiveras när betalningen verifierats.
               </p>
             </div>
           </div>

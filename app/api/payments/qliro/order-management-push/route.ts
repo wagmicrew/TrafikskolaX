@@ -5,8 +5,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     return NextResponse.json({ received: true, length: body.length }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Failed' }, { status: 500 });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

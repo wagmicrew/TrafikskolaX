@@ -38,7 +38,7 @@ export default function SwishQR({
         }
         
         // Prepare request payload
-        const requestPayload: any = {
+        const requestPayload: Record<string, unknown> = {
           format,
           size,
           transparent: true,

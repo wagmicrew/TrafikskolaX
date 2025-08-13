@@ -120,7 +120,10 @@ async function handleSwishPayment(purchaseId: string, amount: number, settings: 
   }
 }
 
-async function handleQliroPayment(purchaseId: string, amount: number, _settings: Record<string, string>, pkg: any, user: any) {
+type BasicUser = { email?: string; phone?: string | number; firstName?: string; lastName?: string };
+type BasicPkg = { name?: string };
+
+async function handleQliroPayment(purchaseId: string, amount: number, _settings: Record<string, string>, pkg: BasicPkg, user: BasicUser) {
   try {
     // Ensure service is enabled via site_settings
     const enabled = await qliroService.isEnabled();

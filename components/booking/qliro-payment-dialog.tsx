@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, CreditCard, Copy, CheckCircle } from "lucide-react"
@@ -25,7 +25,24 @@ export function QliroPaymentDialog({
 }: QliroPaymentDialogProps) {
   const [isPaying, setIsPaying] = useState(false)
   const [iframeError, setIframeError] = useState(false)
+  const popupRef = useRef<Window | null>(null)
   const { toast } = useToast()
+  
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const data = event.data || {};
+      if (data && data.type === 'qliro:completed') {
+        try {
+          if (popupRef.current && !popupRef.current.closed) {
+            popupRef.current.close();
+          }
+        } catch {}
+        onConfirm();
+      }
+    }
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onConfirm])
 
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
@@ -33,7 +50,7 @@ export function QliroPaymentDialog({
       // No redirect; iframe will render the checkout below
       toast({
         title: "Qliro checkout",
-        description: "Fönstret är öppet här nedan.",
+        description: "Vi väntar på betalningsbekräftelse...",
       })
     } finally {
       setIsPaying(false)
@@ -102,6 +119,7 @@ export function QliroPaymentDialog({
                       const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
                       const win = window.open(checkoutUrl, 'qliro_popup', features);
                       if (!win) return;
+                      popupRef.current = win;
                       // Best-effort focus
                       win.focus();
                     } catch {}

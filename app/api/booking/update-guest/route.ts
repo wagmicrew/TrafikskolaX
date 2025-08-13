@@ -8,8 +8,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { bookingId, guestName, guestEmail, guestPhone } = body;
 
-    if (!bookingId || !guestName || !guestEmail || !guestPhone) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Missing bookingId' }, { status: 400 });
+    }
+    if (!guestName) {
+      return NextResponse.json({ error: 'Missing name' }, { status: 400 });
+    }
+    if (!guestEmail && !guestPhone) {
+      return NextResponse.json({ error: 'Provide at least email or phone' }, { status: 400 });
     }
 
     // Find the existing booking

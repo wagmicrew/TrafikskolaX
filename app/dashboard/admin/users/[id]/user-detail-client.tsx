@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Mail, Calendar, CreditCard, Key, Edit3, Save, ShieldAlert } from "lucide-react";
+import { AvatarImage } from "@/components/ui/AvatarImage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -512,14 +513,8 @@ return (
           <div className="flex items-center mb-8 p-4 rounded-xl bg-white/5 border border-white/10">
         <div className="flex-shrink-0 mr-6">
               <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-white/20 shadow-xl">
-            {user.profileImage ? (
-              <img src={user.profileImage} alt="Avatar" className="h-full w-full object-cover" />
-            ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-sky-600 text-white text-2xl font-bold">
-                {user.firstName?.[0]}{user.lastName?.[0]}
+                <AvatarImage src={user.profileImage} alt="Avatar" className="h-full w-full object-cover" />
               </div>
-            )}
-          </div>
         </div>
         <div>
               <h4 className="font-bold text-xl text-white">{user.firstName} {user.lastName}</h4>

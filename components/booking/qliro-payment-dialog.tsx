@@ -120,7 +120,24 @@ export function QliroPaymentDialog({
 
               {/* Fallback/open button */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handlePaymentConfirm}>Jag har betalat</Button>
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    try {
+                      const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+                      const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+                      const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                      const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                      const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                      const win = window.open(checkoutUrl, 'qliro_window', features);
+                      if (!win) return;
+                      popupRef.current = win;
+                      win.focus();
+                    } catch {}
+                  }}
+                >
+                  Betala i litet fönster
+                </Button>
                 <Button variant="outline" onClick={onClose}>
                   Jag är klar
                 </Button>

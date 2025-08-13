@@ -11,6 +11,7 @@ import crypto from 'crypto';
     webhookSecret: string;
     apiSecret: string;
   environment: 'production' | 'sandbox';
+    publicUrl: string;
  }
 
 interface QliroOrderItem {
@@ -80,11 +81,10 @@ export class QliroService {
     logger.debug('payment', 'Loading Qliro settings from database');
 
     try {
-      // Fetch all Qliro-related settings
+      // Fetch site settings (we use both payment and site URL)
       const settings = await db
         .select()
-        .from(siteSettings)
-        .where(eq(siteSettings.category, 'payment'));
+        .from(siteSettings);
 
       const settingsMap = settings.reduce((acc, setting) => {
         acc[setting.key] = setting.value || '';
@@ -107,13 +107,16 @@ export class QliroService {
       const isProduction = prodEnabled;
       const environment = isProduction ? 'production' : 'sandbox';
 
+      const publicUrl = settingsMap['public_app_url'] || settingsMap['site_public_url'] || settingsMap['app_url'] || (process.env.NEXT_PUBLIC_APP_URL || '');
+
       this.settings = {
         enabled: true,
         apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
         apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://payments.qit.nu') : (settingsMap['qliro_dev_api_url'] || 'https://pago.qit.nu'),
         webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
         apiSecret: settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || '',
-        environment
+        environment,
+        publicUrl
       };
 
       this.lastSettingsLoad = new Date();
@@ -122,7 +125,8 @@ export class QliroService {
         environment,
         apiUrl: this.settings.apiUrl,
         hasApiKey: !!this.settings.apiKey,
-        hasApiSecret: !!this.settings.apiSecret
+        hasApiSecret: !!this.settings.apiSecret,
+        publicUrl: this.settings.publicUrl
       });
 
       return this.settings;
@@ -236,7 +240,11 @@ export class QliroService {
       environment: settings.environment
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = (settings.publicUrl || '').startsWith('https://') ? settings.publicUrl : (process.env.NEXT_PUBLIC_APP_URL || '');
+    if (!baseUrl || !baseUrl.startsWith('https://')) {
+      logger.warn('payment', 'Public URL not configured with https; Qliro unavailable', { publicUrl: settings.publicUrl });
+      throw new QliroApiError('Qliro requires a public https URL. Configure site public URL in settings.');
+    }
     const merchantReference = this.sanitizeMerchantReference(params.reference);
     
     // Use the correct Qliro API structure based on their documentation
@@ -260,6 +268,7 @@ export class QliroService {
       MerchantIntegrityPolicyUrl: `${baseUrl}/integritetspolicy`,
       MerchantConfirmationUrl: params.returnUrl,
       MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
+        MerchantOrderManagementStatusPushUrl: `${baseUrl}/api/payments/qliro/order-management-push`,
       OrderItems: [
         {
           MerchantReference: merchantReference,

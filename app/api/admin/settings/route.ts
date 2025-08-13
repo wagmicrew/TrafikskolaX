@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       
       // Site settings
       site_domain: '',
+      public_app_url: '',
       site_name: 'Din Trafikskola Hässleholm',
       schoolname: 'Din Trafikskola Hässleholm',
       school_phonenumber: '',
@@ -102,6 +103,7 @@ export async function PUT(request: Request) {
       
       // Site settings
       site_domain: 'general',
+      public_app_url: 'general',
       site_name: 'general',
       schoolname: 'general',
       school_phonenumber: 'general',

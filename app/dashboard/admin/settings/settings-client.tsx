@@ -52,6 +52,7 @@ interface Settings {
   
   // Site settings
   site_domain: string;
+    public_app_url?: string;
   site_name: string;
   schoolname: string;
   school_phonenumber: string;
@@ -124,6 +125,7 @@ export default function SettingsClient() {
     force_internal_only: false,
     fallback_to_internal: true,
     site_domain: '',
+    public_app_url: '',
     site_name: 'Din Trafikskola Hässleholm',
     schoolname: 'Din Trafikskola Hässleholm',
     school_phonenumber: '',
@@ -1081,6 +1083,22 @@ export default function SettingsClient() {
                   value={settings.site_name}
                   onChange={(e) => updateSetting('site_name', e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="public-app-url">
+                  <Globe className="w-4 h-4 inline mr-2" />
+                  Publik webb-URL (https)
+                </Label>
+                <Input
+                  id="public-app-url"
+                  placeholder="https://www.dintrafikskolahlm.se"
+                  value={settings.public_app_url || ''}
+                  onChange={(e) => updateSetting('public_app_url', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Används för leverantörs-callbacks (Qliro) och e-postlänkar. Måste vara https utan port.
+                </p>
               </div>
 
               <div className="space-y-2">

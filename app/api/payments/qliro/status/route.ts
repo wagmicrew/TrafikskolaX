@@ -25,12 +25,18 @@ export async function GET(request: NextRequest) {
     
     const apiKey = useProduction ? settingsMap.qliro_prod_api_key : settingsMap.qliro_api_key;
     const apiSecret = settingsMap.qliro_api_secret || settingsMap.qliro_secret || '';
+    const publicUrl = settingsMap.public_app_url || settingsMap.site_public_url || settingsMap.app_url || '';
 
-    if (!apiKey || !apiSecret) {
+    if (!apiKey || !apiSecret || !publicUrl.startsWith('https://')) {
       return NextResponse.json({
         available: false,
         reason: 'configuration',
-        message: 'Qliro API credentials not configured'
+        message: 'Qliro is not configured: missing API credentials or public https URL',
+        missing: {
+          apiKey: !apiKey,
+          apiSecret: !apiSecret,
+          publicUrl: !publicUrl || !publicUrl.startsWith('https://')
+        }
       });
     }
 

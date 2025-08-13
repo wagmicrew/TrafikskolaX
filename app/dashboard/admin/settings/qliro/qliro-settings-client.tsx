@@ -306,7 +306,15 @@ export default function QliroSettingsClient() {
       if (!res.ok) throw new Error(data.error || "Misslyckades att skapa betalning");
       toast.success("Betalningsförfrågan skapad! Öppnar Qliro...", { id: t, position: 'top-right' });
       if (data.checkoutUrl) {
-        window.open(data.checkoutUrl, "_blank");
+        try {
+          const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+          const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+          const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+          const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+          const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+          const win = window.open(data.checkoutUrl, 'qliro_window', features);
+          if (win) win.focus();
+        } catch {}
       }
       setCreateOpen(false);
       // Refresh list
@@ -323,11 +331,21 @@ export default function QliroSettingsClient() {
     setCreatingTest(true);
     const t = toast.loading('Skapar testorder...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
     try {
-      const res = await fetch('/api/payments/qliro/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 1, reference: 'test_admin_ui', description: 'Admin UI test', returnUrl: `${window.location.origin}/dashboard/admin/settings` }) });
+      const res = await fetch('/api/payments/qliro/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 1, reference: 'test_admin_ui', description: 'Admin UI test', returnUrl: `${window.location.origin}/payments/qliro/return?admin=1` }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message || 'Misslyckades att skapa testorder');
       toast.success('Testorder skapad – öppnar Qliro...', { id: t, position: 'top-right' });
-      if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+      if (data.checkoutUrl) {
+        try {
+          const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+          const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+          const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+          const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+          const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+          const win = window.open(data.checkoutUrl, 'qliro_window', features);
+          if (win) win.focus();
+        } catch {}
+      }
     } catch (err: any) {
       toast.error(err.message || 'Misslyckades att skapa testorder', { id: t, position: 'top-right' });
     } finally {
@@ -760,7 +778,17 @@ export default function QliroSettingsClient() {
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa checkout');
                                     toast.success('Öppnar Qliro...', { id: t, position: 'top-right' });
-                                    if (data.checkoutUrl) window.open(data.checkoutUrl, '_blank');
+                                    if (data.checkoutUrl) {
+                                      try {
+                                        const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+                                        const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+                                        const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                                        const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                                        const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                                        const win = window.open(data.checkoutUrl, 'qliro_window', features);
+                                        if (win) win.focus();
+                                      } catch {}
+                                    }
                                   } catch (e: any) {
                                     toast.error(e.message || 'Fel vid öppning av checkout', { id: t, position: 'top-right' });
                                   }

@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const excludeTemp = searchParams.get('excludeTemp') === 'true';
-    const inskrivenOnly = (searchParams.get('inskrivenOnly') || 'true').toLowerCase() !== 'false';
+    // Default to including ALL students unless explicitly requested to filter
+    const inskrivenOnly = (searchParams.get('inskrivenOnly') || 'false').toLowerCase() === 'true';
 
     // Auth using common helper; allow admin or teacher
     const auth = await requireAuthAPI();

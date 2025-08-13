@@ -243,7 +243,7 @@ export function BookingConfirmation({
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch('/api/admin/students?excludeTemp=true')
+      const response = await fetch('/api/admin/students?excludeTemp=true&inskrivenOnly=false')
       if (response.ok) {
         const data = await response.json()
         setStudents(data.students || [])

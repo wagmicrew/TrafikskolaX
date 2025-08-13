@@ -258,6 +258,13 @@ export class QliroService {
       logger.warn('payment', 'Redis not available for Qliro push token; proceeding without token');
     }
 
+    const absoluteReturnUrl = (() => {
+      const raw = params.returnUrl || '';
+      if (!raw) return `${baseUrl}/dashboard`; // safe fallback
+      if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+      return `${baseUrl.replace(/\/$/, '')}${raw.startsWith('/') ? raw : `/${raw}`}`;
+    })();
+
     const checkoutRequest: any = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: merchantReference,
@@ -266,7 +273,7 @@ export class QliroService {
       Language: 'sv-se',
       MerchantTermsUrl: `${baseUrl}/kopvillkor`,
       MerchantIntegrityPolicyUrl: `${baseUrl}/integritetspolicy`,
-      MerchantConfirmationUrl: params.returnUrl,
+      MerchantConfirmationUrl: absoluteReturnUrl,
       MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
         MerchantOrderManagementStatusPushUrl: `${baseUrl}/api/payments/qliro/order-management-push`,
       OrderItems: [

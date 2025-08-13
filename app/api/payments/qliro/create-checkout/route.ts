@@ -119,15 +119,28 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const anyErr = error as any;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+    const status = typeof anyErr?.status === 'number' ? anyErr.status : 500;
+
     logger.error('payment', 'Failed to create Qliro checkout session', {
-      error: errorMessage
+      error: errorMessage,
+      status: anyErr?.status,
+      statusText: anyErr?.statusText,
+      body: anyErr?.body
     });
 
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
+      {
+        error: 'Failed to create checkout session',
+        details: errorMessage,
+        qliro: {
+          status: anyErr?.status,
+          statusText: anyErr?.statusText,
+          body: anyErr?.body
+        }
+      },
+      { status }
     );
   }
 }

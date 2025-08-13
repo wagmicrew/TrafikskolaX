@@ -8,7 +8,7 @@ export default function QliroReturnPage() {
   const purchase = search.get('purchase') || '';
 
   useEffect(() => {
-    // Inform opener and close self
+    // Inform opener and close self immediately
     try {
       if (window.opener) {
         window.opener.postMessage({
@@ -18,11 +18,8 @@ export default function QliroReturnPage() {
         }, '*');
       }
     } catch {}
-
-    const timer = setTimeout(() => {
-      try { window.close(); } catch {}
-      setMessage('Du kan nu stänga detta fönster.');
-    }, 800);
+    try { window.close(); } catch {}
+    const timer = setTimeout(() => setMessage('Du kan nu stänga detta fönster.'), 600);
     return () => clearTimeout(timer);
   }, [purchase]);
 

@@ -9,7 +9,7 @@ export function QliroMessageBridge() {
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       const data = event.data || {};
-      if (
+      const isCompletion = (
         data && (
           data.type === "qliro:completed" ||
           data.event === "payment_completed" ||
@@ -17,9 +17,15 @@ export function QliroMessageBridge() {
           data.status === "Paid" ||
           data.status === "Completed"
         )
-      ) {
+      );
+      if (isCompletion) {
         try {
           window.dispatchEvent(new CustomEvent("qliro:completed", { detail: data }));
+        } catch {}
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ ...data, type: data.type || 'qliro:completed' }, "*");
+          }
         } catch {}
         toast({ title: "Betalning klar", description: "Du kan fortsätta." });
       }

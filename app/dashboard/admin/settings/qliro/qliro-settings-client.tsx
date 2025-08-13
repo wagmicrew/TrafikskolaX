@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DatePickerPopover } from "@/components/ui/date-picker";
 import toast from "react-hot-toast";
+import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import {
   Download,
   RefreshCw,
@@ -111,6 +112,8 @@ export default function QliroSettingsClient() {
   const [testOrderRunning, setTestOrderRunning] = useState(false);
   const [testOrderResult, setTestOrderResult] = useState<any>(null);
   const [testSSN, setTestSSN] = useState<string>("");
+  const [testQliroOpen, setTestQliroOpen] = useState(false);
+  const [testQliroUrl, setTestQliroUrl] = useState("");
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -505,7 +508,10 @@ export default function QliroSettingsClient() {
                   }
                 } else {
                   toast.success(`OK ${data.status}: PaymentLink mottagen`, { id: t, position: 'top-right' });
-                  if (data.checkoutUrl) toast(`PaymentLink: ${data.checkoutUrl}`, { position: 'top-right' });
+                  if (data.checkoutUrl) {
+                    setTestQliroUrl(data.checkoutUrl);
+                    setTestQliroOpen(true);
+                  }
                 }
               } catch (e: any) {
                 setTestOrderResult({ error: e?.message || 'Okänt fel' });
@@ -629,6 +635,14 @@ export default function QliroSettingsClient() {
           <CardTitle>Qliro-status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <QliroPaymentDialog
+            isOpen={testQliroOpen}
+            onClose={() => setTestQliroOpen(false)}
+            purchaseId={testOrderResult?.merchantReference || 'test-order'}
+            amount={1}
+            checkoutUrl={testQliroUrl}
+            onConfirm={() => setTestQliroOpen(false)}
+          />
           <div className="flex items-center gap-3">
             {testStatus ? (
               <Badge variant={testStatus.passed ? "default" : "destructive"}>

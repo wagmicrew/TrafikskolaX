@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, CreditCard, Copy, CheckCircle } from "lucide-react"
@@ -26,12 +26,17 @@ export function QliroPaymentDialog({
   const [isPaying, setIsPaying] = useState(false)
   const [iframeError, setIframeError] = useState(false)
   const popupRef = useRef<Window | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const allowedOrigin = useMemo(() => {
+    try { return new URL(checkoutUrl).origin } catch { return '*' }
+  }, [checkoutUrl])
   const { toast } = useToast()
   
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
+      if (allowedOrigin !== '*' && event.origin !== allowedOrigin) return;
       const data = event.data || {};
-      if (data && data.type === 'qliro:completed') {
+      if (data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')) {
         try {
           if (popupRef.current && !popupRef.current.closed) {
             popupRef.current.close();
@@ -42,7 +47,7 @@ export function QliroPaymentDialog({
     }
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onConfirm])
+  }, [onConfirm, allowedOrigin])
 
   const handlePaymentConfirm = async () => {
     setIsPaying(true)
@@ -100,33 +105,22 @@ export function QliroPaymentDialog({
                 </div>
               </div>
 
-              {/* Embedded Checkout */}
-              <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
-                Av säkerhetsskäl kan Qliro inte bäddas in i en iframe.
-                Vi öppnar checkout i en ny flik. När du är klar stängs detta fönster.
+              {/* Embedded Checkout page to avoid third-party headers directly */}
+              <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-black/20">
+                <div className="relative pb-[175%] sm:pb-[110%] md:pb-[80%] lg:pb-[70%] xl:pb-[65%]">
+                  <iframe
+                    src={`/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`}
+                    title="Qliro Checkout"
+                    className="absolute inset-0 w-full h-full"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    allow="payment *; clipboard-write;"
+                  />
+                </div>
               </div>
 
               {/* Fallback/open button */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  onClick={() => {
-                    try {
-                      const width = Math.min(900, Math.floor(window.innerWidth * 0.9));
-                      const height = Math.min(900, Math.floor(window.innerHeight * 0.9));
-                      const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
-                      const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-                      const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-                      const win = window.open(checkoutUrl, 'qliro_popup', features);
-                      if (!win) return;
-                      popupRef.current = win;
-                      // Best-effort focus
-                      win.focus();
-                    } catch {}
-                  }}
-                >
-                  Öppna som popup
-                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handlePaymentConfirm}>Jag har betalat</Button>
                 <Button variant="outline" onClick={onClose}>
                   Jag är klar
                 </Button>

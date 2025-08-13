@@ -36,7 +36,7 @@
       "name": "Ring oss",
       "short_name": "Ring",
       "description": "Ring oss direkt på 0760-389192",
-      "url": "tel:0760389192",
+      "url": "/ring-oss",
       "icons": [{ "src": "/images/din-logo-small.png", "sizes": "128x128" }]
     }
   ]

@@ -84,41 +84,33 @@ export function QliroPaymentDialog({
               </div>
 
               {/* Embedded Checkout */}
-              {!iframeError ? (
-                <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-black/20">
-                  <div className="relative pb-[175%] sm:pb-[110%] md:pb-[80%] lg:pb-[70%] xl:pb-[65%]">
-                    <iframe
-                      src={checkoutUrl}
-                      title="Qliro Checkout"
-                      className="absolute inset-0 w-full h-full"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                      onError={() => setIframeError(true)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
-                  Det gick inte att bädda in Qliro-fönstret. Du kan öppna det i en ny flik nedan.
-                </div>
-              )}
+              <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
+                Av säkerhetsskäl kan Qliro inte bäddas in i en iframe.
+                Vi öppnar checkout i en ny flik. När du är klar stängs detta fönster.
+              </div>
 
               {/* Fallback/open button */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button onClick={handlePaymentConfirm} disabled={isPaying} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  {isPaying ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Öppnar...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Visa här i fönstret
-                    </>
-                  )}
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={() => {
+                    try {
+                      const width = Math.min(900, Math.floor(window.innerWidth * 0.9));
+                      const height = Math.min(900, Math.floor(window.innerHeight * 0.9));
+                      const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                      const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                      const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                      const win = window.open(checkoutUrl, 'qliro_popup', features);
+                      if (!win) return;
+                      // Best-effort focus
+                      win.focus();
+                    } catch {}
+                  }}
+                >
+                  Öppna som popup
                 </Button>
-                <Button variant="outline" onClick={() => window.open(checkoutUrl, '_blank', 'noopener,noreferrer')}>
-                  Öppna i ny flik
+                <Button variant="outline" onClick={onClose}>
+                  Jag är klar
                 </Button>
               </div>
             </div>

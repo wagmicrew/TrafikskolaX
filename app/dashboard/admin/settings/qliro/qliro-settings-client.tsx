@@ -641,7 +641,11 @@ export default function QliroSettingsClient() {
             purchaseId={testOrderResult?.merchantReference || 'test-order'}
             amount={1}
             checkoutUrl={testQliroUrl}
-            onConfirm={() => setTestQliroOpen(false)}
+            onConfirm={() => {
+              setTestQliroOpen(false);
+              // Thank-you navigation
+              try { window.location.href = '/booking/success?test=1'; } catch {}
+            }}
           />
           <div className="flex items-center gap-3">
             {testStatus ? (

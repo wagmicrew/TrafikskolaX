@@ -434,7 +434,7 @@ export function BookingConfirmation({
             amount: bookingData.totalPrice,
             reference: `booking_${Date.now()}`,
             description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `/dashboard/student/bokningar${(bookingData.id || bookingData.tempBookingId) ? `/${bookingData.id || bookingData.tempBookingId}` : ''}`
+            returnUrl: `/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`
           })
         })
         

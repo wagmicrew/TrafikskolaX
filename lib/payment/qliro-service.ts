@@ -92,8 +92,8 @@ export class QliroService {
       }, {} as Record<string, string>);
 
       // Check which environment is enabled
-      const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true';
-      const sandboxEnabled = settingsMap['qliro_enabled'] === 'true';
+      const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'true';
+      const sandboxEnabled = settingsMap['qliro_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'false';
 
       if (!prodEnabled && !sandboxEnabled) {
         logger.warn('payment', 'Qliro is not enabled in any environment');
@@ -124,7 +124,7 @@ export class QliroService {
       this.settings = {
         enabled: true,
         apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
-        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://payments.qit.nu') : (settingsMap['qliro_dev_api_url'] || 'https://pago.qit.nu'),
+        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://api.qliro.com') : (settingsMap['qliro_dev_api_url'] || 'https://playground.qliro.com'),
         webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
         apiSecret: settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || '',
         environment,

@@ -251,6 +251,15 @@ export default function SettingsClient() {
     }
   };
 
+  const copyToClipboard = async (value: string, label?: string) => {
+    try {
+      await navigator.clipboard.writeText(value || '');
+      toast.success(`${label || 'Värde'} kopierad`);
+    } catch (e) {
+      toast.error('Kunde inte kopiera');
+    }
+  };
+
   const runTests = async () => {
     setTesting(true);
     setTestResults([]);
@@ -1380,6 +1389,36 @@ export default function SettingsClient() {
                           value={settings.qliro_prod_api_url}
                           onChange={(e) => updateSetting('qliro_prod_api_url', e.target.value)}
                         />
+                      </div>
+                      {/* Computed config URLs helper */}
+                      <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-white font-semibold">Qliro URL-konfiguration</div>
+                          <div className="text-xs text-slate-300">baserat på Publik webb-URL</div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-[180px] text-slate-200">Köpvillkor</span>
+                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/kopvillkor'} className="bg-white/10 border-white/20 text-white" />
+                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/kopvillkor'), 'Köpvillkor')}>Kopiera</Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-[180px] text-slate-200">Integritetspolicy</span>
+                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/integritetspolicy'} className="bg-white/10 border-white/20 text-white" />
+                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/integritetspolicy'), 'Integritetspolicy')}>Kopiera</Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-[180px] text-slate-200">Checkout Push</span>
+                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/checkout-push'} className="bg-white/10 border-white/20 text-white" />
+                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/checkout-push'), 'Checkout Push')}>Kopiera</Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-[180px] text-slate-200">Order Mgmt Push</span>
+                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/order-management-push'} className="bg-white/10 border-white/20 text-white" />
+                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/order-management-push'), 'Order Mgmt Push')}>Kopiera</Button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-2">Se till att Publik webb-URL är korrekt och börjar med https.</p>
                       </div>
                     </div>
 

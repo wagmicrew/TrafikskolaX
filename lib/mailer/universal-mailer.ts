@@ -85,30 +85,42 @@ async function saveInternalMessage(
 // Base email template function
 function createEmailTemplate(content: string): string {
   return `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #dc2626; color: white; padding: 20px; text-align: center;">
-        <h1 style="margin: 0;">Din Trafikskola Hässleholm</h1>
-      </div>
-      
-      <div style="padding: 20px; background-color: #f9fafb;">
-        ${content}
-        
-        <div style="text-align: center; margin: 30px 0; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-          <p style="color: #6b7280; margin: 5px 0;">
-            <strong>Din Trafikskola Hässleholm</strong>
-          </p>
-          <p style="color: #6b7280; margin: 5px 0;">
-            Östergatan 3a, 281 30 Hässleholm
-          </p>
-          <p style="color: #6b7280; margin: 5px 0;">
-            Telefon: 0760-38 91 92
-          </p>
-          <p style="color: #6b7280; margin: 5px 0;">
-            E-post: info@dintrafikskolahlm.se
-          </p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Din Trafikskola HLM</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 30px 20px; text-align: center;">
+          <div style="background-color: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; display: inline-block;">
+            <div style="color: #ffffff; margin: 0; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+              <div style="font-size: 20px; font-weight: bold; margin-bottom: 2px;">Din Trafikskola</div>
+              <div style="font-size: 16px; font-weight: normal;">Hässleholm</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 40px 30px;">
+          <div style="color: #374151; line-height: 1.6; font-size: 16px;">
+            ${content}
+          </div>
+        </div>
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+            <p style="color: #9ca3af; margin: 0; font-size: 12px;">
+              📧 <a href="mailto:info@dintrafikskolahlm.se" style="color: #dc2626; text-decoration: none;">info@dintrafikskolahlm.se</a> |
+              📞 <a href="tel:0760389192" style="color: #dc2626; text-decoration: none;">0760-38 91 92</a>
+            </p>
+            <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 12px;">
+              © ${new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </body>
+    </html>
   `;
 }
 

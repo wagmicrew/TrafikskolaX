@@ -57,6 +57,10 @@ export async function GET(request: Request) {
       qliro_merchant_id: '',
       qliro_sandbox: true,
       qliro_enabled: false,
+      qliro_use_prod_env: false,
+      qliro_prod_enabled: false,
+      qliro_dev_api_url: 'https://playground.qliro.com',
+      qliro_prod_api_url: 'https://api.qliro.com',
       // Maps/API
       google_maps_api_key: '',
     };
@@ -118,6 +122,10 @@ export async function PUT(request: Request) {
       qliro_merchant_id: 'payment',
       qliro_sandbox: 'payment',
       qliro_enabled: 'payment',
+      qliro_use_prod_env: 'payment',
+      qliro_prod_enabled: 'payment',
+      qliro_dev_api_url: 'payment',
+      qliro_prod_api_url: 'payment',
     };
 
     // Update or insert each setting

@@ -396,16 +396,33 @@ logger.info('email', 'Email sent via SMTP', {
 
     let success = false;
 
+    // Ensure all outgoing emails use the branded template unless already a full HTML document
+    let wrappedOptions = { ...options };
+    if (wrappedOptions.html) {
+      const lower = wrappedOptions.html.toLowerCase();
+      const isFullDocument = lower.includes('<html') || lower.includes('<!doctype');
+      if (!isFullDocument) {
+        wrappedOptions.html = this.applyEmailTemplate(wrappedOptions.html);
+      }
+    } else if (wrappedOptions.text) {
+      // Simple text fallback inside template
+      wrappedOptions.html = this.applyEmailTemplate(`<pre style="white-space: pre-wrap; font-family: inherit;">${wrappedOptions.text}</pre>`);
+    }
+
     // If force internal only is enabled, skip email providers
     if (config.forceInternalOnly) {
       logger.info('email', 'Force internal only mode enabled - saving as internal message', { to: options.to });
       success = await this.saveAsInternalMessage(options);
     } else {
       // Try primary method first
+      // Replace system placeholders in the template (appUrl, schoolEmail, etc.)
+      if (wrappedOptions.html) {
+        wrappedOptions.html = await this.processTemplate(wrappedOptions.html, {}, config);
+      }
       if (config.emailMethod === 'sendgrid' && config.useSendgrid) {
-        success = await this.sendViaSendGrid(options, config);
+        success = await this.sendViaSendGrid(wrappedOptions, config);
       } else if (config.emailMethod === 'smtp' && config.useSmtp) {
-        success = await this.sendViaSmtp(options, config);
+        success = await this.sendViaSmtp(wrappedOptions, config);
       }
     }
 
@@ -413,10 +430,10 @@ logger.info('email', 'Email sent via SMTP', {
     if (!success && !config.forceInternalOnly) {
       if (config.emailMethod !== 'sendgrid' && config.useSendgrid) {
         logger.info('email', 'Trying SendGrid as fallback', { to: options.to });
-        success = await this.sendViaSendGrid(options, config);
+        success = await this.sendViaSendGrid(wrappedOptions, config);
       } else if (config.emailMethod !== 'smtp' && config.useSmtp) {
         logger.info('email', 'Trying SMTP as fallback', { to: options.to });
-        success = await this.sendViaSmtp(options, config);
+        success = await this.sendViaSmtp(wrappedOptions, config);
       }
     }
 

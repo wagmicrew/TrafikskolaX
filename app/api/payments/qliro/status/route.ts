@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     // Determine which environment to use strictly from site_settings
     const useProduction = qliroProdEnabled;
     const apiUrl = useProduction 
-      ? (settingsMap.qliro_prod_api_url || 'https://payments.qit.nu')
-      : (settingsMap.qliro_dev_api_url || 'https://pago.qit.nu');
+      ? (settingsMap.qliro_prod_api_url || 'https://api.qliro.com')
+      : (settingsMap.qliro_dev_api_url || 'https://playground.qliro.com');
     
     const apiKey = useProduction ? settingsMap.qliro_prod_api_key : settingsMap.qliro_api_key;
     const apiSecret = settingsMap.qliro_api_secret || settingsMap.qliro_secret || '';

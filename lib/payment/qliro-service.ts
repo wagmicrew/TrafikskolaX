@@ -286,7 +286,7 @@ export class QliroService {
       Language: 'sv-se',
       MerchantTermsUrl: `${baseUrl}/kopvillkor`,
       MerchantIntegrityPolicyUrl: `${baseUrl}/integritetspolicy`,
-      MerchantConfirmationUrl: absoluteReturnUrl,
+      MerchantConfirmationUrl: absoluteReturnUrl || `${baseUrl}/payments/qliro/return?ref=${encodeURIComponent(merchantReference)}`,
       MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
         MerchantOrderManagementStatusPushUrl: `${baseUrl}/api/payments/qliro/order-management-push`,
       OrderItems: [

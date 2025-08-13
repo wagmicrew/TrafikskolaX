@@ -243,6 +243,7 @@ export class QliroService {
     customerPhone?: string;
     customerFirstName?: string;
     customerLastName?: string;
+    personalNumber?: string;
   }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
     const settings = await this.loadSettings();
 
@@ -302,12 +303,17 @@ export class QliroService {
     };
 
     // Optional customer pre-fill
-    if (params.customerEmail || params.customerPhone) {
+    if (params.customerEmail || params.customerPhone || params.personalNumber) {
       checkoutRequest.CustomerInformation = {
         Email: params.customerEmail,
         MobileNumber: params.customerPhone ? parseInt(params.customerPhone.replace(/\D/g, '')) : undefined,
         JuridicalType: 'Physical',
       };
+      if (params.personalNumber) {
+        // Include both common field names to maximize compatibility
+        (checkoutRequest.CustomerInformation as any).NationalIdentificationNumber = params.personalNumber;
+        (checkoutRequest.CustomerInformation as any).PersonalNumber = params.personalNumber;
+      }
     }
 
     // Optional colors if present in site settings (best-effort, does not affect auth)

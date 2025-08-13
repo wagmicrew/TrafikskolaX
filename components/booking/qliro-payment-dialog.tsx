@@ -86,13 +86,15 @@ export function QliroPaymentDialog({
               {/* Embedded Checkout */}
               {!iframeError ? (
                 <div className="mt-4 rounded-lg overflow-hidden border border-white/20 bg-black/20">
-                  <iframe
-                    src={checkoutUrl}
-                    title="Qliro Checkout"
-                    className="w-full h-[70vh]"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    onError={() => setIframeError(true)}
-                  />
+                  <div className="relative pb-[175%] sm:pb-[110%] md:pb-[80%] lg:pb-[70%] xl:pb-[65%]">
+                    <iframe
+                      src={checkoutUrl}
+                      title="Qliro Checkout"
+                      className="absolute inset-0 w-full h-full"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                      onError={() => setIframeError(true)}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">

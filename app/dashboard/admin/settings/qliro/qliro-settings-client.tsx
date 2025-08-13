@@ -110,6 +110,7 @@ export default function QliroSettingsClient() {
   const [prereqResult, setPrereqResult] = useState<any>(null);
   const [testOrderRunning, setTestOrderRunning] = useState(false);
   const [testOrderResult, setTestOrderResult] = useState<any>(null);
+  const [testSSN, setTestSSN] = useState<string>("");
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -472,12 +473,26 @@ export default function QliroSettingsClient() {
               {prereqLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Kontrollera förkrav
             </Button>
-            <Button variant="outline" onClick={async () => {
+            <div className="flex gap-2 items-end flex-wrap">
+              <div className="space-y-1.5">
+                <Label>Testscenario (B2C personnummer)</Label>
+                <Select value={testSSN} onValueChange={setTestSSN}>
+                  <SelectTrigger className="min-w-[240px]">
+                    <SelectValue placeholder="Välj testperson..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="790625-5307">790625-5307</SelectItem>
+                    <SelectItem value="750420-8104">750420-8104</SelectItem>
+                    <SelectItem value="770530-1773">770530-1773</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" onClick={async () => {
               setTestOrderRunning(true);
               setTestOrderResult(null);
               const t = toast.loading('Skapar testorder via API...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
               try {
-                const res = await fetch('/api/admin/qliro/test-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                const res = await fetch('/api/admin/qliro/test-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: { personalNumber: testSSN || undefined } }) });
                 const data = await res.json();
                 setTestOrderResult(data);
                 // Toast detailed steps
@@ -502,6 +517,7 @@ export default function QliroSettingsClient() {
               {testOrderRunning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Testorder (API)
             </Button>
+            </div>
             <Button variant="outline" onClick={async () => {
               const t = toast.loading('Rensar temporära ordrar...', { position: 'top-right' });
               try {

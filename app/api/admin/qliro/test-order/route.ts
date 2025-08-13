@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       customerPhone: customer.phone,
       customerFirstName: customer.firstName,
       customerLastName: customer.lastName,
+      personalNumber: customer.personalNumber,
     });
     return NextResponse.json({
       success: true,

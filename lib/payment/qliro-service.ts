@@ -107,7 +107,19 @@ export class QliroService {
       const isProduction = prodEnabled;
       const environment = isProduction ? 'production' : 'sandbox';
 
-      const publicUrl = settingsMap['public_app_url'] || settingsMap['site_public_url'] || settingsMap['app_url'] || (process.env.NEXT_PUBLIC_APP_URL || '');
+      // Prefer admin-configured public URL; sanitize to https scheme with default port and no path
+      const rawPublicUrl = settingsMap['public_app_url'] || settingsMap['site_public_url'] || settingsMap['app_url'] || (process.env.NEXT_PUBLIC_APP_URL || '');
+      let publicUrl = rawPublicUrl;
+      try {
+        const u = new URL(rawPublicUrl);
+        if (u.protocol !== 'https:') {
+          throw new Error('Public URL must be https');
+        }
+        // Enforce default port (no explicit :443) and strip any path/query/hash
+        publicUrl = `https://${u.hostname}`;
+      } catch {
+        // leave as-is; later validation will fail and surface a clear error
+      }
 
       this.settings = {
         enabled: true,

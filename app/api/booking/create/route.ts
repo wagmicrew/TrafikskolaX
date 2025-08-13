@@ -647,7 +647,7 @@ export async function POST(request: NextRequest) {
               amount: totalPrice,
               reference: `booking_${booking.id}`,
               description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
-              returnUrl: `/dashboard/student/bokningar/${booking.id}`,
+              returnUrl: `${baseUrl}/payments/qliro/return?booking=${booking.id}`,
             });
             
             return NextResponse.json({ 

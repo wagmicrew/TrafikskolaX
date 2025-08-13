@@ -131,7 +131,7 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
       return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
     const checkout = await qliroService.createCheckout({
       amount,

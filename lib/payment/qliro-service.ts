@@ -300,6 +300,8 @@ export class QliroService {
           VatRate: 0,
         },
       ],
+      // Restrict available payment methods (disable Swish per requirement)
+      AllowedPaymentMethods: ['Card', 'Invoice', 'DirectBank']
     };
 
     // Optional customer pre-fill

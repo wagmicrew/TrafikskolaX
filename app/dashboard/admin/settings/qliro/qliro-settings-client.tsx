@@ -328,6 +328,11 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+          // Prefer raw popup to avoid site wrapper
+          try {
+            const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+            if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return }
+          } catch {}
           const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-payment')}`;
           const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
@@ -359,6 +364,10 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+          try {
+            const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+            if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return }
+          } catch {}
           const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-test')}`;
           const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
@@ -658,6 +667,11 @@ export default function QliroSettingsClient() {
                       const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
                       const params = new URLSearchParams();
                       if (data.checkoutId) params.set('orderId', String(data.checkoutId));
+                      try {
+                        const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+                        const oid = params.get('orderId')
+                        if (oid) { await openQliroPopup(String(oid)); return }
+                      } catch {}
                       const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
                       if (win) win.focus();
                     } catch {}
@@ -917,6 +931,10 @@ export default function QliroSettingsClient() {
                                         const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
                                         const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                                         const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                                        try {
+                                          const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+                                          if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return }
+                                        } catch {}
                                         const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-reference')}`;
                                         const win = window.open(safeUrl, 'qliro_window', features);
                                         if (win) win.focus();

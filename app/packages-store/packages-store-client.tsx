@@ -189,6 +189,15 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
             const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
             const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
             const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+            // Prefer raw popup to avoid site wrapper
+            try {
+              const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
+              if (data.checkoutId) {
+                await openQliroPopup(String(data.checkoutId));
+                return;
+              }
+            } catch {}
+            // Fallback to route
             const params = new URLSearchParams();
             if (data.checkoutId) params.set('orderId', String(data.checkoutId));
             const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);

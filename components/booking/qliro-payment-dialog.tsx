@@ -171,11 +171,19 @@ export function QliroPaymentDialog({
                       const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
                       const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                       const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-                       const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`
-                       const win = window.open(safeUrl, 'qliro_window', features);
-                      if (!win) return;
-                      popupRef.current = win;
-                      win.focus();
+                       (async () => {
+                         try {
+                           const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+                           // try to parse orderId from returnUrl or known context is not available here, fallback to iframe window
+                           const m = /[?&]orderId=([^&#]+)/.exec(checkoutUrl)
+                           if (m && m[1]) { await openQliroPopup(decodeURIComponent(m[1])); return }
+                         } catch {}
+                         const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`
+                         const win = window.open(safeUrl, 'qliro_window', features);
+                         if (!win) return;
+                         popupRef.current = win;
+                         win.focus();
+                       })();
                     } catch {}
                   }}
                 >

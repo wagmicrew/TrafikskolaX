@@ -483,6 +483,14 @@ export function BookingConfirmation({
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+          // Prefer raw popup to avoid any site wrapper
+          try {
+            const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+            if (checkoutId) {
+              await openQliroPopup(String(checkoutId))
+              return
+            }
+          } catch {}
           const params = new URLSearchParams()
           if (checkoutId) params.set('orderId', String(checkoutId))
           const safeUrl = `/payments/qliro/checkout?${params.toString()}`

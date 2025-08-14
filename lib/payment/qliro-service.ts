@@ -489,6 +489,23 @@ export class QliroService {
     return candidates[0] || null;
   }
 
+  public async getPaymentOptions(orderId: string): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders/${encodeURIComponent(orderId)}/PaymentOptions`;
+    const bodyString = JSON.stringify({});
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': this.generateAuthHeader(bodyString),
+    };
+    const res = await fetch(url, { method: 'POST', headers, body: bodyString });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
+    }
+    return JSON.parse(text);
+  }
+
   public async testConnection(opts?: { extended?: boolean }): Promise<{ success: boolean; message: string; details?: any; debug?: any }> {
     try {
       const settings = await this.loadSettings();

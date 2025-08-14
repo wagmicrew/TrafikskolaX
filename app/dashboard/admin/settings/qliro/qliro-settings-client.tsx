@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { DatePickerPopover } from "@/components/ui/date-picker";
 import toast from "react-hot-toast";
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
+import { useQliroListener } from '@/hooks/use-qliro-listener';
 import {
   Download,
   RefreshCw,
@@ -76,6 +77,10 @@ interface PackageLite { id: string; name: string; isActive: boolean; }
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK" });
 
 export default function QliroSettingsClient() {
+  useQliroListener({
+    onCompleted: () => { try { window.location.href = '/booking/success?admin=1' } catch {} },
+    onDeclined: (reason, message) => { toast.error(`Betalning nekades: ${reason || ''} ${message || ''}`) },
+  })
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<string>("all");
@@ -114,6 +119,7 @@ export default function QliroSettingsClient() {
   const [testSSN, setTestSSN] = useState<string>("");
   const [testQliroOpen, setTestQliroOpen] = useState(false);
   const [testQliroUrl, setTestQliroUrl] = useState("");
+  const [selectedPaymentIdOverride, setSelectedPaymentIdOverride] = useState<string>("");
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -237,7 +243,7 @@ export default function QliroSettingsClient() {
       const url = `/api/admin/qliro/payments/export?${queryString}`;
       const t = toast.loading("Genererar PDF...", { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
       // Open in a new tab to leverage Content-Disposition
-      const win = window.open(url, "_blank");
+      const win = window.open(`/payments/qliro/checkout?url=${encodeURIComponent(url)}`, "_blank");
       if (!win) {
         toast.error("Popup blocker hindrade exporten", { id: t, position: 'top-right' });
         return;
@@ -312,7 +318,8 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const win = window.open(data.checkoutUrl, 'qliro_window', features);
+          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+          const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}
       }
@@ -342,7 +349,8 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const win = window.open(data.checkoutUrl, 'qliro_window', features);
+          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+          const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}
       }
@@ -475,6 +483,85 @@ export default function QliroSettingsClient() {
             <Button onClick={onTestConnection} disabled={testing}>
               {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <TestTube className="w-4 h-4 mr-2" />} Testa anslutning
             </Button>
+            <div className="p-3 rounded-lg border border-white/10 bg-white/5 flex items-center gap-2">
+              <div className="text-sm text-slate-300">PaymentOptions</div>
+              <Input
+                placeholder="OrderId"
+                value={(testOrderResult?.details?.checkoutId || '').toString()}
+                readOnly
+                className="w-[220px] bg-white/10 border-white/20 text-white"
+              />
+              {/* PaymentId override dropdown (built from fetched options) */}
+              {testOrderResult?.paymentOptions ? (
+                <select
+                  className="bg-white/10 border border-white/20 text-white text-xs rounded px-2 py-1"
+                  value={selectedPaymentIdOverride}
+                  onChange={(e) => setSelectedPaymentIdOverride(e.target.value)}
+                >
+                  <option value="">Välj PaymentId (auto)</option>
+                  {(() => {
+                    try {
+                      const items: { id: string; name: string }[] = [];
+                      const scan = (obj: any) => {
+                        if (!obj) return;
+                        if (Array.isArray(obj)) { for (const it of obj) scan(it); return; }
+                        if (typeof obj === 'object') {
+                          const name = String(obj.Name || obj.Method || obj.GroupName || obj.DisplayName || '').trim();
+                          const id = obj.PaymentId || obj.Id || obj.PaymentID || null;
+                          if (id) items.push({ id: String(id), name: name || String(id) });
+                          for (const k of Object.keys(obj)) scan(obj[k]);
+                        }
+                      };
+                      scan(testOrderResult.paymentOptions);
+                      // Deduplicate by id
+                      const seen = new Set<string>();
+                      return items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true))).map((i) => (
+                        <option key={i.id} value={i.id}>{i.name} ({i.id})</option>
+                      ));
+                    } catch { return null; }
+                  })()}
+                </select>
+              ) : null}
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    if (!testOrderResult?.details?.checkoutId) { toast.error('Skapa en testorder först'); return; }
+                    const res = await fetch('/api/admin/qliro/payment-options', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: String(testOrderResult.details.checkoutId) }) });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Kunde inte hämta PaymentOptions');
+                    setTestOrderResult((prev: any) => ({ ...(prev || {}), paymentOptions: data.options, selectedNonSwishPaymentId: data.selectedNonSwishPaymentId }));
+                    toast.success('PaymentOptions hämtade');
+                  } catch (e: any) { toast.error(e.message || 'Fel vid PaymentOptions'); }
+                }}
+              >Hämta</Button>
+              <Button
+                onClick={() => {
+                  try {
+                    const url = (testOrderResult?.details?.checkoutUrl || '').toString();
+                    const pid = selectedPaymentIdOverride || testOrderResult?.selectedNonSwishPaymentId;
+                    if (!url) { toast.error('Ingen checkoutUrl'); return; }
+                    const openUrl = pid ? `${url}${url.includes('?') ? '&' : '?'}paymentId=${encodeURIComponent(pid)}` : url;
+                    const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+                    const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+                    const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                    const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                    const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                    const win = window.open(`/payments/qliro/checkout?url=${encodeURIComponent(openUrl)}`, 'qliro_window', features);
+                    if (win) win.focus();
+                  } catch {}
+                }}
+              >Öppna</Button>
+            </div>
+            {testOrderResult?.paymentOptions ? (
+              <div className="w-full mt-2 p-3 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200">
+                <div className="mb-2">Föreslagen PaymentId (ej Swish): <span className="font-semibold">{String(testOrderResult.selectedNonSwishPaymentId || '-')}</span></div>
+                <details>
+                  <summary className="cursor-pointer">Visa PaymentOptions JSON</summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-words">{JSON.stringify(testOrderResult.paymentOptions, null, 2)}</pre>
+                </details>
+              </div>
+            ) : null}
             <Button variant="secondary" onClick={async () => {
               setPrereqLoading(true);
               setPrereqResult(null);
@@ -785,7 +872,8 @@ export default function QliroSettingsClient() {
                                         const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
                                         const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                                         const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-                                        const win = window.open(data.checkoutUrl, 'qliro_window', features);
+                                        const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+                                        const win = window.open(safeUrl, 'qliro_window', features);
                                         if (win) win.focus();
                                       } catch {}
                                     }

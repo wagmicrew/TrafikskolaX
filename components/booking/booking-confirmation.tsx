@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import QRCode from 'qrcode'
 import { SwishPaymentDialog } from './swish-payment-dialog'
 import { QliroPaymentDialog } from './qliro-payment-dialog'
+import { useQliroListener } from '@/hooks/use-qliro-listener'
 import { EmailConflictDialog } from './email-conflict-dialog'
 
 interface LessonType {
@@ -101,6 +102,15 @@ export function BookingConfirmation({
   const [existingUserName, setExistingUserName] = useState('')
   const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const { user: authUser } = useAuth()
+  useQliroListener({
+    onCompleted: () => {
+      const id = bookingData.id || bookingData.tempBookingId
+      if (id) try { window.location.href = `/qliro/return?ref=${encodeURIComponent(`booking_${id}`)}&status=paid` } catch {}
+    },
+    onDeclined: () => {
+      showNotification('Betalning nekades', 'Försök igen eller välj en annan metod', 'error')
+    }
+  })
   
   // Qliro availability state
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true)
@@ -230,6 +240,21 @@ export function BookingConfirmation({
 
     checkQliroStatus()
   }, [])
+
+  useEffect(() => {
+    // Background listener for Qliro popup messages
+    const listener = (event: MessageEvent) => {
+      const data = event.data || {}
+      const id = bookingData.id || bookingData.tempBookingId
+      if (!id) return
+      const done = data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')
+      if (done) {
+        try { window.location.href = `/qliro/return?ref=${encodeURIComponent(`booking_${id}`)}&status=paid` } catch {}
+      }
+    }
+    window.addEventListener('message', listener)
+    return () => window.removeEventListener('message', listener)
+  }, [bookingData?.id, bookingData?.tempBookingId])
 
   useEffect(() => {
     if (isAdminOrTeacher) {
@@ -438,9 +463,9 @@ export function BookingConfirmation({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             amount: bookingData.totalPrice,
-            reference: `booking_${Date.now()}`,
+            reference: `booking_${bookingData.id || bookingData.tempBookingId}`,
             description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `${window.location.origin}/payments/qliro/return?booking=${bookingData.id || bookingData.tempBookingId || Date.now()}`
+            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId}`
           })
         })
         
@@ -458,7 +483,8 @@ export function BookingConfirmation({
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const win = window.open(checkoutUrl, 'qliro_window', features);
+          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`
+          const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}
       } catch (error) {

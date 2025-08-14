@@ -171,7 +171,8 @@ export function QliroPaymentDialog({
                       const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
                       const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                       const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-                      const win = window.open(checkoutUrl, 'qliro_window', features);
+                       const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`
+                       const win = window.open(safeUrl, 'qliro_window', features);
                       if (!win) return;
                       popupRef.current = win;
                       win.focus();

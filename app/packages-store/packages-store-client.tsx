@@ -41,6 +41,7 @@ import StudentHeader from '@/app/dashboard/student/StudentHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useQliroListener } from '@/hooks/use-qliro-listener';
 
 interface PackagesStoreClientProps {
   user: User;
@@ -72,6 +73,15 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
     purchaseId: '',
     checkoutUrl: ''
   });
+
+  useQliroListener({
+    onCompleted: () => {
+      if (qliroPaymentData.purchaseId) {
+        try { window.location.href = `/qliro/return?ref=${encodeURIComponent(`package_${qliroPaymentData.purchaseId}`)}&status=paid` } catch {}
+      }
+    },
+    onDeclined: (_, msg) => { toast.error(msg || 'Betalning nekades') }
+  })
 
   // Check Qliro availability on component mount
   useEffect(() => {
@@ -171,6 +181,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           
           const effectivePrice = getEffectivePrice(pkg);
           
+          setQliroPaymentData({ amount: effectivePrice, purchaseId: data.purchaseId, checkoutUrl: data.checkoutUrl })
           // Open Qliro in small centered window, no in-between popup
           try {
             const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
@@ -178,7 +189,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
             const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
             const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
             const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-            const win = window.open(data.checkoutUrl, 'qliro_window', features);
+            const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+            const win = window.open(safeUrl, 'qliro_window', features);
             if (win) win.focus();
           } catch {}
         }
@@ -193,6 +205,19 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
       setLoading(false);
     }
   };
+
+  // Background listener for Qliro completion, redirect original page
+  useEffect(() => {
+    const listener = (event: MessageEvent) => {
+      const data = event.data || {} as any
+      const done = data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')
+      if (done && qliroPaymentData.purchaseId) {
+        try { window.location.href = `/qliro/return?ref=${encodeURIComponent(`package_${qliroPaymentData.purchaseId}`)}&status=paid` } catch {}
+      }
+    }
+    window.addEventListener('message', listener)
+    return () => window.removeEventListener('message', listener)
+  }, [qliroPaymentData.purchaseId])
   
   const handleSwishConfirm = async (purchaseId: string): Promise<void> => {
     try {

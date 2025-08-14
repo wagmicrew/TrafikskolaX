@@ -323,6 +323,26 @@ export class QliroService {
       AllowedPaymentMethods: ['Card', 'Invoice', 'DirectBank']
     };
 
+    // Further restrict to specific payment method IDs/groups when supported by provider
+    // Target set (as requested):
+    // PAY_NOW -> CREDITCARDS (card), TRUSTLY_DIRECT (direct bank)
+    // PAY_LATER -> QLIRO_INVOICE, QLIRO_CAMPAIGN, QLIRO_PARTPAYMENT
+    (checkoutRequest as any).AllowedPaymentMethodIds = [
+      'CREDITCARDS',
+      'TRUSTLY_DIRECT',
+      'QLIRO_INVOICE',
+      'QLIRO_CAMPAIGN',
+      'QLIRO_PARTPAYMENT',
+    ];
+    // Defensive: explicitly ban Swish if the API supports disallowing
+    (checkoutRequest as any).DisallowedPaymentMethods = ['Swish'];
+
+    try {
+      console.log('[Qliro Service Debug] AllowedPaymentMethods:', (checkoutRequest as any).AllowedPaymentMethods);
+      console.log('[Qliro Service Debug] AllowedPaymentMethodIds:', (checkoutRequest as any).AllowedPaymentMethodIds);
+      console.log('[Qliro Service Debug] DisallowedPaymentMethods:', (checkoutRequest as any).DisallowedPaymentMethods);
+    } catch {}
+
     // Optional customer pre-fill
     if (params.customerEmail || params.customerPhone || params.personalNumber) {
       checkoutRequest.CustomerInformation = {

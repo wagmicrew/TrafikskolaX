@@ -8,11 +8,11 @@ import { logger } from '@/lib/logging/logger';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Debug: Log full request body
     console.log('[Qliro Debug] Create checkout request body:', JSON.stringify(body, null, 2));
     
-    const { amount, reference, description, returnUrl } = body as { amount: number | string; reference: string; description: string; returnUrl: string };
+    let { amount, reference, description, returnUrl } = body as { amount: number | string; reference: string; description: string; returnUrl: string };
     let { customerEmail, customerPhone, customerFirstName, customerLastName } = body as { customerEmail?: string; customerPhone?: string; customerFirstName?: string; customerLastName?: string };
 
     // Validate required fields
@@ -20,6 +20,17 @@ export async function POST(request: NextRequest) {
       console.log('[Qliro Debug] Validation failed - missing fields:', { amount: !!amount, reference: !!reference, description: !!description, returnUrl: !!returnUrl });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Ensure a unique merchant reference for test flows to avoid ORDER_ALREADY_EXISTS
+    try {
+      const needsUnique = typeof reference === 'string' && /^test_admin_ui/i.test(reference);
+      if (needsUnique) {
+        const suffix = Date.now().toString(36).slice(-8); // compact time
+        const base = reference.replace(/[^A-Za-z0-9_-]/g, '').slice(0, Math.max(1, 25 - 1 - suffix.length));
+        reference = `${base}_${suffix}`;
+        console.log('[Qliro Debug] Adjusted unique reference:', reference);
+      }
+    } catch {}
 
     logger.info('payment', 'Creating Qliro checkout session', {
       reference,

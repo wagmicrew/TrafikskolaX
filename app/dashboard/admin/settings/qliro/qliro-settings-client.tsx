@@ -191,11 +191,21 @@ export default function QliroSettingsClient() {
 
   const loadUsersAndPackages = useCallback(async () => {
     try {
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('auth-token') || '') : '';
+      const authHeaders: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
       const [uRes, pRes] = await Promise.all([
         // Use admin-scoped endpoint that filters out temporary users reliably
-        fetch("/api/admin/students?excludeTemp=true"),
-        fetch("/api/packages"),
+        fetch("/api/admin/students?excludeTemp=true", { headers: authHeaders, credentials: 'include' }),
+        fetch("/api/packages", { credentials: 'include' }),
       ]);
+      if (uRes.status === 401) {
+        toast.error('Din admin-session har gått ut. Logga in igen.');
+        try {
+          const url = typeof window !== 'undefined' ? window.location.href : '/dashboard/admin/settings/qliro';
+          window.location.href = `/inloggning?redirect=${encodeURIComponent(url)}`;
+        } catch {}
+        return;
+      }
       const uJson = await uRes.json();
       const pJson = await pRes.json();
       const uList = (uJson.students || uJson.users || []) as any[];

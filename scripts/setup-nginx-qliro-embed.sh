@@ -12,6 +12,12 @@ DEV_DOMAIN="${DEV_DOMAIN:-dev.dintrafikskolaholm.se}"
 PROD_UPSTREAM="${PROD_UPSTREAM:-http://127.0.0.1:3001}"
 DEV_UPSTREAM="${DEV_UPSTREAM:-http://127.0.0.1:3000}"
 
+# Optional build/update variables
+DEV_APP_DIR="${DEV_APP_DIR:-/var/www/dintrafikskolax_dev}"
+DEV_GIT_BRANCH="${DEV_GIT_BRANCH:-main}"
+DEV_RUN_BUILD="${DEV_RUN_BUILD:-1}"
+PM2_DEV_NAME="${PM2_DEV_NAME:-}"  # e.g., trafikskola-dev
+
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "[-] Missing required command: $1" >&2; exit 1; }; }
 
 echo "[i] Using settings:" 
@@ -149,6 +155,75 @@ for P in 3000 3001; do
     echo "[!] Port $P is NOT listening. Ensure your Next.js app is running (PM2 or otherwise)."
   fi
 done
+
+## --- Dev App update & build -------------------------------------------------
+if [[ "${DEV_RUN_BUILD}" == "1" ]]; then
+  echo "[+] Updating & building DEV app at ${DEV_APP_DIR} (branch=${DEV_GIT_BRANCH})..."
+  if [[ -d "${DEV_APP_DIR}" ]]; then
+    pushd "${DEV_APP_DIR}" >/dev/null || { echo "[-] Cannot cd to ${DEV_APP_DIR}" >&2; exit 1; }
+    if [[ -d .git ]]; then
+      echo "[i] Git status before update:"; git status --porcelain || true
+      git fetch --all --tags || true
+      git checkout "${DEV_GIT_BRANCH}" || true
+      git pull --rebase || true
+    else
+      echo "[!] No git repository detected at ${DEV_APP_DIR} — skipping fetch/pull"
+    fi
+    if command -v corepack >/dev/null 2>&1; then corepack enable || true; fi
+    if [[ -f package.json ]]; then
+      if command -v npm >/dev/null 2>&1; then
+        echo "[i] Installing deps..."; npm ci || npm install
+        echo "[i] Building app..."; npm run build
+      else
+        echo "[!] npm not found; skipping build" >&2
+      fi
+    else
+      echo "[!] package.json not found; skipping build"
+    fi
+    popd >/dev/null || true
+  else
+    echo "[!] DEV_APP_DIR=${DEV_APP_DIR} does not exist; skipping update/build"
+  fi
+fi
+
+## --- PM2 restart (dev) -----------------------------------------------------
+if command -v pm2 >/dev/null 2>&1; then
+  if [[ -n "${PM2_DEV_NAME}" ]]; then
+    echo "[+] Restarting PM2 dev process: ${PM2_DEV_NAME}"
+    pm2 restart "${PM2_DEV_NAME}" || echo "[!] Failed to restart PM2 process ${PM2_DEV_NAME}"
+    pm2 save || true
+  else
+    echo "[i] No PM2_DEV_NAME set; attempting restart by port mapping (3000)"
+    PID3000="$(port_pid 3000 || true)"
+    if [[ -n "${PID3000:-}" ]]; then
+      PROC_ID="$(pm2 jlist | sed 's/\\n/\n/g' | awk -v pid="$PID3000" 'BEGIN{ RS="{"; FS="\n" } $0 ~ /"pid"\s*:\s*"?"?pid/ { for (i=1;i<=NF;i++){ if($i ~ /"pm_id"/){ gsub(/[^0-9]/, "", $i); print $i; break } } }' | head -n1)"
+      if [[ -n "${PROC_ID:-}" ]]; then
+        pm2 restart "${PROC_ID}" || echo "[!] Failed to restart PM2 process id ${PROC_ID}"
+        pm2 save || true
+      else
+        echo "[!] Could not resolve PM2 process by port 3000; please restart manually (set PM2_DEV_NAME to automate)."
+      fi
+    else
+      echo "[!] Nothing listening on port 3000; start your dev app then rerun or set PM2_DEV_NAME."
+    fi
+  fi
+fi
+
+## --- Nginx flow checks -----------------------------------------------------
+echo "[+] Verifying Nginx endpoints & headers..."
+check_url() {
+  local url="$1"
+  echo "[i] Checking: $url"
+  local code
+  code="$(curl -k -s -o /dev/null -w "%{http_code}" -I "$url")"
+  echo "    HTTP $code"
+  echo "    Headers (CSP/XFO):"
+  curl -k -s -I "$url" | (grep -iE 'content-security-policy|x-frame-options' || true)
+}
+
+check_url "https://${PROD_DOMAIN}"
+check_url "https://${PROD_WWW_DOMAIN}"
+check_url "https://${DEV_DOMAIN}"
 
 cat <<NOTE
 Done.

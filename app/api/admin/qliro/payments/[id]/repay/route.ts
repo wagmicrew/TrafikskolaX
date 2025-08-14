@@ -15,6 +15,12 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     }
 
     const { id } = await context.params;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Purchase ID is required' }, { status: 400 });
+    }
+
+    console.log('Admin repay request for purchase ID:', id);
 
     // Load purchase
     const purchaseRows = await db
@@ -24,16 +30,25 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
       .limit(1);
 
     if (purchaseRows.length === 0) {
+      console.log('Purchase not found for ID:', id);
       return NextResponse.json({ error: 'Purchase not found' }, { status: 404 });
     }
     const purchase = purchaseRows[0] as any;
+    console.log('Found purchase:', { id: purchase.id, paymentMethod: purchase.paymentMethod, status: purchase.paymentStatus });
 
     if (purchase.paymentMethod !== 'qliro') {
       return NextResponse.json({ error: 'Not a Qliro payment' }, { status: 400 });
     }
 
     // Ensure Qliro is enabled
-    const enabled = await qliroService.isEnabled();
+    let enabled;
+    try {
+      enabled = await qliroService.isEnabled();
+    } catch (enabledError) {
+      console.error('Error checking if Qliro is enabled:', enabledError);
+      return NextResponse.json({ error: 'Failed to check Qliro availability' }, { status: 500 });
+    }
+    
     if (!enabled) {
       return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
@@ -64,16 +79,23 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
     // Create a new Qliro checkout for this purchase reference
-    const checkout = await qliroService.createCheckout({
-      amount,
-      reference: purchase.id,
-      description: (pkg?.name as string) || `Paketköp ${purchase.id}`,
-      returnUrl: `${baseUrl}/dashboard/admin/settings/qliro?qliro_payment=${purchase.id}`,
-      customerEmail: targetUser?.email || undefined,
-      customerPhone: targetUser?.phone || undefined,
-      customerFirstName: targetUser?.firstName || undefined,
-      customerLastName: targetUser?.lastName || undefined,
-    });
+    let checkout;
+    try {
+      checkout = await qliroService.createCheckout({
+        amount,
+        reference: purchase.id,
+        description: (pkg?.name as string) || `Paketköp ${purchase.id}`,
+        returnUrl: `${baseUrl}/dashboard/admin/settings/qliro?qliro_payment=${purchase.id}`,
+        customerEmail: targetUser?.email || undefined,
+        customerPhone: targetUser?.phone || undefined,
+        customerFirstName: targetUser?.firstName || undefined,
+        customerLastName: targetUser?.lastName || undefined,
+      });
+    } catch (checkoutError) {
+      console.error('Qliro checkout creation failed:', checkoutError);
+      const message = checkoutError instanceof Error ? checkoutError.message : 'Failed to create Qliro checkout';
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,

@@ -190,7 +190,6 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
             const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
             const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
             const params = new URLSearchParams();
-            params.set('url', data.checkoutUrl);
             if (data.checkoutId) params.set('orderId', String(data.checkoutId));
             const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
             if (win) win.focus();

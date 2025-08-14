@@ -1,110 +1,185 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function QliroEmbedPage({ searchParams }: { searchParams: { url?: string, orderId?: string } }) {
-  const [extendedDebug, setExtendedDebug] = useState(false)
-  const orderId = searchParams?.orderId || ''
-  const targetUrl = useMemo(() => {
-    try {
-      const u = decodeURIComponent(searchParams.url || '')
-      // Basic allowlist: must be https and contain qliro.com
-      const parsed = new URL(u)
-      if (parsed.protocol !== 'https:') return ''
-      if (!/\.qliro\.com$/i.test(parsed.hostname) && !/qliro\.com$/i.test(parsed.hostname)) return ''
-      return parsed.toString()
-    } catch { return '' }
-  }, [searchParams?.url])
+function QliroCheckoutContent() {
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get('orderId');
+  const [htmlSnippet, setHtmlSnippet] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+  const [debugEnabled, setDebugEnabled] = useState(false);
 
   useEffect(() => {
+    // Fetch debug setting
     fetch('/api/public/site-settings')
-      .then(r => r.ok ? r.json() : Promise.resolve({}))
-      .then(s => setExtendedDebug(Boolean(s?.debug_extended_logs)))
-      .catch(() => setExtendedDebug(false))
-  }, [])
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setDebugEnabled(!!data?.debug_extended_logs))
+      .catch(() => setDebugEnabled(false));
+  }, []);
 
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const data = event.data || {}
-      if (extendedDebug) {
-        // eslint-disable-next-line no-console
-        console.debug('[QliroEmbed] message', { origin: event.origin, data })
-      }
-      if (data?.event === 'CheckoutLoaded') {
-        try { window.opener?.postMessage({ event: 'CheckoutLoaded' }, '*') } catch {}
-      }
-      if (data?.event === 'PaymentMethodChanged') {
-        try { window.opener?.postMessage({ event: 'PaymentMethodChanged', pm: data.pm }, '*') } catch {}
-      }
-      if (data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')) {
-        try { window.opener?.postMessage({ type: 'qliro:completed' }, '*') } catch {}
-        try { window.close() } catch {}
-      }
-      if (data && (data.type === 'qliro:declined' || data.event === 'payment_declined' || data.status === 'Declined')) {
-        try { window.opener?.postMessage({ type: 'qliro:declined', reason: data.reason, message: data.message }, '*') } catch {}
-      }
+    if (!orderId) {
+      setError('No order ID provided');
+      setLoading(false);
+      return;
     }
-    window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
-  }, [extendedDebug])
 
-  useEffect(() => {
-    // If orderId present, fetch PaymentOptions once and log non-Swish methods
-    (async () => {
-      if (!orderId) return
-      try {
-        const res = await fetch('/api/admin/qliro/payment-options', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }) })
-        const data = await res.json()
-        if (res.ok) {
-          const candidates: string[] = []
-          const scan = (obj: any) => {
-            if (!obj) return
-            if (Array.isArray(obj)) { for (const it of obj) scan(it); return }
-            if (typeof obj === 'object') {
-              const name = String(obj.Name || obj.Method || obj.GroupName || '').toLowerCase()
-              const id = obj.PaymentId || obj.Id || obj.PaymentID || null
-              if (id && name && !name.includes('swish')) candidates.push(String(id))
-              for (const k of Object.keys(obj)) scan(obj[k])
+    // Define q1Ready globally before fetching the order
+    (window as any).q1Ready = function() {
+      const q1 = (window as any).q1;
+      if (!q1) {
+        if (debugEnabled) console.log('[Qliro] q1Ready called but q1 not available');
+        return;
+      }
+
+      if (debugEnabled) {
+        console.log('[Qliro] q1Ready - Checkout loaded, setting up listeners');
+      }
+
+      // Setup all q1 event listeners as per Qliro documentation
+      const events = [
+        'onCheckoutLoaded',
+        'onCustomerInfoChanged', 
+        'onOrderUpdated',
+        'onCustomerDeauthenticating',
+        'onPaymentMethodChanged',
+        'onPaymentDeclined',
+        'onPaymentProcess',
+        'onSessionExpired',
+        'onShippingMethodChanged',
+        'onShippingPriceChanged'
+      ];
+
+      events.forEach(eventName => {
+        if (typeof q1[eventName] === 'function') {
+          q1[eventName]((data: any) => {
+            if (debugEnabled) {
+              console.log(`[Qliro] ${eventName}:`, data);
             }
-          }
-          scan(data.options)
-          if (extendedDebug) console.debug('[QliroEmbed] PaymentOptions (non-swish ids)', candidates)
-        } else if (extendedDebug) {
-          console.debug('[QliroEmbed] PaymentOptions error', data)
+            
+            // Send to parent window
+            if (window.opener) {
+              window.opener.postMessage({
+                type: `qliro:${eventName}`,
+                data,
+                orderId
+              }, '*');
+            }
+          });
         }
-      } catch (e) {
-        if (extendedDebug) console.debug('[QliroEmbed] PaymentOptions fetch failed', e)
+      });
+
+      // Special handling for payment completion
+      if (typeof q1.onPaymentProcess === 'function') {
+        q1.onPaymentProcess((data: any) => {
+          if (debugEnabled) {
+            console.log('[Qliro] Payment process:', data);
+          }
+          
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'qliro:onPaymentProcess',
+              data,
+              orderId
+            }, '*');
+          }
+        });
       }
-    })()
-  }, [orderId, extendedDebug])
+    };
 
-  useEffect(() => {
-    if (extendedDebug) {
-      // eslint-disable-next-line no-console
-      console.debug('[QliroEmbed] targetUrl', targetUrl)
-    }
-  }, [extendedDebug, targetUrl])
+    // Fetch the order and HTML snippet
+    fetch(`/api/payments/qliro/get-order?orderId=${encodeURIComponent(orderId)}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (debugEnabled) {
+          console.log('[Qliro] Order data received:', data);
+        }
+        
+        if (data.htmlSnippet) {
+          setHtmlSnippet(data.htmlSnippet);
+        } else {
+          throw new Error('No HTML snippet in response');
+        }
+      })
+      .catch((err) => {
+        console.error('[Qliro] Failed to fetch order:', err);
+        setError(err.message || 'Failed to load checkout');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [orderId, debugEnabled]);
 
-  if (!targetUrl) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md w-full text-center">
-          <div className="text-lg font-semibold mb-2">Ogiltig betalningslänk</div>
-          <div className="text-sm text-gray-500">Kunde inte öppna Qliro. Stäng fönstret och försök igen.</div>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <p>Loading Qliro checkout...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#f5f5f5',
+        color: '#d32f2f'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2>Checkout Error</h2>
+          <p>{error}</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <iframe
-      src={targetUrl}
-      title="Qliro Checkout"
-      className="w-screen h-screen"
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-      allow="payment *; clipboard-write;"
+    <div 
+      style={{ 
+        width: '100%', 
+        minHeight: '100vh',
+        backgroundColor: '#ffffff',
+        fontFamily: 'Arial, sans-serif'
+      }}
+      dangerouslySetInnerHTML={{ __html: htmlSnippet }}
     />
-  )
+  );
 }
 
-
+export default function QliroCheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#f5f5f5'
+      }}>
+        <p>Loading...</p>
+      </div>
+    }>
+      <QliroCheckoutContent />
+    </Suspense>
+  );
+}

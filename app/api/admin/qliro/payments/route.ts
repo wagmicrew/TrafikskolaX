@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') || '20', 10), 1), 100);
     const search = (searchParams.get('search') || '').trim();
     const status = (searchParams.get('status') || '').trim();
+    const paymentMethod = (searchParams.get('paymentMethod') || 'qliro').trim();
     const dateFieldParam = (searchParams.get('dateField') || 'purchase') as 'purchase' | 'paid';
     const from = searchParams.get('from');
     const to = searchParams.get('to');
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     const dateField = dateFieldParam === 'paid' && paidAtExists ? packagePurchases.paidAt : packagePurchases.purchaseDate;
 
-    const conditions: any[] = [eq(packagePurchases.paymentMethod, 'qliro')];
+    const conditions: any[] = [eq(packagePurchases.paymentMethod, paymentMethod)];
 
     if (status) {
       conditions.push(eq(packagePurchases.paymentStatus, status));

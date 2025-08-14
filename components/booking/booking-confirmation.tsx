@@ -484,7 +484,6 @@ export function BookingConfirmation({
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
           const params = new URLSearchParams()
-          params.set('url', checkoutUrl)
           if (checkoutId) params.set('orderId', String(checkoutId))
           const safeUrl = `/payments/qliro/checkout?${params.toString()}`
           const win = window.open(safeUrl, 'qliro_window', features);

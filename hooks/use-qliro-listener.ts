@@ -24,7 +24,33 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
     const onMessage = (event: MessageEvent) => {
       const data = event.data || {}
       if (extendedDebug) console.debug('[useQliroListener] message', { origin: event.origin, data })
-      // Surface toasts or UI hints via callbacks
+      
+      // Handle new q1 event format
+      if (data?.type?.startsWith('qliro:')) {
+        const eventType = data.type.replace('qliro:', '')
+        if (extendedDebug) console.debug('[useQliroListener] q1 event:', eventType, data.data)
+        
+        switch (eventType) {
+          case 'onCheckoutLoaded':
+            opts.onLoaded?.()
+            break
+          case 'onPaymentMethodChanged':
+            opts.onMethodChanged?.(data.data)
+            break
+          case 'onPaymentDeclined':
+            opts.onDeclined?.(data.data?.reason, data.data?.message)
+            break
+          case 'onPaymentProcess':
+            if (extendedDebug) console.debug('[useQliroListener] Payment processing:', data.data)
+            // Check if payment is completed
+            if (data.data?.status === 'Completed' || data.data?.status === 'Paid') {
+              opts.onCompleted?.()
+            }
+            break
+        }
+      }
+      
+      // Legacy format support
       if (data?.event === 'CheckoutLoaded') {
         opts.onLoaded?.()
       }
@@ -35,9 +61,9 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
         // Acknowledge thank-you redirect
         if (extendedDebug) console.debug('[useQliroListener] return reached', data)
       }
-      if (data?.event === 'CheckoutLoaded') opts.onLoaded?.()
-      if (data?.event === 'PaymentMethodChanged') opts.onMethodChanged?.(data.pm)
-      if (data?.type === 'qliro:declined') opts.onDeclined?.(data?.reason, data?.message)
+      if (data?.type === 'qliro:declined') {
+        opts.onDeclined?.(data?.reason, data?.message)
+      }
       if (data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')) {
         opts.onCompleted?.()
       }

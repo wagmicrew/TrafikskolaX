@@ -275,7 +275,7 @@ export default function QliroSettingsClient() {
       toast.success('Betalningslänk skapad', { id: t, position: 'top-right' });
       if (data.checkoutUrl) {
         try { await navigator.clipboard.writeText(data.checkoutUrl); toast('Länk kopierad', { position: 'top-right' }); } catch {}
-        window.open(`/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`, '_blank');
+        window.open(`/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-repay')}`, '_blank');
       }
     } catch (err: any) {
       toast.error(err.message || 'Fel vid skapande av länk', { id: t, position: 'top-right' });
@@ -328,7 +328,7 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+          const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-payment')}`;
           const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}
@@ -359,7 +359,7 @@ export default function QliroSettingsClient() {
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+          const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-test')}`;
           const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}
@@ -632,7 +632,6 @@ export default function QliroSettingsClient() {
                       const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                       const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
                       const params = new URLSearchParams();
-                      params.set('url', data.checkoutUrl);
                       if (data.checkoutId) params.set('orderId', String(data.checkoutId));
                       const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
                       if (win) win.focus();
@@ -893,7 +892,7 @@ export default function QliroSettingsClient() {
                                         const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
                                         const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
                                         const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-                                        const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
+                                        const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-reference')}`;
                                         const win = window.open(safeUrl, 'qliro_window', features);
                                         if (win) win.focus();
                                       } catch {}

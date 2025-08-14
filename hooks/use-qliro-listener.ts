@@ -47,6 +47,24 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
               opts.onCompleted?.()
             }
             break
+          case 'onCustomerInfoChanged':
+            if (extendedDebug) console.debug('[useQliroListener] Customer info changed:', data.data)
+            break
+          case 'onOrderUpdated':
+            if (extendedDebug) console.debug('[useQliroListener] Order updated:', data.data)
+            break
+          case 'onSessionExpired':
+            if (extendedDebug) console.debug('[useQliroListener] Session expired:', data.data)
+            break
+          case 'onCustomerDeauthenticating':
+            if (extendedDebug) console.debug('[useQliroListener] Customer deauthenticating:', data.data)
+            break
+          case 'onShippingMethodChanged':
+            if (extendedDebug) console.debug('[useQliroListener] Shipping method changed:', data.data)
+            break
+          case 'onShippingPriceChanged':
+            if (extendedDebug) console.debug('[useQliroListener] Shipping price changed:', data.data)
+            break
         }
       }
       

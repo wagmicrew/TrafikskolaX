@@ -179,8 +179,17 @@ export class QliroService {
       'Content-Type': 'application/json',
       'Authorization': this.generateAuthHeader(null),
     };
+    
+    console.log('[Qliro GetOrder Debug] URL:', url);
+    console.log('[Qliro GetOrder Debug] Method: GET');
+    console.log('[Qliro GetOrder Debug] Auth:', headers.Authorization.slice(0, 50) + '...');
+    
     const res = await fetch(url, { method: 'GET', headers });
     const text = await res.text();
+    
+    console.log('[Qliro GetOrder Debug] Response Status:', res.status);
+    console.log('[Qliro GetOrder Debug] Response Body:', text);
+    
     if (!res.ok) {
       throw new QliroApiError(`Qliro GetOrder error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
     }
@@ -516,8 +525,17 @@ export class QliroService {
       'Accept': 'application/json',
       'Authorization': this.generateAuthHeader(bodyString),
     };
+    
+    console.log('[Qliro PaymentOptions Debug] URL:', url);
+    console.log('[Qliro PaymentOptions Debug] Method: POST');
+    console.log('[Qliro PaymentOptions Debug] Body:', bodyString);
+    console.log('[Qliro PaymentOptions Debug] Auth:', headers.Authorization.slice(0, 50) + '...');
+    
     const res = await fetch(url, { method: 'POST', headers, body: bodyString });
     const text = await res.text();
+    
+    console.log('[Qliro PaymentOptions Debug] Response Status:', res.status);
+    console.log('[Qliro PaymentOptions Debug] Response Body:', text);
     if (!res.ok) {
       throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
     }

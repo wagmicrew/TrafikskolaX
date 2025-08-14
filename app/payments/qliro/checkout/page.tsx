@@ -29,7 +29,7 @@ function QliroCheckoutContent() {
     
     console.log('[Qliro Checkout] Starting with orderId:', orderId);
 
-    // Define q1Ready globally before fetching the order
+    // Define q1Ready globally before fetching the order (as per Qliro documentation)
     (window as any).q1Ready = function() {
       const q1 = (window as any).q1;
       if (!q1) {
@@ -41,55 +41,138 @@ function QliroCheckoutContent() {
         console.log('[Qliro] q1Ready - Checkout loaded, setting up listeners');
       }
 
-      // Setup all q1 event listeners as per Qliro documentation
-      const events = [
-        'onCheckoutLoaded',
-        'onCustomerInfoChanged', 
-        'onOrderUpdated',
-        'onCustomerDeauthenticating',
-        'onPaymentMethodChanged',
-        'onPaymentDeclined',
-        'onPaymentProcess',
-        'onSessionExpired',
-        'onShippingMethodChanged',
-        'onShippingPriceChanged'
-      ];
-
-      events.forEach(eventName => {
-        if (typeof q1[eventName] === 'function') {
-          q1[eventName]((data: any) => {
-            if (debugEnabled) {
-              console.log(`[Qliro] ${eventName}:`, data);
-            }
-            
-            // Send to parent window
-            if (window.opener) {
-              window.opener.postMessage({
-                type: `qliro:${eventName}`,
-                data,
-                orderId
-              }, '*');
-            }
-          });
+      // Implement all listeners as per Qliro documentation
+      // https://developers.qliro.com/docs/qliro-checkout/frontend-features/listeners
+      
+      // onCheckoutLoaded - Called when the checkout is fully loaded
+      q1.onCheckoutLoaded(() => {
+        if (debugEnabled) console.log('[Qliro] onCheckoutLoaded');
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onCheckoutLoaded',
+            orderId
+          }, '*');
         }
       });
 
-      // Special handling for payment completion
-      if (typeof q1.onPaymentProcess === 'function') {
-        q1.onPaymentProcess((data: any) => {
-          if (debugEnabled) {
-            console.log('[Qliro] Payment process:', data);
-          }
-          
+      // onCustomerInfoChanged - Called when customer information changes
+      q1.onCustomerInfoChanged((customerInfo: any) => {
+        if (debugEnabled) console.log('[Qliro] onCustomerInfoChanged:', customerInfo);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onCustomerInfoChanged',
+            data: customerInfo,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onOrderUpdated - Called when order is updated
+      q1.onOrderUpdated((orderData: any) => {
+        if (debugEnabled) console.log('[Qliro] onOrderUpdated:', orderData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onOrderUpdated',
+            data: orderData,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onPaymentMethodChanged - Called when payment method is changed
+      q1.onPaymentMethodChanged((paymentMethod: any) => {
+        if (debugEnabled) console.log('[Qliro] onPaymentMethodChanged:', paymentMethod);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onPaymentMethodChanged',
+            data: paymentMethod,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onPaymentDeclined - Called when payment is declined
+      q1.onPaymentDeclined((declineInfo: any) => {
+        if (debugEnabled) console.log('[Qliro] onPaymentDeclined:', declineInfo);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onPaymentDeclined',
+            data: declineInfo,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onPaymentProcess - Called during payment processing
+      q1.onPaymentProcess((processData: any) => {
+        if (debugEnabled) console.log('[Qliro] onPaymentProcess:', processData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onPaymentProcess',
+            data: processData,
+            orderId
+          }, '*');
+        }
+        
+        // Check for payment completion
+        if (processData?.status === 'Completed' || processData?.status === 'Paid') {
           if (window.opener) {
             window.opener.postMessage({
-              type: 'qliro:onPaymentProcess',
-              data,
+              type: 'qliro:completed',
+              data: processData,
               orderId
             }, '*');
           }
-        });
-      }
+        }
+      });
+
+      // onSessionExpired - Called when session expires
+      q1.onSessionExpired((sessionData: any) => {
+        if (debugEnabled) console.log('[Qliro] onSessionExpired:', sessionData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onSessionExpired',
+            data: sessionData,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onCustomerDeauthenticating - Called when customer is deauthenticating
+      q1.onCustomerDeauthenticating((deauthData: any) => {
+        if (debugEnabled) console.log('[Qliro] onCustomerDeauthenticating:', deauthData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onCustomerDeauthenticating',
+            data: deauthData,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onShippingMethodChanged - Called when shipping method changes
+      q1.onShippingMethodChanged((shippingData: any) => {
+        if (debugEnabled) console.log('[Qliro] onShippingMethodChanged:', shippingData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onShippingMethodChanged',
+            data: shippingData,
+            orderId
+          }, '*');
+        }
+      });
+
+      // onShippingPriceChanged - Called when shipping price changes
+      q1.onShippingPriceChanged((priceData: any) => {
+        if (debugEnabled) console.log('[Qliro] onShippingPriceChanged:', priceData);
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'qliro:onShippingPriceChanged',
+            data: priceData,
+            orderId
+          }, '*');
+        }
+      });
     };
 
     // Fetch the order and HTML snippet
@@ -117,7 +200,31 @@ function QliroCheckoutContent() {
       })
       .catch((err) => {
         console.error('[Qliro] Failed to fetch order:', err);
-        setError(err.message || 'Failed to load checkout');
+        
+        // Try to get the checkout URL from the old way if we have it
+        const urlParams = new URLSearchParams(window.location.search);
+        const fallbackUrl = urlParams.get('url');
+        
+        if (fallbackUrl) {
+          console.log('[Qliro] Falling back to iframe with URL:', fallbackUrl);
+          setError('Loading checkout with iframe fallback...');
+          
+          // Create iframe fallback
+          const iframe = document.createElement('iframe');
+          iframe.src = fallbackUrl;
+          iframe.style.width = '100%';
+          iframe.style.height = '100vh';
+          iframe.style.border = 'none';
+          iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation';
+          
+          // Replace the error content with iframe
+          setTimeout(() => {
+            document.body.innerHTML = '';
+            document.body.appendChild(iframe);
+          }, 1000);
+        } else {
+          setError(err.message || 'Failed to load checkout');
+        }
       })
       .finally(() => {
         setLoading(false);

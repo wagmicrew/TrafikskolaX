@@ -46,7 +46,7 @@ export default function QliroPaymentsClient() {
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('all');
   const [dateField, setDateField] = useState<'purchase' | 'paid'>('purchase');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -84,7 +84,7 @@ export default function QliroPaymentsClient() {
         page: page.toString(),
         pageSize: pageSize.toString(),
         ...(search && { search }),
-        ...(status && { status }),
+        ...(status && status !== 'all' && { status }),
         dateField,
         ...(dateFrom && { from: dateFrom }),
         ...(dateTo && { to: dateTo })
@@ -216,7 +216,7 @@ export default function QliroPaymentsClient() {
                   <SelectValue placeholder="Alla statusar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alla statusar</SelectItem>
+                  <SelectItem value="all">Alla statusar</SelectItem>
                   <SelectItem value="pending">Väntande</SelectItem>
                   <SelectItem value="paid">Betald</SelectItem>
                   <SelectItem value="failed">Misslyckad</SelectItem>
@@ -268,7 +268,7 @@ export default function QliroPaymentsClient() {
             <Button 
               onClick={() => {
                 setSearch('');
-                setStatus('');
+                setStatus('all');
                 setDateFrom('');
                 setDateTo('');
                 setPage(1);

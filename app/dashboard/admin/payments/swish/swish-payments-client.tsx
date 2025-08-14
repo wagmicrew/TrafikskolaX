@@ -45,7 +45,7 @@ export default function SwishPaymentsClient() {
   const [pageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('all');
   const [dateField, setDateField] = useState<'purchase' | 'paid'>('purchase');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -66,7 +66,7 @@ export default function SwishPaymentsClient() {
         pageSize: pageSize.toString(),
         paymentMethod: 'swish',
         ...(search && { search }),
-        ...(status && { status }),
+        ...(status && status !== 'all' && { status }),
         dateField,
         ...(dateFrom && { from: dateFrom }),
         ...(dateTo && { to: dateTo })
@@ -162,7 +162,7 @@ export default function SwishPaymentsClient() {
                   <SelectValue placeholder="Alla statusar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Alla statusar</SelectItem>
+                  <SelectItem value="all">Alla statusar</SelectItem>
                   <SelectItem value="pending">Väntande</SelectItem>
                   <SelectItem value="paid">Betald</SelectItem>
                   <SelectItem value="failed">Misslyckad</SelectItem>
@@ -214,7 +214,7 @@ export default function SwishPaymentsClient() {
             <Button 
               onClick={() => {
                 setSearch('');
-                setStatus('');
+                setStatus('all');
                 setDateFrom('');
                 setDateTo('');
                 setPage(1);

@@ -29,14 +29,14 @@
       "name": "Kontakta oss",
       "short_name": "Kontakt",
       "description": "Kontakta Din Trafikskola direkt",
-      "url": "/?contact=true",
+      "url": "/",
       "icons": [{ "src": "/images/din-logo-small.png", "sizes": "128x128" }]
     },
     {
       "name": "Ring oss",
-      "short_name": "Ring",
+      "short_name": "Ring", 
       "description": "Ring oss direkt på 0760-389192",
-      "url": "/ring-oss",
+      "url": "/",
       "icons": [{ "src": "/images/din-logo-small.png", "sizes": "128x128" }]
     }
   ]

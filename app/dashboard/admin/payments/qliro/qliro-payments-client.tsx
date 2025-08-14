@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, RefreshCw, CreditCard, Calendar, User, Package, Eye, RotateCcw } from 'lucide-react';
+import { Loader2, Search, RefreshCw, CreditCard, Calendar, User, Package, Link as LinkIcon, Mail } from 'lucide-react';
 import { useToast } from '@/lib/hooks/use-toast';
 import { useQliroListener } from '@/hooks/use-qliro-listener';
 
@@ -113,46 +113,32 @@ export default function QliroPaymentsClient() {
     }
   };
 
-  const handleRepay = async (paymentId: string) => {
+  // Removed repay flow per new requirements
+
+  const sendReminder = async (paymentId: string) => {
     try {
-      const response = await fetch(`/api/admin/qliro/payments/${paymentId}/repay`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      const res = await fetch(`/api/admin/qliro/payments/${paymentId}/remind`, { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      toast({ title: 'Påminnelse skickad', description: 'E-postpåminnelse har skickats till kunden.' });
+    } catch (e: any) {
+      toast({ title: 'Kunde inte skicka påminnelse', description: e?.message || 'Fel uppstod', variant: 'destructive' });
+    }
+  };
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.checkoutUrl) {
-        // Prefer raw popup without wrapper
-        try {
-          const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
-          const oid = String(data.checkoutId || paymentId)
-          await openQliroPopup(oid, 'qliro_repay')
-        } catch {
-          const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || paymentId)}`;
-          const features = 'width=800,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-          window.open(safeUrl, 'qliro_repay', features);
-        }
-        
-        toast({
-          title: "Återbetalningslänk skapad",
-          description: "En ny Qliro-checkout har öppnats för återbetalning"
-        });
+  const createPaymentLink = async (paymentId: string) => {
+    try {
+      const res = await fetch(`/api/admin/qliro/payments/${paymentId}/link`, { method: 'POST', credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (data.checkoutUrl) {
+        try { await navigator.clipboard.writeText(data.checkoutUrl); } catch {}
+        toast({ title: 'Betalningslänk skapad', description: 'Länken är kopierad till urklipp.' });
       } else {
-        throw new Error('Invalid response from repay endpoint');
+        toast({ title: 'Betalningslänk skapad', description: 'Länk skapad, men ingen URL returnerades.' });
       }
-    } catch (error) {
-      console.error('Repay error:', error);
-      toast({
-        title: "Återbetalning misslyckades",
-        description: error instanceof Error ? error.message : "Kunde inte skapa återbetalningslänk",
-        variant: "destructive"
-      });
+    } catch (e: any) {
+      toast({ title: 'Kunde inte skapa länk', description: e?.message || 'Fel uppstod', variant: 'destructive' });
     }
   };
 
@@ -385,15 +371,14 @@ export default function QliroPaymentsClient() {
                       <td className="py-3 px-2">
                         <div className="flex gap-2">
                           {payment.paymentStatus !== 'paid' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleRepay(payment.id)}
-                              className="text-xs"
-                            >
-                              <RotateCcw className="w-3 h-3 mr-1" />
-                              Återbetala
-                            </Button>
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => createPaymentLink(payment.id)} className="text-xs">
+                                <LinkIcon className="w-3 h-3 mr-1" /> Länk
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => sendReminder(payment.id)} className="text-xs">
+                                <Mail className="w-3 h-3 mr-1" /> Påminn
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>

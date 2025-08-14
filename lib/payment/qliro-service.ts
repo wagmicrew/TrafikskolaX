@@ -253,6 +253,9 @@ export class QliroService {
     customerFirstName?: string;
     customerLastName?: string;
     personalNumber?: string;
+      overrideAllowedPaymentMethods?: string[];
+      overrideAllowedPaymentMethodIds?: string[];
+      overrideDisallowedPaymentMethods?: string[];
   }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
     
     console.log('[Qliro Service Debug] createCheckout called with params:', JSON.stringify(params, null, 2));
@@ -320,22 +323,26 @@ export class QliroService {
         },
       ],
       // Restrict available payment methods (disable Swish per requirement)
-      AllowedPaymentMethods: ['Card', 'Invoice', 'DirectBank']
+      AllowedPaymentMethods: params.overrideAllowedPaymentMethods?.length ? params.overrideAllowedPaymentMethods : ['Card', 'Invoice', 'DirectBank']
     };
 
     // Further restrict to specific payment method IDs/groups when supported by provider
     // Target set (as requested):
     // PAY_NOW -> CREDITCARDS (card), TRUSTLY_DIRECT (direct bank)
     // PAY_LATER -> QLIRO_INVOICE, QLIRO_CAMPAIGN, QLIRO_PARTPAYMENT
-    (checkoutRequest as any).AllowedPaymentMethodIds = [
-      'CREDITCARDS',
-      'TRUSTLY_DIRECT',
-      'QLIRO_INVOICE',
-      'QLIRO_CAMPAIGN',
-      'QLIRO_PARTPAYMENT',
-    ];
-    // Defensive: explicitly ban Swish if the API supports disallowing
-    (checkoutRequest as any).DisallowedPaymentMethods = ['Swish'];
+    (checkoutRequest as any).AllowedPaymentMethodIds = params.overrideAllowedPaymentMethodIds?.length
+      ? params.overrideAllowedPaymentMethodIds
+      : [
+          'CREDITCARDS',
+          'TRUSTLY_DIRECT',
+          'QLIRO_INVOICE',
+          'QLIRO_CAMPAIGN',
+          'QLIRO_PARTPAYMENT',
+        ];
+    // Defensive: explicitly ban Swish (and optionally others)
+    (checkoutRequest as any).DisallowedPaymentMethods = params.overrideDisallowedPaymentMethods?.length
+      ? params.overrideDisallowedPaymentMethods
+      : ['Swish'];
 
     try {
       console.log('[Qliro Service Debug] AllowedPaymentMethods:', (checkoutRequest as any).AllowedPaymentMethods);

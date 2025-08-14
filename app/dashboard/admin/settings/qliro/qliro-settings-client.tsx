@@ -78,7 +78,7 @@ const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "
 
 export default function QliroSettingsClient() {
   useQliroListener({
-    onCompleted: () => { try { window.location.href = '/booking/success?admin=1' } catch {} },
+    onCompleted: () => { try { window.location.href = '/payments/qliro/thank-you?admin=1' } catch {} },
     onDeclined: (reason, message) => { toast.error(`Betalning nekades: ${reason || ''} ${message || ''}`) },
   })
   // Filters
@@ -120,6 +120,11 @@ export default function QliroSettingsClient() {
   const [testQliroOpen, setTestQliroOpen] = useState(false);
   const [testQliroUrl, setTestQliroUrl] = useState("");
   const [selectedPaymentIdOverride, setSelectedPaymentIdOverride] = useState<string>("");
+  const [openMethod, setOpenMethod] = useState<'tab' | 'popup' | 'iframe'>('popup');
+  const [inspectOpen, setInspectOpen] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string>("");
+  const [pendingCheckoutUrl, setPendingCheckoutUrl] = useState<string>("");
+  const [iframeSrc, setIframeSrc] = useState<string>("");
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -359,20 +364,9 @@ export default function QliroSettingsClient() {
       if (!res.ok) throw new Error(data.error || data.message || 'Misslyckades att skapa testorder');
       toast.success('Testorder skapad – öppnar Qliro...', { id: t, position: 'top-right' });
       if (data.checkoutUrl) {
-        try {
-          const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
-          const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
-          const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
-          const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-          const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          try {
-            const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
-            if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return }
-          } catch {}
-          const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || 'admin-test')}`;
-          const win = window.open(safeUrl, 'qliro_window', features);
-          if (win) win.focus();
-        } catch {}
+        setPendingOrderId(String(data.checkoutId || ''));
+        setPendingCheckoutUrl(String(data.checkoutUrl || ''));
+        setInspectOpen(true);
       }
     } catch (err: any) {
       toast.error(err.message || 'Misslyckades att skapa testorder', { id: t, position: 'top-right' });
@@ -640,6 +634,17 @@ export default function QliroSettingsClient() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label>Öppningssätt</Label>
+                <Select value={openMethod} onValueChange={(v: any) => setOpenMethod(v)}>
+                  <SelectTrigger className="min-w-[220px]"><SelectValue placeholder="Välj öppningssätt" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tab">Ny flik</SelectItem>
+                    <SelectItem value="popup">Popup-fönster</SelectItem>
+                    <SelectItem value="iframe">Direkt i kort (iframe)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button variant="outline" onClick={async () => {
               setTestOrderRunning(true);
               setTestOrderResult(null);
@@ -689,6 +694,18 @@ export default function QliroSettingsClient() {
               Testorder (API)
             </Button>
             </div>
+            {openMethod === 'iframe' ? (
+              <div className="mt-3 w-full">
+                <Label>Inbäddad test (iframe)</Label>
+                <div className="mt-2 w-full rounded-lg overflow-hidden border border-white/10 bg-white/5" style={{height: 780}}>
+                  {iframeSrc ? (
+                    <iframe title="Qliro Test" src={iframeSrc} className="w-full h-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-slate-300">Ingen testorder öppnad ännu</div>
+                  )}
+                </div>
+              </div>
+            ) : null}
             <Button variant="outline" onClick={async () => {
               const t = toast.loading('Rensar temporära ordrar...', { position: 'top-right' });
               try {
@@ -793,6 +810,50 @@ export default function QliroSettingsClient() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={inspectOpen} onOpenChange={setInspectOpen}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Granska betalningslänk</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="text-slate-300">Öppningssätt: <span className="font-semibold">{openMethod === 'tab' ? 'Ny flik' : openMethod === 'popup' ? 'Popup' : 'Iframe'}</span></div>
+            <div className="text-slate-300 break-all">
+              <div className="font-medium mb-1">PaymentLink</div>
+              <code className="text-xs">{pendingCheckoutUrl || '-'}</code>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInspectOpen(false)}>Avbryt</Button>
+            <Button onClick={async () => {
+              setInspectOpen(false);
+              try {
+                if (openMethod === 'popup') {
+                  try {
+                    const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
+                    if (pendingOrderId) { await openQliroPopup(String(pendingOrderId)); return }
+                  } catch {}
+                } else if (openMethod === 'tab') {
+                  const url = pendingOrderId ? `/payments/qliro/checkout?orderId=${encodeURIComponent(pendingOrderId)}` : pendingCheckoutUrl;
+                  window.open(url || pendingCheckoutUrl, '_blank');
+                  return;
+                } else if (openMethod === 'iframe') {
+                  const src = pendingOrderId ? `/payments/qliro/raw?orderId=${encodeURIComponent(pendingOrderId)}` : '';
+                  setIframeSrc(src);
+                  return;
+                }
+                const fallbackUrl = pendingOrderId ? `/payments/qliro/checkout?orderId=${encodeURIComponent(pendingOrderId)}` : pendingCheckoutUrl;
+                const width = Math.min(520, Math.floor(window.innerWidth * 0.9));
+                const height = Math.min(860, Math.floor(window.innerHeight * 0.95));
+                const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                window.open(fallbackUrl, 'qliro_window', features);
+              } catch {}
+            }}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Status/Test Panel */}
       <Card>

@@ -17,7 +17,23 @@ export default async function QliroPaymentsPage() {
             </div>
           </div>
         </div>
-        
+        <div className="mb-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-lg">
+            <div className="px-6 py-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-semibold text-lg">Qliro Testverktyg</h2>
+                <p className="text-gray-300 text-sm">Kör anslutningstest och skapa testorder i sandbox.</p>
+              </div>
+              <a
+                href="/dashboard/admin/settings/qliro"
+                className="inline-flex items-center gap-2 rounded-md bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 transition"
+              >
+                Öppna testverktyg
+              </a>
+            </div>
+          </div>
+        </div>
+
         <QliroPaymentsClient />
       </div>
     </div>

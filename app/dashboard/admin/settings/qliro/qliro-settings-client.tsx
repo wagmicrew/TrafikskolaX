@@ -77,9 +77,27 @@ interface PackageLite { id: string; name: string; isActive: boolean; }
 const currency = new Intl.NumberFormat("sv-SE", { style: "currency", currency: "SEK" });
 
 export default function QliroSettingsClient() {
+  const [eventLog, setEventLog] = useState<Array<{ ts: string; type: string; data?: any }>>([])
+
+  const pushLog = useCallback((type: string, data?: any) => {
+    try {
+      setEventLog((prev) => [{ ts: new Date().toISOString(), type, data }, ...prev].slice(0, 200))
+    } catch {
+      setEventLog((prev) => [{ ts: new Date().toISOString(), type }, ...prev].slice(0, 200))
+    }
+  }, [])
+
   useQliroListener({
-    onCompleted: () => { try { window.location.href = '/payments/qliro/thank-you?admin=1' } catch {} },
-    onDeclined: (reason, message) => { toast.error(`Betalning nekades: ${reason || ''} ${message || ''}`) },
+    onCompleted: () => {
+      pushLog('completed')
+      try { window.location.href = '/payments/qliro/thank-you?admin=1' } catch {}
+    },
+    onDeclined: (reason, message) => {
+      pushLog('declined', { reason, message })
+      toast.error(`Betalning nekades: ${reason || ''} ${message || ''}`)
+    },
+    onLoaded: () => pushLog('loaded'),
+    onMethodChanged: (payload) => pushLog('method_changed', payload),
   })
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -240,6 +258,22 @@ export default function QliroSettingsClient() {
   useEffect(() => {
     loadTestStatus();
   }, [loadTestStatus]);
+
+  // Capture any qliro:* and legacy events broadcast via postMessage for richer logs
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const d: any = (event as any).data || {}
+      try {
+        if (d?.type && typeof d.type === 'string' && d.type.startsWith('qliro:')) {
+          pushLog(d.type, d.data ?? d)
+        } else if (d?.event) {
+          pushLog(`legacy:${String(d.event)}`, d)
+        }
+      } catch {}
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [pushLog])
 
   useEffect(() => {
     if (createOpen) {
@@ -601,6 +635,40 @@ export default function QliroSettingsClient() {
                 </details>
               </div>
             ) : null}
+
+            {/* Checkout Event Console */}
+            <div className="w-full mt-3">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Checkout Event Console</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs text-slate-500">Visar senaste {eventLog.length} händelser</div>
+                    <Button variant="outline" size="sm" onClick={() => setEventLog([])}>Rensa</Button>
+                  </div>
+                  <div className="rounded-md border border-white/10 bg-white/5 max-h-64 overflow-auto p-2 text-xs font-mono">
+                    {eventLog.length === 0 ? (
+                      <div className="text-slate-400">Inga händelser ännu</div>
+                    ) : (
+                      eventLog.map((e, idx) => (
+                        <div key={idx} className="py-1 border-b last:border-b-0 border-white/10">
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400">{new Date(e.ts).toLocaleTimeString()}</span>
+                            <span className="text-sky-300">{e.type}</span>
+                          </div>
+                          {e.data !== undefined ? (
+                            <pre className="whitespace-pre-wrap break-words text-slate-200">{
+                              (() => { try { return JSON.stringify(e.data, null, 2) } catch { return String(e.data) } })()
+                            }</pre>
+                          ) : null}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
             <Button variant="secondary" onClick={async () => {
               setPrereqLoading(true);
               setPrereqResult(null);

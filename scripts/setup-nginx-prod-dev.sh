@@ -170,41 +170,40 @@ if [ -z "$DEV_CERT_DIR" ]; then
 fi
 
 ########################################
-# Generate Nginx config (HTTPS only, no http2)
+# Generate Nginx configs (separate files for prod and dev, HTTPS only, no http2)
 ########################################
-CONF_NAME="$SITE_NAME.conf"
-CONF_PATH="$NGINX_SITES_AVAILABLE/$CONF_NAME"
-BACKUP_PATH="$CONF_PATH.$(date +%F_%H%M%S).bak"
+PROD_SITE_NAME=${PROD_SITE_NAME:-dintrafikskolax_prod}
+DEV_SITE_NAME=${DEV_SITE_NAME:-dintrafikskolax_dev}
 
-[ -f "$CONF_PATH" ] && cp -a "$CONF_PATH" "$BACKUP_PATH" && echo "[i] Backed up: $BACKUP_PATH"
+# Remove old combined site if present to avoid conflicts
+OLD_COMBINED="$NGINX_SITES_ENABLED/$SITE_NAME.conf"
+[ -f "$OLD_COMBINED" ] && rm -f "$OLD_COMBINED" || true
+[ -f "$NGINX_SITES_AVAILABLE/$SITE_NAME.conf" ] && rm -f "$NGINX_SITES_AVAILABLE/$SITE_NAME.conf" || true
 
-cat >"$CONF_PATH.new" <<'NGINXCONF'
-# Managed by setup-nginx-prod-dev.sh
+# --- PROD ---
+PROD_CONF_NAME="$PROD_SITE_NAME.conf"
+PROD_CONF_PATH="$NGINX_SITES_AVAILABLE/$PROD_CONF_NAME"
+[ -f "$PROD_CONF_PATH" ] && cp -a "$PROD_CONF_PATH" "$PROD_CONF_PATH.$(date +%F_%H%M%S).bak" && echo "[i] Backed up: $PROD_CONF_PATH.*.bak"
 
-log_format request_with_id '$remote_addr - $remote_user [$time_local] "$request" '
-                               '$status $body_bytes_sent "$http_referer" "$http_user_agent" '
-                               'req_id=$request_id upstream=$upstream_addr rt=$request_time';
-
-map $http_origin $cors_allow_origin {
-    default "$scheme://$host";
-}
+cat >"$PROD_CONF_PATH" <<EOF
+# Managed by setup-nginx-prod-dev.sh (prod)
 
 server {
     listen 80;
-    server_name PROD_DOMAIN_REPLACE PROD_WWW_REPLACE DEV_DOMAIN_REPLACE;
-    return 301 https://$host$request_uri;
+    server_name $PROD_DOMAIN $PROD_WWW;
+    return 301 https://\$host\$request_uri;
 }
 
 server {
     listen 443 ssl; # http2 disabled intentionally
-    server_name PROD_DOMAIN_REPLACE PROD_WWW_REPLACE;
+    server_name $PROD_DOMAIN $PROD_WWW;
 
-    ssl_certificate     PROD_CERT_DIR_REPLACE/fullchain.pem;
-    ssl_certificate_key PROD_CERT_DIR_REPLACE/privkey.pem;
+    ssl_certificate     $PROD_CERT_DIR/fullchain.pem;
+    ssl_certificate_key $PROD_CERT_DIR/privkey.pem;
     ssl_stapling off;
 
-    access_log /var/log/nginx/SITE_NAME_REPLACE.access.log request_with_id;
-    error_log  /var/log/nginx/SITE_NAME_REPLACE.error.log warn;
+    access_log /var/log/nginx/${PROD_SITE_NAME}.access.log;
+    error_log  /var/log/nginx/${PROD_SITE_NAME}.error.log warn;
 
     # Basic security and embedding policy
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
@@ -213,20 +212,21 @@ server {
     add_header Content-Security-Policy "default-src 'self' https: data: blob:; frame-ancestors 'self' https://*.qliro.com https://qliro.com; frame-src https://*.qliro.com; child-src https://*.qliro.com; connect-src 'self' https:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' https: 'unsafe-inline';" always;
 
     # CORS (optional)
-    add_header 'Access-Control-Allow-Origin' $cors_allow_origin always;
+    set \$cors_allow_origin "\$scheme://\$host";
+    add_header 'Access-Control-Allow-Origin' \$cors_allow_origin always;
     add_header 'Vary' 'Origin' always;
     add_header 'Access-Control-Allow-Credentials' 'true' always;
     add_header 'Access-Control-Allow-Methods' 'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
     add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,X-Requested-With,X-Request-ID' always;
 
     location / {
-        proxy_pass http://127.0.0.1:PROD_PORT_REPLACE;
+        proxy_pass http://127.0.0.1:$PROD_PORT;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Request-ID \$request_id;
         proxy_buffering off;
         proxy_connect_timeout 30s;
         proxy_send_timeout 60s;
@@ -234,39 +234,66 @@ server {
         send_timeout 120s;
     }
 }
+EOF
 
-# Dev server (only if cert present)
-DEV_SERVER_BLOCK
-NGINXCONF
+ln -sf "$PROD_CONF_PATH" "$NGINX_SITES_ENABLED/$PROD_CONF_NAME"
 
-# Build dev server block only if we have a cert dir
-DEV_BLOCK=""
+# Disable any other enabled sites conflicting with prod domains
+for f in "$NGINX_SITES_ENABLED"/*; do
+  [ -e "$f" ] || continue
+  if [[ "$f" == *"$PROD_CONF_NAME" ]]; then continue; fi
+  if grep -Eqs "server_name\s+.*($PROD_DOMAIN|$PROD_WWW)" "$f"; then
+    echo "[i] Disabling conflicting prod site: $(basename "$f")"
+    rm -f "$f"
+  fi
+done
+
+# --- DEV ---
 if [ -n "$DEV_CERT_DIR" ]; then
-  DEV_BLOCK=$(cat <<'DEVSRV'
+  DEV_CONF_NAME="$DEV_SITE_NAME.conf"
+  DEV_CONF_PATH="$NGINX_SITES_AVAILABLE/$DEV_CONF_NAME"
+  [ -f "$DEV_CONF_PATH" ] && cp -a "$DEV_CONF_PATH" "$DEV_CONF_PATH.$(date +%F_%H%M%S).bak" && echo "[i] Backed up: $DEV_CONF_PATH.*.bak"
+
+  cat >"$DEV_CONF_PATH" <<EOF
+# Managed by setup-nginx-prod-dev.sh (dev)
+
+server {
+    listen 80;
+    server_name $DEV_DOMAIN;
+    return 301 https://\$host\$request_uri;
+}
+
 server {
     listen 443 ssl; # http2 disabled intentionally
-    server_name DEV_DOMAIN_REPLACE;
+    server_name $DEV_DOMAIN;
 
-    ssl_certificate     DEV_CERT_DIR_REPLACE/fullchain.pem;
-    ssl_certificate_key DEV_CERT_DIR_REPLACE/privkey.pem;
+    ssl_certificate     $DEV_CERT_DIR/fullchain.pem;
+    ssl_certificate_key $DEV_CERT_DIR/privkey.pem;
     ssl_stapling off;
 
-    access_log /var/log/nginx/SITE_NAME_REPLACE.dev.access.log request_with_id;
-    error_log  /var/log/nginx/SITE_NAME_REPLACE.dev.error.log warn;
+    access_log /var/log/nginx/${DEV_SITE_NAME}.access.log;
+    error_log  /var/log/nginx/${DEV_SITE_NAME}.error.log warn;
 
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
     add_header Content-Security-Policy "default-src 'self' https: data: blob:; frame-ancestors 'self' https://*.qliro.com https://qliro.com; frame-src https://*.qliro.com; child-src https://*.qliro.com; connect-src 'self' https:; img-src 'self' https: data: blob:; style-src 'self' 'unsafe-inline' https:; script-src 'self' https: 'unsafe-inline';" always;
 
+    set \$cors_allow_origin "\$scheme://\$host";
+    add_header 'Access-Control-Allow-Origin' \$cors_allow_origin always;
+    add_header 'Vary' 'Origin' always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+    add_header 'Access-Control-Allow-Methods' 'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,X-Requested-With,X-Request-ID' always;
+
     location / {
-        proxy_pass http://127.0.0.1:DEV_PORT_REPLACE;
+        proxy_pass http://127.0.0.1:$DEV_PORT;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Request-ID \$request_id;
         proxy_buffering off;
         proxy_connect_timeout 30s;
         proxy_send_timeout 60s;
@@ -274,50 +301,22 @@ server {
         send_timeout 120s;
     }
 }
-DEVSRV
-)
-fi
+EOF
 
-# Fill in placeholders
-sed -i "s/PROD_DOMAIN_REPLACE/$PROD_DOMAIN/g" "$CONF_PATH.new"
-sed -i "s/PROD_WWW_REPLACE/$PROD_WWW/g" "$CONF_PATH.new"
-sed -i "s/DEV_DOMAIN_REPLACE/$DEV_DOMAIN/g" "$CONF_PATH.new"
-sed -i "s#PROD_CERT_DIR_REPLACE#$PROD_CERT_DIR#g" "$CONF_PATH.new"
-sed -i "s#DEV_CERT_DIR_REPLACE#${DEV_CERT_DIR:-/etc/letsencrypt/live/INVALID_DEV_CERT_DIR}#g" "$CONF_PATH.new"
-sed -i "s/PROD_PORT_REPLACE/$PROD_PORT/g" "$CONF_PATH.new"
-sed -i "s/DEV_PORT_REPLACE/$DEV_PORT/g" "$CONF_PATH.new"
-sed -i "s/SITE_NAME_REPLACE/$SITE_NAME/g" "$CONF_PATH.new"
+  ln -sf "$DEV_CONF_PATH" "$NGINX_SITES_ENABLED/$DEV_CONF_NAME"
 
-if [ -n "$DEV_CERT_DIR" ]; then
-  # Fill placeholders inside the DEV block before insertion
-  DEV_BLOCK_FILLED="$DEV_BLOCK"
-  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_PORT_REPLACE/$DEV_PORT}"
-  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_CERT_DIR_REPLACE/$DEV_CERT_DIR}"
-  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//SITE_NAME_REPLACE/$SITE_NAME}"
-  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_DOMAIN_REPLACE/$DEV_DOMAIN}"
-
-  TMP_DEV_BLOCK="$(mktemp)"
-  printf '%s\n' "$DEV_BLOCK_FILLED" > "$TMP_DEV_BLOCK"
-  # Safely replace placeholder line with the file contents
-  sed -i -e "/DEV_SERVER_BLOCK/{r $TMP_DEV_BLOCK" -e "d}" "$CONF_PATH.new"
-  rm -f "$TMP_DEV_BLOCK"
+  # Disable any other enabled sites conflicting with dev domain
+  for f in "$NGINX_SITES_ENABLED"/*; do
+    [ -e "$f" ] || continue
+    if [[ "$f" == *"$DEV_CONF_NAME" ]]; then continue; fi
+    if grep -Eqs "server_name\s+.*($DEV_DOMAIN)" "$f"; then
+      echo "[i] Disabling conflicting dev site: $(basename "$f")"
+      rm -f "$f"
+    fi
+  done
 else
-  sed -i "/DEV_SERVER_BLOCK/d" "$CONF_PATH.new"
+  echo "[!] Skipping dev nginx site (no certificate for $DEV_DOMAIN)."
 fi
-
-# Install and enable site
-mv -f "$CONF_PATH.new" "$CONF_PATH"
-ln -sf "$CONF_PATH" "$NGINX_SITES_ENABLED/$CONF_NAME"
-
-# Remove conflicting server_name files
-for f in "$NGINX_SITES_ENABLED"/*; do
-  [ -e "$f" ] || continue
-  if [[ "$f" == *"$CONF_NAME" ]]; then continue; fi
-  if grep -Eqs "server_name\s+.*($PROD_DOMAIN|$PROD_WWW|$DEV_DOMAIN)" "$f"; then
-    echo "[i] Disabling conflicting site: $(basename "$f")"
-    rm -f "$f"
-  fi
-done
 
 # Validate and reload nginx
 if nginx -t; then
@@ -411,12 +410,28 @@ build_prod() {
 
 start_pm2_prod() {
   local path="$1"
-  PORT="$PROD_PORT" NODE_ENV=production pm2 start npm --name trafikskolax-prod --update-env --cwd "$path" -- run start -- -p "$PROD_PORT" || true
+  echo "[i] Starting PM2 prod in cluster on port $PROD_PORT"
+  pm2 delete trafikskolax-prod >/dev/null 2>&1 || true
+  pushd "$path" >/dev/null
+  [ -d node_modules ] || npm ci --no-audit --no-fund
+  [ -d .next ] || npm run build
+  NODE_ENV=production pm2 start node_modules/next/dist/bin/next \
+    --name trafikskolax-prod \
+    -i max \
+    -- start -p "$PROD_PORT" --hostname 127.0.0.1
+  popd >/dev/null
 }
 
 start_pm2_dev() {
   local path="$1"
-  PORT="$DEV_PORT" NODE_ENV=development pm2 start npm --name trafikskolax-dev --update-env --cwd "$path" -- run dev || true
+  echo "[i] Starting PM2 dev in fork on port $DEV_PORT"
+  pm2 delete trafikskolax-dev >/dev/null 2>&1 || true
+  pushd "$path" >/dev/null
+  [ -d node_modules ] || npm ci --no-audit --no-fund
+  NODE_ENV=development pm2 start node_modules/next/dist/bin/next \
+    --name trafikskolax-dev \
+    -- dev -p "$DEV_PORT" --hostname 127.0.0.1
+  popd >/dev/null
 }
 
 if confirm "Update repositories (git pull main) for prod and dev?"; then

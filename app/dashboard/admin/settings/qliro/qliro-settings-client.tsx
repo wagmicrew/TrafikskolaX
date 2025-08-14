@@ -353,7 +353,8 @@ export default function QliroSettingsClient() {
     setCreatingTest(true);
     const t = toast.loading('Skapar testorder...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
     try {
-      const res = await fetch('/api/payments/qliro/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 1, reference: 'test_admin_ui', description: 'Admin UI test', returnUrl: `${window.location.origin}/payments/qliro/return?admin=1` }) });
+      const uniqueRef = `test_admin_ui_${Date.now()}`
+      const res = await fetch('/api/payments/qliro/create-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: 1, reference: uniqueRef, description: 'Admin UI test', returnUrl: `${window.location.origin}/payments/qliro/return?admin=1` }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message || 'Misslyckades att skapa testorder');
       toast.success('Testorder skapad – öppnar Qliro...', { id: t, position: 'top-right' });

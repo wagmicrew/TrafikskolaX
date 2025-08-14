@@ -24,6 +24,17 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
     const onMessage = (event: MessageEvent) => {
       const data = event.data || {}
       if (extendedDebug) console.debug('[useQliroListener] message', { origin: event.origin, data })
+      // Surface toasts or UI hints via callbacks
+      if (data?.event === 'CheckoutLoaded') {
+        opts.onLoaded?.()
+      }
+      if (data?.event === 'PaymentMethodChanged') {
+        opts.onMethodChanged?.(data.pm)
+      }
+      if (data?.type === 'qliro:return') {
+        // Acknowledge thank-you redirect
+        if (extendedDebug) console.debug('[useQliroListener] return reached', data)
+      }
       if (data?.event === 'CheckoutLoaded') opts.onLoaded?.()
       if (data?.event === 'PaymentMethodChanged') opts.onMethodChanged?.(data.pm)
       if (data?.type === 'qliro:declined') opts.onDeclined?.(data?.reason, data?.message)

@@ -147,6 +147,7 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
     return NextResponse.json({
       success: true,
       checkoutUrl: checkout.checkoutUrl,
+      checkoutId: checkout.checkoutId,
       purchaseId,
     });
   } catch (error) {

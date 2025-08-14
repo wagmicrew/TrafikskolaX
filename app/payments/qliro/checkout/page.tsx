@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-export default function QliroEmbedPage({ searchParams }: { searchParams: { url?: string } }) {
+export default function QliroEmbedPage({ searchParams }: { searchParams: { url?: string, orderId?: string } }) {
   const [extendedDebug, setExtendedDebug] = useState(false)
+  const orderId = searchParams?.orderId || ''
   const targetUrl = useMemo(() => {
     try {
       const u = decodeURIComponent(searchParams.url || '')
@@ -48,6 +49,36 @@ export default function QliroEmbedPage({ searchParams }: { searchParams: { url?:
   }, [extendedDebug])
 
   useEffect(() => {
+    // If orderId present, fetch PaymentOptions once and log non-Swish methods
+    (async () => {
+      if (!orderId) return
+      try {
+        const res = await fetch('/api/admin/qliro/payment-options', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }) })
+        const data = await res.json()
+        if (res.ok) {
+          const candidates: string[] = []
+          const scan = (obj: any) => {
+            if (!obj) return
+            if (Array.isArray(obj)) { for (const it of obj) scan(it); return }
+            if (typeof obj === 'object') {
+              const name = String(obj.Name || obj.Method || obj.GroupName || '').toLowerCase()
+              const id = obj.PaymentId || obj.Id || obj.PaymentID || null
+              if (id && name && !name.includes('swish')) candidates.push(String(id))
+              for (const k of Object.keys(obj)) scan(obj[k])
+            }
+          }
+          scan(data.options)
+          if (extendedDebug) console.debug('[QliroEmbed] PaymentOptions (non-swish ids)', candidates)
+        } else if (extendedDebug) {
+          console.debug('[QliroEmbed] PaymentOptions error', data)
+        }
+      } catch (e) {
+        if (extendedDebug) console.debug('[QliroEmbed] PaymentOptions fetch failed', e)
+      }
+    })()
+  }, [orderId, extendedDebug])
+
+  useEffect(() => {
     if (extendedDebug) {
       // eslint-disable-next-line no-console
       console.debug('[QliroEmbed] targetUrl', targetUrl)
@@ -66,19 +97,13 @@ export default function QliroEmbedPage({ searchParams }: { searchParams: { url?:
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto p-2">
-        <div className="relative pb-[175%] sm:pb-[110%] md:pb-[80%] lg:pb-[70%] xl:pb-[65%]">
-          <iframe
-            src={targetUrl}
-            title="Qliro Checkout"
-            className="absolute inset-0 w-full h-full rounded-lg border"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            allow="payment *; clipboard-write;"
-          />
-        </div>
-      </div>
-    </div>
+    <iframe
+      src={targetUrl}
+      title="Qliro Checkout"
+      className="w-screen h-screen"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+      allow="payment *; clipboard-write;"
+    />
   )
 }
 

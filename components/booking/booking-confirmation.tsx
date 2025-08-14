@@ -471,7 +471,7 @@ export function BookingConfirmation({
         
         if (!response.ok) throw new Error('Kunde inte skapa Qliro-checkout')
         
-        const { checkoutUrl } = await response.json()
+        const { checkoutUrl, checkoutId } = await response.json()
         try { 
           const res = await fetch('/api/public/site-settings');
           const s = await res.json();
@@ -483,7 +483,10 @@ export function BookingConfirmation({
           const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
           const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
           const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(checkoutUrl)}`
+          const params = new URLSearchParams()
+          params.set('url', checkoutUrl)
+          if (checkoutId) params.set('orderId', String(checkoutId))
+          const safeUrl = `/payments/qliro/checkout?${params.toString()}`
           const win = window.open(safeUrl, 'qliro_window', features);
           if (win) win.focus();
         } catch {}

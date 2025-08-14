@@ -182,15 +182,17 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           const effectivePrice = getEffectivePrice(pkg);
           
           setQliroPaymentData({ amount: effectivePrice, purchaseId: data.purchaseId, checkoutUrl: data.checkoutUrl })
-          // Open Qliro in small centered window, no in-between popup
+          // Open Qliro in small centered window; pass orderId if available
           try {
             const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
             const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
             const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
             const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
             const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-            const safeUrl = `/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`
-            const win = window.open(safeUrl, 'qliro_window', features);
+            const params = new URLSearchParams();
+            params.set('url', data.checkoutUrl);
+            if (data.checkoutId) params.set('orderId', String(data.checkoutId));
+            const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
             if (win) win.focus();
           } catch {}
         }

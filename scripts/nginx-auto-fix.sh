@@ -14,6 +14,7 @@ PRIMARY_DOMAIN=${PRIMARY_DOMAIN:-dintrafikskolahlm.se}
 EXTRA_DOMAINS=${EXTRA_DOMAINS:-www.dintrafikskolahlm.se dev.dintrafikskolaholm.se}
 APP_UPSTREAM=${APP_UPSTREAM:-127.0.0.1:3000}
 ENABLE_CERTBOT=${ENABLE_CERTBOT:-false}
+DISABLE_HTTP2=${DISABLE_HTTP2:-false}
 CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@${PRIMARY_DOMAIN#www.}}
 
 NEED() { command -v "$1" >/dev/null 2>&1 || { echo "[-] Missing command: $1" >&2; exit 1; }; }
@@ -89,7 +90,8 @@ cat >"$CONF_PATH.new" <<'EOF'
 # Managed by nginx-auto-fix.sh
 
 map $http_origin $cors_allow_origin {
-    default "";
+    # Default to current site origin to avoid empty header values on HTTP/2
+    default "$scheme://$host";
 }
 
 log_format request_with_id '$remote_addr - $remote_user [$time_local] "$request" '
@@ -103,7 +105,7 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl HTTP2_PLACEHOLDER;
     server_name SERVER_NAMES_REPLACE;
 
     ssl_certificate     CERT_DIR_REPLACE/fullchain.pem;
@@ -144,7 +146,7 @@ server {
     add_header Cross-Origin-Embedder-Policy "require-corp" always;
     add_header Cross-Origin-Resource-Policy "same-site" always;
 
-    # CORS
+    # CORS (explicit non-empty value)
     add_header 'Access-Control-Allow-Origin' $cors_allow_origin always;
     add_header 'Vary' 'Origin' always;
     add_header 'Access-Control-Allow-Credentials' 'true' always;

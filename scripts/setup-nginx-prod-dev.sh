@@ -342,12 +342,46 @@ update_repo() {
   fi
   pushd "$path" >/dev/null
   git fetch --all --prune
-  if ! git rev-parse --abbrev-ref HEAD | grep -q '^main$'; then
-    echo "[i] Switching to main branch"
-    git checkout main || true
+
+  # Determine default remote branch (origin/HEAD), fallback to main or master
+  get_default_remote_branch() {
+    local def
+    def=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)
+    if [ -n "$def" ]; then
+      echo "${def##*/}"; return 0
+    fi
+    if git show-ref --verify --quiet refs/remotes/origin/main; then echo main; return 0; fi
+    if git show-ref --verify --quiet refs/remotes/origin/master; then echo master; return 0; fi
+    git for-each-ref --format='%(refname:short)' refs/remotes/origin | head -n1 | awk -F/ '{print $2}'
+  }
+
+  local current_branch
+  current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  local default_branch
+  default_branch=$(get_default_remote_branch)
+  if [ -z "$default_branch" ]; then
+    default_branch="$current_branch"
   fi
+  if [ -z "$default_branch" ]; then
+    echo "[-] Could not determine default branch for $path; skipping update" >&2
+    popd >/dev/null; return 1
+  fi
+
+  if [ "$current_branch" != "$default_branch" ]; then
+    echo "[i] Switching to default branch: $default_branch"
+    # Ensure local branch exists tracking origin
+    if ! git show-ref --verify --quiet "refs/heads/$default_branch"; then
+      git checkout -b "$default_branch" "origin/$default_branch" 2>/dev/null || \
+      git checkout -t "origin/$default_branch" 2>/dev/null || true
+    fi
+    git checkout "$default_branch" || true
+  fi
+
   git stash push -u -m "auto-stash $(date +%F_%T)" || true
-  git pull --ff-only origin main || git reset --hard origin/main
+  git pull --ff-only origin "$default_branch" || {
+    git fetch origin "$default_branch":"$default_branch" || true
+    git reset --hard "origin/$default_branch" || true
+  }
   popd >/dev/null
 }
 

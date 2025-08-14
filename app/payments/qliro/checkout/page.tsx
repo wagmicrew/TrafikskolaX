@@ -29,6 +29,12 @@ export default function QliroEmbedPage({ searchParams }: { searchParams: { url?:
         // eslint-disable-next-line no-console
         console.debug('[QliroEmbed] message', { origin: event.origin, data })
       }
+      if (data?.event === 'CheckoutLoaded') {
+        try { window.opener?.postMessage({ event: 'CheckoutLoaded' }, '*') } catch {}
+      }
+      if (data?.event === 'PaymentMethodChanged') {
+        try { window.opener?.postMessage({ event: 'PaymentMethodChanged', pm: data.pm }, '*') } catch {}
+      }
       if (data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')) {
         try { window.opener?.postMessage({ type: 'qliro:completed' }, '*') } catch {}
         try { window.close() } catch {}

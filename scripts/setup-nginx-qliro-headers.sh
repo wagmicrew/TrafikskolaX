@@ -108,13 +108,11 @@ server {
     add_header Cross-Origin-Resource-Policy "same-site" always;
 
     # CORS (allow same-site origins only)
-    if ($cors_allow_origin != "") {
-        add_header 'Access-Control-Allow-Origin' $cors_allow_origin always;
-        add_header 'Vary' 'Origin' always;
-        add_header 'Access-Control-Allow-Credentials' 'true' always;
-        add_header 'Access-Control-Allow-Methods' 'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,X-Requested-With,X-Request-ID' always;
-    }
+    add_header 'Access-Control-Allow-Origin' $cors_allow_origin always;
+    add_header 'Vary' 'Origin' always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+    add_header 'Access-Control-Allow-Methods' 'GET,POST,PUT,PATCH,DELETE,OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Authorization,Content-Type,Accept,X-Requested-With,X-Request-ID' always;
     if ($request_method = OPTIONS) {
         return 204;
     }

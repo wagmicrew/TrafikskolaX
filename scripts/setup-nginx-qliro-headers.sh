@@ -36,10 +36,10 @@ BACKUP_PATH="$CONF_PATH.$(date +%F_%H%M%S).bak"
 DOMAINS="$PRIMARY_DOMAIN $EXTRA_DOMAINS"
 SERVER_NAMES=$(echo "$DOMAINS" | xargs)
 
-cat >"$CONF_PATH.new" <<'EOF'
+cat >"$CONF_PATH.new" <<EOF
 # Managed by setup-nginx-qliro-headers.sh
 
-map \\$http_origin \\$cors_allow_origin {
+map $http_origin $cors_allow_origin {
     default "";
 EOF
 for d in $DOMAINS; do

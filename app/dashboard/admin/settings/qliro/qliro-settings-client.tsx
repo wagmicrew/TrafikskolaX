@@ -243,7 +243,7 @@ export default function QliroSettingsClient() {
       const url = `/api/admin/qliro/payments/export?${queryString}`;
       const t = toast.loading("Genererar PDF...", { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
       // Open in a new tab to leverage Content-Disposition
-      const win = window.open(`/payments/qliro/checkout?url=${encodeURIComponent(url)}`, "_blank");
+      const win = window.open(`/payments/qliro/checkout?url=${encodeURIComponent(url)}`, "qliro_window");
       if (!win) {
         toast.error("Popup blocker hindrade exporten", { id: t, position: 'top-right' });
         return;
@@ -265,7 +265,7 @@ export default function QliroSettingsClient() {
       toast.success('Betalningslänk skapad', { id: t, position: 'top-right' });
       if (data.checkoutUrl) {
         try { await navigator.clipboard.writeText(data.checkoutUrl); toast('Länk kopierad', { position: 'top-right' }); } catch {}
-        window.open(data.checkoutUrl, '_blank');
+        window.open(`/payments/qliro/checkout?url=${encodeURIComponent(data.checkoutUrl)}`, '_blank');
       }
     } catch (err: any) {
       toast.error(err.message || 'Fel vid skapande av länk', { id: t, position: 'top-right' });

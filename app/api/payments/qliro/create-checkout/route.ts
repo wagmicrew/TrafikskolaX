@@ -8,11 +8,16 @@ import { logger } from '@/lib/logging/logger';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
+    // Debug: Log full request body
+    console.log('[Qliro Debug] Create checkout request body:', JSON.stringify(body, null, 2));
+    
     const { amount, reference, description, returnUrl } = body as { amount: number | string; reference: string; description: string; returnUrl: string };
     let { customerEmail, customerPhone, customerFirstName, customerLastName } = body as { customerEmail?: string; customerPhone?: string; customerFirstName?: string; customerLastName?: string };
 
     // Validate required fields
     if (!amount || !reference || !description || !returnUrl) {
+      console.log('[Qliro Debug] Validation failed - missing fields:', { amount: !!amount, reference: !!reference, description: !!description, returnUrl: !!returnUrl });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -95,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create checkout session
-    const checkoutResult = await qliroService.createCheckout({
+    const checkoutParams = {
       amount: typeof amount === 'number' ? amount : Number(amount),
       reference,
       description,
@@ -104,7 +109,11 @@ export async function POST(request: NextRequest) {
       customerPhone,
       customerFirstName,
       customerLastName,
-    });
+    };
+    
+    console.log('[Qliro Debug] Calling qliroService.createCheckout with params:', JSON.stringify(checkoutParams, null, 2));
+    
+    const checkoutResult = await qliroService.createCheckout(checkoutParams);
 
     logger.info('payment', 'Qliro checkout session created successfully', {
       checkoutId: checkoutResult.checkoutId,

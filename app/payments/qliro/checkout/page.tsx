@@ -21,10 +21,13 @@ function QliroCheckoutContent() {
 
   useEffect(() => {
     if (!orderId) {
+      console.log('[Qliro Checkout] No orderId provided in URL params');
       setError('No order ID provided');
       setLoading(false);
       return;
     }
+    
+    console.log('[Qliro Checkout] Starting with orderId:', orderId);
 
     // Define q1Ready globally before fetching the order
     (window as any).q1Ready = function() {
@@ -90,10 +93,13 @@ function QliroCheckoutContent() {
     };
 
     // Fetch the order and HTML snippet
+    console.log('[Qliro Checkout] Fetching order data for orderId:', orderId);
     fetch(`/api/payments/qliro/get-order?orderId=${encodeURIComponent(orderId)}`)
       .then(async (response) => {
+        console.log('[Qliro Checkout] Get-order response status:', response.status);
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
+          console.log('[Qliro Checkout] Get-order error:', errorData);
           throw new Error(errorData.error || `HTTP ${response.status}`);
         }
         return response.json();

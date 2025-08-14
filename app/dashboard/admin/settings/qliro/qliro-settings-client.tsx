@@ -371,6 +371,28 @@ export default function QliroSettingsClient() {
     }
   };
 
+  const testDummyOrder = async () => {
+    const t = toast.loading('Skapar dummy order & testar PaymentOptions...', { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
+    try {
+      const res = await fetch('/api/admin/qliro/test-dummy-order', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa dummy order');
+      
+      toast.success('Dummy order skapad! Se konsolen för detaljer.', { id: t, position: 'top-right' });
+      console.log('[Qliro Test Results]', data);
+      
+      if (data.availablePaymentMethods) {
+        console.log('[Qliro] Available Payment Methods:', data.availablePaymentMethods);
+      }
+      if (data.nonSwishMethods) {
+        console.log('[Qliro] Non-Swish Payment Methods:', data.nonSwishMethods);
+      }
+    } catch (err: any) {
+      console.error('[Qliro Test Error]', err);
+      toast.error(err.message || 'Misslyckades att testa dummy order', { id: t, position: 'top-right' });
+    }
+  };
+
   const onRefund = async (id: string) => {
     const t = toast.loading("Försöker återbetalning...", { position: 'top-right', style: { background: 'rgba(15,23,42,0.9)', color: 'white' } });
     try {
@@ -492,6 +514,9 @@ export default function QliroSettingsClient() {
           <div className="flex flex-wrap gap-2">
             <Button onClick={onTestConnection} disabled={testing}>
               {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <TestTube className="w-4 h-4 mr-2" />} Testa anslutning
+            </Button>
+            <Button onClick={testDummyOrder} variant="outline">
+              <TestTube className="w-4 h-4 mr-2" /> Test PaymentOptions
             </Button>
             <div className="p-3 rounded-lg border border-white/10 bg-white/5 flex items-center gap-2">
               <div className="text-sm text-slate-300">PaymentOptions</div>

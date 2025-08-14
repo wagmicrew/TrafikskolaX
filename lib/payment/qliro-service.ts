@@ -245,7 +245,17 @@ export class QliroService {
     customerLastName?: string;
     personalNumber?: string;
   }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
+    
+    console.log('[Qliro Service Debug] createCheckout called with params:', JSON.stringify(params, null, 2));
     const settings = await this.loadSettings();
+    console.log('[Qliro Service Debug] Settings loaded:', {
+      enabled: settings.enabled,
+      environment: settings.environment,
+      apiUrl: settings.apiUrl,
+      publicUrl: settings.publicUrl,
+      hasApiKey: !!settings.apiKey,
+      hasApiSecret: !!settings.apiSecret
+    });
 
     logger.info('payment', 'Creating Qliro checkout', {
       reference: params.reference,
@@ -340,6 +350,11 @@ export class QliroService {
 
       const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders`;
       const authHeader = this.generateAuthHeader(bodyString);
+      
+      console.log('[Qliro Service Debug] About to send API request:');
+      console.log('[Qliro Service Debug] URL:', url);
+      console.log('[Qliro Service Debug] Request Body:', bodyString);
+      console.log('[Qliro Service Debug] Auth Header:', authHeader.slice(0, 50) + '...');
 
       logger.debug('payment', 'Qliro request prepared', {
         url,
@@ -362,6 +377,9 @@ export class QliroService {
 
       clearTimeout(timeoutId);
       const responseText = await response.text();
+      
+      console.log('[Qliro Service Debug] API Response Status:', response.status);
+      console.log('[Qliro Service Debug] API Response Body:', responseText);
       
       logger.debug('payment', 'Qliro API response', {
         status: response.status,

@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure this script is executed with bash (not sh)
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "[-] This script must be run with bash. Use: sudo bash $0 ..." >&2
+  exit 1
+fi
+
 # Rebuild Nginx for prod+dev, wire to PM2 Node apps, ensure HTTPS via Certbot, and manage PM2.
 # - Configures two apps:
 #   - Production: /var/www/dintrafikskolax_prod on port 3000
@@ -283,9 +289,20 @@ sed -i "s/DEV_PORT_REPLACE/$DEV_PORT/g" "$CONF_PATH.new"
 sed -i "s/SITE_NAME_REPLACE/$SITE_NAME/g" "$CONF_PATH.new"
 
 if [ -n "$DEV_CERT_DIR" ]; then
-  sed -i "s#DEV_SERVER_BLOCK#$DEV_BLOCK#" "$CONF_PATH.new"
+  # Fill placeholders inside the DEV block before insertion
+  DEV_BLOCK_FILLED="$DEV_BLOCK"
+  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_PORT_REPLACE/$DEV_PORT}"
+  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_CERT_DIR_REPLACE/$DEV_CERT_DIR}"
+  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//SITE_NAME_REPLACE/$SITE_NAME}"
+  DEV_BLOCK_FILLED="${DEV_BLOCK_FILLED//DEV_DOMAIN_REPLACE/$DEV_DOMAIN}"
+
+  TMP_DEV_BLOCK="$(mktemp)"
+  printf '%s\n' "$DEV_BLOCK_FILLED" > "$TMP_DEV_BLOCK"
+  # Safely replace placeholder line with the file contents
+  sed -i -e "/DEV_SERVER_BLOCK/{r $TMP_DEV_BLOCK" -e "d}" "$CONF_PATH.new"
+  rm -f "$TMP_DEV_BLOCK"
 else
-  sed -i "s#DEV_SERVER_BLOCK##" "$CONF_PATH.new"
+  sed -i "/DEV_SERVER_BLOCK/d" "$CONF_PATH.new"
 fi
 
 # Install and enable site

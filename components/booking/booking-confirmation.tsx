@@ -111,6 +111,29 @@ export function BookingConfirmation({
       showNotification('Betalning nekades', 'Försök igen eller välj en annan metod', 'error')
     }
   })
+
+  // When admin/teacher selects a student, auto-fill guest fields from users table
+  useEffect(() => {
+    try {
+      if (selectedStudent && Array.isArray(students) && students.length > 0) {
+        const s = students.find((u) => u.id === selectedStudent)
+        if (s) {
+          const fullName = [s.firstName, s.lastName].filter(Boolean).join(' ').trim()
+          if (!bookingData.isHandledarutbildning) {
+            if (fullName) setGuestName(fullName)
+            if (s.email) setGuestEmail(String(s.email))
+            if (s.phone) setGuestPhone(String(s.phone))
+          } else {
+            // For handledar, use supervisor fields
+            if (fullName) setSupervisorName(fullName)
+            if (s.email) setSupervisorEmail(String(s.email))
+            if (s.phone) setSupervisorPhone(String(s.phone))
+          }
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStudent])
   
   // Qliro availability state
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true)
@@ -399,28 +422,41 @@ export function BookingConfirmation({
       return
     }
 
-    // Update the existing temporary booking with guest information
-    if (bookingData.bookingId || bookingData.tempBookingId) {
-      try {
-        const updateResponse = await fetch('/api/booking/update-guest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookingId: bookingData.bookingId || bookingData.tempBookingId,
-            guestName: isHandledarutbildning ? supervisorName : guestName,
-            guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
-            guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone
+    // If no specific student is selected (guest flow), validate and update guest info
+    const isGuestFlow = !isAdminOrTeacher || !selectedStudent
+    if (isGuestFlow) {
+      const gName = isHandledarutbildning ? supervisorName : guestName
+      const gEmail = isHandledarutbildning ? supervisorEmail : guestEmail
+      const gPhone = isHandledarutbildning ? supervisorPhone : guestPhone
+      const missing: string[] = []
+      if (!gName) missing.push('namn')
+      if (!gEmail) missing.push('e-post')
+      if (!gPhone) missing.push('telefon')
+      if (missing.length > 0) {
+        showNotification('Saknar uppgifter', `Vänligen fyll i ${missing.join(', ')}`, 'error')
+        return
+      }
+
+      if (bookingData.bookingId || bookingData.tempBookingId) {
+        try {
+          const updateResponse = await fetch('/api/booking/update-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: bookingData.bookingId || bookingData.tempBookingId,
+              guestName: gName,
+              guestEmail: gEmail,
+              guestPhone: gPhone
+            })
           })
-        })
-        
-        if (!updateResponse.ok) {
-          const errorData = await updateResponse.json()
-          console.error('Failed to update guest information:', errorData.error)
-          // Continue anyway, the error might not be critical
+          if (!updateResponse.ok) {
+            const errorData = await updateResponse.json().catch(() => ({}))
+            console.error('Failed to update guest information:', errorData.error)
+            // Do not block payment if API rejects non-critical update
+          }
+        } catch (error) {
+          console.error('Error updating guest information:', error)
         }
-      } catch (error) {
-        console.error('Error updating guest information:', error)
-        // Continue anyway
       }
     }
 
@@ -465,7 +501,19 @@ export function BookingConfirmation({
             amount: bookingData.totalPrice,
             reference: `booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`,
             description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`
+            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`,
+            // Pass customer details so Qliro can prefill & reduce 400s
+            customerEmail: (bookingData.isHandledarutbildning ? supervisorEmail : guestEmail) || undefined,
+            customerPhone: (bookingData.isHandledarutbildning ? supervisorPhone : guestPhone) || undefined,
+            customerFirstName: (() => {
+              const name = (bookingData.isHandledarutbildning ? supervisorName : guestName) || ''
+              return name.split(' ')[0] || undefined
+            })(),
+            customerLastName: (() => {
+              const name = (bookingData.isHandledarutbildning ? supervisorName : guestName) || ''
+              const parts = name.split(' ')
+              return parts.length > 1 ? parts.slice(1).join(' ') : undefined
+            })()
           })
         })
         

@@ -128,10 +128,16 @@ export default function QliroPaymentsClient() {
       const data = await response.json();
       
       if (data.success && data.checkoutUrl) {
-        // Open in safe embed popup
-        const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || paymentId)}`;
-        const features = 'width=800,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
-        window.open(safeUrl, 'qliro_repay', features);
+        // Prefer raw popup without wrapper
+        try {
+          const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
+          const oid = String(data.checkoutId || paymentId)
+          await openQliroPopup(oid, 'qliro_repay')
+        } catch {
+          const safeUrl = `/payments/qliro/checkout?orderId=${encodeURIComponent(data.checkoutId || paymentId)}`;
+          const features = 'width=800,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no';
+          window.open(safeUrl, 'qliro_repay', features);
+        }
         
         toast({
           title: "Återbetalningslänk skapad",

@@ -10,7 +10,7 @@ export async function openQliroPopup(orderId: string, title = 'qliro_window') {
   const height = Math.min(860, Math.floor(window.innerHeight * 0.95));
   const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
   const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-  const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+  const features = `popup=yes,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
   // Prefer server-rendered raw route to avoid any inline script/CSP issues
   const url = `/payments/qliro/raw?orderId=${encodeURIComponent(orderId)}`
   const win = window.open(url, title, features)

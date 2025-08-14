@@ -463,9 +463,9 @@ export function BookingConfirmation({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             amount: bookingData.totalPrice,
-            reference: `booking_${bookingData.id || bookingData.tempBookingId}`,
+            reference: `booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`,
             description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId}`
+            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`
           })
         })
         

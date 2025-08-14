@@ -624,8 +624,19 @@ export default function QliroSettingsClient() {
                 } else {
                   toast.success(`OK ${data.status}: PaymentLink mottagen`, { id: t, position: 'top-right' });
                   if (data.checkoutUrl) {
-                    setTestQliroUrl(data.checkoutUrl);
-                    setTestQliroOpen(true);
+                    // Open safe embed directly to avoid same-origin frame issues
+                    try {
+                      const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
+                      const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
+                      const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+                      const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
+                      const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
+                      const params = new URLSearchParams();
+                      params.set('url', data.checkoutUrl);
+                      if (data.checkoutId) params.set('orderId', String(data.checkoutId));
+                      const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
+                      if (win) win.focus();
+                    } catch {}
                   }
                 }
               } catch (e: any) {

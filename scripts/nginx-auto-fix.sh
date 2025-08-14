@@ -160,6 +160,15 @@ sed -i "s#APP_UPSTREAM_REPLACE#$APP_UPSTREAM#g" "$CONF_PATH.new"
 sed -i "s#CERT_DIR_REPLACE#$CERT_DIR#g" "$CONF_PATH.new"
 sed -i "s/SITE_NAME_REPLACE/$SITE_NAME/g" "$CONF_PATH.new"
 
+# Toggle HTTP/2 placeholder
+if [ "$DISABLE_HTTP2" = "true" ]; then
+  # Remove the placeholder entirely (and its preceding space)
+  sed -i 's/ HTTP2_PLACEHOLDER//g' "$CONF_PATH.new"
+else
+  # Replace with http2
+  sed -i 's/HTTP2_PLACEHOLDER/http2/g' "$CONF_PATH.new"
+fi
+
 # Backup and install
 if [ -f "$CONF_PATH" ]; then
   cp -a "$CONF_PATH" "$BACKUP_PATH"

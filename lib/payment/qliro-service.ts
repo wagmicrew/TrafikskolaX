@@ -402,9 +402,26 @@ export class QliroService {
         throw new Error('Qliro did not return a PaymentLink');
       }
 
+      // Try to fetch payment options and select a non-Swish PaymentId
+      let finalPaymentLink: string = checkoutData.PaymentLink;
+      try {
+        const orderId = (checkoutData.OrderId ?? '').toString();
+        if (orderId) {
+          const selectedPaymentId = await this.selectNonSwishPaymentId(orderId);
+          if (selectedPaymentId) {
+            const sep = finalPaymentLink.includes('?') ? '&' : '?';
+            finalPaymentLink = `${finalPaymentLink}${sep}paymentId=${encodeURIComponent(selectedPaymentId)}`;
+          }
+        }
+      } catch (e) {
+        logger.debug('payment', 'Qliro PaymentOptions fetch failed or no suitable PaymentId found; proceeding without selection', {
+          error: e instanceof Error ? e.message : String(e)
+        });
+      }
+
       return {
         checkoutId: checkoutData.OrderId?.toString() || params.reference,
-        checkoutUrl: checkoutData.PaymentLink,
+        checkoutUrl: finalPaymentLink,
         merchantReference,
       };
     } catch (error) {
@@ -433,6 +450,131 @@ export class QliroService {
       });
       // Always propagate errors; no mock fallback
       throw new Error(errorMessage);
+    }
+  }
+
+  private async selectNonSwishPaymentId(orderId: string): Promise<string | null> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders/${encodeURIComponent(orderId)}/PaymentOptions`;
+    // According to Qliro docs, this is a POST. Send empty JSON body.
+    const bodyString = JSON.stringify({});
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': this.generateAuthHeader(bodyString),
+    };
+    const res = await fetch(url, { method: 'POST', headers, body: bodyString });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
+    }
+    let json: any = {};
+    try { json = JSON.parse(text); } catch {}
+    // Heuristic parsing: look for arrays named PaymentOptions/PaymentGroups/Methods and exclude anything named Swish
+    const candidates: string[] = [];
+    const scan = (obj: any) => {
+      if (!obj) return;
+      if (Array.isArray(obj)) {
+        for (const item of obj) scan(item);
+      } else if (typeof obj === 'object') {
+        const name = String(obj.Name || obj.Method || obj.GroupName || '').toLowerCase();
+        const id = obj.PaymentId || obj.Id || obj.PaymentID || null;
+        if (id && name && !name.includes('swish')) {
+          candidates.push(String(id));
+        }
+        for (const k of Object.keys(obj)) scan(obj[k]);
+      }
+    };
+    scan(json);
+    return candidates[0] || null;
+  }
+
+  public async testConnection(opts?: { extended?: boolean }): Promise<{ success: boolean; message: string; details?: any; debug?: any }> {
+    try {
+      const settings = await this.loadSettings();
+
+      logger.info('payment', 'Testing Qliro connection', {
+        environment: settings.environment,
+        merchantId: (settings as any).merchantId,
+        apiUrl: settings.apiUrl
+      });
+
+      // Create a test checkout
+      const testReference = `test_${Date.now()}`;
+      const result = await this.createCheckout({
+        amount: 1, // 1 SEK test amount
+        reference: testReference,
+        description: 'Connection test',
+        returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/settings?test=complete`,
+      });
+
+      // Update test status in database
+      await db
+        .update(siteSettings)
+        .set({
+          value: 'true',
+          updatedAt: new Date()
+        })
+        .where(eq(siteSettings.key, 'qliro_test_passed'));
+
+      await db
+        .update(siteSettings)
+        .set({
+          value: new Date().toISOString(),
+          updatedAt: new Date()
+        })
+        .where(eq(siteSettings.key, 'qliro_last_test_date'));
+
+      const response: any = {
+        success: true,
+        message: `Successfully connected to Qliro ${settings.environment} environment`,
+        details: {
+          checkoutId: result.checkoutId,
+          checkoutUrl: result.checkoutUrl,
+          environment: settings.environment
+        }
+      };
+      if (opts?.extended) {
+        response.debug = {
+          apiUrl: settings.apiUrl,
+          publicUrl: settings.publicUrl,
+          environment: settings.environment,
+        };
+      }
+      return response;
+    } catch (error) {
+      if (error instanceof QliroApiError) {
+        logger.error('payment', 'Qliro connection test failed', {
+          error: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          body: error.body
+        });
+      } else {
+        logger.error('payment', 'Qliro connection test failed', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+
+      // Update test status as failed
+      await db
+        .update(siteSettings)
+        .set({
+          value: 'false',
+          updatedAt: new Date()
+        })
+        .where(eq(siteSettings.key, 'qliro_test_passed'));
+
+      const fallbackMessage = error instanceof Error ? error.message : 'Connection test failed';
+      const failure: any = {
+        success: false,
+        message: fallbackMessage,
+      };
+      if (error instanceof QliroApiError) {
+        failure.details = { status: error.status, statusText: error.statusText };
+        if (opts?.extended) failure.debug = { body: error.body };
+      }
+      return failure;
     }
   }
 

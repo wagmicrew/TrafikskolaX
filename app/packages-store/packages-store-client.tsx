@@ -214,7 +214,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
 
   const handleQliroConfirm = async (): Promise<void> => {
     setShowQliroDialog(false);
-    toast.success('Du omdirigeras till Qliro för att slutföra betalningen.');
+    toast.success('Tack! Betalningen bekräftad. Omdirigerar...');
+    try { window.location.href = '/booking/success?package=1'; } catch {}
   };
 
   return (

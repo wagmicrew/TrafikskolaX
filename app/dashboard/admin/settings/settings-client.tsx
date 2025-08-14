@@ -80,6 +80,8 @@ interface Settings {
   social_tiktok?: string;
   // Maps
   google_maps_api_key?: string;
+  // Debug
+  debug_extended_logs?: boolean;
 }
 
 interface TestResult {
@@ -144,6 +146,7 @@ export default function SettingsClient() {
     qliro_prod_merchant_id: '',
     qliro_prod_api_key: '',
     google_maps_api_key: '',
+    debug_extended_logs: false,
   });
 
   // Cron setup dialog state
@@ -1358,6 +1361,17 @@ export default function SettingsClient() {
                       </div>
                       <div className="text-sm text-slate-200">
                         Aktuell miljö: <span className="font-bold">{settings.qliro_use_prod_env ? 'Produktion' : 'Utveckling/Sandbox'}</span>
+                      </div>
+                    </div>
+
+                    {/* Extended debug toggle */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-white font-semibold">Utökad felsökning</div>
+                          <div className="text-sm text-slate-300">Aktivera extra debug-utskrifter i konsolen för Qliro-flöden</div>
+                        </div>
+                        <Switch id="debug-extended" checked={!!settings.debug_extended_logs} onCheckedChange={(checked) => updateSetting('debug_extended_logs', checked)} />
                       </div>
                     </div>
 

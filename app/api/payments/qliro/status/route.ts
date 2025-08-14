@@ -83,14 +83,16 @@ export async function GET(request: NextRequest) {
           reason: 'connectivity',
           message: 'Cannot reach Qliro API',
           environment: useProduction ? 'production' : 'sandbox',
-          apiUrl
+          apiUrl,
+          debug: settingsMap.debug_extended_logs === 'true'
         });
       }
 
       return NextResponse.json({
         available: true,
         environment: useProduction ? 'production' : 'sandbox',
-        apiUrl
+        apiUrl,
+        debug: settingsMap.debug_extended_logs === 'true'
       });
     } catch (error) {
       console.error('Qliro connectivity check failed:', error);

@@ -411,11 +411,17 @@ export function BookingConfirmation({
       alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false
     }
 
-  // Log selected payment method and booking data for troubleshooting
-  console.log('Selected payment method:', selectedPaymentMethod)
-  console.log('Booking data tempBookingId:', bookingData.tempBookingId)
-  console.log('Booking data id:', bookingData.id)
-  console.log('Full booking data:', bookingData)
+  // Log selected payment method and booking data for troubleshooting (behind site debug flag)
+  try {
+    fetch('/api/public/site-settings').then(r=>r.json()).then(s=>{
+      if (s?.debug_extended_logs) {
+        console.debug('[BookingCheckout] Selected payment method:', selectedPaymentMethod)
+        console.debug('[BookingCheckout] Booking data tempBookingId:', bookingData.tempBookingId)
+        console.debug('[BookingCheckout] Booking data id:', bookingData.id)
+        console.debug('[BookingCheckout] Full booking data:', bookingData)
+      }
+    }).catch(()=>{})
+  } catch {}
 
     // Handle Swish payment
     if (selectedPaymentMethod === 'swish') {
@@ -441,6 +447,11 @@ export function BookingConfirmation({
         if (!response.ok) throw new Error('Kunde inte skapa Qliro-checkout')
         
         const { checkoutUrl } = await response.json()
+        try { 
+          const res = await fetch('/api/public/site-settings');
+          const s = await res.json();
+          if (s?.debug_extended_logs) console.debug('[BookingCheckout] Qliro checkoutUrl', checkoutUrl)
+        } catch {}
         try {
           const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
           const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
@@ -578,7 +589,7 @@ export function BookingConfirmation({
         id: 'qliro',
         label: 'Qliro',
         description: qliroAvailable 
-          ? 'Kort, Klarna, Faktura, Delbetalning' 
+          ? 'Bank, Kort och Qliro' 
           : qliroStatusMessage || 'Tillfälligt otillgänglig',
         icon: <CreditCard className="w-5 h-5 text-purple-600" />,
         available: isHandledar && qliroAvailable
@@ -954,7 +965,7 @@ export function BookingConfirmation({
                       </div>
                       <p className={`text-sm ${!qliroAvailable ? 'text-gray-400' : 'text-gray-500'}`}>
                         {qliroAvailable 
-                          ? 'Kort, Klarna, Faktura, Delbetalning' 
+                          ? 'Bank, Kort och Qliro' 
                           : qliroStatusMessage || 'Tillfälligt otillgänglig'
                         }
                       </p>

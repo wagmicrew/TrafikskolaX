@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session
     const checkoutResult = await qliroService.createCheckout({
-      amount,
+      amount: typeof amount === 'number' ? amount : Number(amount),
       reference,
       description,
       returnUrl,

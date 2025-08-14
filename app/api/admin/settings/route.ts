@@ -61,6 +61,8 @@ export async function GET(request: Request) {
       qliro_prod_enabled: false,
       qliro_dev_api_url: 'https://playground.qliro.com',
       qliro_prod_api_url: 'https://api.qliro.com',
+      // Debug settings
+      debug_extended_logs: false,
       // Maps/API
       google_maps_api_key: '',
     };
@@ -126,6 +128,8 @@ export async function PUT(request: Request) {
       qliro_prod_enabled: 'payment',
       qliro_dev_api_url: 'payment',
       qliro_prod_api_url: 'payment',
+      // Debug settings
+      debug_extended_logs: 'general',
     };
 
     // Update or insert each setting

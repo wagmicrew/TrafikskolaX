@@ -6,9 +6,13 @@ import { sendEmail } from '@/lib/mailer/universal-mailer';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { logger } from '@/lib/logging/logger';
 
+function isUuid(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const signature = request.headers.get('Qliro-Signature');
+    const signature = request.headers.get('Qliro-Signature') || request.headers.get('qliro-signature');
     const body = await request.text();
     
     logger.info('payment', 'Received Qliro webhook', {
@@ -16,8 +20,16 @@ export async function POST(request: NextRequest) {
       bodyLength: body.length
     });
     
-    // Verify the webhook signature using qliroService
-    const isValid = await qliroService.verifyWebhookSignature(signature || '', body);
+    // Verify the webhook signature using qliroService (guard against internal errors)
+    let isValid = false;
+    try {
+      isValid = await qliroService.verifyWebhookSignature(signature || '', body);
+    } catch (err) {
+      logger.warn('payment', 'Error verifying Qliro webhook signature', {
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
 
     if (!isValid) {
       logger.warn('payment', 'Invalid Qliro webhook signature');
@@ -48,6 +60,12 @@ export async function POST(request: NextRequest) {
     // Check if this is a booking reference
     if (orderId.startsWith('booking_')) {
       const bookingId = orderId.replace('booking_', '');
+
+      // Guard: invalid UUIDs should be ignored gracefully
+      if (!isUuid(bookingId)) {
+        logger.debug('payment', 'Qliro webhook - non-uuid booking id, ignoring', { orderId, bookingId });
+        return NextResponse.json({ received: true });
+      }
 
       // Get the booking record
       const booking = await db
@@ -93,6 +111,11 @@ export async function POST(request: NextRequest) {
       }
 
     } else { // Handle package purchase
+      // Guard: invalid UUIDs should be ignored gracefully
+      if (!isUuid(orderId)) {
+        logger.debug('payment', 'Qliro webhook - non-uuid purchase id, ignoring', { orderId });
+        return NextResponse.json({ received: true });
+      }
       // Get the purchase record
       const purchase = await db
         .select()

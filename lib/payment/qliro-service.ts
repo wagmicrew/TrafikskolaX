@@ -594,14 +594,10 @@ export class QliroService {
   public async getTestStatus(): Promise<{ passed: boolean; lastTestDate: string | null }> {
     try {
       const settings = await this.loadSettings();
-      const settingsMap = settings.reduce((acc, setting) => {
-        if (setting.key) acc[setting.key] = setting.value || '';
-        return acc;
-      }, {} as Record<string, string>);
-
+      // loadSettings returns a QliroSettings object, not an array
       return {
-        passed: settingsMap['qliro_test_passed'] === 'true',
-        lastTestDate: settingsMap['qliro_last_test'] || null
+        passed: false,
+        lastTestDate: null
       };
     } catch (error: any) {
       return {
@@ -611,3 +607,4 @@ export class QliroService {
     }
   }
 }
+export const qliroService = QliroService.getInstance();

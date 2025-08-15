@@ -340,6 +340,24 @@ export const siteSettings = pgTable('site_settings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Qliro orders table for tracking payment orders
+export const qliroOrders = pgTable('qliro_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
+  handledarBookingId: uuid('handledar_booking_id').references(() => handledarBookings.id, { onDelete: 'cascade' }),
+  packagePurchaseId: uuid('package_purchase_id').references(() => packagePurchases.id, { onDelete: 'cascade' }),
+  qliroOrderId: varchar('qliro_order_id', { length: 255 }).notNull().unique(),
+  merchantReference: varchar('merchant_reference', { length: 255 }).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).default('SEK'),
+  status: varchar('status', { length: 50 }).default('created'), // created, pending, completed, failed, cancelled
+  paymentLink: text('payment_link'),
+  lastStatusCheck: timestamp('last_status_check'),
+  environment: varchar('environment', { length: 20 }).default('sandbox'), // sandbox, production
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 
 // Handledar sessions table
 export const handledarSessions = pgTable('handledar_sessions', {

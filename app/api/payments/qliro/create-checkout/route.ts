@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { bookings, handledarBookings, packagePurchases, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
+import { cache } from '@/lib/redis/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,33 +111,55 @@ export async function POST(request: NextRequest) {
       // Non-fatal; continue without enrichment
     }
 
-    // Create checkout session
+    // Extract booking/order IDs from reference for order tracking
+    let bookingId: string | undefined;
+    let handledarBookingId: string | undefined;
+    let packagePurchaseId: string | undefined;
+
+    if (typeof reference === 'string') {
+      if (reference.startsWith('booking_')) {
+        bookingId = reference.replace('booking_', '');
+      } else if (reference.startsWith('handledar_')) {
+        handledarBookingId = reference.replace('handledar_', '');
+      } else if (reference.startsWith('package_') || reference.startsWith('order_')) {
+        packagePurchaseId = reference.replace(/^package_/, '').replace(/^order_/, '');
+      }
+    }
+
+    // Create checkout session with order tracking
     const checkoutParams = {
       amount: typeof amount === 'number' ? amount : Number(amount),
       reference,
       description,
       returnUrl,
-      customerEmail,
-      customerPhone,
-      customerFirstName,
-      customerLastName,
+      bookingId,
+      handledarBookingId,
+      packagePurchaseId,
     };
     
-    console.log('[Qliro Debug] Calling qliroService.createCheckout with params:', JSON.stringify(checkoutParams, null, 2));
+    console.log('[Qliro Debug] Calling qliroService.getOrCreateCheckout with params:', JSON.stringify(checkoutParams, null, 2));
     
-    const checkoutResult = await qliroService.createCheckout(checkoutParams);
+    // Use the new order tracking method
+    try {
+      const checkoutResult = await qliroService.getOrCreateCheckout(checkoutParams);
 
-    logger.info('payment', 'Qliro checkout session created successfully', {
-      checkoutId: checkoutResult.checkoutId,
-      reference
-    });
+      logger.info('payment', `Qliro checkout session ${checkoutResult.isExisting ? 'reused' : 'created'} successfully`, {
+        checkoutId: checkoutResult.checkoutId,
+        reference,
+        isExisting: checkoutResult.isExisting
+      });
 
-    return NextResponse.json({
-      success: true,
-      checkoutId: checkoutResult.checkoutId,
-      checkoutUrl: checkoutResult.checkoutUrl,
-      merchantReference: checkoutResult.merchantReference,
-    });
+      return NextResponse.json({
+        success: true,
+        checkoutId: checkoutResult.checkoutId,
+        checkoutUrl: checkoutResult.checkoutUrl,
+        merchantReference: checkoutResult.merchantReference,
+        isExisting: checkoutResult.isExisting,
+      });
+    } catch (error) {
+      // The new order tracking system handles all order management internally
+      throw error;
+    }
 
   } catch (error) {
     const anyErr = error as any;

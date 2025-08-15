@@ -1,44 +1,17 @@
 import { db } from '@/lib/db';
-import { siteSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { siteSettings, qliroOrders } from '@/lib/db/schema';
+import { eq, and, or } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
 import crypto from 'crypto';
 
-  interface QliroSettings {
+interface QliroSettings {
   enabled: boolean;
   apiKey: string;
+  apiSecret: string;
   apiUrl: string;
-    webhookSecret: string;
-    apiSecret: string;
+  webhookSecret: string;
   environment: 'production' | 'sandbox';
-    publicUrl: string;
- }
-
-interface QliroOrderItem {
-  MerchantReference: string;
-  Description: string;
-  Type: string;
-  Quantity: number;
-  PricePerItemIncVat: number;
-  PricePerItemExVat: number;
-  VatRate: number;
-}
-
-interface QliroCheckoutRequest {
-  MerchantApiKey: string;
-  MerchantReference: string;
-  Currency: string;
-  Country: string;
-  Language: string;
-  MerchantTermsUrl: string;
-  MerchantConfirmationUrl: string;
-  MerchantCheckoutStatusPushUrl: string;
-  OrderItems: QliroOrderItem[];
-  CustomerInformation?: {
-    Email?: string;
-    MobileNumber?: number;
-    JuridicalType?: string;
-  };
+  publicUrl: string;
 }
 
 class QliroApiError extends Error {
@@ -70,159 +43,72 @@ export class QliroService {
   }
 
   private async loadSettings(forceReload = false): Promise<QliroSettings> {
-    // Check cache
-    if (!forceReload && this.settings && this.lastSettingsLoad) {
-      const cacheAge = Date.now() - this.lastSettingsLoad.getTime();
-      if (cacheAge < this.settingsCacheDuration) {
-        return this.settings;
-      }
+    if (!forceReload && this.settings && this.lastSettingsLoad && (Date.now() - this.lastSettingsLoad.getTime()) < this.settingsCacheDuration) {
+      return this.settings;
     }
 
     logger.debug('payment', 'Loading Qliro settings from database');
 
     try {
-      // Fetch site settings (we use both payment and site URL)
-      const settings = await db
-        .select()
-        .from(siteSettings);
-
+      const settings = await db.select().from(siteSettings);
       const settingsMap = settings.reduce((acc, setting) => {
         acc[setting.key] = setting.value || '';
         return acc;
       }, {} as Record<string, string>);
 
-      // Check which environment is enabled
-      const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'true';
-      const sandboxEnabled = settingsMap['qliro_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'false';
+      const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true';
+      const sandboxEnabled = settingsMap['qliro_enabled'] === 'true';
 
       if (!prodEnabled && !sandboxEnabled) {
-        logger.warn('payment', 'Qliro is not enabled in any environment');
         throw new Error('Qliro is not enabled');
-      }
-
-      if (prodEnabled && sandboxEnabled) {
-        logger.warn('payment', 'Both Qliro production and sandbox are enabled, using production');
       }
 
       const isProduction = prodEnabled;
       const environment = isProduction ? 'production' : 'sandbox';
+      const prefix = isProduction ? 'qliro_prod' : 'qliro';
 
-      // Prefer admin-configured public URL; sanitize to https scheme with default port and no path
-      const rawPublicUrl = settingsMap['public_app_url'] || settingsMap['site_public_url'] || settingsMap['app_url'] || (process.env.NEXT_PUBLIC_APP_URL || '');
-      let publicUrl = rawPublicUrl;
+      const rawPublicUrl = settingsMap['public_app_url'] || process.env.NEXT_PUBLIC_APP_URL || '';
+      let publicUrl = '';
       try {
         const u = new URL(rawPublicUrl);
-        if (u.protocol !== 'https:') {
-          throw new Error('Public URL must be https');
-        }
-        // Enforce default port (no explicit :443) and strip any path/query/hash
+        if (u.protocol !== 'https:') throw new Error('Public URL must be https');
         publicUrl = `https://${u.hostname}`;
       } catch {
-        // leave as-is; later validation will fail and surface a clear error
+        logger.warn('payment', 'Invalid public_app_url for Qliro', { rawPublicUrl });
       }
 
       this.settings = {
         enabled: true,
-        apiKey: isProduction ? settingsMap['qliro_prod_api_key'] : settingsMap['qliro_api_key'],
-        apiUrl: isProduction ? (settingsMap['qliro_prod_api_url'] || 'https://api.qliro.com') : (settingsMap['qliro_dev_api_url'] || 'https://playground.qliro.com'),
-        webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
-        apiSecret: settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || '',
+        apiKey: settingsMap[`${prefix}_api_key`] || '',
+        apiSecret: settingsMap[`${prefix}_api_secret`] || '',
+        apiUrl: settingsMap[`${prefix}_api_url`] || (isProduction ? 'https://api.qliro.com' : 'https://playground.qliro.com'),
+        webhookSecret: settingsMap['qliro_webhook_secret'] || '',
         environment,
         publicUrl
       };
 
       this.lastSettingsLoad = new Date();
-
-      logger.info('payment', `Qliro settings loaded successfully`, {
-        environment,
-        apiUrl: this.settings.apiUrl,
-        hasApiKey: !!this.settings.apiKey,
-        hasApiSecret: !!this.settings.apiSecret,
-        publicUrl: this.settings.publicUrl
-      });
-
+      logger.info('payment', `Qliro settings loaded`, { environment });
       return this.settings;
+
     } catch (error) {
-      logger.error('payment', 'Failed to load Qliro settings', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('payment', 'Failed to load Qliro settings', { error: message });
+      throw new Error(message);
     }
   }
 
-  // Generate Authorization header like our working test route
   private generateAuthHeader(payload: any): string {
-    try {
-      const payloadString = typeof payload === 'string' ? payload : (payload ? JSON.stringify(payload) : '');
-      const input = payloadString + (this.settings?.apiSecret || '');
-      const hash = crypto.createHash('sha256').update(input).digest('base64');
-      return `Qliro ${hash}`;
-    } catch {
-      return '';
-    }
+    if (!this.settings?.apiSecret) return '';
+    const payloadString = payload ? JSON.stringify(payload) : '';
+    const input = payloadString + this.settings.apiSecret;
+    const hash = crypto.createHash('sha256').update(input).digest('base64');
+    return `Qliro ${hash}`;
   }
 
   private sanitizeMerchantReference(reference: string): string {
-    // Allow only A-Z a-z 0-9 _ - and max 25 chars
-    const cleaned = (reference || '')
-      .replace(/[^A-Za-z0-9_-]/g, '')
-      .slice(0, 25);
-    if (cleaned.length > 0) return cleaned;
-    // Fallback
-    return `ref_${Date.now()}`.slice(0, 25);
-  }
-
-  public async getOrder(orderId: string): Promise<any> {
-    const settings = await this.loadSettings();
-    const url = `${settings.apiUrl}/checkout/merchantapi/orders/${encodeURIComponent(orderId)}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': this.generateAuthHeader(null),
-    };
-    
-    console.log('[Qliro GetOrder Debug] URL:', url);
-    console.log('[Qliro GetOrder Debug] Method: GET');
-    console.log('[Qliro GetOrder Debug] Auth:', headers.Authorization.slice(0, 50) + '...');
-    
-    const res = await fetch(url, { method: 'GET', headers });
-    const text = await res.text();
-    
-    console.log('[Qliro GetOrder Debug] Response Status:', res.status);
-    console.log('[Qliro GetOrder Debug] Response Body:', text);
-    
-    if (!res.ok) {
-      throw new QliroApiError(`Qliro GetOrder error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
-    }
-    return JSON.parse(text);
-  }
-
-  public async adminPost(path: string, payload: any): Promise<any> {
-    const settings = await this.loadSettings();
-    const url = `${settings.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Authorization': this.generateAuthHeader(payload),
-    };
-    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
-    const text = await res.text();
-    if (!res.ok) {
-      throw new QliroApiError(`Qliro admin POST error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
-    }
-    return text ? JSON.parse(text) : {};
-  }
-
-  public async adminGet(path: string): Promise<any> {
-    const settings = await this.loadSettings();
-    const url = `${settings.apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
-    const headers: Record<string, string> = {
-      'Authorization': this.generateAuthHeader(null),
-    };
-    const res = await fetch(url, { method: 'GET', headers });
-    const text = await res.text();
-    if (!res.ok) {
-      throw new QliroApiError(`Qliro admin GET error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
-    }
-    return text ? JSON.parse(text) : {};
+    const cleaned = (reference || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 25);
+    return cleaned || `ref_${Date.now()}`;
   }
 
   public async isEnabled(): Promise<boolean> {
@@ -234,422 +120,264 @@ export class QliroService {
     }
   }
 
-  public async getEnvironment(): Promise<'production' | 'sandbox' | null> {
-    try {
-      const settings = await this.loadSettings();
-      return settings.environment;
-    } catch {
-      return null;
+  public async getOrder(orderId: string): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl}/checkout/merchantapi/orders/${encodeURIComponent(orderId)}`;
+    const headers = { 'Authorization': this.generateAuthHeader(null) };
+    const res = await fetch(url, { headers });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`GetOrder error: ${res.status}`, { status: res.status, body: text });
     }
+    return JSON.parse(text);
   }
 
-  public async createCheckout(params: {
+  // Order tracking methods
+  public async findExistingOrder(bookingId?: string, handledarBookingId?: string, packagePurchaseId?: string): Promise<any> {
+    if (!bookingId && !handledarBookingId && !packagePurchaseId) {
+      throw new Error('At least one ID must be provided to find existing order');
+    }
+
+    const conditions = [];
+    if (bookingId) conditions.push(eq(qliroOrders.bookingId, bookingId));
+    if (handledarBookingId) conditions.push(eq(qliroOrders.handledarBookingId, handledarBookingId));
+    if (packagePurchaseId) conditions.push(eq(qliroOrders.packagePurchaseId, packagePurchaseId));
+
+    const existingOrder = await db
+      .select()
+      .from(qliroOrders)
+      .where(or(...conditions))
+      .limit(1);
+
+    return existingOrder[0] || null;
+  }
+
+  public async createOrderRecord(params: {
+    bookingId?: string;
+    handledarBookingId?: string;
+    packagePurchaseId?: string;
+    qliroOrderId: string;
+    merchantReference: string;
+    amount: number;
+    paymentLink: string;
+    environment: string;
+  }): Promise<string> {
+    const settings = await this.loadSettings();
+    
+    const [orderRecord] = await db
+      .insert(qliroOrders)
+      .values({
+        bookingId: params.bookingId || null,
+        handledarBookingId: params.handledarBookingId || null,
+        packagePurchaseId: params.packagePurchaseId || null,
+        qliroOrderId: params.qliroOrderId,
+        merchantReference: params.merchantReference,
+        amount: params.amount.toString(),
+        paymentLink: params.paymentLink,
+        environment: settings.environment,
+        status: 'created',
+        lastStatusCheck: new Date(),
+      })
+      .returning({ id: qliroOrders.id });
+
+    logger.info('payment', 'Created Qliro order record', {
+      orderId: orderRecord.id,
+      qliroOrderId: params.qliroOrderId,
+      bookingId: params.bookingId,
+      handledarBookingId: params.handledarBookingId,
+      packagePurchaseId: params.packagePurchaseId
+    });
+
+    return orderRecord.id;
+  }
+
+  public async updateOrderStatus(qliroOrderId: string, status: string, paymentLink?: string): Promise<void> {
+    const updateData: any = {
+      status,
+      lastStatusCheck: new Date(),
+      updatedAt: new Date(),
+    };
+
+    if (paymentLink) {
+      updateData.paymentLink = paymentLink;
+    }
+
+    await db
+      .update(qliroOrders)
+      .set(updateData)
+      .where(eq(qliroOrders.qliroOrderId, qliroOrderId));
+
+    logger.debug('payment', 'Updated Qliro order status', {
+      qliroOrderId,
+      status,
+      hasPaymentLink: !!paymentLink
+    });
+  }
+
+  public async getOrCreateCheckout(params: {
     amount: number;
     reference: string;
     description: string;
     returnUrl: string;
-    customerEmail?: string;
-    customerPhone?: string;
-    customerFirstName?: string;
-    customerLastName?: string;
-    personalNumber?: string;
-      overrideAllowedPaymentMethods?: string[];
-      overrideAllowedPaymentMethodIds?: string[];
-      overrideDisallowedPaymentMethods?: string[];
-  }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
-    
-    console.log('[Qliro Service Debug] createCheckout called with params:', JSON.stringify(params, null, 2));
-    const settings = await this.loadSettings();
-    console.log('[Qliro Service Debug] Settings loaded:', {
-      enabled: settings.enabled,
-      environment: settings.environment,
-      apiUrl: settings.apiUrl,
-      publicUrl: settings.publicUrl,
-      hasApiKey: !!settings.apiKey,
-      hasApiSecret: !!settings.apiSecret
-    });
+    bookingId?: string;
+    handledarBookingId?: string;
+    packagePurchaseId?: string;
+  }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string; isExisting: boolean }> {
+    // Check for existing order first
+    const existingOrder = await this.findExistingOrder(
+      params.bookingId,
+      params.handledarBookingId,
+      params.packagePurchaseId
+    );
 
-    logger.info('payment', 'Creating Qliro checkout', {
-      reference: params.reference,
-      amount: params.amount,
-      environment: settings.environment
-    });
+    if (existingOrder) {
+      logger.info('payment', 'Found existing Qliro order, fetching current status', {
+        qliroOrderId: existingOrder.qliroOrderId,
+        bookingId: params.bookingId,
+        handledarBookingId: params.handledarBookingId,
+        packagePurchaseId: params.packagePurchaseId
+      });
 
-    const baseUrl = (settings.publicUrl || '').startsWith('https://') ? settings.publicUrl : (process.env.NEXT_PUBLIC_APP_URL || '');
-    if (!baseUrl || !baseUrl.startsWith('https://')) {
-      logger.warn('payment', 'Public URL not configured with https; Qliro unavailable', { publicUrl: settings.publicUrl });
-      throw new QliroApiError('Qliro requires a public https URL. Configure site public URL in settings.');
+      try {
+        // Fetch current order status from Qliro
+        const orderData = await this.getOrder(existingOrder.qliroOrderId);
+        
+        // Update our record with latest payment link if available
+        if (orderData.PaymentLink && orderData.PaymentLink !== existingOrder.paymentLink) {
+          await this.updateOrderStatus(existingOrder.qliroOrderId, orderData.Status || 'pending', orderData.PaymentLink);
+        }
+
+        return {
+          checkoutId: existingOrder.qliroOrderId,
+          checkoutUrl: orderData.PaymentLink || existingOrder.paymentLink,
+          merchantReference: existingOrder.merchantReference,
+          isExisting: true
+        };
+      } catch (error) {
+        logger.warn('payment', 'Failed to fetch existing Qliro order, creating new one', {
+          qliroOrderId: existingOrder.qliroOrderId,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        // If we can't fetch the existing order, create a new one
+      }
     }
-    const merchantReference = this.sanitizeMerchantReference(params.reference);
-    
-    // Use the correct Qliro API structure based on their documentation
 
-    // Generate short-lived token for status push URL (valid for 3 hours)
+    // Create new order
+    const result = await this.createCheckout({
+      amount: params.amount,
+      reference: params.reference,
+      description: params.description,
+      returnUrl: params.returnUrl
+    });
+
+    // Save order record to database
+    await this.createOrderRecord({
+      bookingId: params.bookingId,
+      handledarBookingId: params.handledarBookingId,
+      packagePurchaseId: params.packagePurchaseId,
+      qliroOrderId: result.checkoutId,
+      merchantReference: result.merchantReference,
+      amount: params.amount,
+      paymentLink: result.checkoutUrl,
+      environment: (await this.loadSettings()).environment
+    });
+
+    return {
+      ...result,
+      isExisting: false
+    };
+  }
+
+  public async createCheckout(params: { amount: number; reference: string; description: string; returnUrl: string; }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
+    const settings = await this.loadSettings();
+    if (!settings.publicUrl) {
+      throw new QliroApiError('Qliro requires a public https URL.');
+    }
+
+    const merchantReference = this.sanitizeMerchantReference(params.reference);
     const pushToken = crypto.randomUUID();
     try {
       const { cache } = await import('@/lib/redis/client');
-      await cache.set(`qliro:push:${pushToken}`, { reference: params.reference, createdAt: Date.now() }, 60 * 60 * 3);
+      await cache.set(`qliro:push:${pushToken}`, JSON.stringify({ reference: params.reference }), 3 * 3600);
     } catch (e) {
-      logger.warn('payment', 'Redis not available for Qliro push token; proceeding without token');
+      logger.warn('payment', 'Redis not available for Qliro push token');
     }
 
-    const absoluteReturnUrl = (() => {
-      const raw = params.returnUrl || '';
-      if (!raw) return `${baseUrl}/dashboard`; // safe fallback
-      if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-      return `${baseUrl.replace(/\/$/, '')}${raw.startsWith('/') ? raw : `/${raw}`}`;
-    })();
-
-    const checkoutRequest: any = {
+    const checkoutRequest = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: merchantReference,
       Currency: 'SEK',
       Country: 'SE',
       Language: 'sv-se',
-      MerchantTermsUrl: `${baseUrl}/kopvillkor`,
-      MerchantIntegrityPolicyUrl: `${baseUrl}/integritetspolicy`,
-      MerchantConfirmationUrl: absoluteReturnUrl || `${baseUrl}/payments/qliro/return?ref=${encodeURIComponent(merchantReference)}`,
-      MerchantCheckoutStatusPushUrl: `${baseUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
-        MerchantOrderManagementStatusPushUrl: `${baseUrl}/api/payments/qliro/order-management-push`,
-      OrderItems: [
-        {
-          MerchantReference: merchantReference,
-          Description: params.description,
-          Type: 'Product',
-          Quantity: 1,
-          PricePerItemIncVat: params.amount,
-          PricePerItemExVat: params.amount,
-          VatRate: 0,
-        },
-      ],
-      // Restrict available payment methods (disable Swish per requirement)
-      AllowedPaymentMethods: params.overrideAllowedPaymentMethods?.length ? params.overrideAllowedPaymentMethods : ['Card', 'Invoice', 'DirectBank']
+      MerchantTermsUrl: `${settings.publicUrl}/kopvillkor`,
+      MerchantConfirmationUrl: params.returnUrl,
+      MerchantCheckoutStatusPushUrl: `${settings.publicUrl}/api/payments/qliro/checkout-push?token=${pushToken}`,
+      OrderItems: [{
+        MerchantReference: merchantReference,
+        Description: params.description,
+        Type: 'Product',
+        Quantity: 1,
+        PricePerItemIncVat: params.amount,
+        PricePerItemExVat: params.amount,
+        VatRate: 0,
+      }],
     };
 
-    // Further restrict to specific payment method IDs/groups when supported by provider
-    // Target set (as requested):
-    // PAY_NOW -> CREDITCARDS (card), TRUSTLY_DIRECT (direct bank)
-    // PAY_LATER -> QLIRO_INVOICE, QLIRO_CAMPAIGN, QLIRO_PARTPAYMENT
-    (checkoutRequest as any).AllowedPaymentMethodIds = params.overrideAllowedPaymentMethodIds?.length
-      ? params.overrideAllowedPaymentMethodIds
-      : [
-          'CREDITCARDS',
-          'TRUSTLY_DIRECT',
-          'QLIRO_INVOICE',
-          'QLIRO_CAMPAIGN',
-          'QLIRO_PARTPAYMENT',
-        ];
-    // Defensive: explicitly ban Swish (and optionally others)
-    (checkoutRequest as any).DisallowedPaymentMethods = params.overrideDisallowedPaymentMethods?.length
-      ? params.overrideDisallowedPaymentMethods
-      : ['Swish'];
+    const bodyString = JSON.stringify(checkoutRequest);
+    const url = `${settings.apiUrl}/checkout/merchantapi/Orders`;
+    const authHeader = this.generateAuthHeader(bodyString);
 
-    try {
-      console.log('[Qliro Service Debug] AllowedPaymentMethods:', (checkoutRequest as any).AllowedPaymentMethods);
-      console.log('[Qliro Service Debug] AllowedPaymentMethodIds:', (checkoutRequest as any).AllowedPaymentMethodIds);
-      console.log('[Qliro Service Debug] DisallowedPaymentMethods:', (checkoutRequest as any).DisallowedPaymentMethods);
-    } catch {}
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': authHeader },
+      body: bodyString,
+    });
 
-    // Optional customer pre-fill
-    if (params.customerEmail || params.customerPhone || params.personalNumber) {
-      checkoutRequest.CustomerInformation = {
-        Email: params.customerEmail,
-        MobileNumber: params.customerPhone ? parseInt(params.customerPhone.replace(/\D/g, '')) : undefined,
-        JuridicalType: 'Physical',
-      };
-      if (params.personalNumber) {
-        // Include both common field names to maximize compatibility
-        (checkoutRequest.CustomerInformation as any).NationalIdentificationNumber = params.personalNumber;
-        (checkoutRequest.CustomerInformation as any).PersonalNumber = params.personalNumber;
-      }
+    const responseText = await response.text();
+    if (!response.ok) {
+      throw new QliroApiError(`CreateCheckout error: ${response.status}`, { status: response.status, body: responseText });
     }
 
-    // Optional colors if present in site settings (best-effort, does not affect auth)
-    try {
-      const settingsRows = await db.select().from(siteSettings);
-      const map = settingsRows.reduce((acc: Record<string, string>, s: any) => { acc[s.key] = s.value || ''; return acc; }, {} as Record<string, string>);
-      if (map['qliro_primary_color']) {
-        (checkoutRequest as any).PrimaryColor = map['qliro_primary_color'];
-      }
-      if (map['qliro_cta_color']) {
-        (checkoutRequest as any).CallToActionColor = map['qliro_cta_color'];
-      }
-    } catch {}
-
-    try {
-      // First check if we can reach the API (with timeout)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-      // Prepare string body ONCE to ensure auth token exactly matches payload
-      const bodyString = JSON.stringify(checkoutRequest);
-
-      const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders`;
-      const authHeader = this.generateAuthHeader(bodyString);
-      
-      console.log('[Qliro Service Debug] About to send API request:');
-      console.log('[Qliro Service Debug] URL:', url);
-      console.log('[Qliro Service Debug] Request Body:', bodyString);
-      console.log('[Qliro Service Debug] Auth Header:', authHeader.slice(0, 50) + '...');
-
-      logger.debug('payment', 'Qliro request prepared', {
-        url,
-        environment: settings.environment,
-        payloadPreview: bodyString.slice(0, 200),
-        tokenPreview: authHeader.replace(/^Qliro\s+/, '').slice(0, 12) + '...'
-      });
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': authHeader,
-        },
-        // Send plain body (same as working test route)
-        body: bodyString,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-      const responseText = await response.text();
-      
-      console.log('[Qliro Service Debug] API Response Status:', response.status);
-      console.log('[Qliro Service Debug] API Response Body:', responseText);
-      
-      logger.debug('payment', 'Qliro API response', {
-        status: response.status,
-        statusText: response.statusText,
-        body: responseText
-      });
-
-      if (!response.ok) {
-        // Try to decode structured error
-        let errorJson: any = null;
-        try { errorJson = JSON.parse(responseText); } catch {}
-        logger.error('payment', 'Qliro checkout creation failed', {
-          status: response.status,
-          statusText: response.statusText,
-          body: responseText,
-          errorCode: errorJson?.ErrorCode,
-          errorMessage: errorJson?.ErrorMessage,
-          errorReference: errorJson?.ErrorReference,
-          reference: params.reference
-        });
-        throw new QliroApiError(`Qliro API error: ${response.status} ${response.statusText}` , {
-          status: response.status,
-          statusText: response.statusText,
-          body: responseText
-        });
-      }
-
-      const checkoutData = JSON.parse(responseText);
-
-      logger.info('payment', 'Qliro checkout created successfully', {
-        orderId: checkoutData.OrderId,
-        reference: params.reference,
-        environment: settings.environment
-      });
-
-      // Require a valid payment link from Qliro; do not fallback to mock
-      if (!checkoutData.PaymentLink) {
-        throw new Error('Qliro did not return a PaymentLink');
-      }
-
-      // Try to fetch payment options and select a non-Swish PaymentId
-      let finalPaymentLink: string = checkoutData.PaymentLink;
-      try {
-        const orderId = (checkoutData.OrderId ?? '').toString();
-        if (orderId) {
-          const selectedPaymentId = await this.selectNonSwishPaymentId(orderId);
-          if (selectedPaymentId) {
-            const sep = finalPaymentLink.includes('?') ? '&' : '?';
-            finalPaymentLink = `${finalPaymentLink}${sep}paymentId=${encodeURIComponent(selectedPaymentId)}`;
-          }
-        }
-      } catch (e) {
-        logger.debug('payment', 'Qliro PaymentOptions fetch failed or no suitable PaymentId found; proceeding without selection', {
-          error: e instanceof Error ? e.message : String(e)
-        });
-      }
-
-      return {
-        checkoutId: checkoutData.OrderId?.toString() || params.reference,
-        checkoutUrl: finalPaymentLink,
-        merchantReference,
-      };
-    } catch (error) {
-      if ((error as any)?.name === 'AbortError') {
-        logger.error('payment', 'Failed to create Qliro checkout (timeout/abort)', {
-          reference: params.reference
-        });
-        throw new QliroApiError('Qliro API timeout/abort');
-      }
-
-      if (error instanceof QliroApiError) {
-        logger.error('payment', 'Failed to create Qliro checkout', {
-          error: error.message,
-          status: error.status,
-          statusText: error.statusText,
-          body: error.body,
-          reference: params.reference
-        });
-        throw error;
-      }
-
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('payment', 'Failed to create Qliro checkout', {
-        error: errorMessage,
-        reference: params.reference
-      });
-      // Always propagate errors; no mock fallback
-      throw new Error(errorMessage);
+    const checkoutData = JSON.parse(responseText);
+    if (!checkoutData.PaymentLink) {
+      throw new Error('Qliro did not return a PaymentLink');
     }
-  }
 
-  private async selectNonSwishPaymentId(orderId: string): Promise<string | null> {
-    const settings = await this.loadSettings();
-    const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders/${encodeURIComponent(orderId)}/PaymentOptions`;
-    // According to Qliro docs, this is a POST. Send empty JSON body.
-    const bodyString = JSON.stringify({});
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': this.generateAuthHeader(bodyString),
+    return {
+      checkoutId: checkoutData.OrderId?.toString() || params.reference,
+      checkoutUrl: checkoutData.PaymentLink,
+      merchantReference,
     };
-    const res = await fetch(url, { method: 'POST', headers, body: bodyString });
-    const text = await res.text();
-    if (!res.ok) {
-      throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
-    }
-    let json: any = {};
-    try { json = JSON.parse(text); } catch {}
-    // Heuristic parsing: look for arrays named PaymentOptions/PaymentGroups/Methods and exclude anything named Swish
-    const candidates: string[] = [];
-    const scan = (obj: any) => {
-      if (!obj) return;
-      if (Array.isArray(obj)) {
-        for (const item of obj) scan(item);
-      } else if (typeof obj === 'object') {
-        const name = String(obj.Name || obj.Method || obj.GroupName || '').toLowerCase();
-        const id = obj.PaymentId || obj.Id || obj.PaymentID || null;
-        if (id && name && !name.includes('swish')) {
-          candidates.push(String(id));
-        }
-        for (const k of Object.keys(obj)) scan(obj[k]);
-      }
-    };
-    scan(json);
-    return candidates[0] || null;
-  }
-
-  public async getPaymentOptions(orderId: string): Promise<any> {
-    const settings = await this.loadSettings();
-    const url = `${settings.apiUrl.replace(/\/$/, '')}/checkout/merchantapi/Orders/${encodeURIComponent(orderId)}/PaymentOptions`;
-    const bodyString = JSON.stringify({});
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': this.generateAuthHeader(bodyString),
-    };
-    
-    console.log('[Qliro PaymentOptions Debug] URL:', url);
-    console.log('[Qliro PaymentOptions Debug] Method: POST');
-    console.log('[Qliro PaymentOptions Debug] Body:', bodyString);
-    console.log('[Qliro PaymentOptions Debug] Auth:', headers.Authorization.slice(0, 50) + '...');
-    
-    const res = await fetch(url, { method: 'POST', headers, body: bodyString });
-    const text = await res.text();
-    
-    console.log('[Qliro PaymentOptions Debug] Response Status:', res.status);
-    console.log('[Qliro PaymentOptions Debug] Response Body:', text);
-    if (!res.ok) {
-      throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, { status: res.status, statusText: res.statusText, body: text });
-    }
-    return JSON.parse(text);
   }
 
   public async testConnection(opts?: { extended?: boolean }): Promise<{ success: boolean; message: string; details?: any; debug?: any }> {
     try {
       const settings = await this.loadSettings();
-
-      logger.info('payment', 'Testing Qliro connection', {
-        environment: settings.environment,
-        merchantId: (settings as any).merchantId,
-        apiUrl: settings.apiUrl
-      });
-
-      // Create a test checkout
       const testReference = `test_${Date.now()}`;
       const result = await this.createCheckout({
-        amount: 1, // 1 SEK test amount
+        amount: 100, // 1 SEK in öre
         reference: testReference,
         description: 'Connection test',
-        returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/settings?test=complete`,
+        returnUrl: `${settings.publicUrl}/dashboard/admin/settings?test=complete`,
       });
 
-      // Update test status in database
-      await db
-        .update(siteSettings)
-        .set({
-          value: 'true',
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_test_passed'));
-
-      await db
-        .update(siteSettings)
-        .set({
-          value: new Date().toISOString(),
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_last_test_date'));
+      await db.update(siteSettings).set({ value: 'true', updatedAt: new Date() }).where(eq(siteSettings.key, 'qliro_test_passed'));
+      await db.update(siteSettings).set({ value: new Date().toISOString(), updatedAt: new Date() }).where(eq(siteSettings.key, 'qliro_last_test_date'));
 
       const response: any = {
         success: true,
         message: `Successfully connected to Qliro ${settings.environment} environment`,
-        details: {
-          checkoutId: result.checkoutId,
-          checkoutUrl: result.checkoutUrl,
-          environment: settings.environment
-        }
+        details: { checkoutId: result.checkoutId, checkoutUrl: result.checkoutUrl, environment: settings.environment }
       };
       if (opts?.extended) {
-        response.debug = {
-          apiUrl: settings.apiUrl,
-          publicUrl: settings.publicUrl,
-          environment: settings.environment,
-        };
+        response.debug = { apiUrl: settings.apiUrl, publicUrl: settings.publicUrl };
       }
       return response;
+
     } catch (error) {
-      if (error instanceof QliroApiError) {
-        logger.error('payment', 'Qliro connection test failed', {
-          error: error.message,
-          status: error.status,
-          statusText: error.statusText,
-          body: error.body
-        });
-      } else {
-        logger.error('payment', 'Qliro connection test failed', {
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-
-      // Update test status as failed
-      await db
-        .update(siteSettings)
-        .set({
-          value: 'false',
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_test_passed'));
-
-      const fallbackMessage = error instanceof Error ? error.message : 'Connection test failed';
-      const failure: any = {
-        success: false,
-        message: fallbackMessage,
-      };
+      await db.update(siteSettings).set({ value: 'false', updatedAt: new Date() }).where(eq(siteSettings.key, 'qliro_test_passed'));
+      const message = error instanceof Error ? error.message : 'Connection test failed';
+      const failure: any = { success: false, message };
       if (error instanceof QliroApiError) {
         failure.details = { status: error.status, statusText: error.statusText };
         if (opts?.extended) failure.debug = { body: error.body };
@@ -660,136 +388,24 @@ export class QliroService {
 
   public async verifyWebhookSignature(signature: string, body: string): Promise<boolean> {
     const settings = await this.loadSettings();
-    
     if (!settings.webhookSecret) {
-      logger.warn('payment', 'No webhook secret configured for Qliro');
-      return true; // Allow in development/testing
+      logger.warn('payment', 'No webhook secret configured for Qliro, skipping verification');
+      return true;
     }
-
-    try {
-      // Implement proper signature verification based on Qliro's documentation
-      // This is a placeholder implementation
-      const expectedSignature = crypto
-        .createHmac('sha256', settings.webhookSecret)
-        .update(body)
-        .digest('hex');
-
-      const isValid = signature === expectedSignature;
-
-      logger.debug('payment', 'Webhook signature verification', {
-        isValid,
-        environment: settings.environment
-      });
-
-      return isValid;
-    } catch (error) {
-      logger.error('payment', 'Failed to verify webhook signature', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      return false;
-    }
-  }
-
-  public async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
-    try {
-      const settings = await this.loadSettings();
-
-      logger.info('payment', 'Testing Qliro connection', {
-        environment: settings.environment,
-        merchantId: settings.merchantId,
-        apiUrl: settings.apiUrl
-      });
-
-      // Create a test checkout
-      const testReference = `test_${Date.now()}`;
-      const result = await this.createCheckout({
-        amount: 1, // 1 SEK test amount
-        reference: testReference,
-        description: 'Connection test',
-        returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/settings?test=complete`,
-      });
-
-      // Update test status in database
-      await db
-        .update(siteSettings)
-        .set({
-          value: 'true',
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_test_passed'));
-
-      await db
-        .update(siteSettings)
-        .set({
-          value: new Date().toISOString(),
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_last_test_date'));
-
-      logger.info('payment', 'Qliro connection test successful', {
-        checkoutId: result.checkoutId,
-        environment: settings.environment
-      });
-
-      return {
-        success: true,
-        message: `Successfully connected to Qliro ${settings.environment} environment`,
-        details: {
-          checkoutId: result.checkoutId,
-          checkoutUrl: result.checkoutUrl,
-          environment: settings.environment
-        }
-      };
-    } catch (error) {
-      if (error instanceof QliroApiError) {
-        logger.error('payment', 'Qliro connection test failed', {
-          error: error.message,
-          status: error.status,
-          statusText: error.statusText,
-          body: error.body
-        });
-      } else {
-        logger.error('payment', 'Qliro connection test failed', {
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-
-      // Update test status as failed
-      await db
-        .update(siteSettings)
-        .set({
-          value: 'false',
-          updatedAt: new Date()
-        })
-        .where(eq(siteSettings.key, 'qliro_test_passed'));
-
-      const fallbackMessage = error instanceof Error ? error.message : 'Connection test failed';
-      return {
-        success: false,
-        message: fallbackMessage,
-        details: error instanceof QliroApiError ? {
-          status: error.status,
-          statusText: error.statusText,
-          body: error.body
-        } : undefined
-      };
-    }
+    const expectedSignature = crypto.createHmac('sha256', settings.webhookSecret).update(body).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   }
 
   public async getTestStatus(): Promise<{ passed: boolean; lastTestDate: string | null }> {
-    const settings = await db
-      .select()
-      .from(siteSettings)
-      .where(eq(siteSettings.category, 'payment'));
-
+    const settings = await db.select().from(siteSettings).where(eq(siteSettings.category, 'payment'));
     const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value || '';
+      if(setting.key) acc[setting.key] = setting.value || '';
       return acc;
     }, {} as Record<string, string>);
 
     return {
       passed: settingsMap['qliro_test_passed'] === 'true',
-      lastTestDate: settingsMap['qliro_last_test_date'] || null
+      lastTestDate: settingsMap['qliro_last_test_date'] || null,
     };
   }
 }

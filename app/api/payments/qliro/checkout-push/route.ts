@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { logger } from '@/lib/logging/logger';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
+import { cache } from '@/lib/redis/client';
 
 export async function OPTIONS() {
   return NextResponse.json({ ok: true });
@@ -47,6 +48,28 @@ export async function POST(request: NextRequest) {
     if (status !== 'Paid') {
       logger.debug('payment', 'checkout-push non-paid status, acknowledged', { status, orderId });
       return NextResponse.json({ received: true });
+    }
+
+    // Persist merchantReference -> orderId mapping (TTL 3 hours) for future reuse
+    try {
+      const rawRef = String(event.MerchantReference || '').trim();
+      const rawOrderId = String(event.OrderId || '').trim();
+      if (rawRef && rawOrderId) {
+        const sanitizedRef = rawRef.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 25) || rawRef.slice(0, 25);
+        await cache.set(
+          `qliro:ref:${sanitizedRef}`,
+          { orderId: rawOrderId, createdAt: Date.now() },
+          60 * 60 * 3
+        );
+        logger.debug('payment', 'Cached Qliro merchantReference mapping from checkout-push', {
+          merchantReference: sanitizedRef,
+          orderId: rawOrderId,
+        });
+      }
+    } catch (e) {
+      logger.warn('payment', 'Failed to cache Qliro merchantReference mapping on checkout-push', {
+        error: e instanceof Error ? e.message : String(e)
+      });
     }
 
     // booking_<id> pattern or package purchase id

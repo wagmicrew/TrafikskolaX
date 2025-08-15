@@ -35,7 +35,7 @@ async function main() {
     // 3) External reachability (unauthenticated request expected to return 401/403)
     console.log('\n[External Reachability]');
     try {
-      const url = `${resolved.apiUrl.replace(/\/+$/, '')}/orders`;
+      const url = `${resolved.apiUrl.replace(/\/+$/, '')}/checkout/merchantapi/Orders`;
       const res = await fetch(url, {
         method: 'GET',
         headers: {

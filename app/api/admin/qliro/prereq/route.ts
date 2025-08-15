@@ -28,7 +28,9 @@ export async function GET(_request: NextRequest) {
     const prodEnabled = map['qliro_prod_enabled'] === 'true';
     const sandboxEnabled = map['qliro_enabled'] === 'true';
     const useProd = prodEnabled;
-    const apiUrl = useProd ? (map['qliro_prod_api_url'] || 'https://payments.qit.nu') : (map['qliro_dev_api_url'] || 'https://pago.qit.nu');
+    const apiUrl = useProd
+      ? (map['qliro_prod_api_url'] || 'https://api.qliro.com')
+      : (map['qliro_dev_api_url'] || 'https://playground.qliro.com');
     const apiKey = useProd ? map['qliro_prod_api_key'] : map['qliro_api_key'];
     const apiSecret = map['qliro_api_secret'] || map['qliro_secret'] || '';
 

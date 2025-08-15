@@ -146,18 +146,20 @@ async function main() {
     console.log('🧪 Test Results:');
     console.log(`- Qliro Enabled: ${settingsMap.qliro_enabled === 'true' ? '✅ Yes' : '❌ No'}`);
     console.log(`- Environment: ${environment}`);
-    console.log(`- API Key Set: ${apiKey ? '✅ Yes' : '❌ No'}`);
+    console.log(`- API Key Set (optional): ${apiKey ? '✅ Yes' : 'ℹ️ Not set (secret-only auth)'}`);
     console.log(`- API Secret Set: ${apiSecret ? '✅ Yes' : '❌ No'}`);
     console.log(`- Public URL (HTTPS): ${publicUrlValid ? '✅ Valid' : '❌ Missing/Invalid'}`);
     console.log(`- Webhook Secret Set: ${settingsMap.qliro_webhook_secret ? '✅ Yes' : '⚠️ No'}`);
     console.log(`- API URL (${environment}): ${environment === 'production' ? (settingsMap.qliro_prod_api_url || '(default)') : (settingsMap.qliro_dev_api_url || '(default)')}`);
 
-    const isConfigured = settingsMap.qliro_enabled === 'true' && apiKey && apiSecret && publicUrlValid;
+    // Secret-only auth: require apiSecret and HTTPS public URL; apiKey is optional
+    const isConfigured = settingsMap.qliro_enabled === 'true' && !!apiSecret && publicUrlValid;
 
     console.log(`\n${isConfigured ? '✅' : '❌'} Qliro Configuration: ${isConfigured ? 'READY' : 'INCOMPLETE'}\n`);
 
     if (isConfigured) {
       console.log('🎉 Qliro configuration looks good!');
+      console.log('   Auth mode: Secret-only Bearer token. API key is optional and not required.');
       console.log('   Note: There is no mock fallback. If the API is unreachable, Qliro will be marked unavailable.');
     } else {
       console.log('⚠️  Configuration incomplete. Please set missing values via Admin Settings or environment variables and rerun.');

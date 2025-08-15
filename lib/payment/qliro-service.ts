@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { siteSettings, qliroOrders } from '@/lib/db/schema';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, InferInsertModel } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
 import crypto from 'crypto';
 
@@ -139,9 +139,9 @@ export class QliroService {
         publicUrl,
       };
 
-      // Validate critical settings
-      if (!this.settings.apiKey || !this.settings.apiSecret) {
-        logger.error('payment', 'Missing critical Qliro settings', {
+      // Validate critical settings: require at least apiSecret. apiKey is optional (secret-only mode supported)
+      if (!this.settings.apiSecret) {
+        logger.error('payment', 'Missing critical Qliro settings (apiSecret)', {
           hasApiKey: !!this.settings.apiKey,
           hasApiSecret: !!this.settings.apiSecret,
           environment: this.settings.environment
@@ -181,16 +181,8 @@ export class QliroService {
     if (!this.settings) {
       throw new Error('Settings not loaded');
     }
-    
-    const timestamp = Math.floor(Date.now() / 1000);
-    const nonce = crypto.randomBytes(16).toString('hex');
-    const method = 'POST';
-    const path = '/checkout/merchantapi/Orders';
-    
-    const stringToSign = `${method}|${path}|${this.settings.apiKey}|${timestamp}|${nonce}|${payload}`;
-    const signature = crypto.createHmac('sha256', this.settings.apiSecret).update(stringToSign).digest('base64');
-    
-    return `Bearer ${this.settings.apiKey}:${timestamp}:${nonce}:${signature}`;
+    // Secret-only auth: use Bearer <apiSecret> for all requests
+    return `Bearer ${this.settings.apiSecret}`;
   }
 
   private sanitizeMerchantReference(reference: string): string {
@@ -206,7 +198,8 @@ export class QliroService {
   public async getOrder(orderId: string): Promise<any> {
     const settings = await this.loadSettings();
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${orderId}`;
-    const headers = { 'Authorization': `Bearer ${settings.apiKey}` };
+    // Secret-only auth for GET as well
+    const headers = { 'Authorization': `Bearer ${settings.apiSecret}` };
     
     const res = await fetch(url, { method: 'GET', headers });
     const text = await res.text();
@@ -265,13 +258,14 @@ export class QliroService {
     callbackTokenExpiresAt?: Date | null;
   }): Promise<string | null> {
     try {
-      const orderRecord = {
+      const orderRecord: InferInsertModel<typeof qliroOrders> = {
         bookingId: params.bookingId || null,
         handledarBookingId: params.handledarBookingId || null,
         packagePurchaseId: params.packagePurchaseId || null,
         qliroOrderId: params.qliroOrderId,
         merchantReference: params.merchantReference,
-        amount: params.amount,
+        // Store amount in SEK as decimal string; params.amount is provided in öre
+        amount: (params.amount / 100).toFixed(2),
         paymentLink: params.paymentLink || null,
         environment: params.environment || 'sandbox',
         callbackToken: params.callbackToken || null,
@@ -640,14 +634,15 @@ export class QliroService {
         returnUrl: `${settings.publicUrl}/test`
       });
 
-      if (opts.extended) {
-        result.debug = { apiKey: settings.apiKey, apiUrl: settings.apiUrl };
-      }
+      const debug = opts.extended
+        ? { hasApiKey: !!settings.apiKey, apiUrl: settings.apiUrl }
+        : undefined;
 
       return {
         success: true,
         message: 'Qliro API connection successful',
-        details: result
+        details: result,
+        ...(debug ? { debug } : {}),
       };
     } catch (error: any) {
       if (opts.extended) {

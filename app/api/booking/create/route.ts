@@ -462,17 +462,12 @@ export async function POST(request: NextRequest) {
           // If Qliro was requested, create a checkout and return its details
           if (paymentMethod === 'qliro') {
             try {
-              const qliroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payments/qliro/create-checkout`, {
+              const qliroResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payments/qliro/create-order`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                  amount: totalPrice,
-                  reference: `booking_${booking.id}`,
-                  description: `Handledarkurs ${format(new Date(session.date), 'yyyy-MM-dd')} ${session.startTime}`,
-                  returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/student/bokningar/${booking.id}`,
-                }),
+                body: JSON.stringify({ bookingId: booking.id }),
               });
 
               if (!qliroResponse.ok) {

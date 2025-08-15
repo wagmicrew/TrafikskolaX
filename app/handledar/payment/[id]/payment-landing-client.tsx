@@ -48,15 +48,10 @@ export default function PaymentLandingClient({
     try {
       setIsGeneratingQliro(true);
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const res = await fetch('/api/payments/qliro/create-checkout', {
+      const res = await fetch('/api/payments/qliro/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          reference: `handledar_${booking.id}`,
-          description: `Handledarutbildning ${sessionDate}`,
-          returnUrl: `${baseUrl}/handledar/payment/${booking.id}`,
-        }),
+        body: JSON.stringify({ handledarBookingId: booking.id }),
       });
       const data = await res.json();
       if (!res.ok || !data?.checkoutUrl) {

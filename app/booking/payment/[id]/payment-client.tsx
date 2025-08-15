@@ -18,9 +18,9 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
     try {
       setIsGeneratingQliro(true);
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const res = await fetch('/api/payments/qliro/create-checkout', {
+      const res = await fetch('/api/payments/qliro/create-order', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, reference: `booking_${booking.id}`, description: `Bokning ${booking.id.slice(0,7)}`, returnUrl: `${baseUrl}/booking/payment/${booking.id}` })
+        body: JSON.stringify({ bookingId: booking.id })
       });
       const data = await res.json();
       if (!res.ok || !data?.checkoutUrl) throw new Error(data?.error || 'Kunde inte skapa Qliro-checkout');

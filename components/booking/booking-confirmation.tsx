@@ -494,26 +494,11 @@ export function BookingConfirmation({
     if (selectedPaymentMethod === 'qliro') {
       try {
         setLoading(true)
-        const response = await fetch('/api/payments/qliro/create-checkout', {
+        const response = await fetch('/api/payments/qliro/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            amount: bookingData.totalPrice,
-            reference: `booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`,
-            description: `Bokning: ${bookingData.lessonType.name}`,
-            returnUrl: `${window.location.origin}/qliro/return?ref=booking_${bookingData.id || bookingData.tempBookingId || Date.now()}`,
-            // Pass customer details so Qliro can prefill & reduce 400s
-            customerEmail: (bookingData.isHandledarutbildning ? supervisorEmail : guestEmail) || undefined,
-            customerPhone: (bookingData.isHandledarutbildning ? supervisorPhone : guestPhone) || undefined,
-            customerFirstName: (() => {
-              const name = (bookingData.isHandledarutbildning ? supervisorName : guestName) || ''
-              return name.split(' ')[0] || undefined
-            })(),
-            customerLastName: (() => {
-              const name = (bookingData.isHandledarutbildning ? supervisorName : guestName) || ''
-              const parts = name.split(' ')
-              return parts.length > 1 ? parts.slice(1).join(' ') : undefined
-            })()
+            bookingId: bookingData.id || bookingData.tempBookingId
           })
         })
         

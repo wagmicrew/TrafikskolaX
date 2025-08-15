@@ -64,19 +64,54 @@ export class QliroService {
         environment: settingsMap['qliro_environment']
       });
 
-      const publicUrl = process.env.NEXT_PUBLIC_APP_URL || settingsMap['qliro_public_url'] || '';
+      // Resolve public URL from settings or env
+      const publicUrl =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        settingsMap['public_app_url'] ||
+        settingsMap['site_public_url'] ||
+        settingsMap['app_url'] ||
+        settingsMap['qliro_public_url'] ||
+        '';
       if (publicUrl && !publicUrl.startsWith('https://')) {
         logger.error('payment', 'Invalid public URL for Qliro', { publicUrl });
         throw new Error('Qliro requires HTTPS public URL');
       }
 
+      // Determine environment and enabled flag (support legacy and prod/dev toggles)
+      const envExplicit = settingsMap['qliro_environment'];
+      const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'true';
+      const baseEnabled = settingsMap['qliro_enabled'] === 'true';
+      const environment: 'production' | 'sandbox' = envExplicit === 'production' || prodEnabled ? 'production' : 'sandbox';
+      const enabled = baseEnabled || prodEnabled;
+
+      // Resolve credentials from multiple possible keys and env fallbacks
+      const envApiKey = process.env.QLIRO_API_KEY || process.env.QLIRO_MERCHANT_ID || '';
+      const envApiSecret = process.env.QLIRO_API_SECRET || process.env.QLIRO_SHARED_SECRET || '';
+
+      const apiKey =
+        (environment === 'production'
+          ? (settingsMap['qliro_prod_api_key'] || settingsMap['qliro_api_key'] || '')
+          : (settingsMap['qliro_api_key'] || settingsMap['qliro_dev_api_key'] || '')) || envApiKey;
+
+      const apiSecret =
+        settingsMap['qliro_api_secret'] ||
+        settingsMap['qliro_secret'] ||
+        (environment === 'production' ? (settingsMap['qliro_prod_api_secret'] || settingsMap['qliro_prod_shared_secret'] || '') : '') ||
+        settingsMap['qliro_shared_secret'] ||
+        envApiSecret;
+
+      const apiUrl =
+        (environment === 'production'
+          ? (settingsMap['qliro_prod_api_url'] || settingsMap['qliro_api_url'] || 'https://api.qliro.com')
+          : (settingsMap['qliro_dev_api_url'] || settingsMap['qliro_api_url'] || 'https://playground.qliro.com'));
+
       this.settings = {
-        enabled: settingsMap['qliro_enabled'] === 'true',
-        apiKey: settingsMap['qliro_api_key'] || '',
-        apiSecret: settingsMap['qliro_api_secret'] || '',
-        apiUrl: settingsMap['qliro_api_url'] || 'https://api.qliro.com',
-        webhookSecret: settingsMap['qliro_webhook_secret'] || '',
-        environment: settingsMap['qliro_environment'] === 'production' ? 'production' : 'sandbox',
+        enabled,
+        apiKey,
+        apiSecret,
+        apiUrl,
+        webhookSecret: settingsMap['qliro_webhook_secret'] || settingsMap['qliro_secret'] || '',
+        environment,
         publicUrl,
       };
 
@@ -84,7 +119,8 @@ export class QliroService {
       if (!this.settings.apiKey || !this.settings.apiSecret) {
         logger.error('payment', 'Missing critical Qliro settings', {
           hasApiKey: !!this.settings.apiKey,
-          hasApiSecret: !!this.settings.apiSecret
+          hasApiSecret: !!this.settings.apiSecret,
+          environment: this.settings.environment
         });
         throw new Error('Missing Qliro API credentials');
       }
@@ -92,7 +128,11 @@ export class QliroService {
       this.lastSettingsLoad = new Date();
       logger.info('payment', 'Qliro settings loaded successfully', {
         environment: this.settings.environment,
-        enabled: this.settings.enabled
+        enabled: this.settings.enabled,
+        apiUrl: this.settings.apiUrl,
+        hasApiKey: !!this.settings.apiKey,
+        hasApiSecret: !!this.settings.apiSecret,
+        publicUrl: this.settings.publicUrl
       });
 
       return this.settings;

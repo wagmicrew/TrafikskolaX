@@ -31,15 +31,36 @@ require('dotenv').config({ path: '.env.local' });
     await pool.query('SELECT 1');
     console.log('✅ Database connection OK');
 
-    const upsertSql = `
-      INSERT INTO site_settings (key, value, description, category, "isEnv", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, false, NOW(), NOW())
-      ON CONFLICT (key)
-      DO UPDATE SET value = EXCLUDED.value,
-                    description = EXCLUDED.description,
-                    category = EXCLUDED.category,
-                    "updatedAt" = NOW()
-    `;
+    // Detect column naming style in site_settings
+    const colsRes = await pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='site_settings'`
+    );
+    const colNames = colsRes.rows.map(r => r.column_name);
+    const hasIsEnvSnake = colNames.includes('is_env');
+    const hasIsEnvCamel = colNames.includes('isEnv');
+    const hasCreatedAtSnake = colNames.includes('created_at');
+    const hasCreatedAtCamel = colNames.includes('createdAt');
+    const hasUpdatedAtSnake = colNames.includes('updated_at');
+    const hasUpdatedAtCamel = colNames.includes('updatedAt');
+
+    const columns = ['key', 'value', 'description', 'category'];
+    const values = ['$1', '$2', '$3', '$4'];
+    if (hasIsEnvSnake) { columns.push('is_env'); values.push('false'); }
+    else if (hasIsEnvCamel) { columns.push('"isEnv"'); values.push('false'); }
+    if (hasCreatedAtSnake) { columns.push('created_at'); values.push('NOW()'); }
+    else if (hasCreatedAtCamel) { columns.push('"createdAt"'); values.push('NOW()'); }
+    if (hasUpdatedAtSnake) { columns.push('updated_at'); values.push('NOW()'); }
+    else if (hasUpdatedAtCamel) { columns.push('"updatedAt"'); values.push('NOW()'); }
+
+    const insertSql = `INSERT INTO site_settings (${columns.join(', ')}) VALUES (${values.join(', ')})`;
+    const updateSets = [
+      'value = EXCLUDED.value',
+      'description = EXCLUDED.description',
+      'category = EXCLUDED.category',
+    ];
+    if (hasUpdatedAtSnake) updateSets.push('updated_at = NOW()');
+    if (hasUpdatedAtCamel) updateSets.push('"updatedAt" = NOW()');
+    const upsertSql = `${insertSql} ON CONFLICT (key) DO UPDATE SET ${updateSets.join(', ')}`;
 
     const targets = isProd
       ? [

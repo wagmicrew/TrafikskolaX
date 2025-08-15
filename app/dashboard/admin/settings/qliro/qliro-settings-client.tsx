@@ -1055,10 +1055,7 @@ export default function QliroSettingsClient() {
                                 onClick={async () => {
                                   const t = toast.loading('Hämtar checkout...', { position: 'top-right' });
                                   try {
-                                    const res = await fetch('/api/payments/qliro/create-for-reference', {
-                                      method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ reference: p.paymentReference })
-                                    });
+                                    const res = await fetch(`/api/admin/qliro/payments/${encodeURIComponent(p.id)}/link`, { method: 'POST' });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data.error || 'Misslyckades att skapa checkout');
                                     toast.success('Öppnar Qliro...', { id: t, position: 'top-right' });

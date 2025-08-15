@@ -25,7 +25,7 @@ async function testQliroCheckout() {
     const options = {
       hostname: 'localhost',
       port: 3000,
-      path: '/api/payments/qliro/create-checkout',
+      path: '/api/payments/qliro/create-order',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

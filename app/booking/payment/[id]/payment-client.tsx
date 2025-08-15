@@ -24,6 +24,10 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
       });
       const data = await res.json();
       if (!res.ok || !data?.checkoutUrl) throw new Error(data?.error || 'Kunde inte skapa Qliro-checkout');
+      try {
+        const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
+        if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return; }
+      } catch {}
       setQliroUrl(data.checkoutUrl);
       setShowQliro(true);
     } catch (e: any) { toast.error(e.message || 'Fel'); } finally { setIsGeneratingQliro(false); }

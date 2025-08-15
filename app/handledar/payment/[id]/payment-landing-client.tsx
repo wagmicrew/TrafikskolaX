@@ -57,6 +57,10 @@ export default function PaymentLandingClient({
       if (!res.ok || !data?.checkoutUrl) {
         throw new Error(data?.error || 'Kunde inte skapa Qliro-checkout');
       }
+      try {
+        const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
+        if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return; }
+      } catch {}
       window.location.href = data.checkoutUrl;
     } catch (err) {
       alert((err as Error).message);

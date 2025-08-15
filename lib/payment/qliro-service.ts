@@ -118,11 +118,11 @@ export class QliroService {
           : (settingsMap['qliro_api_key'] || settingsMap['qliro_dev_api_key'] || '')) || envApiKey;
 
       const apiSecret =
-        settingsMap['qliro_api_secret'] ||
-        settingsMap['qliro_secret'] ||
-        (environment === 'production' ? (settingsMap['qliro_prod_api_secret'] || settingsMap['qliro_prod_shared_secret'] || '') : '') ||
-        settingsMap['qliro_shared_secret'] ||
-        envApiSecret;
+        (
+          environment === 'production'
+            ? (settingsMap['qliro_prod_api_secret'] || settingsMap['qliro_prod_shared_secret'] || '')
+            : (settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || settingsMap['qliro_shared_secret'] || '')
+        ) || envApiSecret;
 
       const apiUrl =
         (environment === 'production'

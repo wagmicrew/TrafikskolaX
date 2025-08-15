@@ -21,6 +21,29 @@ mkdir -p "${LOG_DIR}"
 STAMP="$(date +%F_%H-%M-%S)"
 LOG_FILE="${LOG_DIR}/qliro-validate-${STAMP}.log"
 
+# Load environment from common .env files if present (production first)
+load_env() {
+  local candidates=(
+    ".env.production.local"
+    ".env.production"
+    ".env.local"
+    ".env"
+  )
+  for f in "${candidates[@]}"; do
+    if [ -f "$f" ]; then
+      set -a
+      # shellcheck disable=SC1090
+      source "$f"
+      set +a
+      echo "Loaded environment from: $f" | tee -a "$LOG_FILE"
+      return 0
+    fi
+  done
+  return 1
+}
+
+load_env || true
+
 printf "\n=== Qliro Validation (Ubuntu) ===\n" | tee -a "$LOG_FILE"
 echo "Project root: $PROJECT_ROOT" | tee -a "$LOG_FILE"
 echo "Timestamp: $(date -Is)" | tee -a "$LOG_FILE"
@@ -36,6 +59,21 @@ if command -v npm >/dev/null 2>&1; then
 fi
 if command -v npx >/dev/null 2>&1; then
   echo "npx: $(npx -v)" | tee -a "$LOG_FILE"
+fi
+
+# Validate required environment
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "" | tee -a "$LOG_FILE"
+  echo "ERROR: DATABASE_URL is not set." | tee -a "$LOG_FILE"
+  echo "Set it temporarily for this run, e.g.:" | tee -a "$LOG_FILE"
+  echo "  DATABASE_URL='postgresql://<neon-connection-string>' ./scripts/qliro-validate.sh" | tee -a "$LOG_FILE"
+  echo "Or add it to one of .env.production(.local), .env.local, or .env in project root." | tee -a "$LOG_FILE"
+  exit 1
+fi
+
+if [ -z "${NEXT_PUBLIC_APP_URL:-}" ]; then
+  echo "WARNING: NEXT_PUBLIC_APP_URL is not set. Qliro requires an HTTPS public URL for callbacks." | tee -a "$LOG_FILE"
+  echo "Set e.g.: NEXT_PUBLIC_APP_URL='https://your-domain.example'" | tee -a "$LOG_FILE"
 fi
 
 # Choose runner: prefer tsx, fallback to ts-node

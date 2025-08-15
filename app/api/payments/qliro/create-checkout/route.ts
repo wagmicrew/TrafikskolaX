@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { db } from '@/lib/db';
 import { bookings, handledarBookings, packagePurchases, users } from '@/lib/db/schema';

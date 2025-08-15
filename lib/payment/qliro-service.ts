@@ -135,21 +135,29 @@ export class QliroService {
   // Order tracking methods
   public async findExistingOrder(bookingId?: string, handledarBookingId?: string, packagePurchaseId?: string): Promise<any> {
     if (!bookingId && !handledarBookingId && !packagePurchaseId) {
-      throw new Error('At least one ID must be provided to find existing order');
+      return null; // Return null instead of throwing error
     }
 
-    const conditions = [];
-    if (bookingId) conditions.push(eq(qliroOrders.bookingId, bookingId));
-    if (handledarBookingId) conditions.push(eq(qliroOrders.handledarBookingId, handledarBookingId));
-    if (packagePurchaseId) conditions.push(eq(qliroOrders.packagePurchaseId, packagePurchaseId));
+    try {
+      const conditions = [];
+      if (bookingId) conditions.push(eq(qliroOrders.bookingId, bookingId));
+      if (handledarBookingId) conditions.push(eq(qliroOrders.handledarBookingId, handledarBookingId));
+      if (packagePurchaseId) conditions.push(eq(qliroOrders.packagePurchaseId, packagePurchaseId));
 
-    const existingOrder = await db
-      .select()
-      .from(qliroOrders)
-      .where(or(...conditions))
-      .limit(1);
+      const existingOrder = await db
+        .select()
+        .from(qliroOrders)
+        .where(or(...conditions))
+        .limit(1);
 
-    return existingOrder[0] || null;
+      return existingOrder[0] || null;
+    } catch (error) {
+      // If table doesn't exist or other DB error, return null to fall back to old behavior
+      logger.warn('payment', 'Failed to check existing Qliro orders, falling back to old behavior', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return null;
+    }
   }
 
   public async createOrderRecord(params: {
@@ -161,57 +169,74 @@ export class QliroService {
     amount: number;
     paymentLink: string;
     environment: string;
-  }): Promise<string> {
-    const settings = await this.loadSettings();
-    
-    const [orderRecord] = await db
-      .insert(qliroOrders)
-      .values({
-        bookingId: params.bookingId || null,
-        handledarBookingId: params.handledarBookingId || null,
-        packagePurchaseId: params.packagePurchaseId || null,
+  }): Promise<string | null> {
+    try {
+      const settings = await this.loadSettings();
+      
+      const [orderRecord] = await db
+        .insert(qliroOrders)
+        .values({
+          bookingId: params.bookingId || null,
+          handledarBookingId: params.handledarBookingId || null,
+          packagePurchaseId: params.packagePurchaseId || null,
+          qliroOrderId: params.qliroOrderId,
+          merchantReference: params.merchantReference,
+          amount: params.amount.toString(),
+          paymentLink: params.paymentLink,
+          environment: settings.environment,
+          status: 'created',
+          lastStatusCheck: new Date(),
+        })
+        .returning({ id: qliroOrders.id });
+
+      logger.info('payment', 'Created Qliro order record', {
+        orderId: orderRecord.id,
         qliroOrderId: params.qliroOrderId,
-        merchantReference: params.merchantReference,
-        amount: params.amount.toString(),
-        paymentLink: params.paymentLink,
-        environment: settings.environment,
-        status: 'created',
-        lastStatusCheck: new Date(),
-      })
-      .returning({ id: qliroOrders.id });
+        bookingId: params.bookingId,
+        handledarBookingId: params.handledarBookingId,
+        packagePurchaseId: params.packagePurchaseId
+      });
 
-    logger.info('payment', 'Created Qliro order record', {
-      orderId: orderRecord.id,
-      qliroOrderId: params.qliroOrderId,
-      bookingId: params.bookingId,
-      handledarBookingId: params.handledarBookingId,
-      packagePurchaseId: params.packagePurchaseId
-    });
-
-    return orderRecord.id;
+      return orderRecord.id;
+    } catch (error) {
+      // If table doesn't exist or other DB error, log warning but don't fail
+      logger.warn('payment', 'Failed to create Qliro order record, continuing without tracking', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        qliroOrderId: params.qliroOrderId
+      });
+      return null;
+    }
   }
 
   public async updateOrderStatus(qliroOrderId: string, status: string, paymentLink?: string): Promise<void> {
-    const updateData: any = {
-      status,
-      lastStatusCheck: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      const updateData: any = {
+        status,
+        lastStatusCheck: new Date(),
+        updatedAt: new Date(),
+      };
 
-    if (paymentLink) {
-      updateData.paymentLink = paymentLink;
+      if (paymentLink) {
+        updateData.paymentLink = paymentLink;
+      }
+
+      await db
+        .update(qliroOrders)
+        .set(updateData)
+        .where(eq(qliroOrders.qliroOrderId, qliroOrderId));
+
+      logger.debug('payment', 'Updated Qliro order status', {
+        qliroOrderId,
+        status,
+        hasPaymentLink: !!paymentLink
+      });
+    } catch (error) {
+      // If table doesn't exist or other DB error, log warning but don't fail
+      logger.warn('payment', 'Failed to update Qliro order status, continuing without tracking', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        qliroOrderId
+      });
     }
-
-    await db
-      .update(qliroOrders)
-      .set(updateData)
-      .where(eq(qliroOrders.qliroOrderId, qliroOrderId));
-
-    logger.debug('payment', 'Updated Qliro order status', {
-      qliroOrderId,
-      status,
-      hasPaymentLink: !!paymentLink
-    });
   }
 
   public async getOrCreateCheckout(params: {
@@ -270,17 +295,24 @@ export class QliroService {
       returnUrl: params.returnUrl
     });
 
-    // Save order record to database
-    await this.createOrderRecord({
-      bookingId: params.bookingId,
-      handledarBookingId: params.handledarBookingId,
-      packagePurchaseId: params.packagePurchaseId,
-      qliroOrderId: result.checkoutId,
-      merchantReference: result.merchantReference,
-      amount: params.amount,
-      paymentLink: result.checkoutUrl,
-      environment: (await this.loadSettings()).environment
-    });
+    // Save order record to database (non-blocking)
+    try {
+      await this.createOrderRecord({
+        bookingId: params.bookingId,
+        handledarBookingId: params.handledarBookingId,
+        packagePurchaseId: params.packagePurchaseId,
+        qliroOrderId: result.checkoutId,
+        merchantReference: result.merchantReference,
+        amount: params.amount,
+        paymentLink: result.checkoutUrl,
+        environment: (await this.loadSettings()).environment
+      });
+    } catch (error) {
+      // Don't fail the entire checkout if order tracking fails
+      logger.warn('payment', 'Order tracking failed but checkout succeeded', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
 
     return {
       ...result,
@@ -397,16 +429,26 @@ export class QliroService {
   }
 
   public async getTestStatus(): Promise<{ passed: boolean; lastTestDate: string | null }> {
-    const settings = await db.select().from(siteSettings).where(eq(siteSettings.category, 'payment'));
-    const settingsMap = settings.reduce((acc, setting) => {
-      if(setting.key) acc[setting.key] = setting.value || '';
-      return acc;
-    }, {} as Record<string, string>);
+    try {
+      const settings = await db.select().from(siteSettings).where(eq(siteSettings.category, 'payment'));
+      const settingsMap = settings.reduce((acc, setting) => {
+        if(setting.key) acc[setting.key] = setting.value || '';
+        return acc;
+      }, {} as Record<string, string>);
 
-    return {
-      passed: settingsMap['qliro_test_passed'] === 'true',
-      lastTestDate: settingsMap['qliro_last_test_date'] || null,
-    };
+      return {
+        passed: settingsMap['qliro_test_passed'] === 'true',
+        lastTestDate: settingsMap['qliro_last_test_date'] || null,
+      };
+    } catch (error) {
+      logger.warn('payment', 'Failed to get Qliro test status', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return {
+        passed: false,
+        lastTestDate: null,
+      };
+    }
   }
 }
 

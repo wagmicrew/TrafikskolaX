@@ -42,6 +42,29 @@ export class QliroService {
     return QliroService.instance;
   }
 
+  // Expose resolved settings for diagnostics (secrets masked)
+  public async getResolvedSettings(forceReload: boolean = false): Promise<{
+    enabled: boolean;
+    environment: 'production' | 'sandbox';
+    apiUrl: string;
+    publicUrl: string;
+    hasApiKey: boolean;
+    hasApiSecret: boolean;
+    apiKeyMasked: string;
+  }> {
+    const settings = await this.loadSettings(forceReload);
+    const mask = (v: string) => (v ? `${v.slice(0, 4)}...${v.slice(-4)}` : '');
+    return {
+      enabled: settings.enabled,
+      environment: settings.environment,
+      apiUrl: settings.apiUrl,
+      publicUrl: settings.publicUrl,
+      hasApiKey: !!settings.apiKey,
+      hasApiSecret: !!settings.apiSecret,
+      apiKeyMasked: mask(settings.apiKey),
+    };
+  }
+
   private async loadSettings(forceReload = false): Promise<QliroSettings> {
     if (this.settings && !forceReload && this.lastSettingsLoad && Date.now() - this.lastSettingsLoad.getTime() < this.settingsCacheDuration) {
       return this.settings;

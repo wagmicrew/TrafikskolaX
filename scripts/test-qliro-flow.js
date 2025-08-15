@@ -22,12 +22,24 @@ class QliroTestService {
     }, {});
 
     const publicUrl = process.env.NEXT_PUBLIC_APP_URL || settingsMap['public_app_url'] || '';
-    const environment = settingsMap['qliro_environment'] === 'production' ? 'production' : 'sandbox';
-    const enabled = settingsMap['qliro_enabled'] === 'true';
-    const apiSecret = settingsMap['qliro_api_secret'] || process.env.QLIRO_API_SECRET || '';
+    
+    // Determine environment and enabled flag (support legacy and prod/dev toggles)
+    const envExplicit = settingsMap['qliro_environment'];
+    const prodEnabled = settingsMap['qliro_prod_enabled'] === 'true' || settingsMap['qliro_use_prod_env'] === 'true';
+    const baseEnabled = settingsMap['qliro_enabled'] === 'true';
+    const environment = envExplicit === 'production' || prodEnabled ? 'production' : 'sandbox';
+    const enabled = baseEnabled || prodEnabled;
+    
+    // Resolve API secret from multiple possible keys and env fallbacks
+    const envApiSecret = process.env.QLIRO_API_SECRET || process.env.QLIRO_SHARED_SECRET || '';
+    const apiSecret = (
+      environment === 'production'
+        ? (settingsMap['qliro_prod_api_secret'] || settingsMap['qliro_prod_shared_secret'] || '')
+        : (settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || settingsMap['qliro_shared_secret'] || '')
+    ) || envApiSecret;
     const apiUrl = environment === 'production' 
-      ? 'https://api.qliro.com' 
-      : 'https://playground.qliro.com';
+      ? (settingsMap['qliro_prod_api_url'] || 'https://payments.qit.nu')
+      : (settingsMap['qliro_dev_api_url'] || 'https://pago.qit.nu');
 
     this.settings = {
       enabled,

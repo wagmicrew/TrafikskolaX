@@ -20,6 +20,15 @@ class QliroTestService {
       if (setting.key) acc[setting.key] = setting.value || '';
       return acc;
     }, {});
+    
+    // Debug: Log relevant Qliro settings
+    console.log('\n🔍 Debug - Raw database settings:');
+    console.log('qliro_enabled:', settingsMap['qliro_enabled']);
+    console.log('qliro_prod_enabled:', settingsMap['qliro_prod_enabled']);
+    console.log('qliro_use_prod_env:', settingsMap['qliro_use_prod_env']);
+    console.log('qliro_api_secret:', settingsMap['qliro_api_secret'] ? '***SET***' : '(empty)');
+    console.log('qliro_secret:', settingsMap['qliro_secret'] ? '***SET***' : '(empty)');
+    console.log('qliro_shared_secret:', settingsMap['qliro_shared_secret'] ? '***SET***' : '(empty)');
 
     const publicUrl = process.env.NEXT_PUBLIC_APP_URL || settingsMap['public_app_url'] || '';
     
@@ -37,6 +46,13 @@ class QliroTestService {
         ? (settingsMap['qliro_prod_api_secret'] || settingsMap['qliro_prod_shared_secret'] || '')
         : (settingsMap['qliro_api_secret'] || settingsMap['qliro_secret'] || settingsMap['qliro_shared_secret'] || '')
     ) || envApiSecret;
+    
+    console.log('\n🔍 Debug - Computed values:');
+    console.log('baseEnabled:', baseEnabled);
+    console.log('prodEnabled:', prodEnabled);
+    console.log('final enabled:', enabled);
+    console.log('apiSecret length:', apiSecret ? apiSecret.length : 0);
+    console.log('environment:', environment);
     const apiUrl = environment === 'production' 
       ? (settingsMap['qliro_prod_api_url'] || 'https://payments.qit.nu')
       : (settingsMap['qliro_dev_api_url'] || 'https://pago.qit.nu');

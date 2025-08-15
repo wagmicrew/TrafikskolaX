@@ -181,8 +181,11 @@ export class QliroService {
     if (!this.settings) {
       throw new Error('Settings not loaded');
     }
-    // Secret-only auth: use Bearer <apiSecret> for all requests
-    return `Bearer ${this.settings.apiSecret}`;
+    // Generate token from payload + apiSecret as per Qliro docs
+    const token = crypto.createHmac('sha256', this.settings.apiSecret)
+      .update(payload)
+      .digest('hex');
+    return `Bearer ${token}`;
   }
 
   private sanitizeMerchantReference(reference: string): string {
@@ -198,8 +201,11 @@ export class QliroService {
   public async getOrder(orderId: string): Promise<any> {
     const settings = await this.loadSettings();
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${orderId}`;
-    // Secret-only auth for GET as well
-    const headers = { 'Authorization': `Bearer ${settings.apiSecret}` };
+    
+    // For GET requests, generate token from empty payload
+    const emptyPayload = '';
+    const authHeader = this.generateAuthHeader(emptyPayload);
+    const headers = { 'Authorization': authHeader };
     
     const res = await fetch(url, { method: 'GET', headers });
     const text = await res.text();
@@ -482,27 +488,24 @@ export class QliroService {
     });
 
     const checkoutRequest: any = {
+      MerchantApiKey: settings.apiSecret, // Use apiSecret as MerchantApiKey per Qliro docs
       MerchantReference: merchantReference,
       Currency: 'SEK',
-      TotalPrice: params.amount,
+      Country: 'SE',
+      Language: 'sv-se',
+      MerchantTermsUrl: `${settings.publicUrl}/terms`,
+      MerchantConfirmationUrl: params.returnUrl,
+      MerchantCheckoutStatusPushUrl: params.callbackToken
+        ? `${settings.publicUrl}/api/payments/qliro/webhook?t=${encodeURIComponent(params.callbackToken)}`
+        : `${settings.publicUrl}/api/payments/qliro/webhook`,
       OrderItems: [{
-        ProductId: 'service',
-        ProductName: params.description,
+        MerchantReference: 'service',
+        Description: params.description,
         Quantity: 1,
-        PricePerItem: params.amount,
-        VatRate: 0.25
-      }],
-      Gui: {
-        ColorScheme: 'white',
-        Locale: 'sv-SE'
-      },
-      Urls: {
-        Success: params.returnUrl,
-        Cancel: params.returnUrl,
-        Notification: params.callbackToken
-          ? `${settings.publicUrl}/api/payments/qliro/webhook?t=${encodeURIComponent(params.callbackToken)}`
-          : `${settings.publicUrl}/api/payments/qliro/webhook`
-      }
+        PricePerItemIncVat: params.amount / 100, // Convert from öre to SEK
+        PricePerItemExVat: (params.amount / 100) / 1.25, // Remove 25% VAT
+        VatRate: 25.00
+      }]
     };
 
     // Add customer information if provided

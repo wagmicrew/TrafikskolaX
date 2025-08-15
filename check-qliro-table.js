@@ -5,9 +5,15 @@ async function checkTable() {
   try {
     const sql = neon(process.env.DATABASE_URL);
     
-    // Check if table exists
+    // Check if table exists with detailed column info
     const result = await sql`
-      SELECT table_name, column_name, data_type 
+      SELECT 
+        column_name, 
+        data_type,
+        numeric_precision,
+        numeric_scale,
+        is_nullable,
+        column_default
       FROM information_schema.columns 
       WHERE table_name = 'qliro_orders'
       ORDER BY ordinal_position
@@ -15,36 +21,65 @@ async function checkTable() {
     
     if (result.length > 0) {
       console.log('✓ qliro_orders table exists with columns:');
-      result.forEach(row => {
-        console.log(`  - ${row.column_name}: ${row.data_type}`);
-      });
-    } else {
-      console.log('✗ qliro_orders table does not exist');
+      let hasErrors = false;
       
-      // Try to create it manually
-      console.log('Creating qliro_orders table...');
-      await sql`
-        CREATE TABLE IF NOT EXISTS qliro_orders (
-          id SERIAL PRIMARY KEY,
-          booking_id VARCHAR(255),
-          handledar_booking_id VARCHAR(255),
-          package_purchase_id VARCHAR(255),
-          qliro_order_id VARCHAR(255) NOT NULL,
-          merchant_reference VARCHAR(255) NOT NULL,
-          amount INTEGER NOT NULL,
-          status VARCHAR(50) DEFAULT 'pending',
-          payment_link TEXT,
-          environment VARCHAR(20) DEFAULT 'sandbox',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(qliro_order_id)
-        )
+      result.forEach(row => {
+        console.log(`  - ${row.column_name}: ${row.data_type}${row.numeric_precision ? `(${row.numeric_precision},${row.numeric_scale})` : ''} ${row.is_nullable === 'NO' ? 'NOT NULL' : 'NULL'}`);
+        
+        // Validate critical columns
+        if (row.column_name === 'id' && row.data_type !== 'uuid') {
+          console.log(`    ⚠️  Expected 'id' to be uuid, got ${row.data_type}`);
+          hasErrors = true;
+        }
+        if (row.column_name === 'amount' && (row.data_type !== 'numeric' || row.numeric_precision !== 10 || row.numeric_scale !== 2)) {
+          console.log(`    ⚠️  Expected 'amount' to be numeric(10,2), got ${row.data_type}(${row.numeric_precision},${row.numeric_scale})`);
+          hasErrors = true;
+        }
+      });
+      
+      // Check for required columns
+      const columnNames = result.map(r => r.column_name);
+      const requiredColumns = ['id', 'qliro_order_id', 'merchant_reference', 'amount', 'currency', 'status'];
+      const missingColumns = requiredColumns.filter(col => !columnNames.includes(col));
+      
+      if (missingColumns.length > 0) {
+        console.log(`    ⚠️  Missing required columns: ${missingColumns.join(', ')}`);
+        hasErrors = true;
+      }
+      
+      // Check unique constraints
+      const constraints = await sql`
+        SELECT constraint_name, constraint_type
+        FROM information_schema.table_constraints 
+        WHERE table_name = 'qliro_orders' AND constraint_type IN ('UNIQUE', 'PRIMARY KEY')
       `;
-      console.log('✓ Table created successfully');
+      
+      console.log('\n  Constraints:');
+      constraints.forEach(c => {
+        console.log(`  - ${c.constraint_name}: ${c.constraint_type}`);
+      });
+      
+      if (hasErrors) {
+        console.log('\n❌ Table schema has issues that need to be fixed manually');
+        console.log('Expected schema:');
+        console.log('  - id: uuid PRIMARY KEY');
+        console.log('  - amount: numeric(10,2) NOT NULL');
+        console.log('  - qliro_order_id: varchar(255) NOT NULL UNIQUE');
+        process.exit(1);
+      } else {
+        console.log('\n✅ Table schema is correct');
+      }
+    } else {
+      console.log('❌ qliro_orders table does not exist');
+      console.log('\nThe table should be created via Drizzle migrations:');
+      console.log('  npm run db:generate');
+      console.log('  npm run db:migrate');
+      process.exit(1);
     }
     
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('❌ Error:', error.message);
+    process.exit(1);
   }
 }
 

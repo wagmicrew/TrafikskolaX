@@ -31,6 +31,17 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
         if (extendedDebug) console.debug('[useQliroListener] q1 event:', eventType, data.data)
         
         switch (eventType) {
+          case 'error':
+            console.error('[useQliroListener] Qliro popup error:', data.data)
+            break
+          case 'popup:boot':
+          case 'q1Detected':
+          case 'bootstrap':
+            if (extendedDebug) console.debug('[useQliroListener] diag:', eventType, data.data)
+            break
+          case 'bootstrap:timeout':
+            console.warn('[useQliroListener] bootstrap timeout', data.data)
+            break
           case 'onCheckoutLoaded':
             opts.onLoaded?.()
             break
@@ -46,6 +57,18 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
             if (data.data?.status === 'Completed' || data.data?.status === 'Paid') {
               opts.onCompleted?.()
             }
+            break
+          case 'onPaymentProcess:start':
+            if (extendedDebug) console.debug('[useQliroListener] Payment process start')
+            break
+          case 'onPaymentProcess:end':
+            if (extendedDebug) console.debug('[useQliroListener] Payment process end:', data.data)
+            if (data.data?.status === 'Completed' || data.data?.status === 'Paid') {
+              opts.onCompleted?.()
+            }
+            break
+          case 'completed':
+            opts.onCompleted?.()
             break
           case 'onCustomerInfoChanged':
             if (extendedDebug) console.debug('[useQliroListener] Customer info changed:', data.data)
@@ -65,7 +88,12 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
           case 'onShippingPriceChanged':
             if (extendedDebug) console.debug('[useQliroListener] Shipping price changed:', data.data)
             break
+          default:
+            if (extendedDebug) console.debug('[useQliroListener] unhandled q1 event:', eventType, data.data)
+            break
         }
+        // Prevent legacy fallbacks from also handling the same modern event
+        return
       }
       
       // Legacy format support

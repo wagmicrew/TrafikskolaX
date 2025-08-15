@@ -247,8 +247,18 @@ export class QliroService {
     bookingId?: string;
     handledarBookingId?: string;
     packagePurchaseId?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    customerFirstName?: string;
+    customerLastName?: string;
   }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string; isExisting: boolean }> {
-    // Check for existing order first
+    // Step 1: Authorize - Load settings and validate Qliro is enabled
+    const settings = await this.loadSettings();
+    if (!settings.enabled) {
+      throw new Error('Qliro payment service is not enabled');
+    }
+
+    // Step 2: Check for existing order first
     const existingOrder = await this.findExistingOrder(
       params.bookingId,
       params.handledarBookingId,
@@ -264,10 +274,10 @@ export class QliroService {
       });
 
       try {
-        // Fetch current order status from Qliro
+        // Step 3: Fetch current order status from Qliro API
         const orderData = await this.getOrder(existingOrder.qliroOrderId);
         
-        // Update our record with latest payment link if available
+        // Step 4: Update our database record with latest status
         if (orderData.PaymentLink && orderData.PaymentLink !== existingOrder.paymentLink) {
           await this.updateOrderStatus(existingOrder.qliroOrderId, orderData.Status || 'pending', orderData.PaymentLink);
         }
@@ -287,17 +297,29 @@ export class QliroService {
       }
     }
 
-    // Create new order
+    // Step 5: Create new order with Qliro API
+    logger.info('payment', 'Creating new Qliro order', {
+      amount: params.amount,
+      reference: params.reference,
+      bookingId: params.bookingId,
+      handledarBookingId: params.handledarBookingId,
+      packagePurchaseId: params.packagePurchaseId
+    });
+
     const result = await this.createCheckout({
       amount: params.amount,
       reference: params.reference,
       description: params.description,
-      returnUrl: params.returnUrl
+      returnUrl: params.returnUrl,
+      customerEmail: params.customerEmail,
+      customerPhone: params.customerPhone,
+      customerFirstName: params.customerFirstName,
+      customerLastName: params.customerLastName
     });
 
-    // Save order record to database (non-blocking)
+    // Step 6: Insert order reference in database
     try {
-      await this.createOrderRecord({
+      const recordId = await this.createOrderRecord({
         bookingId: params.bookingId,
         handledarBookingId: params.handledarBookingId,
         packagePurchaseId: params.packagePurchaseId,
@@ -305,12 +327,41 @@ export class QliroService {
         merchantReference: result.merchantReference,
         amount: params.amount,
         paymentLink: result.checkoutUrl,
-        environment: (await this.loadSettings()).environment
+        environment: settings.environment
+      });
+
+      logger.info('payment', 'Qliro order record created in database', {
+        recordId,
+        qliroOrderId: result.checkoutId,
+        merchantReference: result.merchantReference
       });
     } catch (error) {
       // Don't fail the entire checkout if order tracking fails
       logger.warn('payment', 'Order tracking failed but checkout succeeded', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        qliroOrderId: result.checkoutId
+      });
+    }
+
+    // Step 7: Fetch order status to ensure it's properly created
+    try {
+      const orderData = await this.getOrder(result.checkoutId);
+      
+      // Update with fresh data from Qliro
+      if (orderData.PaymentLink && orderData.PaymentLink !== result.checkoutUrl) {
+        await this.updateOrderStatus(result.checkoutId, orderData.Status || 'created', orderData.PaymentLink);
+        result.checkoutUrl = orderData.PaymentLink;
+      }
+
+      logger.info('payment', 'Qliro order verified and ready', {
+        qliroOrderId: result.checkoutId,
+        status: orderData.Status,
+        hasPaymentLink: !!orderData.PaymentLink
+      });
+    } catch (error) {
+      logger.warn('payment', 'Could not verify Qliro order status, proceeding with original data', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        qliroOrderId: result.checkoutId
       });
     }
 
@@ -320,7 +371,16 @@ export class QliroService {
     };
   }
 
-  public async createCheckout(params: { amount: number; reference: string; description: string; returnUrl: string; }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
+  public async createCheckout(params: { 
+    amount: number; 
+    reference: string; 
+    description: string; 
+    returnUrl: string;
+    customerEmail?: string;
+    customerPhone?: string;
+    customerFirstName?: string;
+    customerLastName?: string;
+  }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
     const settings = await this.loadSettings();
     if (!settings.publicUrl) {
       throw new QliroApiError('Qliro requires a public https URL.');
@@ -335,7 +395,7 @@ export class QliroService {
       logger.warn('payment', 'Redis not available for Qliro push token');
     }
 
-    const checkoutRequest = {
+    const checkoutRequest: any = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: merchantReference,
       Currency: 'SEK',
@@ -354,6 +414,31 @@ export class QliroService {
         VatRate: 0,
       }],
     };
+
+    // Add customer information if provided
+    if (params.customerEmail || params.customerFirstName || params.customerLastName || params.customerPhone) {
+      checkoutRequest.Customer = {};
+      
+      if (params.customerEmail) {
+        checkoutRequest.Customer.Email = params.customerEmail;
+      }
+      
+      if (params.customerFirstName || params.customerLastName) {
+        checkoutRequest.Customer.PersonalNumber = null; // Not provided
+        checkoutRequest.Customer.FirstName = params.customerFirstName || '';
+        checkoutRequest.Customer.LastName = params.customerLastName || '';
+      }
+      
+      if (params.customerPhone) {
+        checkoutRequest.Customer.MobileNumber = params.customerPhone;
+      }
+
+      logger.debug('payment', 'Added customer information to Qliro checkout request', {
+        hasEmail: !!params.customerEmail,
+        hasName: !!(params.customerFirstName || params.customerLastName),
+        hasPhone: !!params.customerPhone
+      });
+    }
 
     const bodyString = JSON.stringify(checkoutRequest);
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders`;

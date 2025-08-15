@@ -135,6 +135,10 @@ export async function POST(request: NextRequest) {
       bookingId,
       handledarBookingId,
       packagePurchaseId,
+      customerEmail,
+      customerPhone,
+      customerFirstName,
+      customerLastName,
     };
     
     console.log('[Qliro Debug] Calling qliroService.getOrCreateCheckout with params:', JSON.stringify(checkoutParams, null, 2));

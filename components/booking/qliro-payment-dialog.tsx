@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { X, CreditCard, Copy, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useQliroListener } from "@/hooks/use-qliro-listener"
 
 interface QliroPaymentDialogProps {
   isOpen: boolean
@@ -40,56 +41,66 @@ export function QliroPaymentDialog({
       .then(data => setExtendedDebug(Boolean(data.debug_extended_logs)))
       .catch(() => setExtendedDebug(false))
   }, [])
-  
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (allowedOrigin !== '*' && event.origin !== allowedOrigin) return;
-      const data = event.data || {};
-      if (extendedDebug) {
-        console.debug('[QliroListener] message', { origin: event.origin, data })
-      }
-      if (data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')) {
-        try {
-          if (popupRef.current && !popupRef.current.closed) {
-            popupRef.current.close();
-          }
-        } catch {}
-        try {
-          if (extendedDebug) console.debug('[QliroListener] detected completion, purchaseId:', purchaseId)
-          // If this is a package purchase (UUID), finalize immediately via API
-          const isPackage = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(purchaseId)
-          if (isPackage) {
-            fetch('/api/packages/purchase', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ purchaseId, status: 'completed', paymentMethod: 'qliro' })
-            }).then(async (res) => {
-              if (!res.ok) {
-                const j = await res.json().catch(() => ({}))
-                if (extendedDebug) console.error('[QliroListener] finalize package failed', j)
-                toast({ title: 'Fel vid bekräftelse', description: 'Kunde inte slutföra paketköpet. Kontakta support om belopp dragits.', variant: 'destructive' as any })
-              }
-              // Navigate to thank-you
-              try { window.location.href = '/booking/success?package=1' } catch {}
-            }).catch(() => {
-              if (extendedDebug) console.error('[QliroListener] finalize package network error')
+
+  // Shared Qliro event listener with detailed toasts and identical completion logic
+  useQliroListener({
+    onLoaded: () => {
+      if (extendedDebug) console.debug('[QliroDialog] Checkout loaded')
+      // Optional subtle toast on load for admins; keep UX minimal for end users
+    },
+    onMethodChanged: (pm) => {
+      if (extendedDebug) console.debug('[QliroDialog] Payment method changed', pm)
+    },
+    onDeclined: (reason, message) => {
+      if (extendedDebug) console.debug('[QliroDialog] Payment declined', { reason, message })
+      toast({
+        title: 'Betalning nekades',
+        description: [reason, message].filter(Boolean).join(' – ') || 'Försök igen eller välj annan metod.',
+        variant: 'destructive' as any,
+      })
+    },
+    onError: (payload) => {
+      if (extendedDebug) console.error('[QliroDialog] Popup/checkout error', payload)
+      let desc = ''
+      try { desc = typeof payload === 'string' ? payload : JSON.stringify(payload) } catch { desc = 'Okänt fel' }
+      toast({ title: 'Qliro-fel', description: desc.slice(0, 300), variant: 'destructive' as any })
+    },
+    onCompleted: () => {
+      // Close popup if open
+      try { if (popupRef.current && !popupRef.current.closed) popupRef.current.close() } catch {}
+
+      try {
+        if (extendedDebug) console.debug('[QliroDialog] detected completion, purchaseId:', purchaseId)
+        // If this is a package purchase (UUID), finalize immediately via API
+        const isPackage = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(purchaseId)
+        if (isPackage) {
+          fetch('/api/packages/purchase', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ purchaseId, status: 'completed', paymentMethod: 'qliro' })
+          }).then(async (res) => {
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}))
+              if (extendedDebug) console.error('[QliroDialog] finalize package failed', j)
               toast({ title: 'Fel vid bekräftelse', description: 'Kunde inte slutföra paketköpet. Kontakta support om belopp dragits.', variant: 'destructive' as any })
-            })
-          } else if (purchaseId && purchaseId.startsWith('booking_')) {
-            // For bookings, route through return endpoint to mark paid and redirect to thank-you
-            try { window.location.href = `/qliro/return?ref=${encodeURIComponent(purchaseId)}&status=paid` } catch {}
-          } else {
-            onConfirm();
-          }
-        } catch {
-          onConfirm();
+            }
+            // Navigate to thank-you
+            try { window.location.href = '/booking/success?package=1' } catch {}
+          }).catch(() => {
+            if (extendedDebug) console.error('[QliroDialog] finalize package network error')
+            toast({ title: 'Fel vid bekräftelse', description: 'Kunde inte slutföra paketköpet. Kontakta support om belopp dragits.', variant: 'destructive' as any })
+          })
+        } else if (purchaseId && purchaseId.startsWith('booking_')) {
+          // For bookings, route through return endpoint to mark paid and redirect to thank-you
+          try { window.location.href = `/qliro/return?ref=${encodeURIComponent(purchaseId)}&status=paid` } catch {}
+        } else {
+          onConfirm()
         }
+      } catch {
+        onConfirm()
       }
     }
-    if (extendedDebug) console.debug('[QliroListener] attaching listener for', allowedOrigin)
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [onConfirm, allowedOrigin, purchaseId, extendedDebug])
+  })
 
   const handlePaymentConfirm = async () => {
     setIsPaying(true)

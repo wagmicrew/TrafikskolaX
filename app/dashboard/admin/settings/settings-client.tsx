@@ -67,6 +67,7 @@ interface Settings {
   swish_number: string;
   swish_enabled: boolean;
   qliro_api_key: string;
+  qliro_api_secret?: string;
   qliro_secret: string;
   qliro_merchant_id: string;
   qliro_sandbox: boolean;
@@ -74,6 +75,7 @@ interface Settings {
   qliro_prod_enabled: boolean;
   qliro_prod_merchant_id: string;
   qliro_prod_api_key: string;
+  qliro_prod_api_secret?: string;
   // Social links (optional)
   social_facebook?: string;
   social_instagram?: string;
@@ -138,6 +140,7 @@ export default function SettingsClient() {
     swish_number: '',
     swish_enabled: false,
     qliro_api_key: '',
+    qliro_api_secret: '',
     qliro_secret: '',
     qliro_merchant_id: '',
     qliro_sandbox: true,
@@ -145,6 +148,7 @@ export default function SettingsClient() {
     qliro_prod_enabled: false,
     qliro_prod_merchant_id: '',
     qliro_prod_api_key: '',
+    qliro_prod_api_secret: '',
     google_maps_api_key: '',
     debug_extended_logs: false,
   });
@@ -1437,50 +1441,98 @@ export default function SettingsClient() {
                     </div>
 
                     {/* Credentials */}
-                    <div className="space-y-4 border-t pt-4">
-                      <h4 className="font-medium text-gray-800">
-                        {settings.qliro_use_prod_env ? 'Produktions-kredentialer' : 'Utvecklings-kredentialer'}
-                      </h4>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="qliro-api-key">
-                          <Key className="w-4 h-4 inline mr-2" />
-                          Qliro API-nyckel
-                        </Label>
-                        <Input
-                          id="qliro-api-key"
-                          type="password"
-                          placeholder="Ange din Qliro API-nyckel"
-                          value={settings.qliro_api_key}
-                          onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
-                        />
+                    <div className="space-y-6 border-t pt-4">
+                      <h4 className="font-medium text-white">Kredentialer</h4>
+
+                      {/* Dev/Sandbox credentials */}
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                        <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" /> Utvecklings-kredentialer (Sandbox)
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-dev-api-key">
+                            <Key className="w-4 h-4 inline mr-2" />
+                            Dev API-nyckel
+                          </Label>
+                          <Input
+                            id="qliro-dev-api-key"
+                            type="password"
+                            placeholder="Ange din Qliro API-nyckel (dev)"
+                            value={settings.qliro_api_key}
+                            onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-dev-secret">
+                            <Key className="w-4 h-4 inline mr-2" />
+                            Dev API Secret
+                          </Label>
+                          <Input
+                            id="qliro-dev-secret"
+                            type="password"
+                            placeholder="Ange din Qliro API Secret (dev)"
+                            value={settings.qliro_api_secret || settings.qliro_secret || ''}
+                            onChange={(e) => { updateSetting('qliro_api_secret', e.target.value); updateSetting('qliro_secret', e.target.value); }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-dev-merchant-id">
+                            <Building className="w-4 h-4 inline mr-2" />
+                            Dev Merchant ID
+                          </Label>
+                          <Input
+                            id="qliro-dev-merchant-id"
+                            placeholder="Ange ditt Qliro Merchant ID (dev)"
+                            value={settings.qliro_merchant_id}
+                            onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
+                          />
+                        </div>
                       </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="qliro-secret">
-                          <Key className="w-4 h-4 inline mr-2" />
-                          Qliro API Secret
-                        </Label>
-                        <Input
-                          id="qliro-secret"
-                          type="password"
-                          placeholder="Ange din Qliro API Secret"
-                          value={settings.qliro_secret}
-                          onChange={(e) => updateSetting('qliro_secret', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="qliro-merchant-id">
-                          <Building className="w-4 h-4 inline mr-2" />
-                          Qliro Merchant ID
-                        </Label>
-                        <Input
-                          id="qliro-merchant-id"
-                          placeholder="Ange ditt Qliro Merchant ID"
-                          value={settings.qliro_merchant_id}
-                          onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
-                        />
+
+                      {/* Prod credentials */}
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                        <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
+                          <span className="inline-flex h-2 w-2 rounded-full bg-rose-400" /> Produktions-kredentialer
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-prod-api-key">
+                            <Key className="w-4 h-4 inline mr-2" />
+                            Prod API-nyckel
+                          </Label>
+                          <Input
+                            id="qliro-prod-api-key"
+                            type="password"
+                            placeholder="Ange din Qliro API-nyckel (prod)"
+                            value={settings.qliro_prod_api_key}
+                            onChange={(e) => updateSetting('qliro_prod_api_key', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-prod-secret">
+                            <Key className="w-4 h-4 inline mr-2" />
+                            Prod API Secret
+                          </Label>
+                          <Input
+                            id="qliro-prod-secret"
+                            type="password"
+                            placeholder="Ange din Qliro API Secret (prod)"
+                            value={settings.qliro_prod_api_secret || ''}
+                            onChange={(e) => updateSetting('qliro_prod_api_secret', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="qliro-prod-merchant-id">
+                            <Building className="w-4 h-4 inline mr-2" />
+                            Prod Merchant ID
+                          </Label>
+                          <Input
+                            id="qliro-prod-merchant-id"
+                            placeholder="Ange ditt Qliro Merchant ID (prod)"
+                            value={settings.qliro_prod_merchant_id}
+                            onChange={(e) => updateSetting('qliro_prod_merchant_id', e.target.value)}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-400">Produktion används när växeln "Produktionsmiljö" är påslagen.</p>
                       </div>
                     </div>
                     

@@ -98,6 +98,15 @@ export default function QliroSettingsClient() {
     },
     onLoaded: () => pushLog('loaded'),
     onMethodChanged: (payload) => pushLog('method_changed', payload),
+    onError: (payload) => {
+      pushLog('error', payload)
+      try {
+        const msg = typeof payload === 'string' ? payload : JSON.stringify(payload)
+        toast.error(`Qliro-fel: ${msg.slice(0, 300)}`)
+      } catch {
+        toast.error('Qliro-fel: Okänt fel')
+      }
+    },
   })
   // Filters
   const [searchTerm, setSearchTerm] = useState("");

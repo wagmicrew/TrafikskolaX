@@ -7,6 +7,7 @@ type QliroListenerOptions = {
   onDeclined?: (reason?: string, message?: string) => void
   onLoaded?: () => void
   onMethodChanged?: (payload: any) => void
+  onError?: (payload?: any) => void
 }
 
 export function useQliroListener(opts: QliroListenerOptions = {}) {
@@ -33,6 +34,7 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
         switch (eventType) {
           case 'error':
             console.error('[useQliroListener] Qliro popup error:', data.data)
+            opts.onError?.(data.data)
             break
           case 'popup:boot':
           case 'q1Detected':

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { packagePurchases, userCredits, packageContents, bookings, users } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { packagePurchases, userCredits, packageContents, bookings, users, qliroOrders, handledarBookings } from '@/lib/db/schema';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { logger } from '@/lib/logging/logger';
@@ -13,10 +13,14 @@ function isUuid(v: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const signature = request.headers.get('Qliro-Signature') || request.headers.get('qliro-signature');
+    const url = new URL(request.url);
+    // Accept both the new short param `t` and a legacy `token` param
+    const token = url.searchParams.get('t') || url.searchParams.get('token') || '';
     const body = await request.text();
     
     logger.info('payment', 'Received Qliro webhook', {
       hasSignature: !!signature,
+      hasToken: !!token,
       bodyLength: body.length
     });
     
@@ -37,33 +41,138 @@ export async function POST(request: NextRequest) {
     }
 
     const event = JSON.parse(body);
-    const orderId = event.OrderId;
-    const status = event.Status;
+    const orderId: string = event.OrderId || '';
+    const merchantReference: string = event.MerchantReference || '';
+    const status: string = event.Status || '';
 
     logger.info('payment', 'Processing Qliro webhook event', {
       orderId,
+      merchantReference,
       status,
       eventType: event.EventType || 'unknown'
     });
 
-    if (!orderId || !status) {
-      logger.error('payment', 'Invalid Qliro webhook data', { orderId, status });
+    if (!status) {
+      logger.error('payment', 'Invalid Qliro webhook data', { orderId, merchantReference, status });
       return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
+    }
+
+    // Resolve local order record to validate callback token (defense-in-depth)
+    const mask = (v: string) => (v ? `${v.slice(0, 4)}...${v.slice(-4)}` : '');
+
+    // Try to find order record by qliroOrderId and/or merchantReference
+    let orderRecord: any | null = null;
+    try {
+      if (orderId || merchantReference) {
+        const cond = merchantReference
+          ? or(eq(qliroOrders.qliroOrderId, orderId), eq(qliroOrders.merchantReference, merchantReference))
+          : eq(qliroOrders.qliroOrderId, orderId);
+        const rows = await db.select().from(qliroOrders).where(cond).limit(1);
+        orderRecord = rows[0] || null;
+      }
+    } catch (e) {
+      logger.warn('payment', 'Failed to lookup qliro_orders for token validation', {
+        error: e instanceof Error ? e.message : String(e),
+        orderId,
+        merchantReference
+      });
+    }
+
+    // Token validation strategy:
+    // - If the matched record has a callback token, require it and verify match + expiry
+    // - If no record match: if token present, try resolve by token and ensure identifiers match; else reject
+    if (orderRecord && orderRecord.callbackToken) {
+      if (!token) {
+        logger.warn('payment', 'Missing callback token on webhook for tokenized order', {
+          orderId,
+          merchantReference
+        });
+        return NextResponse.json({ error: 'Missing token' }, { status: 401 });
+      }
+      if (token !== orderRecord.callbackToken) {
+        logger.warn('payment', 'Invalid callback token on webhook', {
+          orderId,
+          merchantReference,
+          tokenMasked: mask(token),
+        });
+        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      }
+      if (orderRecord.callbackTokenExpiresAt && new Date(orderRecord.callbackTokenExpiresAt) < new Date()) {
+        logger.warn('payment', 'Expired callback token on webhook', {
+          orderId,
+          merchantReference,
+          tokenMasked: mask(token)
+        });
+        return NextResponse.json({ error: 'Expired token' }, { status: 401 });
+      }
+    } else if (!orderRecord) {
+      if (token) {
+        // Attempt to resolve by token and ensure identifiers match
+        try {
+          const rows = await db.select().from(qliroOrders).where(eq(qliroOrders.callbackToken, token)).limit(1);
+          const rec = rows[0];
+          if (!rec) {
+            logger.warn('payment', 'Unknown callback token on webhook', { tokenMasked: mask(token) });
+            return NextResponse.json({ error: 'Unknown token' }, { status: 401 });
+          }
+
+          // If identifiers are present, ensure they match the record
+          if ((orderId && rec.qliroOrderId && rec.qliroOrderId !== orderId) || (merchantReference && rec.merchantReference && rec.merchantReference !== merchantReference)) {
+            logger.warn('payment', 'Token/order mismatch on webhook', {
+              tokenMasked: mask(token),
+              orderId,
+              merchantReference
+            });
+            return NextResponse.json({ error: 'Token/order mismatch' }, { status: 401 });
+          }
+
+          if (rec.callbackTokenExpiresAt && new Date(rec.callbackTokenExpiresAt) < new Date()) {
+            logger.warn('payment', 'Expired callback token (resolved by token) on webhook', {
+              tokenMasked: mask(token)
+            });
+            return NextResponse.json({ error: 'Expired token' }, { status: 401 });
+          }
+
+          // Bind resolved record if useful later (e.g., for logging)
+          orderRecord = rec;
+        } catch (e) {
+          logger.warn('payment', 'Error resolving webhook by token', { error: e instanceof Error ? e.message : String(e) });
+          return NextResponse.json({ error: 'Token resolution failed' }, { status: 401 });
+        }
+      } else {
+        logger.warn('payment', 'Rejecting webhook: no order record and no token provided', { orderId, merchantReference });
+        return NextResponse.json({ error: 'Missing token' }, { status: 401 });
+      }
+    } else {
+      // orderRecord exists but has no token -> allow (legacy order) but log
+      logger.debug('payment', 'Order record without callback token; proceeding based on signature only', {
+        orderId,
+        merchantReference
+      });
     }
 
     // Only process paid orders
     if (status !== 'Paid') {
-      logger.debug('payment', 'Qliro webhook - ignoring non-paid status', { status, orderId });
+      logger.debug('payment', 'Qliro webhook - ignoring non-paid status', { status, orderId, merchantReference });
+      return NextResponse.json({ received: true });
+    }
+
+    // Determine our local reference (prefer MerchantReference; fallback to looked-up orderRecord)
+    const localRef = merchantReference || orderRecord?.merchantReference || '';
+
+    // Guard: require a reference we understand
+    if (!localRef) {
+      logger.warn('payment', 'Missing MerchantReference; cannot resolve local entity', { orderId });
       return NextResponse.json({ received: true });
     }
 
     // Check if this is a booking reference
-    if (orderId.startsWith('booking_')) {
-      const bookingId = orderId.replace('booking_', '');
+    if (localRef.startsWith('booking_')) {
+      const bookingId = localRef.replace('booking_', '');
 
       // Guard: invalid UUIDs should be ignored gracefully
       if (!isUuid(bookingId)) {
-        logger.debug('payment', 'Qliro webhook - non-uuid booking id, ignoring', { orderId, bookingId });
+        logger.debug('payment', 'Qliro webhook - non-uuid booking id, ignoring', { orderId, merchantReference, bookingId });
         return NextResponse.json({ received: true });
       }
 
@@ -93,7 +202,11 @@ export async function POST(request: NextRequest) {
 
       // Send confirmation email for booking
       try {
-        const userEmail = booking[0].guestEmail || (await db.select().from(users).where(eq(users.id, booking[0].userId)))[0]?.email;
+        let userEmail: string | null = booking[0].guestEmail as string | null;
+        if (!userEmail && booking[0].userId) {
+          const u = await db.select().from(users).where(eq(users.id, booking[0].userId)).limit(1);
+          userEmail = u.at(0)?.email ?? null;
+        }
         if (userEmail) {
           await sendEmail({
             to: userEmail,
@@ -110,10 +223,63 @@ export async function POST(request: NextRequest) {
         console.error('Error sending booking confirmation email:', error);
       }
 
-    } else { // Handle package purchase
+    } else if (localRef.startsWith('handledar_')) {
+      const handledarId = localRef.replace('handledar_', '');
+
       // Guard: invalid UUIDs should be ignored gracefully
-      if (!isUuid(orderId)) {
-        logger.debug('payment', 'Qliro webhook - non-uuid purchase id, ignoring', { orderId });
+      if (!isUuid(handledarId)) {
+        logger.debug('payment', 'Qliro webhook - non-uuid handledar id, ignoring', { orderId, merchantReference, handledarId });
+        return NextResponse.json({ received: true });
+      }
+
+      // Get the handledar booking record
+      const hb = await db
+        .select()
+        .from(handledarBookings)
+        .where(and(
+          eq(handledarBookings.id, handledarId),
+          eq(handledarBookings.paymentStatus, 'pending')
+        ))
+        .limit(1);
+
+      if (!hb.length) {
+        return NextResponse.json({ received: true });
+      }
+
+      // Update handledar booking payment status
+      await db
+        .update(handledarBookings)
+        .set({
+          paymentStatus: 'paid',
+          status: 'confirmed',
+          updatedAt: new Date(),
+        })
+        .where(eq(handledarBookings.id, handledarId));
+
+      // Send confirmation email for handledar booking
+      try {
+        const emailTo = hb[0].supervisorEmail || (hb[0].studentId ? (await db.select().from(users).where(eq(users.id, hb[0].studentId))).at(0)?.email : null);
+        if (emailTo) {
+          await sendEmail({
+            to: emailTo,
+            subject: 'Bekräftelse på betalning',
+            html: `
+              <h1>Din bokning till Handledarutbildning är bekräftad!</h1>
+              <p>Din betalning har mottagits.</p>
+              <p>Mer information skickas via e-post.</p>
+            `,
+            messageType: 'payment_confirmation',
+          });
+        }
+      } catch (error) {
+        console.error('Error sending handledar confirmation email:', error);
+      }
+
+    } else if (localRef.startsWith('package_') || localRef.startsWith('order_')) { // Handle package purchase
+      const purchaseId = localRef.replace(/^package_/, '').replace(/^order_/, '');
+      // Guard: invalid UUIDs should be ignored gracefully
+      if (!isUuid(purchaseId)) {
+        logger.debug('payment', 'Qliro webhook - non-uuid purchase id, ignoring', { orderId, merchantReference, purchaseId });
         return NextResponse.json({ received: true });
       }
       // Get the purchase record
@@ -121,7 +287,7 @@ export async function POST(request: NextRequest) {
         .select()
         .from(packagePurchases)
         .where(and(
-          eq(packagePurchases.id, orderId),
+          eq(packagePurchases.id, purchaseId),
           eq(packagePurchases.paymentStatus, 'pending')
         ))
         .limit(1);
@@ -152,7 +318,7 @@ export async function POST(request: NextRequest) {
       await db
         .update(packagePurchases)
         .set(updateValues)
-        .where(eq(packagePurchases.id, orderId));
+        .where(eq(packagePurchases.id, purchaseId));
 
       // Get package contents we need to convert into credits
       const contents = await db
@@ -209,7 +375,7 @@ export async function POST(request: NextRequest) {
             .from(userCredits)
             .where(and(
               eq(userCredits.userId, purchase[0].userId),
-              eq(userCredits.lessonTypeId, null),
+              sql`${userCredits.lessonTypeId} IS NULL`,
               eq(userCredits.creditType, 'handledar')
             ))
             .limit(1);
@@ -241,18 +407,21 @@ export async function POST(request: NextRequest) {
 
       // Send confirmation email to user
       try {
-        await sendEmail({
-          to: purchase[0].userEmail,
-          subject: 'Bekräftelse på betalning',
-          html: `
-            <h1>Tack för ditt köp!</h1>
-            <p>Din betalning har mottagits och dina krediter har aktiverats.</p>
-            <p>Köp-ID: ${orderId}</p>
-            <p>Betalningsreferens: ${event.PaymentReference || 'Ej tillgänglig'}</p>
-            <p>Du kan nu boka dina lektioner i din dashboard.</p>
-          `,
-          messageType: 'payment_confirmation',
-        });
+        const toEmail = purchase[0].userEmail;
+        if (toEmail) {
+          await sendEmail({
+            to: toEmail,
+            subject: 'Bekräftelse på betalning',
+            html: `
+              <h1>Tack för ditt köp!</h1>
+              <p>Din betalning har mottagits och dina krediter har aktiverats.</p>
+              <p>Köp-ID: ${purchaseId}</p>
+              <p>Betalningsreferens: ${event.PaymentReference || 'Ej tillgänglig'}</p>
+              <p>Du kan nu boka dina lektioner i din dashboard.</p>
+            `,
+            messageType: 'payment_confirmation',
+          });
+        }
       } catch(error) {
         console.error('Error sending confirmation email:', error);
       }
@@ -266,7 +435,7 @@ export async function POST(request: NextRequest) {
             <h1>Ny betalning mottagen</h1>
             <p>En betalning har genomförts via Qliro.</p>
             <p>Kund: ${purchase[0].userEmail}</p>
-            <p>Köp-ID: ${orderId}</p>
+            <p>Köp-ID: ${purchaseId}</p>
             <p>Belopp: ${purchase[0].pricePaid} kr</p>
             <p>Betalningsreferens: ${event.PaymentReference || 'Ej tillgänglig'}</p>
           `,
@@ -275,6 +444,10 @@ export async function POST(request: NextRequest) {
       } catch(error) {
         console.error('Error notifying admin:', error);
       }
+    } else {
+      // Unknown reference format; acknowledge without changes
+      logger.debug('payment', 'Qliro webhook - unrecognized reference format', { orderId, merchantReference });
+      return NextResponse.json({ received: true });
     }
 
     return NextResponse.json({ received: true });
@@ -286,3 +459,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

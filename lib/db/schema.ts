@@ -354,6 +354,9 @@ export const qliroOrders = pgTable('qliro_orders', {
   paymentLink: text('payment_link'),
   lastStatusCheck: timestamp('last_status_check'),
   environment: varchar('environment', { length: 20 }).default('sandbox'), // sandbox, production
+  // Dynamic callback token for webhook authentication (defense-in-depth)
+  callbackToken: varchar('callback_token', { length: 255 }),
+  callbackTokenExpiresAt: timestamp('callback_token_expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

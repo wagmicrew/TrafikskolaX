@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, packagePurchases, users } from '@/lib/db/schema';
+import { bookings, packagePurchases, users, handledarBookings } from '@/lib/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { logger } from '@/lib/logging/logger';
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // booking_<id> pattern or package purchase id
+    // booking_<id> or handledar_<id> pattern, otherwise treat as package purchase id
     if (orderId.startsWith('booking_')) {
       const bookingId = orderId.replace('booking_', '');
       const rows = await db
@@ -89,12 +89,42 @@ export async function POST(request: NextRequest) {
         .where(eq(bookings.id, bookingId));
 
       try {
-        const userEmail = rows[0].guestEmail || (await db.select().from(users).where(eq(users.id, rows[0].userId))).at(0)?.email;
+        let userEmail: string | null = rows[0].guestEmail as string | null;
+        if (!userEmail && rows[0].userId) {
+          const u = await db.select().from(users).where(eq(users.id, rows[0].userId)).limit(1);
+          userEmail = u.at(0)?.email ?? null;
+        }
         if (userEmail) {
           await sendEmail({
             to: userEmail,
             subject: 'Bekräftelse på betalning',
             html: '<h1>Din bokning är bekräftad!</h1><p>Din betalning har mottagits.</p>',
+            messageType: 'payment_confirmation',
+          });
+        }
+      } catch {}
+    } else if (orderId.startsWith('handledar_')) {
+      const handledarId = orderId.replace('handledar_', '');
+      const rows = await db
+        .select()
+        .from(handledarBookings)
+        .where(and(eq(handledarBookings.id, handledarId), eq(handledarBookings.paymentStatus, 'pending')))
+        .limit(1);
+
+      if (!rows.length) return NextResponse.json({ received: true });
+
+      await db
+        .update(handledarBookings)
+        .set({ paymentStatus: 'paid', status: 'confirmed', updatedAt: new Date() })
+        .where(eq(handledarBookings.id, handledarId));
+
+      try {
+        const emailTo = rows[0].supervisorEmail || (rows[0].studentId ? (await db.select().from(users).where(eq(users.id, rows[0].studentId))).at(0)?.email : null);
+        if (emailTo) {
+          await sendEmail({
+            to: emailTo,
+            subject: 'Bekräftelse på betalning',
+            html: '<h1>Din bokning till Handledarutbildning är bekräftad!</h1><p>Din betalning har mottagits.</p>',
             messageType: 'payment_confirmation',
           });
         }
@@ -109,7 +139,7 @@ export async function POST(request: NextRequest) {
 
       await db
         .update(packagePurchases)
-        .set({ paymentStatus: 'paid', updatedAt: new Date() })
+        .set({ paymentStatus: 'paid', paidAt: new Date() })
         .where(eq(packagePurchases.id, orderId));
     }
 

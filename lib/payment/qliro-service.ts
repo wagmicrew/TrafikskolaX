@@ -197,6 +197,12 @@ export class QliroService {
     return reference.replace(/[^a-zA-Z0-9-_]/g, '').substring(0, 50);
   }
 
+  private generateCallbackToken(ttlMs: number = 24 * 60 * 60 * 1000): { token: string; expiresAt: Date } {
+    const token = crypto.randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + ttlMs);
+    return { token, expiresAt };
+  }
+
   public async getOrder(orderId: string): Promise<any> {
     const settings = await this.loadSettings();
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${orderId}`;
@@ -255,6 +261,8 @@ export class QliroService {
     amount: number;
     paymentLink?: string;
     environment?: string;
+    callbackToken?: string | null;
+    callbackTokenExpiresAt?: Date | null;
   }): Promise<string | null> {
     try {
       const orderRecord = {
@@ -265,7 +273,9 @@ export class QliroService {
         merchantReference: params.merchantReference,
         amount: params.amount,
         paymentLink: params.paymentLink || null,
-        environment: params.environment || 'sandbox'
+        environment: params.environment || 'sandbox',
+        callbackToken: params.callbackToken || null,
+        callbackTokenExpiresAt: params.callbackTokenExpiresAt || null
       };
 
       const result = await db.insert(qliroOrders).values(orderRecord).returning({ id: qliroOrders.id });
@@ -382,6 +392,9 @@ export class QliroService {
       packagePurchaseId: params.packagePurchaseId
     });
 
+    // Generate per-order callback token for webhook (defense-in-depth)
+    const { token: cbToken, expiresAt: cbExpiresAt } = this.generateCallbackToken();
+
     const result = await this.createCheckout({
       amount: params.amount,
       reference: params.reference,
@@ -390,7 +403,8 @@ export class QliroService {
       customerEmail: params.customerEmail,
       customerPhone: params.customerPhone,
       customerFirstName: params.customerFirstName,
-      customerLastName: params.customerLastName
+      customerLastName: params.customerLastName,
+      callbackToken: cbToken
     });
 
     // Step 6: Insert order reference in database
@@ -403,7 +417,9 @@ export class QliroService {
         merchantReference: result.merchantReference,
         amount: params.amount,
         paymentLink: result.checkoutUrl,
-        environment: settings.environment
+        environment: settings.environment,
+        callbackToken: cbToken,
+        callbackTokenExpiresAt: cbExpiresAt
       });
 
       logger.info('payment', 'Qliro order record created in database', {
@@ -456,6 +472,7 @@ export class QliroService {
     customerPhone?: string;
     customerFirstName?: string;
     customerLastName?: string;
+    callbackToken?: string;
   }): Promise<{ checkoutId: string; checkoutUrl: string; merchantReference: string }> {
     const settings = await this.loadSettings();
     if (!settings.enabled) {
@@ -488,7 +505,9 @@ export class QliroService {
       Urls: {
         Success: params.returnUrl,
         Cancel: params.returnUrl,
-        Notification: `${settings.publicUrl}/api/payments/qliro/webhook`
+        Notification: params.callbackToken
+          ? `${settings.publicUrl}/api/payments/qliro/webhook?t=${encodeURIComponent(params.callbackToken)}`
+          : `${settings.publicUrl}/api/payments/qliro/webhook`
       }
     };
 

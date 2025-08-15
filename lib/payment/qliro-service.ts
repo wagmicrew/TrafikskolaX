@@ -50,7 +50,8 @@ export class QliroService {
     logger.debug('payment', 'Loading Qliro settings from database');
 
     try {
-      const settings = await db.select().from(siteSettings).where(eq(siteSettings.category, 'payment'));
+      // Load all site settings (some installs may not set category='payment')
+      const settings = await db.select().from(siteSettings);
       const settingsMap = settings.reduce((acc, setting) => {
         if (setting.key) acc[setting.key] = setting.value || '';
         return acc;

@@ -638,16 +638,17 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // For Qliro payment method, create checkout session
+        // For Qliro payment method, create or reuse checkout session (idempotent)
         if (paymentMethod === 'qliro') {
           try {
             // Create Qliro checkout for the booking via service
             const { qliroService } = await import('@/lib/payment/qliro-service');
-            const qliroData = await qliroService.createCheckout({
+            const qliroData = await qliroService.getOrCreateCheckout({
               amount: totalPrice,
               reference: `booking_${booking.id}`,
               description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
               returnUrl: `${baseUrl}/payments/qliro/return?booking=${booking.id}`,
+              bookingId: booking.id,
             });
             
             return NextResponse.json({ 

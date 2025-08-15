@@ -76,16 +76,44 @@
       if (q1.onCustomerInfoChanged) q1.onCustomerInfoChanged(function (p) { send('onCustomerInfoChanged', p); });
       if (q1.onOrderUpdated) q1.onOrderUpdated(function (p) { send('onOrderUpdated', p); });
       if (q1.onPaymentMethodChanged) q1.onPaymentMethodChanged(function (p) { send('onPaymentMethodChanged', p); });
-      if (q1.onPaymentDeclined) q1.onPaymentDeclined(function (p) { send('onPaymentDeclined', p); });
-      if (q1.onPaymentProcess) q1.onPaymentProcess(function (p) {
-        send('onPaymentProcess', p);
-        try {
-          if (p && (p.status === 'Completed' || p.status === 'Paid')) {
-            send('completed', p);
-            try { window.close(); } catch (_) {}
-          }
-        } catch (_) {}
+      if (q1.onPaymentDeclined) q1.onPaymentDeclined(function (arg1, arg2) {
+        var payload = (arg1 && typeof arg1 === 'object') ? arg1 : { reason: arg1, message: arg2 };
+        send('onPaymentDeclined', payload);
       });
+      if (q1.onPaymentProcess) {
+        var attached = false;
+        // Prefer two-callback signature: (startCb, endCb)
+        try {
+          q1.onPaymentProcess(
+            function () { send('onPaymentProcess:start'); },
+            function (p) {
+              send('onPaymentProcess:end', p);
+              try {
+                if (p && (p.status === 'Completed' || p.status === 'Paid')) {
+                  send('completed', p);
+                  try { window.close(); } catch (_) {}
+                }
+              } catch (_) {}
+            }
+          );
+          attached = true;
+        } catch (_) {}
+        // Fallback to single-callback signature
+        if (!attached) {
+          try {
+            q1.onPaymentProcess(function (p) {
+              send('onPaymentProcess', p);
+              try {
+                if (p && (p.status === 'Completed' || p.status === 'Paid')) {
+                  send('completed', p);
+                  try { window.close(); } catch (_) {}
+                }
+              } catch (_) {}
+            });
+            attached = true;
+          } catch (_) {}
+        }
+      }
       if (q1.onSessionExpired) q1.onSessionExpired(function (p) { send('onSessionExpired', p); });
       if (q1.onCustomerDeauthenticating) q1.onCustomerDeauthenticating(function (p) { send('onCustomerDeauthenticating', p); });
       if (q1.onShippingMethodChanged) q1.onShippingMethodChanged(function (p) { send('onShippingMethodChanged', p); });

@@ -230,10 +230,24 @@ export async function GET(request: NextRequest) {
         });
         if (isBlocked) continue;
 
-        // Check for booking overlap and determine booking type
-        const overlappingBookings = dayBookings.filter(booking => 
-          doTimeRangesOverlap(slot.timeStart, slot.timeEnd, booking.startTime, booking.endTime)
-        );
+        // Check for ANY booking that overlaps with this slot time
+        const overlappingBookings = dayBookings.filter(booking => {
+          // More precise overlap check - any booking that touches this slot time makes it unavailable
+          const slotStart = slot.timeStart;
+          const slotEnd = slot.timeEnd;
+          const bookingStart = booking.startTime;
+          const bookingEnd = booking.endTime;
+          
+          // Convert times to comparable format
+          const normalizeTime = (t: any) => typeof t === 'string' ? t.slice(0, 5) : String(t).slice(0, 5);
+          const slotStartNorm = normalizeTime(slotStart);
+          const slotEndNorm = normalizeTime(slotEnd);
+          const bookingStartNorm = normalizeTime(bookingStart);
+          const bookingEndNorm = normalizeTime(bookingEnd);
+          
+          // Check if booking overlaps with slot
+          return doTimeRangesOverlap(slotStartNorm, slotEndNorm, bookingStartNorm, bookingEndNorm);
+        });
         const hasBooking = overlappingBookings.length > 0;
         
         // Check if there's a stale temporary booking
@@ -249,40 +263,43 @@ export async function GET(request: NextRequest) {
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
-        // Determine slot status and clickability - prioritize booking status first
+        // STRICT RULE: Only slots with NO bookings in database can be green and clickable
         let slotStatus = 'available';
-        let gradient: 'green' | 'orange' | 'red' = 'green';
-        let clickable = false;
+        let gradient: 'green' | 'orange' | 'red' = 'red'; // Default to red for safety
+        let clickable = false; // Default to non-clickable
         let statusText = '';
 
         if (hasBooking) {
-          // Any booking makes slot non-clickable
+          // ANY booking in database makes slot non-clickable and colored
           clickable = false;
           const booking = overlappingBookings[0];
           
           if (booking.status === 'temp' || booking.status === 'on_hold') {
-            // Temporary or on-hold booking - orange
+            // Temporary or on-hold booking - ALWAYS orange
             slotStatus = hasStaleTemp ? 'stale' : 'temporary';
             gradient = 'orange';
             statusText = 'Tillfälligt bokad';
           } else {
-            // Confirmed booking - red
+            // Confirmed/booked status - ALWAYS red
             slotStatus = 'booked';
             gradient = 'red';
             statusText = 'Bokad';
           }
-        } else if (isWithinTwoHours) {
-          // No booking but within two hours - call required
-          slotStatus = 'call_required';
-          gradient = 'red';
-          clickable = false;
-          statusText = 'Ring för bokning';
         } else {
-          // No booking and not within two hours - available
-          slotStatus = 'available';
-          gradient = 'green';
-          clickable = true;
-          statusText = 'Tillgänglig';
+          // NO booking in database - check other conditions
+          if (isWithinTwoHours) {
+            // Within two hours but no booking - red, call required
+            slotStatus = 'call_required';
+            gradient = 'red';
+            clickable = false;
+            statusText = 'Ring för bokning';
+          } else {
+            // NO booking AND not within two hours - ONLY then green and clickable
+            slotStatus = 'available';
+            gradient = 'green';
+            clickable = true;
+            statusText = 'Tillgänglig';
+          }
         }
 
         timeSlots.push({

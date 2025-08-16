@@ -19,6 +19,7 @@ interface TimeSlot {
   gradient: 'green' | 'red' | 'orange'
   clickable: boolean
   hasStaleBooking?: boolean
+  statusText?: string
 }
 
 interface LessonType {
@@ -324,18 +325,22 @@ export function WeekCalendar({
                       const display = hhmm.replace(':', '.')
                       
                       // Determine button styling based on slot status
-                      let buttonClasses = "relative transition-all duration-200 font-medium text-sm h-12 "
-                      let isDisabled = false
+                      let buttonClasses = "relative transition-all duration-200 font-medium text-sm h-16 flex flex-col justify-between overflow-hidden "
+                      let isDisabled = !slot.clickable
+                      let statusBarColor = ""
                       
                       if (selectedTime === slot.time) {
                         buttonClasses += "bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-lg"
+                        statusBarColor = "bg-red-800"
                       } else if (slot.gradient === 'green' && slot.clickable) {
                         buttonClasses += "bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 shadow-sm hover:shadow-md"
-                      } else if (slot.gradient === 'orange' && slot.clickable) {
-                        buttonClasses += "bg-orange-50 border-2 border-orange-400 hover:border-orange-500 hover:bg-orange-100 text-orange-700 shadow-sm hover:shadow-md"
+                        statusBarColor = "bg-green-500"
+                      } else if (slot.gradient === 'orange') {
+                        buttonClasses += "bg-orange-50 border-2 border-orange-400 text-orange-700 cursor-not-allowed opacity-75"
+                        statusBarColor = "bg-orange-500"
                       } else if (slot.gradient === 'red' || !slot.clickable) {
                         buttonClasses += "bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                        isDisabled = true
+                        statusBarColor = "bg-gray-400"
                       }
                       
                       return (
@@ -347,15 +352,28 @@ export function WeekCalendar({
                           onClick={() => slot.clickable && handleTimeSelect(hhmm)}
                           className={buttonClasses}
                         >
-                          <span className="flex flex-col items-center leading-tight">
-                            <span className="font-bold">{display}</span>
-                            {slot.hasStaleBooking && (
-                              <span className="text-[10px] font-medium text-orange-600">Tillfälligt bokad</span>
+                          <div className="flex flex-col items-center justify-center flex-1 py-1">
+                            <span className="font-bold text-base">{display}</span>
+                            {slot.callForBooking && slot.callPhone && (
+                              <span className="text-[9px] font-medium text-center leading-tight">Ring: {slot.callPhone}</span>
                             )}
-                            {slot.callForBooking && (
-                              <span className="text-[10px] font-medium text-red-600">Ring för bokning{slot.callPhone ? `: ${slot.callPhone}` : ''}</span>
-                            )}
-                          </span>
+                          </div>
+                          {/* Status bottom line */}
+                          <div className={`absolute bottom-0 left-0 right-0 h-1 ${statusBarColor}`}></div>
+                          {/* Status text overlay */}
+                          <div className="absolute bottom-1 left-0 right-0">
+                            <div className={`text-[9px] font-semibold text-center px-1 py-0.5 mx-1 rounded-sm ${
+                              selectedTime === slot.time 
+                                ? 'bg-red-800 text-white' 
+                                : slot.gradient === 'green' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : slot.gradient === 'orange'
+                                    ? 'bg-orange-100 text-orange-800'
+                                    : 'bg-gray-200 text-gray-600'
+                            }`}>
+                              {slot.statusText || (slot.callForBooking ? 'Ring för bokning' : 'Okänd status')}
+                            </div>
+                          </div>
                         </Button>
                       )
                     })}

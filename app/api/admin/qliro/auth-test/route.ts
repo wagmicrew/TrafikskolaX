@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const apiKey = String(body.apiKey || '').trim()
     const apiSecret = String(body.apiSecret || '').trim()
     const env = (body.environment === 'production' ? 'production' : 'sandbox') as 'sandbox' | 'production'
-    const baseUrl = body.apiUrl?.trim() || (env === 'production' ? 'https://api.qliro.com' : 'https://api.playground.qliro.com')
+    const baseUrl = body.apiUrl?.trim() || (env === 'production' ? 'https://payments.qit.nu' : 'https://pago.qit.nu')
     const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL || ''
     const returnUrl = body.returnUrl?.trim() || (publicAppUrl ? `${publicAppUrl.replace(/\/$/, '')}/payments/qliro/thank-you?authTest=1` : 'https://example.com/thank-you')
 

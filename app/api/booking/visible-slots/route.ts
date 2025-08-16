@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const timeSlots: Array<{ time: string; available: boolean; unavailable: boolean; clickable: boolean; gradient: 'green' | 'red' | 'orange'; callForBooking?: boolean; callPhone?: string; isExtraSlot?: boolean; reason?: string; hasStaleBooking?: boolean }>
+      const timeSlots: Array<{ time: string; available: boolean; unavailable: boolean; clickable: boolean; gradient: 'green' | 'red' | 'orange'; callForBooking?: boolean; callPhone?: string; isExtraSlot?: boolean; reason?: string; hasStaleBooking?: boolean; statusText?: string }>
         = [];
 
       for (const slot of daySlots) {
@@ -249,46 +249,56 @@ export async function GET(request: NextRequest) {
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
+        // Determine slot status and clickability
+        let slotStatus = 'available';
+        let gradient: 'green' | 'orange' | 'red' = 'green';
+        let clickable = false;
+        let statusText = '';
+
         if (!hasBooking && !isWithinTwoHours) {
-          // Available slot - green
-          timeSlots.push({
-            time: slot.timeStart,
-            available: true,
-            unavailable: false,
-            clickable: true,
-            gradient: 'green',
-          });
+          // Available slot - green and clickable
+          slotStatus = 'available';
+          gradient = 'green';
+          clickable = true;
+          statusText = 'Tillgänglig';
         } else if (hasStaleTemp) {
-          // Stale temporary booking - orange, clickable to override
-          timeSlots.push({
-            time: slot.timeStart,
-            available: false,
-            unavailable: true,
-            clickable: true,
-            gradient: 'orange',
-            hasStaleBooking: true,
-          });
+          // Stale temporary booking - orange, NOT clickable
+          slotStatus = 'stale';
+          gradient = 'orange';
+          clickable = false;
+          statusText = 'Tillfälligt bokad';
         } else if (isWithinTwoHours && !hasBooking) {
-          // Show as call-to-book within two hours - red
-          timeSlots.push({
-            time: slot.timeStart,
-            available: false,
-            unavailable: true,
-            clickable: false,
-            gradient: 'red',
-            callForBooking: true,
-            callPhone: contactPhone || undefined,
-          });
+          // Call for booking within two hours - red, not clickable
+          slotStatus = 'call_required';
+          gradient = 'red';
+          clickable = false;
+          statusText = 'Ring för bokning';
         } else if (hasBooking) {
           // Confirmed booking - red, not clickable
-          timeSlots.push({
-            time: slot.timeStart,
-            available: false,
-            unavailable: true,
-            clickable: false,
-            gradient: 'red',
-          });
+          const booking = overlappingBookings[0];
+          if (booking.status === 'temp' || booking.status === 'on_hold') {
+            slotStatus = 'temporary';
+            gradient = 'orange';
+            statusText = 'Tillfälligt bokad';
+          } else {
+            slotStatus = 'booked';
+            gradient = 'red';
+            statusText = 'Bokad';
+          }
+          clickable = false;
         }
+
+        timeSlots.push({
+          time: slot.timeStart,
+          available: slotStatus === 'available',
+          unavailable: slotStatus !== 'available',
+          clickable,
+          gradient,
+          hasStaleBooking: hasStaleTemp,
+          callForBooking: slotStatus === 'call_required',
+          callPhone: slotStatus === 'call_required' ? contactPhone || undefined : undefined,
+          statusText,
+        });
       }
 
       // Add extra slots, following same rules

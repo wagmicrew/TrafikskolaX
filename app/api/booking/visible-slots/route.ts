@@ -161,6 +161,9 @@ export async function GET(request: NextRequest) {
     // Time window for call-to-book flag (2 hours)
     const now = new Date();
     const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+    console.log(`\n=== TIME WINDOW DEBUG ===`);
+    console.log(`Current time: ${now.toISOString()}`);
+    console.log(`Two hours from now: ${twoHoursFromNow.toISOString()}`);
 
     const result: Record<string, any[]> = {};
 
@@ -319,6 +322,7 @@ export async function GET(request: NextRequest) {
         // Within two hours -> call for booking
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
+        console.log(`  Time check: slot ${dateStr}T${slot.timeStart} -> ${slotDateTime.toISOString()}, within 2h: ${isWithinTwoHours}`);
 
         // Color logic based on booking status
         let slotStatus = 'available';

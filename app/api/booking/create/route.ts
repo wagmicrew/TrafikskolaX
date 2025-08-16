@@ -172,10 +172,31 @@ export async function POST(request: NextRequest) {
       }
 
       // Check blocked slots (all-day or overlapping intervals)
-      const blockedForDate = await db
-        .select()
-        .from(blockedSlots)
-        .where(eq(blockedSlots.date, scheduledDate));
+      // Use the same date normalization logic as visible-slots API
+      const normalizeDateKey = (dateValue: any): string => {
+        if (!dateValue) return '';
+        const dateStr = String(dateValue);
+        if (dateStr.includes('T')) {
+          return dateStr.slice(0, 10);
+        }
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateStr;
+        }
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toISOString().slice(0, 10);
+        }
+        return '';
+      };
+
+      const allBlockedSlots = await db.select().from(blockedSlots);
+      const blockedForDate = allBlockedSlots.filter(b => {
+        const normalizedBlockedDate = normalizeDateKey(b.date);
+        const normalizedScheduledDate = normalizeDateKey(scheduledDate);
+        return normalizedBlockedDate === normalizedScheduledDate;
+      });
+      
+      console.log(`Booking creation: checking ${scheduledDate} against ${blockedForDate.length} blocked slots`);
 
       const isAllDayBlocked = blockedForDate.some(b => b.isAllDay);
       if (isAllDayBlocked) {

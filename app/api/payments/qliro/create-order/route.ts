@@ -141,7 +141,25 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, checkoutId: result.checkoutId, checkoutUrl: result.checkoutUrl, merchantReference: result.merchantReference, isExisting: result.isExisting });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Failed to create order' }, { status: 500 });
+    console.error('[QLIRO DEBUG] ERROR in create-order:', e);
+    console.error('[QLIRO DEBUG] Error details:', {
+      message: e?.message,
+      status: e?.status,
+      statusText: e?.statusText,
+      body: e?.body,
+      stack: e?.stack?.split('\n').slice(0, 5)
+    });
+    
+    return NextResponse.json({
+      error: `QLIRO DEBUG: ${e?.message || 'Failed to create order'}`,
+      debug: { 
+        errorType: e?.constructor?.name, 
+        status: e?.status,
+        statusText: e?.statusText,
+        body: e?.body,
+        stack: e?.stack?.split('\n').slice(0, 3) 
+      }
+    }, { status: 500 });
   }
 }
 

@@ -127,7 +127,7 @@ export class QliroService {
       const apiUrl =
         (environment === 'production'
           ? (settingsMap['qliro_prod_api_url'] || settingsMap['qliro_api_url'] || 'https://api.qliro.com')
-          : (settingsMap['qliro_dev_api_url'] || settingsMap['qliro_api_url'] || 'https://api.playground.qliro.com'));
+          : (settingsMap['qliro_dev_api_url'] || settingsMap['qliro_api_url'] || 'https://playground.qliro.com'));
 
       this.settings = {
         enabled,

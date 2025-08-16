@@ -143,6 +143,10 @@ export default function QliroSettingsClient() {
   const [prereqResult, setPrereqResult] = useState<any>(null);
   const [testOrderRunning, setTestOrderRunning] = useState(false);
   const [testOrderResult, setTestOrderResult] = useState<any>(null);
+  const [authApiKey, setAuthApiKey] = useState('');
+  const [authApiSecret, setAuthApiSecret] = useState('');
+  const [authEnv, setAuthEnv] = useState<'sandbox' | 'production'>('sandbox');
+  const [authTesting, setAuthTesting] = useState(false);
   const [testSSN, setTestSSN] = useState<string>("");
   const [testQliroOpen, setTestQliroOpen] = useState(false);
   const [testQliroUrl, setTestQliroUrl] = useState("");
@@ -474,6 +478,43 @@ export default function QliroSettingsClient() {
           <CardTitle>Filter och åtgärder</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Qliro auth test */}
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="text-sm font-semibold mb-2">Autentiseringstest</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <Input placeholder="API key" value={authApiKey} onChange={(e)=>setAuthApiKey(e.target.value)} className="bg-white/10 border-white/20 text-white" />
+              <Input placeholder="API secret" value={authApiSecret} onChange={(e)=>setAuthApiSecret(e.target.value)} className="bg-white/10 border-white/20 text-white" />
+              <Select value={authEnv} onValueChange={(v: any)=>setAuthEnv(v)}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Miljö" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sandbox">Sandbox</SelectItem>
+                  <SelectItem value="production">Production</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button onClick={async ()=>{
+                setAuthTesting(true);
+                try {
+                  const res = await fetch('/api/admin/qliro/auth-test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: authApiKey, apiSecret: authApiSecret, environment: authEnv }) });
+                  const data = await res.json();
+                  if (!res.ok || !data?.success) {
+                    toast.error(`Auth misslyckades`);
+                    console.log('[Qliro Auth Test]', data);
+                  } else {
+                    toast.success('Auth OK – öppnar Qliro...');
+                    try {
+                      const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
+                      if (data?.details?.orderId) { await openQliroPopup(String(data.details.orderId)); return; }
+                    } catch {}
+                    if (data?.details?.checkoutUrl) window.open(`/payments/qliro/checkout?url=${encodeURIComponent(data.details.checkoutUrl)}`, '_blank');
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message || 'Auth test fel');
+                } finally { setAuthTesting(false); }
+              }} disabled={authTesting}> {authTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null} Testa auth </Button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Sök</Label>

@@ -10,6 +10,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const groupedView = searchParams.get('grouped') === 'true';
     const today = new Date().toISOString().split('T')[0];
+    
+    console.log("[HANDLEDAR API DEBUG] Request received")
+    console.log("[HANDLEDAR API DEBUG] Grouped view:", groupedView)
+    console.log("[HANDLEDAR API DEBUG] Today date:", today)
 
     // Get available sessions (future sessions with available spots)
     const sessions = await db
@@ -37,6 +41,9 @@ export async function GET(request: NextRequest) {
       )
       .orderBy(handledarSessions.date, handledarSessions.startTime);
 
+    console.log("[HANDLEDAR API DEBUG] Raw sessions from DB:", sessions.length)
+    sessions.forEach(s => console.log(`[HANDLEDAR API DEBUG] Session: ${s.title}, date: ${s.date}, active: ${handledarSessions.isActive}, participants: ${s.currentParticipants}/${s.maxParticipants}`))
+
     // Filter sessions with available spots
     const availableSessions = sessions
       .filter(session => session.currentParticipants < session.maxParticipants)
@@ -48,6 +55,8 @@ export async function GET(request: NextRequest) {
         spotsLeft: session.maxParticipants - session.currentParticipants,
         formattedDateTime: formatSessionDateTime(session.date, session.startTime, session.endTime),
       }));
+
+    console.log("[HANDLEDAR API DEBUG] Available sessions after filter:", availableSessions.length)
 
     // If grouped view is requested, return a summary
     if (groupedView && availableSessions.length > 0) {

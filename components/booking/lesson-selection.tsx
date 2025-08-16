@@ -50,9 +50,17 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
 
       // Fetch handledar sessions (grouped view)
       try {
+        console.log("[LESSON SELECTION DEBUG] Fetching handledar sessions...")
         const handledarResponse = await fetch('/api/handledar-sessions?grouped=true')
+        console.log("[LESSON SELECTION DEBUG] Handledar response status:", handledarResponse.status)
+        console.log("[LESSON SELECTION DEBUG] Handledar response ok:", handledarResponse.ok)
+        
         if (handledarResponse.ok) {
           const handledarData = await handledarResponse.json()
+          console.log("[LESSON SELECTION DEBUG] Handledar data:", handledarData)
+          console.log("[LESSON SELECTION DEBUG] Has available sessions:", handledarData.hasAvailableSessions)
+          console.log("[LESSON SELECTION DEBUG] Sessions count:", handledarData.sessions?.length)
+          
           if (handledarData.hasAvailableSessions && handledarData.sessions?.length > 0) {
             const handledarSessions = handledarData.sessions.map(session => ({
               ...session,
@@ -61,8 +69,13 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
               price: session.pricePerParticipant,
               durationMinutes: session.durationMinutes || 120
             }))
+            console.log("[LESSON SELECTION DEBUG] Processed handledar sessions:", handledarSessions)
             allSessions.push(...handledarSessions);
+          } else {
+            console.log("[LESSON SELECTION DEBUG] No available handledar sessions found")
           }
+        } else {
+          console.error("[LESSON SELECTION DEBUG] Handledar API error:", await handledarResponse.text())
         }
       } catch (handledarError) {
         console.error("Error fetching handledar sessions:", handledarError)

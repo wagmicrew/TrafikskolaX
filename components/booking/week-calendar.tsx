@@ -332,15 +332,17 @@ export function WeekCalendar({
                       if (selectedTime === slot.time) {
                         buttonClasses += "bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-lg"
                         statusBarColor = "bg-red-800"
-                      } else if (slot.gradient === 'green' && slot.clickable) {
-                        buttonClasses += "bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 shadow-sm hover:shadow-md"
+                      } else if (slot.gradient === 'green') {
+                        buttonClasses += slot.clickable 
+                          ? "bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 shadow-sm hover:shadow-md cursor-pointer"
+                          : "bg-green-50 border-2 border-green-500 text-green-700 shadow-sm cursor-not-allowed"
                         statusBarColor = "bg-green-500"
                       } else if (slot.gradient === 'orange') {
-                        buttonClasses += "bg-orange-50 border-2 border-orange-400 text-orange-700 cursor-not-allowed opacity-75"
+                        buttonClasses += "bg-orange-50 border-2 border-orange-400 text-orange-700 shadow-sm cursor-not-allowed"
                         statusBarColor = "bg-orange-500"
-                      } else if (slot.gradient === 'red' || !slot.clickable) {
-                        buttonClasses += "bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed opacity-60"
-                        statusBarColor = "bg-gray-400"
+                      } else if (slot.gradient === 'red') {
+                        buttonClasses += "bg-red-50 border-2 border-red-400 text-red-700 shadow-sm cursor-not-allowed"
+                        statusBarColor = "bg-red-500"
                       }
                       
                       return (

@@ -181,9 +181,10 @@ export class QliroService {
     if (!this.settings) {
       throw new Error('Settings not loaded');
     }
-    // Qliro token = HMAC-SHA256(payload) with MerchantAPISecret (base64 recommended)
+    // Based on auth test results, use SHA256(body+secret) base64 method
     const payloadString = typeof payload === 'string' ? payload : (payload ? JSON.stringify(payload) : '');
-    const token = crypto.createHmac('sha256', this.settings.apiSecret).update(payloadString).digest('base64');
+    const combined = payloadString + this.settings.apiSecret;
+    const token = crypto.createHash('sha256').update(combined).digest('base64');
     return `Qliro ${token}`;
   }
 
@@ -499,17 +500,28 @@ export class QliroService {
       hasCustomer: !!(params.customerEmail || params.customerFirstName)
     });
 
+    // Add debug logging for URLs being sent to Qliro
+    const checkoutUrls = {
+      termsUrl: `${this.settings!.publicUrl}/kopvillkor`,
+      confirmationUrl: params.returnUrl,
+      checkoutStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/webhook`,
+      orderManagementStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-management-status`,
+      orderValidationUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-validate`,
+    };
+    
+    console.log('[QLIRO DEBUG] URLs being sent to Qliro:', checkoutUrls);
+
     const checkoutRequest: any = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: merchantReference,
       Currency: 'SEK',
       Country: 'SE',
       Language: 'sv-se',
-      MerchantTermsUrl: `${this.settings!.publicUrl}/kopvillkor`,
-      MerchantConfirmationUrl: params.returnUrl,
-      MerchantCheckoutStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/webhook`,
-      MerchantOrderManagementStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-management-status`,
-      MerchantOrderValidationUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-validate`,
+      MerchantTermsUrl: checkoutUrls.termsUrl,
+      MerchantConfirmationUrl: checkoutUrls.confirmationUrl,
+      MerchantCheckoutStatusPushUrl: checkoutUrls.checkoutStatusPushUrl,
+      MerchantOrderManagementStatusPushUrl: checkoutUrls.orderManagementStatusPushUrl,
+      MerchantOrderValidationUrl: checkoutUrls.orderValidationUrl,
       OrderItems: [{
         MerchantReference: merchantReference,
         Description: params.description,

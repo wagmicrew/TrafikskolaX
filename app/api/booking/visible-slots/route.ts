@@ -62,8 +62,12 @@ export async function GET(request: NextRequest) {
       .where(and(inArray(slotSettings.dayOfWeek, daysOfWeek), eq(slotSettings.isActive, true)));
 
     // Fetch bookings for these dates (exclude cancelled)
+    console.log(`\n=== BOOKING QUERY DEBUG ===`);
+    console.log(`Querying bookings for dates:`, dateStrings);
+    
     const allBookings = await db
       .select({
+        id: bookings.id,
         scheduledDate: bookings.scheduledDate,
         startTime: bookings.startTime,
         endTime: bookings.endTime,
@@ -86,9 +90,35 @@ export async function GET(request: NextRequest) {
         )
       );
 
+    console.log(`Found ${allBookings.length} total bookings from database:`);
+    allBookings.forEach((booking, index) => {
+      console.log(`  ${index + 1}. ID: ${booking.id}, Date: ${booking.scheduledDate} (${typeof booking.scheduledDate}), Time: ${booking.startTime}, Status: ${booking.status}`);
+    });
+
     // Fetch blocked and extra slots for these dates
     const allBlocked = await db.select().from(blockedSlots).where(inArray(blockedSlots.date, dateStrings));
     const allExtras = await db.select().from(extraSlots).where(inArray(extraSlots.date, dateStrings));
+
+    // Helper function to normalize dates from PostgreSQL
+    const normalizeDateKey = (dateValue: any): string => {
+      if (!dateValue) return '';
+      
+      const dateStr = String(dateValue);
+      // Handle ISO timestamp format
+      if (dateStr.includes('T')) {
+        return dateStr.slice(0, 10);
+      }
+      // Handle YYYY-MM-DD format
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateStr;
+      }
+      // Try to parse other formats
+      const parsed = new Date(dateStr);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString().slice(0, 10);
+      }
+      return '';
+    };
 
     // Group data by date
     const slotSettingsByDay: Record<number, any[]> = {};
@@ -98,22 +128,32 @@ export async function GET(request: NextRequest) {
     }
 
     const bookingsByDate: Record<string, any[]> = {};
+    console.log(`\n=== DATE NORMALIZATION DEBUG ===`);
     for (const b of allBookings) {
-      const key = b.scheduledDate ? String(b.scheduledDate).slice(0, 10) : '';
+      const key = normalizeDateKey(b.scheduledDate);
+      console.log(`Booking ${b.id}: scheduledDate="${b.scheduledDate}" -> normalized key="${key}"`);
       if (key && !bookingsByDate[key]) bookingsByDate[key] = [];
       if (key) bookingsByDate[key].push(b);
     }
+    
+    console.log(`\n=== BOOKINGS GROUPED BY DATE ===`);
+    Object.keys(bookingsByDate).forEach(date => {
+      console.log(`Date ${date}: ${bookingsByDate[date].length} bookings`);
+      bookingsByDate[date].forEach(booking => {
+        console.log(`  - ${booking.startTime} (${booking.status}) - ${booking.lessonTypeName}`);
+      });
+    });
 
     const blockedByDate: Record<string, any[]> = {};
     for (const bl of allBlocked) {
-      const key = bl.date ? String(bl.date).slice(0, 10) : '';
+      const key = normalizeDateKey(bl.date);
       if (key && !blockedByDate[key]) blockedByDate[key] = [];
       if (key) blockedByDate[key].push(bl);
     }
 
     const extrasByDate: Record<string, any[]> = {};
     for (const ex of allExtras) {
-      const key = ex.date ? String(ex.date).slice(0, 10) : '';
+      const key = normalizeDateKey(ex.date);
       if (key && !extrasByDate[key]) extrasByDate[key] = [];
       if (key) extrasByDate[key].push(ex);
     }
@@ -198,6 +238,7 @@ export async function GET(request: NextRequest) {
     };
 
     for (const dateStr of dateStrings) {
+      console.log(`\n=== PROCESSING DATE: ${dateStr} ===`);
       const dateObj = new Date(dateStr);
       const dayOfWeek = dateObj.getDay();
       const daySlots = slotSettingsByDay[dayOfWeek] || [];
@@ -207,6 +248,17 @@ export async function GET(request: NextRequest) {
       });
       const dayBlocked = blockedByDate[dateStr] || [];
       const dayExtras = extrasByDate[dateStr] || [];
+
+      console.log(`Day of week: ${dayOfWeek}, Available slot settings: ${daySlots.length}`);
+      console.log(`Bookings for ${dateStr}:`, dayBookings.map(b => ({
+        scheduledDate: b.scheduledDate,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        status: b.status,
+        paymentStatus: b.paymentStatus,
+        lessonType: b.lessonTypeName
+      })));
+      console.log(`Blocked slots: ${dayBlocked.length}, Extra slots: ${dayExtras.length}`);
 
       // If the whole day is blocked, skip returning any slots for this date
       const isDayAllBlocked = dayBlocked.some((b) => b.isAllDay);
@@ -219,39 +271,44 @@ export async function GET(request: NextRequest) {
         = [];
 
       for (const slot of daySlots) {
+        console.log(`\n--- Processing slot: ${slot.timeStart} - ${slot.timeEnd} ---`);
+        
         // Exclude full-day block
         const isAllDayBlocked = dayBlocked.some((b) => b.isAllDay);
-        if (isAllDayBlocked) continue;
+        if (isAllDayBlocked) {
+          console.log(`Slot ${slot.timeStart} skipped - day is all blocked`);
+          continue;
+        }
 
         // Blocked interval overlap
         const isBlocked = dayBlocked.some((b) => {
           if (!b.timeStart || !b.timeEnd) return false;
           return doTimeRangesOverlap(slot.timeStart, slot.timeEnd, b.timeStart, b.timeEnd);
         });
-        if (isBlocked) continue;
+        if (isBlocked) {
+          console.log(`Slot ${slot.timeStart} skipped - blocked by interval`);
+          continue;
+        }
 
-        // Check for ANY booking that overlaps with this slot time
-        const overlappingBookings = dayBookings.filter(booking => {
-          // More precise overlap check - any booking that touches this slot time makes it unavailable
-          const slotStart = slot.timeStart;
-          const slotEnd = slot.timeEnd;
-          const bookingStart = booking.startTime;
-          const bookingEnd = booking.endTime;
-          
-          // Convert times to comparable format
-          const normalizeTime = (t: any) => typeof t === 'string' ? t.slice(0, 5) : String(t).slice(0, 5);
-          const slotStartNorm = normalizeTime(slotStart);
-          const slotEndNorm = normalizeTime(slotEnd);
-          const bookingStartNorm = normalizeTime(bookingStart);
-          const bookingEndNorm = normalizeTime(bookingEnd);
-          
-          // Check if booking overlaps with slot
-          return doTimeRangesOverlap(slotStartNorm, slotEndNorm, bookingStartNorm, bookingEndNorm);
+        // Simple exact match check - slot either exists in bookings or it doesn't
+        const normalizeTime = (t: any) => typeof t === 'string' ? t.slice(0, 5) : String(t).slice(0, 5);
+        const slotTimeNorm = normalizeTime(slot.timeStart);
+        
+        console.log(`Looking for bookings at exact time: ${slotTimeNorm}`);
+        const exactBookings = dayBookings.filter(booking => {
+          const bookingStartNorm = normalizeTime(booking.startTime);
+          console.log(`  Comparing slot ${slotTimeNorm} with booking ${bookingStartNorm} (${booking.status})`);
+          return bookingStartNorm === slotTimeNorm;
         });
-        const hasBooking = overlappingBookings.length > 0;
+        const hasBooking = exactBookings.length > 0;
+        console.log(`Slot ${slotTimeNorm} has ${exactBookings.length} exact bookings:`, exactBookings.map(b => ({
+          startTime: b.startTime,
+          status: b.status,
+          paymentStatus: b.paymentStatus
+        })));
         
         // Check if there's a stale temporary booking
-        const hasStaleTemp = overlappingBookings.some(booking => {
+        const hasStaleTemp = exactBookings.some(booking => {
           const isTemp = booking.status === 'temp' || booking.status === 'on_hold';
           const isUnpaid = !booking.paymentStatus || booking.paymentStatus === 'unpaid';
           const createdAt = new Date(booking.createdAt);
@@ -263,44 +320,47 @@ export async function GET(request: NextRequest) {
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
-        // STRICT RULE: Only slots with NO bookings in database can be green and clickable
+        // Color logic based on booking status
         let slotStatus = 'available';
-        let gradient: 'green' | 'orange' | 'red' = 'red'; // Default to red for safety
-        let clickable = false; // Default to non-clickable
+        let gradient: 'green' | 'orange' | 'red' = 'green'; // Default to green (available)
+        let clickable = true; // Default to clickable
         let statusText = '';
 
         if (hasBooking) {
-          // ANY booking in database makes slot non-clickable and colored
+          // Booking exists in database
           clickable = false;
-          const booking = overlappingBookings[0];
+          const booking = exactBookings[0];
           
           if (booking.status === 'temp' || booking.status === 'on_hold') {
-            // Temporary or on-hold booking - ALWAYS orange
+            // Temporary, on-hold, or stale booking - ORANGE
             slotStatus = hasStaleTemp ? 'stale' : 'temporary';
             gradient = 'orange';
             statusText = 'Tillfälligt bokad';
+            console.log(`  → ORANGE: Temp/on-hold booking (${booking.status})`);
           } else {
-            // Confirmed/booked status - ALWAYS red
+            // Confirmed/booked status - RED
             slotStatus = 'booked';
             gradient = 'red';
             statusText = 'Bokad';
+            console.log(`  → RED: Confirmed booking (${booking.status})`);
           }
+        } else if (isWithinTwoHours) {
+          // No booking but within two hours - RED (call required)
+          slotStatus = 'call_required';
+          gradient = 'red';
+          clickable = false;
+          statusText = 'Ring för bokning';
+          console.log(`  → RED: Within 2 hours, call required`);
         } else {
-          // NO booking in database - check other conditions
-          if (isWithinTwoHours) {
-            // Within two hours but no booking - red, call required
-            slotStatus = 'call_required';
-            gradient = 'red';
-            clickable = false;
-            statusText = 'Ring för bokning';
-          } else {
-            // NO booking AND not within two hours - ONLY then green and clickable
-            slotStatus = 'available';
-            gradient = 'green';
-            clickable = true;
-            statusText = 'Tillgänglig';
-          }
+          // No booking and not within two hours - GREEN (available)
+          slotStatus = 'available';
+          gradient = 'green';
+          clickable = true;
+          statusText = 'Tillgänglig';
+          console.log(`  → GREEN: Available for booking`);
         }
+
+        console.log(`Final slot status: ${gradient} (${statusText}), clickable: ${clickable}`);
 
         timeSlots.push({
           time: slot.timeStart,
@@ -399,8 +459,14 @@ export async function GET(request: NextRequest) {
       }
       const mergedArray = Object.values(merged).sort((a: any, b: any) => a.time.localeCompare(b.time));
       result[dateStr] = mergedArray;
+      
+      console.log(`\n=== FINAL RESULT FOR ${dateStr} ===`);
+      console.log(`Total slots: ${mergedArray.length}`);
+      console.log('Slot summary:', mergedArray.map((s: any) => `${s.time}: ${s.gradient} (${s.statusText})`));
     }
 
+    console.log('\n=== API RESPONSE ===');
+    console.log('Final result keys:', Object.keys(result));
     return NextResponse.json({ success: true, slots: result });
   } catch (error) {
     console.error('Error computing visible slots:', error);

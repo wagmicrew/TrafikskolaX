@@ -16,11 +16,35 @@ type Body = {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json().catch(() => ({}))) as Body;
+    const rawBody = await req.text();
+    logger.info('payment', 'Raw request body', { rawBody, length: rawBody.length });
+    
+    let body: Body;
+    try {
+      body = JSON.parse(rawBody || '{}') as Body;
+    } catch (parseError) {
+      logger.error('payment', 'JSON parse error', { parseError, rawBody });
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
     const { bookingId, handledarBookingId, packagePurchaseId } = body;
+
+    // Debug logging
+    logger.info('payment', 'Qliro create-order received', {
+      body,
+      bookingId,
+      handledarBookingId,
+      packagePurchaseId,
+      bodyType: typeof body,
+      bodyKeys: Object.keys(body || {})
+    });
 
     const picks = [bookingId, handledarBookingId, packagePurchaseId].filter(Boolean);
     if (picks.length !== 1) {
+      logger.warn('payment', 'Invalid parameters for create-order', {
+        picks,
+        picksLength: picks.length,
+        body
+      });
       return NextResponse.json({ error: 'Provide exactly one of bookingId, handledarBookingId, packagePurchaseId' }, { status: 400 });
     }
 

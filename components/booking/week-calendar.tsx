@@ -325,7 +325,7 @@ export function WeekCalendar({
                       const display = hhmm.replace(':', '.')
                       
                       // Determine button styling based on slot status
-                      let buttonClasses = "relative transition-all duration-200 font-medium text-sm h-16 flex flex-col justify-between overflow-hidden "
+                      let buttonClasses = "relative transition-all duration-200 font-medium text-sm h-20 flex flex-col justify-between overflow-hidden "
                       let isDisabled = !slot.clickable
                       let statusBarColor = ""
                       

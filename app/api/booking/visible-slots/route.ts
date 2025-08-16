@@ -249,43 +249,40 @@ export async function GET(request: NextRequest) {
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
-        // Determine slot status and clickability
+        // Determine slot status and clickability - prioritize booking status first
         let slotStatus = 'available';
         let gradient: 'green' | 'orange' | 'red' = 'green';
         let clickable = false;
         let statusText = '';
 
-        if (!hasBooking && !isWithinTwoHours) {
-          // Available slot - green and clickable
-          slotStatus = 'available';
-          gradient = 'green';
-          clickable = true;
-          statusText = 'Tillgänglig';
-        } else if (hasStaleTemp) {
-          // Stale temporary booking - orange, NOT clickable
-          slotStatus = 'stale';
-          gradient = 'orange';
+        if (hasBooking) {
+          // Any booking makes slot non-clickable
           clickable = false;
-          statusText = 'Tillfälligt bokad';
-        } else if (isWithinTwoHours && !hasBooking) {
-          // Call for booking within two hours - red, not clickable
-          slotStatus = 'call_required';
-          gradient = 'red';
-          clickable = false;
-          statusText = 'Ring för bokning';
-        } else if (hasBooking) {
-          // Confirmed booking - red, not clickable
           const booking = overlappingBookings[0];
+          
           if (booking.status === 'temp' || booking.status === 'on_hold') {
-            slotStatus = 'temporary';
+            // Temporary or on-hold booking - orange
+            slotStatus = hasStaleTemp ? 'stale' : 'temporary';
             gradient = 'orange';
             statusText = 'Tillfälligt bokad';
           } else {
+            // Confirmed booking - red
             slotStatus = 'booked';
             gradient = 'red';
             statusText = 'Bokad';
           }
+        } else if (isWithinTwoHours) {
+          // No booking but within two hours - call required
+          slotStatus = 'call_required';
+          gradient = 'red';
           clickable = false;
+          statusText = 'Ring för bokning';
+        } else {
+          // No booking and not within two hours - available
+          slotStatus = 'available';
+          gradient = 'green';
+          clickable = true;
+          statusText = 'Tillgänglig';
         }
 
         timeSlots.push({

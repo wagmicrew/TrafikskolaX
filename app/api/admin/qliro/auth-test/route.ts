@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Authorization': `Qliro ${t.token}`,
+            'x-api-key': apiKey,
+            'Qliro-Application-Id': apiKey,
+            'X-Qliro-Application-Id': apiKey,
             'User-Agent': 'TrafikskolaX-AuthTest/1.0'
           },
           body: payloadString,

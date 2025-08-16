@@ -181,9 +181,9 @@ export class QliroService {
     if (!this.settings) {
       throw new Error('Settings not loaded');
     }
-    // Qliro token = HMAC-SHA256(payload) with MerchantAPISecret (hex)
+    // Qliro token = HMAC-SHA256(payload) with MerchantAPISecret (base64 recommended)
     const payloadString = typeof payload === 'string' ? payload : (payload ? JSON.stringify(payload) : '');
-    const token = crypto.createHmac('sha256', this.settings.apiSecret).update(payloadString).digest('hex');
+    const token = crypto.createHmac('sha256', this.settings.apiSecret).update(payloadString).digest('base64');
     return `Qliro ${token}`;
   }
 
@@ -566,6 +566,10 @@ export class QliroService {
           'Content-Type': 'application/json', 
           'Accept': 'application/json', 
           'Authorization': authHeader,
+          // Some environments require the API key in a header to resolve merchant before validating signature
+          'x-api-key': settings.apiKey,
+          'Qliro-Application-Id': settings.apiKey,
+          'X-Qliro-Application-Id': settings.apiKey,
           'User-Agent': 'TrafikskolaX/1.0'
         },
         body: bodyString,

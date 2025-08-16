@@ -508,6 +508,8 @@ export class QliroService {
       MerchantTermsUrl: `${this.settings!.publicUrl}/kopvillkor`,
       MerchantConfirmationUrl: params.returnUrl,
       MerchantCheckoutStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/webhook`,
+      MerchantOrderManagementStatusPushUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-management-status`,
+      MerchantOrderValidationUrl: `${this.settings!.publicUrl}/api/payments/qliro/order-validate`,
       OrderItems: [{
         MerchantReference: merchantReference,
         Description: params.description,

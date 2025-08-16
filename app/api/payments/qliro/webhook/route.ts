@@ -1,3 +1,25 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { qliroService } from '@/lib/payment/qliro-service'
+import { logger } from '@/lib/logging/logger'
+
+export const runtime = 'nodejs'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.text()
+    const signature = req.headers.get('x-qliro-signature') || req.headers.get('qliro-signature') || ''
+    const valid = await qliroService.verifyWebhookSignature(signature, body)
+    if (!valid) {
+      logger.warn('payment', 'Qliro webhook signature invalid')
+      return NextResponse.json({ ok: false }, { status: 401 })
+    }
+    logger.info('payment', 'Qliro webhook received', { length: body.length })
+    return NextResponse.json({ ok: true })
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || 'webhook failed' }, { status: 500 })
+  }
+}
+
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { packagePurchases, userCredits, packageContents, bookings, users, qliroOrders, handledarBookings } from '@/lib/db/schema';

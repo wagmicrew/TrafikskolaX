@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots, extraSlots, lessonTypes, siteSettings } from '@/lib/db/schema';
-import { and, inArray, or, eq } from 'drizzle-orm';
+import { and, inArray, or, eq, sql } from 'drizzle-orm';
 import { doTimeRangesOverlap, doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
         status: bookings.status,
         createdAt: bookings.createdAt,
         lessonTypeName: lessonTypes.name,
+        paymentStatus: bookings.paymentStatus,
       })
       .from(bookings)
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
@@ -98,25 +99,23 @@ export async function GET(request: NextRequest) {
 
     const bookingsByDate: Record<string, any[]> = {};
     for (const b of allBookings) {
-      const key = b.scheduledDate instanceof Date
-        ? b.scheduledDate.toISOString().split('T')[0]
-        : String(b.scheduledDate).slice(0, 10);
-      if (!bookingsByDate[key]) bookingsByDate[key] = [];
-      bookingsByDate[key].push(b);
+      const key = b.scheduledDate ? String(b.scheduledDate).slice(0, 10) : '';
+      if (key && !bookingsByDate[key]) bookingsByDate[key] = [];
+      if (key) bookingsByDate[key].push(b);
     }
 
     const blockedByDate: Record<string, any[]> = {};
     for (const bl of allBlocked) {
-      const key = (bl.date instanceof Date ? bl.date.toISOString().split('T')[0] : String(bl.date));
-      if (!blockedByDate[key]) blockedByDate[key] = [];
-      blockedByDate[key].push(bl);
+      const key = bl.date ? String(bl.date).slice(0, 10) : '';
+      if (key && !blockedByDate[key]) blockedByDate[key] = [];
+      if (key) blockedByDate[key].push(bl);
     }
 
     const extrasByDate: Record<string, any[]> = {};
     for (const ex of allExtras) {
-      const key = (ex.date instanceof Date ? ex.date.toISOString().split('T')[0] : String(ex.date));
-      if (!extrasByDate[key]) extrasByDate[key] = [];
-      extrasByDate[key].push(ex);
+      const key = ex.date ? String(ex.date).slice(0, 10) : '';
+      if (key && !extrasByDate[key]) extrasByDate[key] = [];
+      if (key) extrasByDate[key].push(ex);
     }
 
     // Time window for call-to-book flag (2 hours)
@@ -216,7 +215,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const timeSlots: Array<{ time: string; available: boolean; unavailable: boolean; clickable: boolean; gradient: 'green' | 'red'; callForBooking?: boolean; callPhone?: string; isExtraSlot?: boolean; reason?: string }>
+      const timeSlots: Array<{ time: string; available: boolean; unavailable: boolean; clickable: boolean; gradient: 'green' | 'red' | 'orange'; callForBooking?: boolean; callPhone?: string; isExtraSlot?: boolean; reason?: string; hasStaleBooking?: boolean }>
         = [];
 
       for (const slot of daySlots) {
@@ -231,15 +230,27 @@ export async function GET(request: NextRequest) {
         });
         if (isBlocked) continue;
 
-        // Booking overlap blocks availability (exclude handledar via dayBookings filtering above)
-        const hasBooking = doesAnyBookingOverlapWithSlot(dayBookings, slot.timeStart, slot.timeEnd, false);
+        // Check for booking overlap and determine booking type
+        const overlappingBookings = dayBookings.filter(booking => 
+          doTimeRangesOverlap(slot.timeStart, slot.timeEnd, booking.startTime, booking.endTime)
+        );
+        const hasBooking = overlappingBookings.length > 0;
+        
+        // Check if there's a stale temporary booking
+        const hasStaleTemp = overlappingBookings.some(booking => {
+          const isTemp = booking.status === 'temp' || booking.status === 'on_hold';
+          const isUnpaid = !booking.paymentStatus || booking.paymentStatus === 'unpaid';
+          const createdAt = new Date(booking.createdAt);
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          return isTemp && isUnpaid && createdAt < fiveMinutesAgo;
+        });
 
         // Within two hours -> call for booking
         const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
         const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
 
-        const clickable = !hasBooking && !isWithinTwoHours;
-        if (clickable) {
+        if (!hasBooking && !isWithinTwoHours) {
+          // Available slot - green
           timeSlots.push({
             time: slot.timeStart,
             available: true,
@@ -247,8 +258,18 @@ export async function GET(request: NextRequest) {
             clickable: true,
             gradient: 'green',
           });
+        } else if (hasStaleTemp) {
+          // Stale temporary booking - orange, clickable to override
+          timeSlots.push({
+            time: slot.timeStart,
+            available: false,
+            unavailable: true,
+            clickable: true,
+            gradient: 'orange',
+            hasStaleBooking: true,
+          });
         } else if (isWithinTwoHours && !hasBooking) {
-          // Show as call-to-book within two hours
+          // Show as call-to-book within two hours - red
           timeSlots.push({
             time: slot.timeStart,
             available: false,
@@ -257,6 +278,15 @@ export async function GET(request: NextRequest) {
             gradient: 'red',
             callForBooking: true,
             callPhone: contactPhone || undefined,
+          });
+        } else if (hasBooking) {
+          // Confirmed booking - red, not clickable
+          timeSlots.push({
+            time: slot.timeStart,
+            available: false,
+            unavailable: true,
+            clickable: false,
+            gradient: 'red',
           });
         }
       }

@@ -16,8 +16,9 @@ interface TimeSlot {
   isWithinTwoHours?: boolean
   callForBooking?: boolean
   callPhone?: string
-  gradient: 'green' | 'red'
+  gradient: 'green' | 'red' | 'orange'
   clickable: boolean
+  hasStaleBooking?: boolean
 }
 
 interface LessonType {
@@ -207,6 +208,22 @@ export function WeekCalendar({
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj datum och tid</h2>
             <p className="text-gray-600">Välj en ledig tid för din körlektion</p>
+            
+            {/* Status Legend */}
+            <div className="flex justify-center items-center gap-6 mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gray-700">Tillgänglig</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <span className="text-sm text-gray-700">Tillfälligt bokad</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <span className="text-sm text-gray-700">Bokad/Otillgänglig</span>
+              </div>
+            </div>
           </div>
 
           {/* Week navigation */}
@@ -299,38 +316,49 @@ export function WeekCalendar({
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
                 </div>
                 ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || [])
-                    .filter((slot) => slot.clickable)
                     .map((slot) => {
                       const raw = slot.time as string
                       const hhmm = typeof raw === 'string' ? raw.slice(0, 5) : String(raw).slice(0, 5)
                       const display = hhmm.replace(':', '.')
+                      
+                      // Determine button styling based on slot status
+                      let buttonClasses = "relative transition-all duration-200 font-medium text-sm h-12 "
+                      let isDisabled = false
+                      
+                      if (selectedTime === slot.time) {
+                        buttonClasses += "bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-lg"
+                      } else if (slot.gradient === 'green' && slot.clickable) {
+                        buttonClasses += "bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 shadow-sm hover:shadow-md"
+                      } else if (slot.gradient === 'orange' && slot.clickable) {
+                        buttonClasses += "bg-orange-50 border-2 border-orange-400 hover:border-orange-500 hover:bg-orange-100 text-orange-700 shadow-sm hover:shadow-md"
+                      } else if (slot.gradient === 'red' || !slot.clickable) {
+                        buttonClasses += "bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                        isDisabled = true
+                      }
+                      
                       return (
-                    <Button
-                      key={raw}
-                      variant={selectedTime === slot.time ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handleTimeSelect(hhmm)}
-                      className={`
-                        ${selectedTime === slot.time 
-                          ? 'bg-red-600 hover:bg-red-700 text-white' 
-                          : ''
-                        }
-                        ${slot.gradient === 'green' && slot.clickable 
-                          ? 'bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 font-semibold' 
-                          : ''
-                        }
-                      `}
-                      >
-                      <span className="flex flex-col items-center leading-tight">
-                        <span>{display}</span>
-                        {slot.callForBooking && (
-                          <span className="text-[10px] font-medium text-red-600">Ring för bokning{slot.callPhone ? `: ${slot.callPhone}` : ''}</span>
-                        )}
-                      </span>
-                    </Button>
-                  )})}
+                        <Button
+                          key={raw}
+                          variant="outline"
+                          size="sm"
+                          disabled={isDisabled}
+                          onClick={() => slot.clickable && handleTimeSelect(hhmm)}
+                          className={buttonClasses}
+                        >
+                          <span className="flex flex-col items-center leading-tight">
+                            <span className="font-bold">{display}</span>
+                            {slot.hasStaleBooking && (
+                              <span className="text-[10px] font-medium text-orange-600">Tillfälligt bokad</span>
+                            )}
+                            {slot.callForBooking && (
+                              <span className="text-[10px] font-medium text-red-600">Ring för bokning{slot.callPhone ? `: ${slot.callPhone}` : ''}</span>
+                            )}
+                          </span>
+                        </Button>
+                      )
+                    })}
                 </div>
               )}
             </div>

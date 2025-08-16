@@ -127,7 +127,7 @@ export class QliroService {
       const apiUrl =
         (environment === 'production'
           ? (settingsMap['qliro_prod_api_url'] || settingsMap['qliro_api_url'] || 'https://api.qliro.com')
-          : (settingsMap['qliro_dev_api_url'] || settingsMap['qliro_api_url'] || 'https://playground.qliro.com'));
+          : (settingsMap['qliro_dev_api_url'] || settingsMap['qliro_api_url'] || 'https://api.playground.qliro.com'));
 
       this.settings = {
         enabled,
@@ -181,10 +181,9 @@ export class QliroService {
     if (!this.settings) {
       throw new Error('Settings not loaded');
     }
-    // Qliro token = SHA256(base64) of (payloadString + MerchantAPISecret)
+    // Qliro token = HMAC-SHA256(payload) with MerchantAPISecret (hex)
     const payloadString = typeof payload === 'string' ? payload : (payload ? JSON.stringify(payload) : '');
-    const input = payloadString + this.settings.apiSecret;
-    const token = crypto.createHash('sha256').update(input).digest('base64');
+    const token = crypto.createHmac('sha256', this.settings.apiSecret).update(payloadString).digest('hex');
     return `Qliro ${token}`;
   }
 
@@ -215,6 +214,22 @@ export class QliroService {
       });
     }
     
+    return JSON.parse(text);
+  }
+
+  public async getPaymentOptions(orderId: string): Promise<any> {
+    const settings = await this.loadSettings();
+    const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${encodeURIComponent(orderId)}/PaymentOptions`;
+    const headers = { 'Authorization': this.generateAuthHeader('') };
+    const res = await fetch(url, { method: 'GET', headers });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new QliroApiError(`PaymentOptions error: ${res.status} ${res.statusText}`, {
+        status: res.status,
+        statusText: res.statusText,
+        body: text,
+      });
+    }
     return JSON.parse(text);
   }
 
@@ -498,9 +513,10 @@ export class QliroService {
         Description: params.description,
         Type: 'Product',
         Quantity: 1,
-        PricePerItemIncVat: params.amount,
-        PricePerItemExVat: params.amount,
-        VatRate: 0
+        // Qliro expects SEK values, not öre; assume params.amount is SEK number
+        PricePerItemIncVat: Number(params.amount),
+        PricePerItemExVat: Number((Number(params.amount) / 1.25).toFixed(2)),
+        VatRate: 25
       }]
     };
 

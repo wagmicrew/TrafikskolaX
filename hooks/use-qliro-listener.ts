@@ -150,6 +150,20 @@ export function useQliroListener(opts: QliroListenerOptions = {}) {
       }
     }
   }, [extendedDebug, opts])
+
+  // Add heartbeat monitoring for listener
+  useEffect(() => {
+    const heartbeat = setInterval(() => {
+      if (extendedDebug) {
+        console.debug('[useQliroListener] Heartbeat - listener active', {
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent.substring(0, 50)
+        });
+      }
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(heartbeat);
+  }, [extendedDebug]);
 }
 
 

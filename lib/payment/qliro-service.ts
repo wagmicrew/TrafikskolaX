@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { siteSettings, qliroOrders } from '@/lib/db/schema';
-import { eq, and, or, InferInsertModel } from 'drizzle-orm';
+import { eq, and, or, InferInsertModel, lt } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
 import crypto from 'crypto';
 
@@ -79,6 +79,16 @@ export class QliroService {
         if (setting.key) acc[setting.key] = setting.value || '';
         return acc;
       }, {} as Record<string, string>);
+
+      // Get retry attempts from settings (default: 3)
+      const retryAttempts = parseInt(settingsMap['qliro_retry_attempts'] || '3', 10);
+      const cacheDuration = parseInt(settingsMap['qliro_cache_duration'] || '300', 10) * 1000; // Convert to ms
+      
+      // Update cache duration if different from default
+      if (cacheDuration !== this.settingsCacheDuration) {
+        this.settingsCacheDuration = cacheDuration;
+        logger.debug('payment', 'Updated Qliro cache duration', { cacheDuration });
+      }
 
       logger.debug('payment', 'Found Qliro settings', {
         hasApiKey: !!settingsMap['qliro_api_key'],
@@ -221,6 +231,39 @@ export class QliroService {
     return { token, expiresAt };
   }
 
+  private async retryApiCall<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+    let lastError: Error;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (i === maxRetries - 1) {
+          logger.error('payment', `Qliro API call failed after ${maxRetries} attempts`, {
+            error: lastError.message,
+            attempt: i + 1,
+            maxRetries
+          });
+          throw lastError;
+        }
+        
+        const delay = 1000 * Math.pow(2, i); // Exponential backoff: 1s, 2s, 4s
+        logger.warn('payment', `Qliro API call failed, retrying in ${delay}ms`, {
+          error: lastError.message,
+          attempt: i + 1,
+          maxRetries,
+          delay
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError!;
+  }
+
   public async getOrder(orderId: string): Promise<any> {
     const settings = await this.loadSettings();
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${orderId}`;
@@ -232,18 +275,21 @@ export class QliroService {
     };
     
     console.log('[QLIRO DEBUG] GetOrder request:', { url, hasApiKey: !!settings.apiKey, orderId });
-    const res = await fetch(url, { method: 'GET', headers });
-    const text = await res.text();
     
-    if (!res.ok) {
-      throw new QliroApiError(`GetOrder error: ${res.status} ${res.statusText}`, { 
-        status: res.status, 
-        body: text,
-        statusText: res.statusText
-      });
-    }
-    
-    return JSON.parse(text);
+    return this.retryApiCall(async () => {
+      const res = await fetch(url, { method: 'GET', headers });
+      const text = await res.text();
+      
+      if (!res.ok) {
+        throw new QliroApiError(`GetOrder error: ${res.status} ${res.statusText}`, { 
+          status: res.status, 
+          body: text,
+          statusText: res.statusText
+        });
+      }
+      
+      return JSON.parse(text);
+    });
   }
 
   public async getPaymentOptions(orderId: string): Promise<any> {
@@ -550,6 +596,11 @@ export class QliroService {
       MerchantCheckoutStatusPushUrl: checkoutUrls.checkoutStatusPushUrl,
       MerchantOrderManagementStatusPushUrl: checkoutUrls.orderManagementStatusPushUrl,
       MerchantOrderValidationUrl: checkoutUrls.orderValidationUrl,
+      // Explicitly exclude Swish and include all other payment methods
+      PaymentMethods: {
+        ExcludeMethods: ['Swish'],
+        IncludeMethods: ['Card', 'Invoice', 'DirectDebit', 'Klarna', 'PayPal']
+      },
       OrderItems: [{
         MerchantReference: merchantReference,
         Description: params.description,
@@ -602,23 +653,26 @@ export class QliroService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Accept': 'application/json', 
-          'Authorization': authHeader,
-          // Some environments require the API key in a header to resolve merchant before validating signature
-          'x-api-key': settings.apiKey,
-          'Qliro-Application-Id': settings.apiKey,
-          'X-Qliro-Application-Id': settings.apiKey,
-          'User-Agent': 'TrafikskolaX/1.0'
-        },
-        body: bodyString,
-        signal: controller.signal
+      response = await this.retryApiCall(async () => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json', 
+            'Authorization': authHeader,
+            // Some environments require the API key in a header to resolve merchant before validating signature
+            'x-api-key': settings.apiKey,
+            'Qliro-Application-Id': settings.apiKey,
+            'X-Qliro-Application-Id': settings.apiKey,
+            'User-Agent': 'TrafikskolaX/1.0'
+          },
+          body: bodyString,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return res;
       });
-
-      clearTimeout(timeoutId);
     } catch (fetchError: any) {
       logger.error('payment', 'Network error when calling Qliro API', {
         error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error',
@@ -743,6 +797,35 @@ export class QliroService {
         passed: false,
         lastTestDate: null
       };
+    }
+  }
+
+  public async invalidateStaleOrders(): Promise<number> {
+    try {
+      const staleThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours
+      const result = await db.update(qliroOrders)
+        .set({ 
+          status: 'expired',
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(qliroOrders.status, 'pending'),
+          lt(qliroOrders.createdAt, staleThreshold)
+        ))
+        .returning({ id: qliroOrders.id });
+
+      const expiredCount = result.length;
+      logger.info('payment', 'Invalidated stale Qliro orders', { 
+        expiredCount, 
+        staleThreshold: staleThreshold.toISOString() 
+      });
+
+      return expiredCount;
+    } catch (error) {
+      logger.error('payment', 'Failed to invalidate stale orders', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return 0;
     }
   }
 }

@@ -1056,6 +1056,27 @@ export default function QliroSettingsClient() {
             Ändringar påverkar alla nya betalningar.
           </div>
           
+          <div className="flex items-center gap-2 mb-4">
+            <Button 
+              onClick={async () => {
+                const t = toast.loading('Initialiserar betalningsmetoder...', { position: 'top-right' });
+                try {
+                  const res = await fetch('/api/admin/settings/init-qliro-payment-methods', { method: 'POST' });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || 'Failed to initialize');
+                  toast.success('Betalningsmetoder initialiserade!', { id: t, position: 'top-right' });
+                  loadPaymentMethodSettings();
+                } catch (err: any) {
+                  toast.error(`Kunde inte initialisera: ${err.message}`, { id: t, position: 'top-right' });
+                }
+              }}
+              variant="outline"
+              size="sm"
+            >
+              Initialisera betalningsmetoder
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-3">
               <div className="flex items-center space-x-3">

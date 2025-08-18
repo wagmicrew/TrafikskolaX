@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
+import { normalizeDateKey } from '@/lib/utils/date';
 
 // Helper function to get SendGrid API key from database
 async function getSendGridApiKey(): Promise<string> {
@@ -165,36 +166,27 @@ export async function POST(request: NextRequest) {
         }
       } catch {}
 
-      // Disallow past dates
-      const todayStr = new Date().toISOString().split('T')[0];
-      if (scheduledDate < todayStr) {
+      // Disallow past dates (use local date and normalized input to avoid UTC/format issues)
+      const pad2 = (n: number) => String(n).padStart(2, '0');
+      const nowLocal = new Date();
+      const todayLocalStr = `${nowLocal.getFullYear()}-${pad2(nowLocal.getMonth() + 1)}-${pad2(nowLocal.getDate())}`;
+
+      // Normalize incoming scheduledDate consistently
+      const scheduledDateKey = normalizeDateKey(scheduledDate);
+      console.log(`[BOOKING][PAST_DATE_CHECK] raw="${scheduledDate}", normalized=${scheduledDateKey}, todayLocal=${todayLocalStr}`);
+      if (!scheduledDateKey) {
+        return NextResponse.json({ error: 'Ogiltigt datumformat.' }, { status: 400 });
+      }
+      if (scheduledDateKey < todayLocalStr) {
         return NextResponse.json({ error: 'Kan inte boka ett datum i det förflutna.' }, { status: 400 });
       }
 
-      // Check blocked slots (all-day or overlapping intervals)
-      // Use the same date normalization logic as visible-slots API
-      const normalizeDateKey = (dateValue: any): string => {
-        if (!dateValue) return '';
-        const dateStr = String(dateValue);
-        if (dateStr.includes('T')) {
-          return dateStr.slice(0, 10);
-        }
-        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-          return dateStr;
-        }
-        const parsed = new Date(dateStr);
-        if (!isNaN(parsed.getTime())) {
-          return parsed.toISOString().slice(0, 10);
-        }
-        return '';
-      };
-
-      const allBlockedSlots = await db.select().from(blockedSlots);
-      const blockedForDate = allBlockedSlots.filter(b => {
-        const normalizedBlockedDate = normalizeDateKey(b.date);
-        const normalizedScheduledDate = normalizeDateKey(scheduledDate);
-        return normalizedBlockedDate === normalizedScheduledDate;
-      });
+      // Check blocked slots (all-day or overlapping intervals) using shared normalizer
+      // Query only the target date at DB-level for consistency and performance
+      const blockedForDate = await db
+        .select()
+        .from(blockedSlots)
+        .where(eq(blockedSlots.date, scheduledDateKey));
       
       console.log(`Booking creation: checking ${scheduledDate} against ${blockedForDate.length} blocked slots`);
 

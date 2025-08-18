@@ -225,8 +225,13 @@ export class QliroService {
     const settings = await this.loadSettings();
     const url = `${settings.apiUrl}/checkout/merchantapi/Orders/${orderId}`;
     // For GET requests, the payload is empty string
-    const headers = { 'Authorization': this.generateAuthHeader('') };
+    const headers = { 
+      'Authorization': this.generateAuthHeader(''),
+      'x-api-key': settings.apiKey,
+      'Content-Type': 'application/json'
+    };
     
+    console.log('[QLIRO DEBUG] GetOrder request:', { url, hasApiKey: !!settings.apiKey, orderId });
     const res = await fetch(url, { method: 'GET', headers });
     const text = await res.text();
     

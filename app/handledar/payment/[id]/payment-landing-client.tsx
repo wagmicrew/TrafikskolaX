@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { Printer, CreditCard, MapPin, Calendar as CalendarIcon, Clock, CheckCircle2, MailCheck, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useQliroListener } from '@/hooks/use-qliro-listener';
 
 type Booking = {
   id: string;
@@ -40,6 +41,28 @@ export default function PaymentLandingClient({
   const [isGeneratingQliro, setIsGeneratingQliro] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
   const [notified, setNotified] = useState(false);
+
+  // Qliro completion listener for handledar bookings
+  useQliroListener({
+    onCompleted: () => {
+      console.log('[HANDLEDAR DEBUG] Qliro payment completed for booking:', booking.id);
+      try {
+        window.location.href = `/qliro/return?ref=${encodeURIComponent(`handledar_${booking.id}`)}&status=paid`;
+      } catch (e) {
+        console.error('[HANDLEDAR DEBUG] Failed to redirect:', e);
+        // Fallback: reload page to show updated payment status
+        window.location.reload();
+      }
+    },
+    onDeclined: (reason, message) => {
+      console.log('[HANDLEDAR DEBUG] Qliro payment declined:', { reason, message });
+      toast.error(`Betalning nekades: ${[reason, message].filter(Boolean).join(' - ')}`);
+    },
+    onError: (error) => {
+      console.error('[HANDLEDAR DEBUG] Qliro payment error:', error);
+      toast.error('Ett fel uppstod med betalningen');
+    }
+  });
 
   const amount = useMemo(() => Number(booking.price || session.pricePerParticipant || 0), [booking.price, session.pricePerParticipant]);
   const sessionDate = useMemo(() => format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: sv }), [session.date]);

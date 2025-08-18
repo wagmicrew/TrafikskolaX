@@ -5,6 +5,7 @@ import { and, inArray, or, eq, sql } from 'drizzle-orm';
 import { doTimeRangesOverlap, doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
+import { normalizeDateKey } from '@/lib/utils/date';
 
 export async function GET(request: NextRequest) {
   try {
@@ -99,26 +100,7 @@ export async function GET(request: NextRequest) {
     const allBlocked = await db.select().from(blockedSlots).where(inArray(blockedSlots.date, dateStrings));
     const allExtras = await db.select().from(extraSlots).where(inArray(extraSlots.date, dateStrings));
 
-    // Helper function to normalize dates from PostgreSQL
-    const normalizeDateKey = (dateValue: any): string => {
-      if (!dateValue) return '';
-      
-      const dateStr = String(dateValue);
-      // Handle ISO timestamp format
-      if (dateStr.includes('T')) {
-        return dateStr.slice(0, 10);
-      }
-      // Handle YYYY-MM-DD format
-      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        return dateStr;
-      }
-      // Try to parse other formats
-      const parsed = new Date(dateStr);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString().slice(0, 10);
-      }
-      return '';
-    };
+    // Use shared normalizeDateKey from '@/lib/utils/date'
 
     // Group data by date
     const slotSettingsByDay: Record<number, any[]> = {};

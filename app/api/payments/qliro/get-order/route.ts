@@ -1,48 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'nodejs';
 import { qliroService } from '@/lib/payment/qliro-service';
-import { logger } from '@/lib/logging/logger';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('orderId');
-    
+
     if (!orderId) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing orderId parameter' }, { status: 400 });
     }
 
-    // Ensure Qliro is enabled
-    const enabled = await qliroService.isEnabled();
-    if (!enabled) {
-      return NextResponse.json({ error: 'Qliro is not available' }, { status: 503 });
+    console.log('[QLIRO DEBUG] Get order request for orderId:', orderId);
+
+    // Check if Qliro is enabled
+    const isEnabled = await qliroService.isEnabled();
+    if (!isEnabled) {
+      return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
 
-    // Get order with HTML snippet
-    const orderData = await qliroService.getOrder(orderId);
+    // Get order details from Qliro
+    const order = await qliroService.getOrder(orderId);
     
-    logger.debug('payment', 'Qliro GetOrder response', { 
-      orderId, 
-      hasHtmlSnippet: !!orderData.OrderHtmlSnippet,
-      status: orderData.CustomerCheckoutStatus
+    console.log('[QLIRO DEBUG] Get order response:', {
+      orderId: order?.OrderId,
+      hasHtmlSnippet: !!order?.OrderHtmlSnippet,
+      status: order?.CustomerCheckoutStatus,
+      totalPrice: order?.TotalPriceIncVat
     });
 
-    return NextResponse.json({
-      success: true,
-      orderId: orderData.OrderId,
-      htmlSnippet: orderData.OrderHtmlSnippet,
-      status: orderData.CustomerCheckoutStatus,
-      totalPrice: orderData.TotalPrice,
-      currency: orderData.Currency,
-      merchantReference: orderData.MerchantReference
-    });
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
 
-  } catch (error) {
-    logger.error('payment', 'Qliro GetOrder failed', {
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-    
+    return NextResponse.json(order);
+
+  } catch (error: any) {
+    console.error('[QLIRO DEBUG] Get order error:', error);
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to get order' 
+      error: error?.message || 'Failed to get order',
+      debug: { 
+        errorType: error?.constructor?.name,
+        status: error?.status,
+        statusText: error?.statusText
+      }
     }, { status: 500 });
   }
 }

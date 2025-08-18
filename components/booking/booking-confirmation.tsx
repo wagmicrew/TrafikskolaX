@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, CreditCard, DollarSign, Loader2, User, Mail, Phone } from 'lucide-react'
+import { AlertCircle, CreditCard, DollarSign, Loader2, User, Mail, Phone, UserPlus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
@@ -825,6 +825,42 @@ export function BookingConfirmation({
                     <strong>OBS!</strong> Ett konto kommer att skapas med dessa uppgifter. 
                     Inloggningsuppgifter skickas till din e-post tillsammans med bokningsbekräftelsen.
                   </p>
+                </div>
+                
+                {/* CTA for guest users to create account */}
+                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                        <UserPlus className="w-4 h-4 text-purple-600" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                        Skapa ditt konto först
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Få tillgång till dina bokningar, krediter och enklare betalningar genom att skapa ett konto.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          onClick={() => window.location.href = '/registrering'}
+                          className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        >
+                          Skapa konto
+                        </button>
+                        <button
+                          onClick={() => window.location.href = '/inloggning'}
+                          className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-300 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        >
+                          Logga in
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Eller fortsätt som gäst - du kan alltid skapa konto senare.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

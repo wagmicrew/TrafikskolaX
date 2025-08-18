@@ -3,14 +3,13 @@ import React, { useMemo, useState } from 'react';
 import SwishQR from '@/components/SwishQR';
 import { Printer, CreditCard, CheckCircle2, MailCheck, Calendar as CalendarIcon, Clock, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import QliroPopup from '@/components/payments/QliroPopup';
+
 
 export default function BookingPaymentClient({ booking, settings }: { booking: any; settings: { swishNumber: string; schoolName: string; schoolPhone?: string } }) {
   const [isGeneratingQliro, setIsGeneratingQliro] = useState(false);
   const [isNotifying, setIsNotifying] = useState(false);
   const [notified, setNotified] = useState(false);
-  const [qliroUrl, setQliroUrl] = useState<string | null>(null);
-  const [showQliro, setShowQliro] = useState(false);
+
   const amount = useMemo(() => Number(booking.totalPrice || 0), [booking.totalPrice]);
   const isPaid = String(booking.paymentStatus || '').toLowerCase() === 'paid';
 
@@ -24,12 +23,23 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
       });
       const data = await res.json();
       if (!res.ok || !data?.checkoutUrl) throw new Error(data?.error || 'Kunde inte skapa Qliro-checkout');
-      try {
-        const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
-        if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return; }
-      } catch {}
-      setQliroUrl(data.checkoutUrl);
-      setShowQliro(true);
+      // Use the new Qliro Flow Manager
+      const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
+      await QliroFlowManager.openQliroCheckout({
+        orderId: String(data.checkoutId),
+        amount: amount,
+        description: `Bokning ${booking.id.slice(0, 8)}`,
+        checkoutUrl: data.checkoutUrl,
+        onCompleted: () => {
+          console.log('[BOOKING DEBUG] Qliro payment completed');
+          // Redirect to success page
+          window.location.href = `/booking/success?bookingId=${booking.id}`;
+        },
+        onError: (error) => {
+          console.error('[BOOKING DEBUG] Qliro payment error:', error);
+          toast.error('Ett fel uppstod med betalningen');
+        }
+      });
     } catch (e: any) { toast.error(e.message || 'Fel'); } finally { setIsGeneratingQliro(false); }
   };
 
@@ -95,7 +105,7 @@ export default function BookingPaymentClient({ booking, settings }: { booking: a
           )}
         </div>
       </div>
-      <QliroPopup url={qliroUrl} open={showQliro} onClose={() => setShowQliro(false)} />
+
     </div>
   );
 }

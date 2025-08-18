@@ -357,8 +357,8 @@ export class QliroService {
         packagePurchaseId: params.packagePurchaseId || null,
         qliroOrderId: params.qliroOrderId,
         merchantReference: params.merchantReference,
-        // Store amount in SEK as decimal string; params.amount is provided in öre
-        amount: (params.amount / 100).toFixed(2),
+        // Store amount in SEK as decimal string; params.amount is provided in SEK
+        amount: Number(params.amount).toFixed(2),
         paymentLink: params.paymentLink || null,
         environment: params.environment || 'sandbox',
         callbackToken: params.callbackToken || null,
@@ -744,7 +744,7 @@ export class QliroService {
       const settings = await this.loadSettings();
       const testReference = 'TEST-' + Date.now();
       const result = await this.createCheckout({
-        amount: 10000, // 100 SEK in öre
+        amount: 100.0, // 100 SEK (in SEK)
         reference: testReference,
         description: 'Test connection',
         returnUrl: `${settings.publicUrl}/test`

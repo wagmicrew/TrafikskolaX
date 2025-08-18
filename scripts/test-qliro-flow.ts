@@ -36,7 +36,7 @@ export async function testQliroFlow() {
     console.log('\n3. Creating test order...');
     const testReference = `TEST-FLOW-${Date.now()}`;
     const testOrder = await qliroService.createCheckout({
-      amount: 10000, // 100 SEK in öre
+      amount: 100.0, // 100 SEK
       reference: testReference,
       description: 'Test order for flow verification',
       returnUrl: `${settings.publicUrl}/test-return`,

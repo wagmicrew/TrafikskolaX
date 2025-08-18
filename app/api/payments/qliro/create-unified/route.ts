@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         }
 
         checkoutParams = {
-          amount: amountOverride ? Math.round(amountOverride * 100) : Math.round(Number(booking.totalPrice || 0) * 100), // Convert to öre
+          amount: amountOverride != null ? Number(amountOverride) : Number(booking.totalPrice || 0), // Amount in SEK
           reference: `booking_${booking.id}`,
           description: descriptionOverride || 'Körlektion',
           returnUrl: returnUrl || `${baseUrl}/dashboard/student/bokningar/${booking.id}`,
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         const [user] = await db.select().from(users).where(eq(users.id, purchase.userId)).limit(1);
 
         checkoutParams = {
-          amount: amountOverride ? Math.round(amountOverride * 100) : Math.round(Number(purchase.pricePaid || 0) * 100), // Convert to öre
+          amount: amountOverride != null ? Number(amountOverride) : Number(purchase.pricePaid || 0), // Amount in SEK
           reference: `package_${purchase.id}`,
           description: descriptionOverride || pkg?.name || 'Paket',
           returnUrl: returnUrl || `${baseUrl}/dashboard/student`,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         }
 
         checkoutParams = {
-          amount: amountOverride ? Math.round(amountOverride * 100) : Math.round(Number(handledarBooking.price || 0) * 100), // Convert to öre
+          amount: amountOverride != null ? Number(amountOverride) : Number(handledarBooking.price || 0), // Amount in SEK
           reference: `handledar_${handledarBooking.id}`,
           description: descriptionOverride || session?.title || 'Handledarutbildning',
           returnUrl: returnUrl || `${baseUrl}/dashboard/student/handledar`,

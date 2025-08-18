@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
       schoolName: schoolname,
       schoolPhone: schoolPhone,
       schoolEmail: schoolEmail,
-      appUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-      baseUrl: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+                             appUrl: request.nextUrl.origin || process.env.NEXTAUTH_URL || 'https://www.dintrafikskolahlm.se',
+         baseUrl: request.nextUrl.origin || process.env.NEXTAUTH_URL || 'https://www.dintrafikskolahlm.se',
       currentYear: new Date().getFullYear().toString(),
       currentDate: new Date().toLocaleDateString('sv-SE'),
       temporaryPassword: 'TempPass123!'

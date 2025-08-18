@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     const purchase = inserted[0];
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'https://www.dintrafikskolahlm.se';
 
     // Create a Qliro checkout
     const checkout = await qliroService.createCheckout({

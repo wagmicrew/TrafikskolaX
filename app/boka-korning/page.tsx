@@ -246,6 +246,10 @@ const handleBookingComplete = async (paymentData: any) => {
     try {
       setLoading(true)
       
+      // Helper to format local date as YYYY-MM-DD without UTC conversion
+      const pad2 = (n: number) => String(n).padStart(2, '0')
+      const formatLocalYmd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+
       // Create booking (fallback if no temp booking exists)
       const response = await fetch('/api/booking/create', {
         method: 'POST',
@@ -255,7 +259,7 @@ const handleBookingComplete = async (paymentData: any) => {
           sessionId: bookingData.sessionType?.type === 'handledar' && bookingData.sessionId 
             ? bookingData.sessionId 
             : bookingData.sessionType?.id,
-          scheduledDate: bookingData.selectedDate?.toISOString().split('T')[0],
+          scheduledDate: bookingData.selectedDate ? formatLocalYmd(bookingData.selectedDate) : undefined,
           startTime: bookingData.selectedTime,
           endTime: bookingData.sessionType?.type === 'handledar' ? 'To be confirmed' : (bookingData.sessionType ? calculateEndTime(bookingData.selectedTime!, bookingData.sessionType.durationMinutes) : ''),
           durationMinutes: bookingData.sessionType?.durationMinutes || 0,

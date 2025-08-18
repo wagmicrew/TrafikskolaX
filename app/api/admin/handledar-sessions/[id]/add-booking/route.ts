@@ -54,7 +54,7 @@ export async function POST(
       const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '';
       const amount = String(session.price || '');
       const message = `Handledar ${new Date(String(session.date)).toLocaleDateString('sv-SE')} ${String(session.startTime).slice(0,5)}`;
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin || 'http://localhost:3000';
+              const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
       const landingUrl = `${baseUrl}/handledar/payment/${created.id}`;
       await EmailService.sendEmail({
         to: supervisorEmail,

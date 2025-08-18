@@ -114,7 +114,7 @@ export function WeekCalendar({
           body: JSON.stringify({
             sessionType: 'lesson',
             sessionId: lessonType.id,
-            scheduledDate: selectedDate.toISOString().split('T')[0],
+            scheduledDate: format(selectedDate, 'yyyy-MM-dd'),
             startTime: time,
             endTime: calculateEndTime(time, lessonType.durationMinutes),
             durationMinutes: lessonType.durationMinutes,

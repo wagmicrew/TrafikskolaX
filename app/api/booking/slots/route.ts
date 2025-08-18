@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { slotSettings, bookings, blockedSlots, extraSlots, siteSettings, lessonTypes } from '@/lib/db/schema';
 import { eq, and, gte, lte, or, inArray } from 'drizzle-orm';
 import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
+import { normalizeDateKey } from '@/lib/utils/date';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +17,15 @@ export async function GET(request: NextRequest) {
     }
 
     const slotsForWeek: Record<string, any[]> = {};
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const today = new Date().toISOString().split('T')[0];
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const parseYmd = (s: string) => {
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+    };
+    const start = parseYmd(startDate);
+    const end = parseYmd(endDate);
+    const nowLocal = new Date();
+    const today = `${nowLocal.getFullYear()}-${pad2(nowLocal.getMonth() + 1)}-${pad2(nowLocal.getDate())}`;
     
     // Set booking start date to August 18th, 2025
     const bookingStartDate = '2025-08-18';
@@ -49,7 +56,7 @@ export async function GET(request: NextRequest) {
     let current = new Date(start);
     
     while (current <= end) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = `${current.getFullYear()}-${pad2(current.getMonth() + 1)}-${pad2(current.getDate())}`;
       
       // Skip past dates and dates before opening date (if configured)
       if (dateStr < today || (bookingOpenFrom && dateStr < bookingOpenFrom)) {
@@ -131,12 +138,8 @@ export async function GET(request: NextRequest) {
 
     const bookingsByDate: Record<string, any[]> = {};
     allBookings.forEach(booking => {
-      const dateKey = (booking.scheduledDate instanceof Date)
-        ? booking.scheduledDate.toISOString().split('T')[0]
-        : String(booking.scheduledDate).slice(0, 10);
-      if (!bookingsByDate[dateKey]) {
-        bookingsByDate[dateKey] = [];
-      }
+      const dateKey = normalizeDateKey(booking.scheduledDate);
+      if (!bookingsByDate[dateKey]) bookingsByDate[dateKey] = [];
       bookingsByDate[dateKey].push(booking);
     });
 
@@ -198,7 +201,9 @@ export async function GET(request: NextRequest) {
           );
 
           // Check if this slot is within 2 hours from now
-          const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
+          const [yy, mm, dd] = dateStr.split('-').map(Number);
+          const [hh, mi] = String(slot.timeStart).slice(0,5).split(':').map(Number);
+          const slotDateTime = new Date(yy, (mm || 1) - 1, dd || 1, hh || 0, mi || 0, 0, 0);
           const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
           
           // Determine availability strictly: only expose slots with no booking
@@ -230,7 +235,9 @@ export async function GET(request: NextRequest) {
           );
 
           // Check if this slot is within 2 hours from now
-          const slotDateTime = new Date(`${dateStr}T${extraSlot.timeStart}`);
+          const [yyE, mmE, ddE] = dateStr.split('-').map(Number);
+          const [hhE, miE] = String(extraSlot.timeStart).slice(0,5).split(':').map(Number);
+          const slotDateTime = new Date(yyE, (mmE || 1) - 1, ddE || 1, hhE || 0, miE || 0, 0, 0);
           const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
           
           // Determine availability strictly: only expose slots with no booking

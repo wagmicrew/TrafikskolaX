@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           amount: 50000, // 500 SEK
           reference: `TEST-API-${Date.now()}`,
           description: 'Test order via API endpoint',
-          returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'}/test-return`,
+          returnUrl: `${request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se'}/test-return`,
           customerEmail: 'test@trafikskolax.se',
           customerFirstName: 'Test',
           customerLastName: 'User',
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         amount,
         reference: reference || `TEST-POST-${Date.now()}`,
         description: 'Test order via POST',
-        returnUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'}/test-return`,
+        returnUrl: `${request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se'}/test-return`,
         ...customerData
       });
       

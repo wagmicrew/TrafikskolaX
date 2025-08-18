@@ -145,7 +145,7 @@ async function sendPaymentConfirmationNotification(booking: any) {
   try {
     // Save internal message
     const formattedDate = format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv });
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
     const bookingUrl = `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
     
     await db.insert(internalMessages).values({

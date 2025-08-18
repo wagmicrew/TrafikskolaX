@@ -16,7 +16,13 @@ export function normalizeDateKey(dateValue: unknown): string {
 
   // Try to parse any other format
   const parsed = new Date(str);
-  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  if (!isNaN(parsed.getTime())) {
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const y = parsed.getFullYear();
+    const m = pad2(parsed.getMonth() + 1);
+    const d = pad2(parsed.getDate());
+    return `${y}-${m}-${d}`;
+  }
 
   return '';
 }

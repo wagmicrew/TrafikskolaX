@@ -14,7 +14,7 @@ const inter = Inter({ subsets: ["latin"] })
 const playfair = Playfair_Display({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://www.dintrafikskolahlm.se')),
   title: "Din Trafikskola Hässleholm - Körkort & Körkortsutbildning | B-körkort, Taxiförarlegitimation",
   description:
     "Hässleholms nyaste trafikskola. Professionell körkortsutbildning för B-körkort, A-körkort och taxiförarlegitimation. Bedömningslektion 500 kr. Boka idag! ☎️ 0760-389192",

@@ -200,29 +200,37 @@ export class QliroService {
 
   private sanitizeMerchantReference(reference: string): string {
     // Qliro requires: ^[A-Za-z0-9_-]{1,25}$
-    // Convert UUIDs and long references to shorter, compliant format
-    let sanitized = reference.replace(/[^a-zA-Z0-9-_]/g, '');
-    
-    // For long references (like UUIDs), create a shorter reference
-    if (sanitized.length > 25) {
-      // Extract type prefix and create short hash
-      const parts = sanitized.split('_');
-      if (parts.length >= 2) {
-        const prefix = parts[0].substring(0, 8); // e.g., "booking", "handledar" 
-        const hash = Buffer.from(parts[1]).toString('base64url').substring(0, 15); // Short hash of UUID
-        sanitized = `${prefix}_${hash}`;
-      } else {
-        // Fallback: just truncate and add timestamp
-        const timestamp = Date.now().toString(36).slice(-6);
-        sanitized = sanitized.substring(0, 18) + '_' + timestamp;
-      }
+    // Strategy:
+    // - Keep as-is if already compliant and <= 25.
+    // - If longer, create a deterministic short ref using a type prefix + hash.
+    const cleaned = (reference || '').replace(/[^A-Za-z0-9_-]/g, '');
+
+    if (cleaned.length > 0 && cleaned.length <= 25) {
+      return cleaned;
     }
-    
-    // Ensure it's between 1-25 characters
-    sanitized = sanitized.substring(0, 25);
-    
-    console.log(`[QLIRO DEBUG] Sanitized reference: "${reference}" -> "${sanitized}" (${sanitized.length} chars)`);
-    return sanitized;
+
+    // Determine a short, readable prefix based on original ref
+    const base = cleaned || 'ref';
+    const firstPart = base.split('_')[0]?.toLowerCase() || 'ref';
+    let prefix = 'ref';
+    if (firstPart.startsWith('booking')) prefix = 'bok';
+    else if (firstPart.startsWith('handledar')) prefix = 'hdl';
+    else if (firstPart.startsWith('package') || firstPart.startsWith('pkg')) prefix = 'pkg';
+    else if (firstPart.startsWith('order')) prefix = 'ord';
+
+    // Deterministic hash to ensure uniqueness and stability for same input
+    const hash = crypto
+      .createHash('sha1')
+      .update(reference)
+      .digest('base64url')
+      .replace(/[^A-Za-z0-9_-]/g, '');
+
+    // Compose: <prefix>_<hashFragment> with total length <= 25
+    const remaining = 25 - (prefix.length + 1);
+    const shortRef = `${prefix}_${hash.slice(0, Math.max(0, remaining))}`;
+
+    console.log(`[QLIRO DEBUG] Sanitized reference: "${reference}" -> "${shortRef}" (${shortRef.length} chars)`);
+    return shortRef;
   }
 
   private generateCallbackToken(ttlMs: number = 24 * 60 * 60 * 1000): { token: string; expiresAt: Date } {
@@ -482,17 +490,96 @@ export class QliroService {
     // Generate per-order callback token for webhook (defense-in-depth)
     const { token: cbToken, expiresAt: cbExpiresAt } = this.generateCallbackToken();
 
-    const result = await this.createCheckout({
-      amount: params.amount,
-      reference: params.reference,
-      description: params.description,
-      returnUrl: params.returnUrl,
-      customerEmail: params.customerEmail,
-      customerPhone: params.customerPhone,
-      customerFirstName: params.customerFirstName,
-      customerLastName: params.customerLastName,
-      callbackToken: cbToken
-    });
+    // Before creating, also check if an order exists with the same merchantReference
+    // This helps recover when a previous attempt created an order but DB linkage by bookingId failed
+    const sanitizedMerchantRef = this.sanitizeMerchantReference(params.reference);
+    try {
+      const byRef = await db
+        .select()
+        .from(qliroOrders)
+        .where(eq(qliroOrders.merchantReference, sanitizedMerchantRef))
+        .limit(1);
+      if (byRef.length > 0) {
+        logger.info('payment', 'Found existing Qliro order by merchantReference', {
+          merchantReference: sanitizedMerchantRef,
+          qliroOrderId: byRef[0].qliroOrderId
+        });
+
+        try {
+          const orderData = await this.getOrder(byRef[0].qliroOrderId);
+          if (orderData.PaymentLink && orderData.PaymentLink !== byRef[0].paymentLink) {
+            await this.updateOrderStatus(byRef[0].qliroOrderId, orderData.Status || 'pending', orderData.PaymentLink);
+          }
+          return {
+            checkoutId: byRef[0].qliroOrderId,
+            checkoutUrl: orderData.PaymentLink || byRef[0].paymentLink,
+            merchantReference: sanitizedMerchantRef,
+            isExisting: true
+          };
+        } catch (e) {
+          logger.warn('payment', 'Failed to fetch existing Qliro order by merchantReference; will attempt to create new one', {
+            error: e instanceof Error ? e.message : 'Unknown error',
+            merchantReference: sanitizedMerchantRef
+          });
+        }
+      }
+    } catch (lookupErr) {
+      logger.warn('payment', 'Lookup by merchantReference failed; proceeding to create new Qliro order', {
+        error: lookupErr instanceof Error ? lookupErr.message : 'Unknown error',
+        merchantReference: sanitizedMerchantRef
+      });
+    }
+
+    let result: { checkoutId: string; checkoutUrl: string; merchantReference: string };
+    try {
+      result = await this.createCheckout({
+        amount: params.amount,
+        reference: params.reference,
+        description: params.description,
+        returnUrl: params.returnUrl,
+        customerEmail: params.customerEmail,
+        customerPhone: params.customerPhone,
+        customerFirstName: params.customerFirstName,
+        customerLastName: params.customerLastName,
+        callbackToken: cbToken
+      });
+    } catch (error: any) {
+      const body: string | undefined = error?.body || error?.data?.body;
+      const isExists = typeof body === 'string' && body.includes('ORDER_ALREADY_EXISTS');
+      if (error?.name === 'QliroApiError' && isExists) {
+        logger.warn('payment', 'Qliro reported ORDER_ALREADY_EXISTS; attempting recovery via merchantReference', {
+          merchantReference: sanitizedMerchantRef
+        });
+
+        try {
+          const existing = await db
+            .select()
+            .from(qliroOrders)
+            .where(eq(qliroOrders.merchantReference, sanitizedMerchantRef))
+            .limit(1);
+          if (existing.length > 0) {
+            const orderData = await this.getOrder(existing[0].qliroOrderId);
+            const checkoutUrl = orderData.PaymentLink || existing[0].paymentLink;
+            if (checkoutUrl && checkoutUrl !== existing[0].paymentLink) {
+              await this.updateOrderStatus(existing[0].qliroOrderId, orderData.Status || 'pending', checkoutUrl);
+            }
+            return {
+              checkoutId: existing[0].qliroOrderId,
+              checkoutUrl: checkoutUrl!,
+              merchantReference: sanitizedMerchantRef,
+              isExisting: true
+            };
+          }
+        } catch (recoverErr) {
+          logger.warn('payment', 'Recovery after ORDER_ALREADY_EXISTS failed', {
+            error: recoverErr instanceof Error ? recoverErr.message : 'Unknown error',
+            merchantReference: sanitizedMerchantRef
+          });
+        }
+      }
+      // If not recoverable, rethrow
+      throw error;
+    }
 
     // Step 6: Insert order reference in database
     try {

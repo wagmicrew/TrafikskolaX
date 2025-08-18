@@ -42,6 +42,10 @@ export function SwishPaymentDialog({
   const [isPaying, setIsPaying] = useState(false)
   const { toast } = useToast()
 
+  // Local date formatting helper to avoid UTC shift
+  const pad2 = (n: number) => String(n).padStart(2, '0')
+  const formatLocalYmd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
   const message = customMessage || (mode === 'package' ? `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`)
@@ -130,7 +134,7 @@ export function SwishPaymentDialog({
           localStorage.setItem('recentBooking', JSON.stringify({
             id: booking.id,
             lessonType: bookingData.lessonType?.name,
-            date: bookingData.selectedDate?.toISOString().split('T')[0],
+            date: bookingData.selectedDate ? formatLocalYmd(bookingData.selectedDate) : undefined,
             time: bookingData.selectedTime,
             duration: bookingData.lessonType?.durationMinutes,
             price: bookingData.totalPrice,

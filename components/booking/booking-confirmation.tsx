@@ -163,6 +163,10 @@ export function BookingConfirmation({
     return emailRegex.test(email)
   }
 
+  // Local date formatting helper to avoid UTC shifts
+  const pad2 = (n: number) => String(n).padStart(2, '0')
+  const formatLocalYmd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+
   // Debounced email existence check
   const checkEmailExists = async (email: string) => {
     if (!validateEmail(email)) {
@@ -363,7 +367,7 @@ export function BookingConfirmation({
           body: JSON.stringify({
             studentId: selectedStudent,
             lessonTypeId: bookingData.lessonType.id,
-            scheduledDate: bookingData.selectedDate.toISOString().split('T')[0],
+            scheduledDate: formatLocalYmd(bookingData.selectedDate),
             startTime: bookingData.selectedTime,
             endTime: bookingData.selectedTime.split(':').slice(0, 2).join(':') + ':' + 
                     String(parseInt(bookingData.selectedTime.split(':')[1]) + bookingData.lessonType.durationMinutes).padStart(2, '0'),
@@ -391,7 +395,7 @@ export function BookingConfirmation({
           localStorage.setItem('recentBooking', JSON.stringify({
             id: result.booking.id,
             lessonType: bookingData.lessonType.name,
-            date: bookingData.selectedDate.toISOString().split('T')[0],
+            date: formatLocalYmd(bookingData.selectedDate),
             time: bookingData.selectedTime,
             duration: bookingData.lessonType.durationMinutes,
             price: bookingData.totalPrice,
@@ -1207,7 +1211,6 @@ export function BookingConfirmation({
           selectedDate: bookingData.selectedDate,
           selectedTime: bookingData.selectedTime,
           totalPrice: bookingData.totalPrice,
-          transmissionType: bookingData.transmissionType,
           guestName: isHandledarutbildning ? supervisorName : guestName,
           guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
           guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,

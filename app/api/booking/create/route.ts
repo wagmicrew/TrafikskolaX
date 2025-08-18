@@ -695,7 +695,8 @@ export async function POST(request: NextRequest) {
           try {
             // Create Qliro checkout for the booking via service
             const { qliroService } = await import('@/lib/payment/qliro-service');
-            const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '') || 'http://localhost:3000';
+            // Get base URL from request or environment
+            const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
             const qliroData = await qliroService.getOrCreateCheckout({
               amount: totalPrice,
               reference: `booking_${booking.id}`,
@@ -912,7 +913,7 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
   // Get the current domain from environment (no request in scope here)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
@@ -1023,7 +1024,7 @@ async function saveInternalMessage(userId: string | null, booking: any, alreadyP
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
   // Get the current domain from environment (no request in scope here)
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;

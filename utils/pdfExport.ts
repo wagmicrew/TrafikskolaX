@@ -32,7 +32,7 @@ const getBaseUrl = () => {
   // Server-side environment - use environment variable or default
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
                   process.env.VERCEL_URL || 
-                  'http://localhost:3000';
+                  'https://www.dintrafikskolahlm.se';
   
   return baseUrl;
 };

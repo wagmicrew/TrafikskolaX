@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, X, CreditCard } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, X, CreditCard, AlertCircle } from "lucide-react";
 import { useQliroListener } from "@/hooks/use-qliro-listener";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,6 +45,7 @@ export function QliroModernPopup({
   const [checkoutHtml, setCheckoutHtml] = useState<string>('');
   const [isPaymentCompleted, setIsPaymentCompleted] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -178,6 +179,7 @@ export function QliroModernPopup({
       setError('');
       setIsPaymentCompleted(false);
       setCheckoutHtml('');
+      setShowCloseConfirm(false);
       processCheckoutFlow();
     }
   }, [isOpen, orderId]);
@@ -223,92 +225,139 @@ export function QliroModernPopup({
     if (isPaymentCompleted) {
       onClose();
     } else {
-      if (confirm('Är du säker på att du vill avbryta betalningen?')) {
-        onClose();
-      }
+      setShowCloseConfirm(true);
     }
+  };
+
+  const confirmClose = () => {
+    setShowCloseConfirm(false);
+    onClose();
+  };
+
+  const cancelClose = () => {
+    setShowCloseConfirm(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden">
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-            <div className="flex items-center gap-3">
-              <CreditCard className="w-6 h-6 text-blue-600" />
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Qliro Checkout</h2>
-                <p className="text-sm text-gray-600">{description} • {amount} kr</p>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[1200px] lg:max-w-[1400px] xl:max-w-[1600px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        {/* Glassmorphism Container */}
+        <div className="relative bg-white/95 backdrop-blur-xl border border-gray-200 rounded-xl sm:rounded-2xl shadow-2xl h-full max-h-[95vh] overflow-hidden">
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-red-50/50 via-white/50 to-blue-50/50 rounded-xl sm:rounded-2xl"></div>
 
-          {/* Two-column layout */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Left column - Steps */}
-            <div className="w-1/3 border-r bg-gray-50 p-6 overflow-y-auto">
-              <h3 className="text-sm font-medium text-gray-700 mb-4">Betalningsförlopp</h3>
-              <div className="space-y-1">
-                {steps.map((step, index) => (
-                  <StepIndicator key={step.id} step={step} index={index} />
-                ))}
+          {/* Scrollable Content Container */}
+          <div className="relative z-10 h-full flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center shadow-lg shadow-red-900/20">
+                  <CreditCard className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Qliro Checkout</h2>
+                  <p className="text-sm text-gray-600">{description} • {amount} kr</p>
+                </div>
               </div>
+              <button
+                onClick={handleClose}
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 group flex-shrink-0"
+                aria-label="Stäng checkout"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 group-hover:scale-110 transition-transform" />
+              </button>
             </div>
 
-            {/* Right column - Qliro DOM */}
-            <div className="w-2/3 p-6 overflow-y-auto">
-              {error ? (
-                <div className="text-center py-8">
-                  <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Något gick fel</h3>
-                  <p className="text-gray-600 mb-4">{error}</p>
-                  <Button onClick={onClose} variant="outline">
-                    Stäng
-                  </Button>
+            {/* Two-column layout */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Left column - Steps */}
+              <div className="w-1/3 border-r border-gray-200 bg-gray-50 p-4 sm:p-6 overflow-y-auto">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">Betalningsförlopp</h3>
+                <div className="space-y-1">
+                  {steps.map((step, index) => (
+                    <StepIndicator key={step.id} step={step} index={index} />
+                  ))}
                 </div>
-              ) : isPaymentCompleted ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Betalning genomförd!</h3>
-                  <p className="text-gray-600 mb-4">Din betalning har behandlats framgångsrikt.</p>
-                  <Button onClick={onClose} className="bg-green-600 hover:bg-green-700">
-                    Stäng
-                  </Button>
-                </div>
-              ) : currentStep >= 3 ? (
-                // Show Qliro checkout form
-                <div className="h-full">
-                  <div 
-                    ref={checkoutContainerRef}
-                    className="qliro-checkout-container h-full"
-                    style={{ minHeight: '400px' }}
-                  />
-                  {!checkoutHtml && (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
-                      <span className="text-gray-600">Laddar betalningsformulär...</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Show loading state
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
-                  <span className="text-gray-600">Förbereder betalning...</span>
-                </div>
-              )}
+              </div>
+
+              {/* Right column - Qliro DOM */}
+              <div className="w-2/3 bg-white p-4 sm:p-6 overflow-y-auto">
+                {error ? (
+                  <div className="text-center py-8">
+                    <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Något gick fel</h3>
+                    <p className="text-gray-600 mb-4">{error}</p>
+                    <Button onClick={onClose} variant="outline" className="rounded-xl">
+                      Stäng
+                    </Button>
+                  </div>
+                ) : isPaymentCompleted ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Betalning genomförd!</h3>
+                    <p className="text-gray-600 mb-4">Din betalning har behandlats framgångsrikt.</p>
+                    <Button onClick={onClose} className="bg-green-600 hover:bg-green-700 rounded-xl">
+                      Stäng
+                    </Button>
+                  </div>
+                ) : currentStep >= 3 ? (
+                  // Show Qliro checkout form
+                  <div className="h-full bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div 
+                      ref={checkoutContainerRef}
+                      className="qliro-checkout-container h-full overflow-y-auto"
+                      style={{ minHeight: '400px' }}
+                    />
+                    {!checkoutHtml && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+                        <span className="text-gray-600">Laddar betalningsformulär...</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Show loading state
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
+                    <span className="text-gray-600">Förbereder betalning...</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Close Confirmation Dialog */}
+        {showCloseConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Avbryt betalning?</h3>
+                  <p className="text-sm text-gray-600">Är du säker på att du vill avbryta betalningen?</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={cancelClose}
+                  variant="outline"
+                  className="flex-1 rounded-xl"
+                >
+                  Fortsätt betalning
+                </Button>
+                <Button
+                  onClick={confirmClose}
+                  className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl"
+                >
+                  Avbryt
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

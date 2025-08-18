@@ -494,47 +494,51 @@ export function BookingConfirmation({
     if (selectedPaymentMethod === 'qliro') {
       try {
         setLoading(true)
+        
+        console.log('[BOOKING DEBUG] Starting Qliro payment for booking:', bookingData.id || bookingData.tempBookingId);
+        
+        // Step 1 & 2: Create order via unified API (following Qliro docs)
         const response = await fetch('/api/payments/qliro/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bookingId: bookingData.id || bookingData.tempBookingId
           })
-        })
+        });
         
-        if (!response.ok) throw new Error('Kunde inte skapa Qliro-checkout')
+        if (!response.ok) throw new Error('Kunde inte skapa Qliro-checkout');
         
-        const { checkoutUrl, checkoutId } = await response.json()
-        try { 
-          const res = await fetch('/api/public/site-settings');
-          const s = await res.json();
-          if (s?.debug_extended_logs) console.debug('[BookingCheckout] Qliro checkoutUrl', checkoutUrl)
-        } catch {}
-        try {
-          const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
-          const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
-          const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
-          const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-          const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-          // Prefer raw popup to avoid any site wrapper
-          try {
-            const { openQliroPopup } = await import('@/lib/payment/qliro-popup')
-            if (checkoutId) {
-              await openQliroPopup(String(checkoutId))
-              return
+        const data = await response.json();
+        console.log('[BOOKING DEBUG] Order created successfully:', {
+          checkoutId: data.checkoutId,
+          merchantReference: data.merchantReference
+        });
+        
+        // Step 3, 4, 5: Use flow manager to handle checkout display
+        const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
+        await QliroFlowManager.openQliroCheckout({
+          orderId: String(data.checkoutId || data.checkoutId),
+          amount: bookingData.totalPrice,
+          description: `Körlektion ${bookingData.lessonType?.name || ''}`,
+          checkoutUrl: data.checkoutUrl,
+          onCompleted: () => {
+            console.log('[BOOKING DEBUG] Payment completed, redirecting...');
+            const id = bookingData.id || bookingData.tempBookingId;
+            if (id) {
+              window.location.href = `/qliro/return?ref=${encodeURIComponent(`booking_${id}`)}&status=paid`;
             }
-          } catch {}
-          const params = new URLSearchParams()
-          if (checkoutId) params.set('orderId', String(checkoutId))
-          const safeUrl = `/payments/qliro/checkout?${params.toString()}`
-          const win = window.open(safeUrl, 'qliro_window', features);
-          if (win) win.focus();
-        } catch {}
+          },
+          onError: (error) => {
+            console.error('[BOOKING DEBUG] Payment error:', error);
+            showNotification('Betalningsfel', `Ett fel uppstod: ${error.message || 'Okänt fel'}`, 'error');
+          }
+        });
+        
       } catch (error) {
-        console.error('Qliro error:', error)
-        showNotification('Ett fel uppstod', 'Kunde inte starta Qliro-checkout. Försök igen senare.', 'error')
+        console.error('[BOOKING DEBUG] Qliro payment error:', error);
+        showNotification('Ett fel uppstod', 'Kunde inte starta Qliro-checkout. Försök igen senare.', 'error');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
       return
     }

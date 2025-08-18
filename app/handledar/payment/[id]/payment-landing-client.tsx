@@ -70,23 +70,46 @@ export default function PaymentLandingClient({
   const payWithQliro = async () => {
     try {
       setIsGeneratingQliro(true);
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      
+      console.log('[HANDLEDAR DEBUG] Starting Qliro payment for booking:', booking.id);
+      
+      // Step 1 & 2: Create order via unified API (following Qliro docs)
       const res = await fetch('/api/payments/qliro/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ handledarBookingId: booking.id }),
       });
+      
       const data = await res.json();
-      if (!res.ok || !data?.checkoutUrl) {
+      if (!res.ok || !data?.success) {
         throw new Error(data?.error || 'Kunde inte skapa Qliro-checkout');
       }
-      try {
-        const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
-        if (data.checkoutId) { await openQliroPopup(String(data.checkoutId)); return; }
-      } catch {}
-      window.location.href = data.checkoutUrl;
+      
+      console.log('[HANDLEDAR DEBUG] Order created successfully:', {
+        checkoutId: data.checkoutId,
+        merchantReference: data.merchantReference
+      });
+      
+      // Step 3, 4, 5: Use flow manager to handle checkout display
+      const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
+      await QliroFlowManager.openQliroCheckout({
+        orderId: String(data.checkoutId),
+        amount: amount,
+        description: `Handledarkurs ${booking.id.slice(0, 8)}`,
+        checkoutUrl: data.checkoutUrl,
+        onCompleted: () => {
+          console.log('[HANDLEDAR DEBUG] Payment completed, redirecting...');
+          window.location.href = `/qliro/return?ref=${encodeURIComponent(`handledar_${booking.id}`)}&status=paid`;
+        },
+        onError: (error) => {
+          console.error('[HANDLEDAR DEBUG] Payment error:', error);
+          toast.error(`Betalningsfel: ${error.message || 'Ett fel uppstod'}`);
+        }
+      });
+      
     } catch (err) {
-      alert((err as Error).message);
+      console.error('[HANDLEDAR DEBUG] Qliro payment error:', err);
+      toast.error((err as Error).message || 'Ett fel uppstod vid betalning');
     } finally {
       setIsGeneratingQliro(false);
     }

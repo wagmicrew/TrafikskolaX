@@ -173,7 +173,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           setShowSwishDialog(true);
           
         } else if (paymentMethod === 'qliro') {
-          // Set up Qliro payment dialog
+          // Set up Qliro payment using new flow manager
           const pkg = packages.find((p: Package) => p.id === packageId);
           if (!pkg) {
             throw new Error('Paketet kunde inte hittas');
@@ -181,28 +181,35 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           
           const effectivePrice = getEffectivePrice(pkg);
           
-          setQliroPaymentData({ amount: effectivePrice, purchaseId: data.purchaseId, checkoutUrl: data.checkoutUrl })
-          // Open Qliro in small centered window; pass orderId if available
-          try {
-            const width = Math.min(480, Math.floor(window.innerWidth * 0.8));
-            const height = Math.min(780, Math.floor(window.innerHeight * 0.9));
-            const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
-            const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-            const features = `popup=yes,noopener,noreferrer,resizable=yes,scrollbars=yes,width=${width},height=${height},left=${left},top=${top}`;
-            // Prefer raw popup to avoid site wrapper
-            try {
-              const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
-              if (data.checkoutId) {
-                await openQliroPopup(String(data.checkoutId));
-                return;
+          console.log('[PACKAGES DEBUG] Starting Qliro payment for package:', packageId);
+          console.log('[PACKAGES DEBUG] Purchase data:', {
+            purchaseId: data.purchaseId,
+            checkoutId: data.checkoutId,
+            amount: effectivePrice
+          });
+          
+          // Step 3, 4, 5: Use flow manager to handle checkout display
+          const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
+          await QliroFlowManager.openQliroCheckout({
+            orderId: String(data.checkoutId),
+            amount: effectivePrice,
+            description: `Paket ${pkg.name}`,
+            checkoutUrl: data.checkoutUrl,
+            onCompleted: () => {
+              console.log('[PACKAGES DEBUG] Payment completed, redirecting...');
+              try {
+                window.location.href = `/qliro/return?ref=${encodeURIComponent(`package_${data.purchaseId}`)}&status=paid`;
+              } catch (e) {
+                console.error('[PACKAGES DEBUG] Failed to redirect:', e);
+                // Fallback: reload page to show updated purchase status
+                window.location.reload();
               }
-            } catch {}
-            // Fallback to route
-            const params = new URLSearchParams();
-            if (data.checkoutId) params.set('orderId', String(data.checkoutId));
-            const win = window.open(`/payments/qliro/checkout?${params.toString()}`, 'qliro_window', features);
-            if (win) win.focus();
-          } catch {}
+            },
+            onError: (error) => {
+              console.error('[PACKAGES DEBUG] Payment error:', error);
+              toast.error(`Betalningsfel: ${error.message || 'Ett fel uppstod'}`);
+            }
+          });
         }
       } else {
         toast.error(data.error || 'Något gick fel vid skapande av köp');

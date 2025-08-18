@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne } from 'drizzle-orm';
@@ -173,12 +173,26 @@ export async function POST(request: NextRequest) {
 
       // Normalize incoming scheduledDate consistently
       const scheduledDateKey = normalizeDateKey(scheduledDate);
-      console.log(`[BOOKING][PAST_DATE_CHECK] raw="${scheduledDate}", normalized=${scheduledDateKey}, todayLocal=${todayLocalStr}`);
+      // Normalize times to HH:MM to ensure consistent comparisons and inserts
+      const normalizeTime = (t: any) => (typeof t === 'string' ? t.slice(0, 5) : String(t).slice(0, 5));
+      const startTimeNorm = normalizeTime(startTime);
+      const endTimeNorm = normalizeTime(endTime);
+      console.log(`[BOOKING][PAST_DATE_CHECK] raw="${scheduledDate}", normalized=${scheduledDateKey}, todayLocal=${todayLocalStr}, start=${startTimeNorm}, end=${endTimeNorm}`);
       if (!scheduledDateKey) {
         return NextResponse.json({ error: 'Ogiltigt datumformat.' }, { status: 400 });
       }
       if (scheduledDateKey < todayLocalStr) {
         return NextResponse.json({ error: 'Kan inte boka ett datum i det förflutna.' }, { status: 400 });
+      }
+
+      // Enforce the same 2-hour rule as visible-slots for non-admin/teacher users (regular lessons)
+      if (sessionType !== 'handledar' && (!currentUserRole || (currentUserRole !== 'admin' && currentUserRole !== 'teacher'))) {
+        const slotDateTime = new Date(`${scheduledDateKey}T${startTimeNorm}`);
+        const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        if (slotDateTime <= twoHoursFromNow) {
+          console.log(`[BOOKING][WITHIN_2H] start=${startTimeNorm}, now+2h=${twoHoursFromNow.toISOString()}`);
+          return NextResponse.json({ error: 'Tiden är inom 2 timmar. Ring för bokning.' }, { status: 400 });
+        }
       }
 
       // Check blocked slots (all-day or overlapping intervals) using shared normalizer
@@ -188,19 +202,40 @@ export async function POST(request: NextRequest) {
         .from(blockedSlots)
         .where(eq(blockedSlots.date, scheduledDateKey));
       
-      console.log(`Booking creation: checking ${scheduledDate} against ${blockedForDate.length} blocked slots`);
+      console.log(`[BOOKING][BLOCKED_CHECK] date=${scheduledDateKey} blocks=${blockedForDate.length} details=`, blockedForDate.map(b => ({ isAllDay: b.isAllDay, timeStart: b.timeStart, timeEnd: b.timeEnd })));
+
+      // Load extra slots for this date and filter to valid ones (respect reservation and not overlapping blocked intervals)
+      const extrasForDate = await db.select().from(extraSlots).where(eq(extraSlots.date, scheduledDateKey));
+      const allowedExtras = extrasForDate.filter(ex => {
+        if (ex.reservedForUserId && ex.reservedForUserId !== userId) return false;
+        // Skip extras that overlap a blocked interval
+        const overlapsBlocked = blockedForDate.some(b => b.timeStart && b.timeEnd && doTimeRangesOverlap(
+          (typeof ex.timeStart === 'string' ? ex.timeStart.slice(0,5) : String(ex.timeStart).slice(0,5)),
+          (typeof ex.timeEnd === 'string' ? ex.timeEnd.slice(0,5) : String(ex.timeEnd).slice(0,5)),
+          b.timeStart,
+          b.timeEnd
+        ));
+        return !overlapsBlocked;
+      });
+      const isRequestedExtraSlot = allowedExtras.some(ex =>
+        (typeof ex.timeStart === 'string' ? ex.timeStart.slice(0,5) : String(ex.timeStart).slice(0,5)) === startTimeNorm &&
+        (typeof ex.timeEnd === 'string' ? ex.timeEnd.slice(0,5) : String(ex.timeEnd).slice(0,5)) === endTimeNorm
+      );
+      console.log(`[BOOKING][EXTRA_SLOTS] date=${scheduledDateKey} all=${extrasForDate.length} allowed=${allowedExtras.length} isRequestedExtra=${isRequestedExtraSlot}`);
 
       const isAllDayBlocked = blockedForDate.some(b => b.isAllDay);
       if (isAllDayBlocked) {
         return NextResponse.json({ error: 'Dagen är blockerad för bokning.' }, { status: 400 });
       }
 
-      const isTimeBlocked = blockedForDate.some(b => {
-        if (!b.timeStart || !b.timeEnd) return false;
-        return doTimeRangesOverlap(startTime, endTime, b.timeStart, b.timeEnd);
-      });
-      if (isTimeBlocked) {
-        return NextResponse.json({ error: 'Denna tid är blockerad och kan inte bokas.' }, { status: 400 });
+      const blockingEntry = blockedForDate.find(b => b.timeStart && b.timeEnd && doTimeRangesOverlap(startTimeNorm, endTimeNorm, b.timeStart, b.timeEnd));
+      if (blockingEntry) {
+        if (isRequestedExtraSlot) {
+          console.log(`[BOOKING][EXTRA_OVERRIDE] start=${startTimeNorm} end=${endTimeNorm} allowed by extra slot despite block ${blockingEntry.timeStart}-${blockingEntry.timeEnd}`);
+        } else {
+          console.log(`[BOOKING][BLOCKED_MATCH] start=${startTimeNorm} end=${endTimeNorm} vs blocked ${blockingEntry.timeStart}-${blockingEntry.timeEnd}`);
+          return NextResponse.json({ error: 'Denna tid är blockerad och kan inte bokas.' }, { status: 400 });
+        }
       }
     }
 
@@ -216,13 +251,14 @@ export async function POST(request: NextRequest) {
         .select()
         .from(bookings)
         .where(
-          eq(bookings.scheduledDate, scheduledDate)
+          eq(bookings.scheduledDate, normalizeDateKey(scheduledDate))
         );
 
       const hasConflict = doesAnyBookingOverlapWithSlot(
         existingBookings,
-        startTime,
-        endTime,
+        // Use normalized times for conflict check
+        (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)),
+        (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5)),
         false // Check ALL bookings including temporary ones
       );
 
@@ -298,8 +334,8 @@ export async function POST(request: NextRequest) {
             userId: userId!,
             lessonTypeId: sessionId!,
             scheduledDate,
-            startTime,
-            endTime,
+            startTime: (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)),
+            endTime: (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5)),
             durationMinutes,
             transmissionType,
             totalPrice: alreadyPaid ? totalPrice : 0, // Set price to 0 unless already paid is selected
@@ -552,7 +588,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Find available teacher for this time slot
-          const availableTeacher = await findAvailableTeacher(db, scheduledDate, startTime, endTime);
+          const availableTeacher = await findAvailableTeacher(db, scheduledDate, (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)), (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5)));
 
           // Create and confirm booking
           const [booking] = await db
@@ -561,8 +597,8 @@ export async function POST(request: NextRequest) {
               userId,
               lessonTypeId: sessionId!,
               scheduledDate,
-              startTime,
-              endTime,
+              startTime: (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)),
+              endTime: (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5)),
               durationMinutes,
               transmissionType,
               totalPrice,
@@ -590,7 +626,12 @@ export async function POST(request: NextRequest) {
           });
       } else {
         // Find available teacher for this time slot
-        const availableTeacher = await findAvailableTeacher(db, scheduledDate, startTime, endTime);
+        const availableTeacher = await findAvailableTeacher(
+          db,
+          scheduledDate,
+          (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)),
+          (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5))
+        );
         
         // Create the booking with temporary status
         const [booking] = await db
@@ -599,8 +640,8 @@ export async function POST(request: NextRequest) {
             userId: userId!,
             lessonTypeId: sessionId!,
             scheduledDate,
-            startTime,
-            endTime,
+            startTime: (typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5)),
+            endTime: (typeof endTime === 'string' ? endTime.slice(0, 5) : String(endTime).slice(0, 5)),
             durationMinutes,
             transmissionType,
             totalPrice,
@@ -654,7 +695,7 @@ export async function POST(request: NextRequest) {
             const qliroData = await qliroService.getOrCreateCheckout({
               amount: totalPrice,
               reference: `booking_${booking.id}`,
-              description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${startTime}`,
+              description: `Körlektion ${format(new Date(scheduledDate), 'yyyy-MM-dd')} ${(typeof startTime === 'string' ? startTime.slice(0, 5) : String(startTime).slice(0, 5))}`,
               returnUrl: `${baseUrl}/payments/qliro/return?booking=${booking.id}`,
               bookingId: booking.id,
             });
@@ -866,8 +907,8 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
   const formattedDate = format(bookingDate, 'EEEE d MMMM yyyy', { locale: sv });
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
-  // Get the current domain from request headers or environment
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  // Get the current domain from environment (no request in scope here)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;
@@ -977,8 +1018,8 @@ async function saveInternalMessage(userId: string | null, booking: any, alreadyP
   const formattedDate = format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv });
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890';
   
-  // Get the current domain from environment
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+  // Get the current domain from environment (no request in scope here)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const bookingUrl = isHandledar ? 
     `${baseUrl}/dashboard/student` : 
     `${baseUrl}/dashboard/student/bokningar/${booking.id}`;

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import { Switch } from '@/components/ui/switch';
@@ -76,6 +77,8 @@ interface Settings {
   qliro_prod_merchant_id: string;
   qliro_prod_api_key: string;
   qliro_prod_api_secret?: string;
+  // Qliro flow type
+  qliro_checkout_flow?: string;
   // Social links (optional)
   social_facebook?: string;
   social_instagram?: string;
@@ -149,6 +152,7 @@ export default function SettingsClient() {
     qliro_prod_merchant_id: '',
     qliro_prod_api_key: '',
     qliro_prod_api_secret: '',
+    qliro_checkout_flow: 'window',
     google_maps_api_key: '',
     debug_extended_logs: false,
   });
@@ -1180,6 +1184,27 @@ export default function SettingsClient() {
                 <Button onClick={addSchoolReceiverType} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
                   <AtSign className="w-4 h-4 mr-2" /> Lägg till school receiver type
                 </Button>
+                <Button
+                  onClick={async () => {
+                    const t = toast.loading('Initierar Qliro checkout flow setting...');
+                    try {
+                      const res = await fetch('/api/admin/settings/init-qliro-flow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera setting');
+                      toast.success('Qliro checkout flow setting initierad!', { id: t });
+                      // Reload settings
+                      loadSettings();
+                    } catch (error: any) {
+                      toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
+                    }
+                  }}
+                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" /> Initiera Qliro Checkout Flow Setting
+                </Button>
                 <Button onClick={testSwishConfirmation} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
                   <CheckCircle className="w-4 h-4 mr-2" /> Testa Swish bekräftelse
                 </Button>
@@ -1376,6 +1401,38 @@ export default function SettingsClient() {
                           <div className="text-sm text-slate-300">Aktivera extra debug-utskrifter i konsolen för Qliro-flöden</div>
                         </div>
                         <Switch id="debug-extended" checked={!!settings.debug_extended_logs} onCheckedChange={(checked) => updateSetting('debug_extended_logs', checked)} />
+                      </div>
+                    </div>
+
+                    {/* Qliro checkout flow type */}
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-white font-semibold">Checkout Flow Type</div>
+                          <div className="text-sm text-slate-300">Välj hur Qliro-checkout ska visas för kunder</div>
+                        </div>
+                        <Select 
+                          value={settings.qliro_checkout_flow || 'window'} 
+                          onValueChange={(value) => updateSetting('qliro_checkout_flow', value)}
+                        >
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                            <SelectValue placeholder="Välj checkout flow" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="window">
+                              <div className="flex flex-col">
+                                <span className="font-medium">Nytt fönster</span>
+                                <span className="text-sm text-gray-500">Öppnar Qliro i ett nytt webbläsarfönster</span>
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="popup">
+                              <div className="flex flex-col">
+                                <span className="font-medium">Modern popup</span>
+                                <span className="text-sm text-gray-500">Visar Qliro i en modal med steg-för-steg progress</span>
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 

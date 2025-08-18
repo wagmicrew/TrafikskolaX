@@ -147,6 +147,7 @@ export default function QliroSettingsClient() {
   const [authApiSecret, setAuthApiSecret] = useState('');
   const [authEnv, setAuthEnv] = useState<'sandbox' | 'production'>('sandbox');
   const [authTesting, setAuthTesting] = useState(false);
+  const [authResult, setAuthResult] = useState<any>(null);
   const [testSSN, setTestSSN] = useState<string>("");
   const [testQliroOpen, setTestQliroOpen] = useState(false);
   const [testQliroUrl, setTestQliroUrl] = useState("");
@@ -156,6 +157,20 @@ export default function QliroSettingsClient() {
   const [pendingOrderId, setPendingOrderId] = useState<string>("");
   const [pendingCheckoutUrl, setPendingCheckoutUrl] = useState<string>("");
   const [iframeSrc, setIframeSrc] = useState<string>("");
+
+  // Qliro Payment Methods Settings
+  const [paymentMethods, setPaymentMethods] = useState({
+    qliro_payment_invoice: true,
+    qliro_payment_campaign: false,
+    qliro_payment_partpayment_account: false,
+    qliro_payment_partpayment_fixed: false,
+    qliro_payment_creditcards: true,
+    qliro_payment_free: false,
+    qliro_payment_trustly_direct: false,
+    qliro_payment_swish: false
+  });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Confirm refund dialog
   const [refundId, setRefundId] = useState<string | null>(null);
@@ -260,6 +275,67 @@ export default function QliroSettingsClient() {
     }
   }, []);
 
+  const loadPaymentMethodSettings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/settings?category=payment');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load settings');
+      
+      const settings = data.settings || [];
+      const paymentSettings: any = {};
+      
+      settings.forEach((setting: any) => {
+        if (setting.key && setting.key.startsWith('qliro_payment_')) {
+          paymentSettings[setting.key] = setting.value === 'true';
+        }
+      });
+      
+      setPaymentMethods(paymentSettings);
+      setHasUnsavedChanges(false);
+    } catch (err: any) {
+      console.error('Failed to load payment method settings', err);
+      toast.error('Kunde inte ladda betalningsmetodinställningar');
+    }
+  }, []);
+
+  const savePaymentMethodSettings = async () => {
+    setSavingSettings(true);
+    const t = toast.loading('Sparar inställningar...', { position: 'top-right' });
+    
+    try {
+      const settingsToUpdate = Object.entries(paymentMethods).map(([key, value]) => ({
+        key,
+        value: value.toString(),
+        category: 'payment'
+      }));
+      
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: settingsToUpdate })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save settings');
+      
+      toast.success('Inställningar sparade', { id: t, position: 'top-right' });
+      setHasUnsavedChanges(false);
+    } catch (err: any) {
+      console.error('Failed to save payment method settings', err);
+      toast.error(`Kunde inte spara inställningar: ${err.message}`, { id: t, position: 'top-right' });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handlePaymentMethodChange = (key: string, value: boolean) => {
+    setPaymentMethods(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    setHasUnsavedChanges(true);
+  };
+
   useEffect(() => {
     loadPayments();
   }, [loadPayments]);
@@ -271,6 +347,24 @@ export default function QliroSettingsClient() {
   useEffect(() => {
     loadTestStatus();
   }, [loadTestStatus]);
+
+  useEffect(() => {
+    loadPaymentMethodSettings();
+  }, [loadPaymentMethodSettings]);
+
+  // Warn user before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
+        return 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   // Capture any qliro:* and legacy events broadcast via postMessage for richer logs
   useEffect(() => {
@@ -498,22 +592,27 @@ export default function QliroSettingsClient() {
                 try {
                   const res = await fetch('/api/admin/qliro/auth-test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey: authApiKey, apiSecret: authApiSecret, environment: authEnv }) });
                   const data = await res.json();
-                  if (!res.ok || !data?.success) {
-                    toast.error(`Auth misslyckades`);
-                    console.log('[Qliro Auth Test]', data);
-                  } else {
-                    toast.success('Auth OK – öppnar Qliro...');
-                    try {
-                      const { openQliroPopup } = await import('@/lib/payment/qliro-popup');
-                      if (data?.details?.orderId) { await openQliroPopup(String(data.details.orderId)); return; }
-                    } catch {}
-                    if (data?.details?.checkoutUrl) window.open(`/payments/qliro/checkout?url=${encodeURIComponent(data.details.checkoutUrl)}`, '_blank');
-                  }
-                } catch (e: any) {
-                  toast.error(e?.message || 'Auth test fel');
-                } finally { setAuthTesting(false); }
-              }} disabled={authTesting}> {authTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null} Testa auth </Button>
+                  if (!res.ok) throw new Error(data.error || data.message || 'Autentisering misslyckades');
+                  toast.success('Autentisering lyckades!', { position: 'top-right' });
+                  setAuthResult(data);
+                } catch (err: any) {
+                  toast.error(err.message || 'Autentisering misslyckades', { position: 'top-right' });
+                } finally {
+                  setAuthTesting(false);
+                }
+              }} disabled={authTesting} className="bg-blue-600 hover:bg-blue-700">
+                {authTesting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Testa autentisering
+              </Button>
+              <Button onClick={testDummyOrder} variant="outline">Testa dummy order</Button>
             </div>
+            {authResult && (
+              <div className="mt-3 p-2 bg-green-900/20 border border-green-500/30 rounded text-sm">
+                <div className="font-semibold text-green-400">Autentisering lyckades</div>
+                <div className="text-green-300 text-xs mt-1">API Key: {authResult.apiKeyMasked}</div>
+                <div className="text-green-300 text-xs">Miljö: {authResult.environment}</div>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-1.5">
@@ -924,6 +1023,147 @@ export default function QliroSettingsClient() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Qliro Payment Methods Settings */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>Qliro Betalningsmetoder</CardTitle>
+            <div className="flex items-center gap-2">
+              {hasUnsavedChanges && (
+                <div className="flex items-center gap-2 text-sm text-amber-400">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                  Osparade ändringar
+                </div>
+              )}
+              <Button 
+                onClick={savePaymentMethodSettings}
+                disabled={!hasUnsavedChanges || savingSettings}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {savingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+                Spara
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm text-slate-400 mb-4">
+            Välj vilka betalningsmetoder som ska vara tillgängliga i Qliro-kassan. 
+            Ändringar påverkar alla nya betalningar.
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_invoice"
+                  checked={paymentMethods.qliro_payment_invoice}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_invoice', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_invoice" className="text-sm font-medium text-white">
+                  Faktura (Invoice)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_campaign"
+                  checked={paymentMethods.qliro_payment_campaign}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_campaign', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_campaign" className="text-sm font-medium text-white">
+                  Kampanj (Campaign)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_partpayment_account"
+                  checked={paymentMethods.qliro_payment_partpayment_account}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_partpayment_account', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_partpayment_account" className="text-sm font-medium text-white">
+                  Delbetalning Konto (Part Payment Account)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_partpayment_fixed"
+                  checked={paymentMethods.qliro_payment_partpayment_fixed}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_partpayment_fixed', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_partpayment_fixed" className="text-sm font-medium text-white">
+                  Delbetalning Fast (Part Payment Fixed)
+                </label>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_creditcards"
+                  checked={paymentMethods.qliro_payment_creditcards}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_creditcards', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_creditcards" className="text-sm font-medium text-white">
+                  Kreditkort (Credit Cards)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_free"
+                  checked={paymentMethods.qliro_payment_free}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_free', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_free" className="text-sm font-medium text-white">
+                  Gratis (Free)
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_trustly_direct"
+                  checked={paymentMethods.qliro_payment_trustly_direct}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_trustly_direct', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_trustly_direct" className="text-sm font-medium text-white">
+                  Trustly Direct
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="qliro_payment_swish"
+                  checked={paymentMethods.qliro_payment_swish}
+                  onChange={(e) => handlePaymentMethodChange('qliro_payment_swish', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label htmlFor="qliro_payment_swish" className="text-sm font-medium text-white">
+                  Swish
+                </label>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

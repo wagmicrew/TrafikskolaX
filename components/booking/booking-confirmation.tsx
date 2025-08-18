@@ -9,6 +9,7 @@ import { AlertCircle, CreditCard, DollarSign, Loader2, User, Mail, Phone, UserPl
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
+import { useAuthActions } from '@/hooks/useAuthActions'
 import { toast, Toaster } from 'sonner'
 import { CheckCircle, ArrowLeft } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -102,6 +103,7 @@ export function BookingConfirmation({
   const [existingUserName, setExistingUserName] = useState('')
   const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
   const { user: authUser } = useAuth()
+  const { handleLogin } = useAuthActions()
   useQliroListener({
     onCompleted: () => {
       const id = bookingData.id || bookingData.tempBookingId
@@ -609,10 +611,9 @@ export function BookingConfirmation({
     }
   }
 
-  const handleUseExistingAccount = () => {
-    // Redirect to login page with return URL
-    const returnUrl = encodeURIComponent(window.location.href)
-    window.location.href = `/login?redirect=${returnUrl}`
+  const handleUseExistingAccount = (e: React.MouseEvent) => {
+    e.preventDefault()
+    handleLogin(e, window.location.href)
   }
 
   const handleLoginSuccess = () => {

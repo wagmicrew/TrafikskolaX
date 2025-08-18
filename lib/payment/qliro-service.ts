@@ -642,6 +642,8 @@ export class QliroService {
     reference: string;
     description: string;
     returnUrl: string;
+    bookingId?: string;
+    handledarBookingId?: string;
     customerEmail?: string;
     customerPhone?: string;
     customerFirstName?: string;
@@ -673,6 +675,10 @@ export class QliroService {
     
     console.log('[QLIRO DEBUG] URLs being sent to Qliro:', checkoutUrls);
 
+    // Load payment method settings from database
+    const paymentMethodSettings = await this.loadPaymentMethodSettings();
+    const enabledPaymentMethods = this.buildPaymentMethodsList(paymentMethodSettings);
+
     const checkoutRequest: any = {
       MerchantApiKey: settings.apiKey,
       MerchantReference: merchantReference,
@@ -684,11 +690,8 @@ export class QliroService {
       MerchantCheckoutStatusPushUrl: checkoutUrls.checkoutStatusPushUrl,
       MerchantOrderManagementStatusPushUrl: checkoutUrls.orderManagementStatusPushUrl,
       MerchantOrderValidationUrl: checkoutUrls.orderValidationUrl,
-      // Explicitly exclude Swish and include all other payment methods
-      PaymentMethods: {
-        ExcludeMethods: ['Swish'],
-        IncludeMethods: ['Card', 'Invoice', 'DirectDebit', 'Klarna', 'PayPal']
-      },
+      // Use configured payment methods
+      PaymentMethods: enabledPaymentMethods,
       OrderItems: [{
         MerchantReference: merchantReference,
         Description: params.description,
@@ -732,7 +735,8 @@ export class QliroService {
       url,
       merchantReference,
       amount: params.amount,
-      hasCustomer: !!(params.customerEmail || params.customerFirstName)
+      hasCustomer: !!(params.customerEmail || params.customerFirstName),
+      paymentMethods: enabledPaymentMethods
     });
 
     let response: Response;
@@ -915,6 +919,63 @@ export class QliroService {
       });
       return 0;
     }
+  }
+
+  private async loadPaymentMethodSettings(): Promise<Record<string, boolean>> {
+    try {
+      const settings = await db.select().from(siteSettings);
+      const settingsMap = settings.reduce((acc, setting) => {
+        if (setting.key && setting.key.startsWith('qliro_payment_')) {
+          acc[setting.key] = setting.value === 'true';
+        }
+        return acc;
+      }, {} as Record<string, boolean>);
+
+      logger.debug('payment', 'Loaded Qliro payment method settings', settingsMap);
+      return settingsMap;
+    } catch (error) {
+      logger.error('payment', 'Failed to load payment method settings', { error });
+      // Return default settings if loading fails
+      return {
+        qliro_payment_invoice: true,
+        qliro_payment_campaign: false,
+        qliro_payment_partpayment_account: false,
+        qliro_payment_partpayment_fixed: false,
+        qliro_payment_creditcards: true,
+        qliro_payment_free: false,
+        qliro_payment_trustly_direct: false,
+        qliro_payment_swish: false
+      };
+    }
+  }
+
+  private buildPaymentMethodsList(settings: Record<string, boolean>): any {
+    const includeMethods: string[] = [];
+    const excludeMethods: string[] = [];
+
+    // Map settings to Qliro payment method names
+    if (settings.qliro_payment_invoice) includeMethods.push('Invoice');
+    if (settings.qliro_payment_campaign) includeMethods.push('Campaign');
+    if (settings.qliro_payment_partpayment_account) includeMethods.push('PartPaymentAccount');
+    if (settings.qliro_payment_partpayment_fixed) includeMethods.push('PartPaymentFixed');
+    if (settings.qliro_payment_creditcards) includeMethods.push('Card');
+    if (settings.qliro_payment_free) includeMethods.push('Free');
+    if (settings.qliro_payment_trustly_direct) includeMethods.push('TrustlyDirect');
+    if (settings.qliro_payment_swish) includeMethods.push('Swish');
+
+    // If no methods are explicitly enabled, use default (exclude Swish)
+    if (includeMethods.length === 0) {
+      excludeMethods.push('Swish');
+      includeMethods.push('Card', 'Invoice', 'DirectDebit', 'Klarna', 'PayPal');
+    }
+
+    const result = {
+      IncludeMethods: includeMethods,
+      ExcludeMethods: excludeMethods
+    };
+
+    logger.debug('payment', 'Built Qliro payment methods configuration', result);
+    return result;
   }
 }
 export const qliroService = QliroService.getInstance();

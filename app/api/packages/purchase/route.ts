@@ -131,28 +131,26 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
       return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
 
-    // Try to get the correct base URL from multiple sources
-    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    // Enhanced base URL resolution with multiple fallbacks
+    let baseUrl = '';
     
-    // If we don't have a proper URL, try to construct it from the request
-    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
-      const requestOrigin = request.headers.get('origin') || request.headers.get('host');
-      if (requestOrigin) {
-        // Extract the host from origin or construct from host header
-        const host = requestOrigin.startsWith('http') 
-          ? new URL(requestOrigin).host 
-          : requestOrigin;
-        
-        // Use HTTPS for production domains
-        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-          baseUrl = `https://${host}`;
-        }
-      }
+    // 1. First try: Use environment variable
+    if (process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL;
     }
     
-    // Final fallback to environment variable
+    // 2. Second try: Hardcoded production fallback (safety net)
     if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
-      baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      baseUrl = 'https://www.dintrafikskolahlm.se';
+    }
+    
+    // Final validation
+    if (!baseUrl.startsWith('https://')) {
+      console.error('Failed to resolve valid HTTPS URL for Qliro return', { 
+        baseUrl, 
+        envUrl: process.env.NEXT_PUBLIC_APP_URL
+      });
+      return NextResponse.json({ error: 'Public https URL not configured' }, { status: 500 });
     }
 
     const checkout = await qliroService.createCheckout({

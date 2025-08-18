@@ -89,32 +89,40 @@ export async function POST(req: NextRequest) {
     // Resolve public URL and defaults
     const resolved = await qliroService.getResolvedSettings(false);
     
-    // Try to get the correct base URL from multiple sources
-    let baseUrl = resolved.publicUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+    // Enhanced base URL resolution with multiple fallbacks
+    let baseUrl = '';
     
-    // If we don't have a proper URL, try to construct it from the request
-    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
-      const requestOrigin = req.headers.get('origin') || req.headers.get('host');
-      if (requestOrigin) {
-        // Extract the host from origin or construct from host header
-        const host = requestOrigin.startsWith('http') 
-          ? new URL(requestOrigin).host 
-          : requestOrigin;
-        
-        // Use HTTPS for production domains
-        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-          baseUrl = `https://${host}`;
-        }
+    // 1. First try: Use resolved settings from Qliro service
+    if (resolved.publicUrl && resolved.publicUrl.startsWith('https://')) {
+      baseUrl = resolved.publicUrl;
+    }
+    
+    // 2. Second try: Use environment variable
+    if (!baseUrl && process.env.NEXT_PUBLIC_APP_URL && process.env.NEXT_PUBLIC_APP_URL.startsWith('https://')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    }
+    
+    // 3. Third try: Construct from request headers (most reliable for production)
+    if (!baseUrl || baseUrl.includes('localhost')) {
+      const requestOrigin = req.headers.get('origin');
+      const requestHost = req.headers.get('host');
+      
+      if (requestOrigin && requestOrigin.startsWith('https://')) {
+        baseUrl = requestOrigin;
+      } else if (requestHost && !requestHost.includes('localhost') && !requestHost.includes('127.0.0.1')) {
+        // Construct HTTPS URL from host header
+        baseUrl = `https://${requestHost}`;
       }
     }
     
-    // Final fallback to environment variable
+    // 4. Fourth try: Hardcoded production fallback (safety net)
     if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
-      baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+      baseUrl = 'https://www.dintrafikskolahlm.se';
     }
     
-    if (!baseUrl || !baseUrl.startsWith('https://')) {
-      logger.error('payment', 'Invalid public URL for Qliro return', { 
+    // Final validation
+    if (!baseUrl.startsWith('https://')) {
+      logger.error('payment', 'Failed to resolve valid HTTPS URL for Qliro return', { 
         baseUrl, 
         resolvedPublicUrl: resolved.publicUrl,
         envUrl: process.env.NEXT_PUBLIC_APP_URL,
@@ -124,7 +132,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Public https URL not configured' }, { status: 500 });
     }
     
-    logger.info('payment', 'Using base URL for Qliro return', { baseUrl });
+    logger.info('payment', 'Resolved base URL for Qliro return', { 
+      baseUrl,
+      resolvedPublicUrl: resolved.publicUrl,
+      envUrl: process.env.NEXT_PUBLIC_APP_URL,
+      requestOrigin: req.headers.get('origin'),
+      requestHost: req.headers.get('host')
+    });
 
     let amount = 0;
     let description = 'Betalning';

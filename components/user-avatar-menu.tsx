@@ -33,12 +33,13 @@ import {
   Users
 } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
-// Polling disabled: remove messages hook
+import { useAuthActions } from "@/hooks/useAuthActions"
 import { Badge as BadgeComponent } from "@/components/ui/badge"
 
 export const UserAvatarMenu = memo(function UserAvatarMenu() {
   const router = useRouter()
-  const { user, logout, refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const { handleLogout } = useAuthActions()
   const unreadCount = 0
   const [messagesEnabled, setMessagesEnabled] = useState(false)
   const [isImpersonating, setIsImpersonating] = useState(false)
@@ -283,9 +284,9 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
         <DropdownMenuSeparator />
         
         <DropdownMenuItem
-          onClick={() => {
-            logout()
-            router.push("/")
+          onClick={(e) => {
+            e.preventDefault()
+            handleLogout()
           }}
           className="cursor-pointer text-red-600 focus:text-red-600 hover:bg-red-50"
         >

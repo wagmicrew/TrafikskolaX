@@ -5,18 +5,19 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
-import { LoginForm } from "@/components/login-form"
 import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X, HelpCircle } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
+import { useAuthActions } from "@/hooks/useAuthActions"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export const Navigation = memo(function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
-  const [showLoginForm, setShowLoginForm] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { handleLogin, handleRegister, handleLogout } = useAuthActions()
 
   const menuItems = [
     { href: "/", label: "Hem", icon: Home },
@@ -25,11 +26,6 @@ export const Navigation = memo(function Navigation() {
     { href: "/lokalerna", label: "Lokalerna", icon: Building2 },
     { href: "/boka-korning", label: "Boka körning", icon: Calendar },
   ]
-
-  const handleLoginClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setShowLoginForm(true)
-  }
 
   return (
     <>
@@ -122,30 +118,38 @@ export const Navigation = memo(function Navigation() {
                   </Link>
                 )
               })}
-              
-            {/* Dashboard/Logout Button */}
-            {user ? (
-              <div className="ml-4 flex items-center space-x-2">
-                <Link
-                  href="/dashboard/help"
-                  className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
-                  aria-label="Hjälp"
-                >
-                  <HelpCircle className="w-4 h-4 lg:w-5 lg:h-5" />
-                  <span>Hjälp</span>
-                </Link>
-                <UserAvatarMenu />
-              </div>
-            ) : (
-              <button
-                onClick={handleLoginClick}
-                className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
-                aria-label="Logga in"
-              >
-                <LogIn className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span>Logga in</span>
-              </button>
-            )}
+              {/* Dashboard/Logout Button */}
+              {user ? (
+                <div className="ml-4 flex items-center space-x-2">
+                  <Link
+                    href="/dashboard/help"
+                    className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                    aria-label="Hjälp"
+                  >
+                    <HelpCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+                    <span>Hjälp</span>
+                  </Link>
+                  <UserAvatarMenu />
+                </div>
+              ) : (
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    className="hidden md:flex items-center space-x-2 bg-transparent border-white text-white hover:bg-white/10"
+                    onClick={handleLogin}
+                  >
+                    <LogIn className="h-4 w-4" />
+                    <span>Logga in</span>
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="hidden md:flex items-center space-x-2 bg-red-600 hover:bg-red-700"
+                    onClick={handleRegister}
+                  >
+                    <span>Registrera</span>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -202,7 +206,6 @@ export const Navigation = memo(function Navigation() {
                 </Link>
               )
             })}
-            
             {/* Mobile Login/Dashboard Button */}
             {user ? (
               <>
@@ -231,16 +234,32 @@ export const Navigation = memo(function Navigation() {
                 </Link>
               </>
             ) : (
-              <button
-                onClick={() => {
-                  setShowLoginForm(true)
-                  setMobileMenuOpen(false)
-                }}
-                className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
-              >
-                <LogIn className="w-5 h-5 text-gray-500" />
-                <span>Logga in</span>
-              </button>
+              <div className="flex flex-col space-y-4">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-left hover:bg-gray-100"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileMenuOpen(false)
+                    handleLogin(e)
+                  }}
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Logga in
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-left hover:bg-gray-100"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setMobileMenuOpen(false)
+                    handleRegister(e)
+                  }}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Registrera konto
+                </Button>
+              </div>
             )}
           </div>
 
@@ -286,7 +305,6 @@ export const Navigation = memo(function Navigation() {
                 </Link>
               )
             })}
-            
             {/* Mobile Login/Dashboard Tab */}
             {user ? (
               <Link
@@ -298,7 +316,7 @@ export const Navigation = memo(function Navigation() {
               </Link>
             ) : (
               <button
-                onClick={handleLoginClick}
+                onClick={handleLogin}
                 className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
               >
                 <LogIn className="w-5 h-5 text-gray-500" />
@@ -312,11 +330,14 @@ export const Navigation = memo(function Navigation() {
         <div className="pb-20" />
       </div>
 
-      {/* Contact Form Modal */}
-      <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
-      
-      {/* Login Form Modal */}
-      <LoginForm isOpen={showLoginForm} onClose={() => setShowLoginForm(false)} />
+      <Dialog open={showContactForm} onOpenChange={setShowContactForm}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>Kontakta oss</DialogTitle>
+          </DialogHeader>
+          <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   )
 })

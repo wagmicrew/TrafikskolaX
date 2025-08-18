@@ -1,13 +1,13 @@
-import type React from "react"
+import React from "react"
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { AuthProvider } from "@/lib/hooks/useAuth"
+import { AuthProvider } from "@/contexts/AuthContext"
 import { Toaster } from "react-hot-toast"
+import { AuthPopup } from "@/components/auth/AuthPopup"
 import { CookieConsent } from "@/components/CookieConsent"
-import React from 'react'
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 
 const inter = Inter({ subsets: ["latin"] })
@@ -214,9 +214,10 @@ export default function RootLayout({
         <AuthProvider>
           <ImpersonationBanner />
           <Navigation />
-          {children}
+          <main>{children}</main>
           <Footer />
-          <Toaster position="top-right" />
+          <Toaster />
+          <AuthPopup />
           <CookieConsent />
         </AuthProvider>
       </body>

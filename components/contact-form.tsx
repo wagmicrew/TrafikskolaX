@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Mail, Phone, X } from "lucide-react"
 
 interface ContactFormProps {
-  isOpen: boolean
+  isOpen?: boolean
   onClose: () => void
 }
 

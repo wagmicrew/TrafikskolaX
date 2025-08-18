@@ -1,22 +1,22 @@
 "use client";
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 
 export function useAuthActions() {
-  const { openAuthPopup } = useAuth();
+  const { logout } = useAuth();
   const router = useRouter();
 
   const handleLogin = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    openAuthPopup('login');
+    router.push('/login');
   };
 
   const handleRegister = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    openAuthPopup('register');
+    router.push('/register');
   };
 
   const handleLogout = async (e?: React.MouseEvent) => {
@@ -29,10 +29,12 @@ export function useAuthActions() {
       });
 
       if (response.ok) {
+        logout();
         window.location.href = '/';
       }
     } catch (error) {
       console.error('Logout error:', error);
+      logout();
       window.location.href = '/';
     }
   };

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { redirectAfterAuth } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +40,11 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
         throw new Error(data.message || 'Inloggningen misslyckades');
       }
 
+      // Use the old auth system's login method
+      if (data.token) {
+        login(data.token);
+      }
+
       toast({
         title: 'Inloggning lyckades',
         description: 'Du är nu inloggad',
@@ -49,13 +54,8 @@ export function LoginForm({ onSuccess, className = '' }: LoginFormProps) {
         onSuccess();
       }
 
-      // Redirect if there's a redirect URL
-      if (redirectAfterAuth) {
-        router.push(redirectAfterAuth);
-      } else {
-        // Default redirect
-        router.push('/dashboard');
-      }
+      // Default redirect
+      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast({

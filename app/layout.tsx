@@ -1,12 +1,11 @@
-import React, { Suspense } from "react"
+import React from "react"
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
-import { AuthProvider } from "@/contexts/AuthContext"
+import { AuthProvider } from "@/lib/hooks/useAuth"
 import { Toaster } from "react-hot-toast"
-import { AuthPopup } from "@/components/auth/AuthPopup"
 import { CookieConsent } from "@/components/CookieConsent"
 import ImpersonationBanner from '@/components/ImpersonationBanner'
 
@@ -211,17 +210,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <AuthProvider>
-            <ImpersonationBanner />
-            <Navigation />
-            <main>{children}</main>
-            <Footer />
-            <Toaster />
-            <AuthPopup />
-            <CookieConsent />
-          </AuthProvider>
-        </Suspense>
+        <AuthProvider>
+          <ImpersonationBanner />
+          <Navigation />
+          <main>{children}</main>
+          <Footer />
+          <Toaster />
+          <CookieConsent />
+        </AuthProvider>
       </body>
     </html>
   )

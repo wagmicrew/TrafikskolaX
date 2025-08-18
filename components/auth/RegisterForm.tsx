@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +25,6 @@ export function RegisterForm({ onSuccess, className = '' }: RegisterFormProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { redirectAfterAuth } = useAuth();
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,11 +89,7 @@ export function RegisterForm({ onSuccess, className = '' }: RegisterFormProps) {
       }
 
       // Automatically log in the user or redirect to login
-      if (redirectAfterAuth) {
-        router.push(`/login?redirect=${encodeURIComponent(redirectAfterAuth)}`);
-      } else {
-        router.push('/login');
-      }
+      router.push('/login');
     } catch (error) {
       console.error('Registration error:', error);
       toast({

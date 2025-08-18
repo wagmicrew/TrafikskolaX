@@ -1,4 +1,4 @@
-import React from "react"
+import React, { Suspense } from "react"
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
@@ -211,15 +211,17 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <ImpersonationBanner />
-          <Navigation />
-          <main>{children}</main>
-          <Footer />
-          <Toaster />
-          <AuthPopup />
-          <CookieConsent />
-        </AuthProvider>
+        <Suspense fallback={<div>Loading...</div>}>
+          <AuthProvider>
+            <ImpersonationBanner />
+            <Navigation />
+            <main>{children}</main>
+            <Footer />
+            <Toaster />
+            <AuthPopup />
+            <CookieConsent />
+          </AuthProvider>
+        </Suspense>
       </body>
     </html>
   )

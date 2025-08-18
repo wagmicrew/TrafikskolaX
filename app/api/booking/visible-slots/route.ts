@@ -329,10 +329,12 @@ export async function GET(request: NextRequest) {
           return isTemp && isUnpaid && createdAt < fiveMinutesAgo;
         });
 
-        // Within two hours -> call for booking
-        const slotDateTime = new Date(`${dateStr}T${slot.timeStart}`);
-        const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
-        console.log(`  Time check: slot ${dateStr}T${slot.timeStart} -> ${slotDateTime.toISOString()}, within 2h: ${isWithinTwoHours}`);
+        // Within two hours -> call for booking (construct local Date from components)
+        const [yy1, mm1, dd1] = dateStr.split('-').map(Number);
+        const [hh1, mi1] = normalizeTime(slot.timeStart).split(':').map(Number);
+        const slotDateTime = new Date(yy1, (mm1 || 1) - 1, dd1 || 1, hh1 || 0, mi1 || 0, 0, 0);
+        const isWithinTwoHours = slotDateTime.getTime() <= twoHoursFromNow.getTime();
+        console.log(`  Time check: slot ${dateStr} ${normalizeTime(slot.timeStart)} -> ${slotDateTime.toString()}, within 2h: ${isWithinTwoHours}`);
 
         // Color logic based on booking status
         let slotStatus = 'available';
@@ -401,8 +403,10 @@ export async function GET(request: NextRequest) {
         if (extraBlocked) continue;
 
         const hasBooking = doesAnyBookingOverlapWithSlot(dayBookings, extra.timeStart, extra.timeEnd, false);
-        const slotDateTime = new Date(`${dateStr}T${extra.timeStart}`);
-        const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
+        const [yy2, mm2, dd2] = dateStr.split('-').map(Number);
+        const [hh2, mi2] = normalizeTime(extra.timeStart).split(':').map(Number);
+        const slotDateTime = new Date(yy2, (mm2 || 1) - 1, dd2 || 1, hh2 || 0, mi2 || 0, 0, 0);
+        const isWithinTwoHours = slotDateTime.getTime() <= twoHoursFromNow.getTime();
         const clickable = !hasBooking && !isWithinTwoHours;
         if (clickable) {
           timeSlots.push({
@@ -444,8 +448,10 @@ export async function GET(request: NextRequest) {
         });
         if (extraBlocked) continue;
         const hasBooking = doesAnyBookingOverlapWithSlot(dayBookings, ex.timeStart, ex.timeEnd, false);
-        const slotDateTime = new Date(`${dateStr}T${ex.timeStart}`);
-        const isWithinTwoHours = slotDateTime <= twoHoursFromNow;
+        const [yy3, mm3, dd3] = dateStr.split('-').map(Number);
+        const [hh3, mi3] = normalizeTime(ex.timeStart).split(':').map(Number);
+        const slotDateTime = new Date(yy3, (mm3 || 1) - 1, dd3 || 1, hh3 || 0, mi3 || 0, 0, 0);
+        const isWithinTwoHours = slotDateTime.getTime() <= twoHoursFromNow.getTime();
         const clickable = !hasBooking && !isWithinTwoHours;
         if (clickable) {
           merged[t] = {

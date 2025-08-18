@@ -27,6 +27,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
     const { bookingId, handledarBookingId, packagePurchaseId } = body;
+    
+    // Check if body is empty or malformed
+    if (!body || typeof body !== 'object' || Object.keys(body).length === 0) {
+      logger.error('payment', 'Empty or malformed request body', {
+        body,
+        bodyType: typeof body,
+        rawBody,
+        rawBodyLength: rawBody.length
+      });
+      return NextResponse.json({ error: 'Request body is empty or malformed' }, { status: 400 });
+    }
+    
+    // Additional debugging for handledar bookings
+    if (handledarBookingId) {
+      logger.info('payment', 'Handledar booking detected', {
+        handledarBookingId,
+        handledarBookingIdType: typeof handledarBookingId,
+        handledarBookingIdLength: handledarBookingId?.length,
+        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(handledarBookingId || '')
+      });
+    }
 
     // Debug logging
     logger.info('payment', 'Qliro create-order received', {
@@ -35,15 +56,32 @@ export async function POST(req: NextRequest) {
       handledarBookingId,
       packagePurchaseId,
       bodyType: typeof body,
-      bodyKeys: Object.keys(body || {})
+      bodyKeys: Object.keys(body || {}),
+      rawBody: rawBody,
+      bodyLength: rawBody.length
     });
 
     const picks = [bookingId, handledarBookingId, packagePurchaseId].filter(Boolean);
+    logger.info('payment', 'Parameter validation', {
+      bookingId,
+      handledarBookingId,
+      packagePurchaseId,
+      picks,
+      picksLength: picks.length,
+      bodyKeys: Object.keys(body || {}),
+      hasBookingId: !!bookingId,
+      hasHandledarBookingId: !!handledarBookingId,
+      hasPackagePurchaseId: !!packagePurchaseId
+    });
+    
     if (picks.length !== 1) {
       logger.warn('payment', 'Invalid parameters for create-order', {
         picks,
         picksLength: picks.length,
-        body
+        body,
+        bookingId,
+        handledarBookingId,
+        packagePurchaseId
       });
       return NextResponse.json({ error: 'Provide exactly one of bookingId, handledarBookingId, packagePurchaseId' }, { status: 400 });
     }
@@ -122,9 +160,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (handledarBookingId) {
+      logger.info('payment', 'Looking up handledar booking', { handledarBookingId });
+      
       const rows = await db.select().from(handledarBookings).where(eq(handledarBookings.id, handledarBookingId)).limit(1);
       const hb = rows[0] as any;
-      if (!hb) return NextResponse.json({ error: 'Handledarkurs-bokning saknas' }, { status: 404 });
+      
+      if (!hb) {
+        logger.error('payment', 'Handledar booking not found in database', { 
+          handledarBookingId,
+          searchedRows: rows.length,
+          allHandledarBookings: await db.select({ id: handledarBookings.id }).from(handledarBookings).limit(5)
+        });
+        return NextResponse.json({ error: 'Handledarkurs-bokning saknas' }, { status: 404 });
+      }
+      
+      logger.info('payment', 'Handledar booking found', { 
+        bookingId: hb.id,
+        price: hb.price,
+        paymentStatus: hb.paymentStatus,
+        supervisorEmail: hb.supervisorEmail
+      });
+      
       amount = Number(hb.price || 0);
       description = `Handledarkurs ${handledarBookingId.slice(0, 8)}`;
       reference = `handledar_${handledarBookingId}`;
@@ -139,7 +195,7 @@ export async function POST(req: NextRequest) {
       if (!p) return NextResponse.json({ error: 'Paketköp saknas' }, { status: 404 });
       amount = Number(p.pricePaid || 0);
       description = `Paketköp ${packagePurchaseId.slice(0, 8)}`;
-      reference = `order_${packagePurchaseId}`;
+      reference = `package_${packagePurchaseId}`;
       if (p.userId) {
         const [u] = (await db.select().from(users).where(eq(users.id, p.userId)).limit(1)) as any[];
         if (u) {

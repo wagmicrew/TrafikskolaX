@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
-import { eq, and, sql, or, ne } from 'drizzle-orm';
+import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';
 import { rateLimit, getRequestIp } from '@/lib/utils/rate-limit';
 import bcrypt from 'bcryptjs';
 import sgMail from '@sendgrid/mail';
@@ -187,10 +187,13 @@ export async function POST(request: NextRequest) {
 
       // Enforce the same 2-hour rule as visible-slots for non-admin/teacher users (regular lessons)
       if (sessionType !== 'handledar' && (!currentUserRole || (currentUserRole !== 'admin' && currentUserRole !== 'teacher'))) {
-        const slotDateTime = new Date(`${scheduledDateKey}T${startTimeNorm}`);
+        // Construct local time from components to avoid ambiguous Date parsing
+        const [yy, mm, dd] = scheduledDateKey.split('-').map(Number);
+        const [hh, mi] = startTimeNorm.split(':').map(Number);
+        const slotDateTime = new Date(yy, (mm || 1) - 1, dd || 1, hh || 0, mi || 0, 0, 0);
         const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
-        if (slotDateTime <= twoHoursFromNow) {
-          console.log(`[BOOKING][WITHIN_2H] start=${startTimeNorm}, now+2h=${twoHoursFromNow.toISOString()}`);
+        if (slotDateTime.getTime() <= twoHoursFromNow.getTime()) {
+          console.log(`[BOOKING][WITHIN_2H] start=${startTimeNorm}, slotLocal=${slotDateTime.toString()}, now+2h=${twoHoursFromNow.toString()}`);
           return NextResponse.json({ error: 'Tiden är inom 2 timmar. Ring för bokning.' }, { status: 400 });
         }
       }
@@ -292,7 +295,7 @@ export async function POST(request: NextRequest) {
             )
           );
 
-        if (!session || session.currentParticipants >= session.maxParticipants) {
+        if (!session || (session.currentParticipants ?? 0) >= (session.maxParticipants ?? 0)) {
           return NextResponse.json({ error: 'Inga lediga platser för denna utbildning.' }, { status: 400 });
         }
 
@@ -350,7 +353,7 @@ export async function POST(request: NextRequest) {
           .returning();
 
         // Send notification to the student
-        const studentUser = await db.select().from(users).where(eq(users.id, userId));
+        const studentUser = await db.select().from(users).where(eq(users.id, userId!));
         if (studentUser.length > 0) {
           await sendBookingNotification(studentUser[0].email, booking, true, false, undefined, studentUser[0]); // Always send as "paid" for admin bookings, pass student user info
         }
@@ -386,7 +389,7 @@ export async function POST(request: NextRequest) {
           )
         );
 
-      if (!session || session.currentParticipants >= session.maxParticipants) {
+      if (!session || (session.currentParticipants ?? 0) >= (session.maxParticipants ?? 0)) {
         return NextResponse.json({ error: 'Inga lediga platser för denna utbildning.' }, { status: 400 });
       }
 
@@ -454,7 +457,7 @@ export async function POST(request: NextRequest) {
             .returning();
 
           // Send notification
-          const notificationEmail = guestEmail || (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+          const notificationEmail = guestEmail || (userId ? (await db.select().from(users).where(eq(users.id, userId!)))[0]?.email : null);
           if (notificationEmail) {
             await sendBookingNotification(notificationEmail, { 
               ...booking, 
@@ -561,7 +564,7 @@ export async function POST(request: NextRequest) {
               or(
                 eq(userCredits.lessonTypeId, sessionId!),
                 and(
-                  eq(userCredits.lessonTypeId, null),
+                  isNull(userCredits.lessonTypeId),
                   eq(userCredits.creditType, 'handledar')
                 )
               )
@@ -615,7 +618,7 @@ export async function POST(request: NextRequest) {
             .returning();
 
           // Send email notification
-           const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId)))[0]?.email : null);
+           const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId!)))[0]?.email : null);
           if (userEmail) {
             await sendBookingNotification(userEmail, booking, true);
           }
@@ -673,7 +676,7 @@ export async function POST(request: NextRequest) {
           
           // Send confirmation email for already paid bookings
           if (userId) {
-            const user = await db.select().from(users).where(eq(users.id, userId));
+            const user = await db.select().from(users).where(eq(users.id, userId!));
             if (user.length > 0) {
               await sendBookingNotification(user[0].email, booking, true);
             }
@@ -692,6 +695,7 @@ export async function POST(request: NextRequest) {
           try {
             // Create Qliro checkout for the booking via service
             const { qliroService } = await import('@/lib/payment/qliro-service');
+            const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '') || 'http://localhost:3000';
             const qliroData = await qliroService.getOrCreateCheckout({
               amount: totalPrice,
               reference: `booking_${booking.id}`,

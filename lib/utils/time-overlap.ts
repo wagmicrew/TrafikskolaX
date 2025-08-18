@@ -61,8 +61,8 @@ export function doesAnyBookingOverlapWithSlot(
   bookings: Array<{
     startTime: string;
     endTime: string;
-    status?: string;
-    createdAt?: Date | string;
+    status?: string | null;
+    createdAt?: Date | string | null;
   }>,
   slotStart: string,
   slotEnd: string,

@@ -28,7 +28,7 @@ const templates = [
             <h3 style="color: #dc2626; margin-top: 0;">Logga in på din elevsida</h3>
             <p>Du kan nu logga in på din elevsida med din e-postadress och det lösenord du angav vid registreringen.</p>
             <p style="text-align: center; margin: 20px 0;">
-              <a href="{{baseUrl}}/inloggning" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
+              <a href="{{baseUrl}}/login" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">
                 Logga in här
               </a>
             </p>

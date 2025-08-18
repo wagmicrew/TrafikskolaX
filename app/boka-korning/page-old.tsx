@@ -94,7 +94,7 @@ export default function BookingPage() {
                     Du behöver ett konto för att boka lektioner
                   </p>
                   <Button 
-                    onClick={() => router.push('/inloggning')}
+                    onClick={() => router.push('/login')}
                     className="bg-red-600 hover:bg-red-700"
                   >
                     Gå till inloggning

@@ -612,7 +612,7 @@ export function BookingConfirmation({
   const handleUseExistingAccount = () => {
     // Redirect to login page with return URL
     const returnUrl = encodeURIComponent(window.location.href)
-    window.location.href = `/inloggning?redirect=${returnUrl}`
+    window.location.href = `/login?redirect=${returnUrl}`
   }
 
   const handleLoginSuccess = () => {
@@ -854,7 +854,7 @@ export function BookingConfirmation({
                           Skapa konto
                         </button>
                         <button
-                          onClick={() => window.location.href = '/inloggning'}
+                          onClick={() => window.location.href = '/login'}
                           className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-300 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
                         >
                           Logga in

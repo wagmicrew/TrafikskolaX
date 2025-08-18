@@ -47,7 +47,7 @@ export async function requireAuth(requiredRoles?: ('student' | 'teacher' | 'admi
   const user = await getServerUser();
   
   if (!user) {
-    redirect('/inloggning');
+    redirect('/login');
   }
 
   // Handle both single role and array of roles

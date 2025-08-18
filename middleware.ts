@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
 
     // If no token, redirect to login
     if (!token) {
-      const loginUrl = new URL('/inloggning', request.url);
+      const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }

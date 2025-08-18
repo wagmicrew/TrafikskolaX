@@ -1083,7 +1083,7 @@ async function sendWelcomeEmail(email: string, password: string) {
         <p>Ditt konto har skapats. Här är dina inloggningsuppgifter:</p>
         <p><strong>E-post:</strong> ${email}</p>
         <p><strong>Lösenord:</strong> ${password}</p>
-        <p>Du kan logga in på <a href="${process.env.NEXT_PUBLIC_APP_URL}/inloggning">vår webbplats</a> för att se dina bokningar och hantera ditt konto.</p>
+        <p>Du kan logga in på <a href="${process.env.NEXT_PUBLIC_APP_URL}/login">vår webbplats</a> för att se dina bokningar och hantera ditt konto.</p>
         <p>Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
         <br>
         <p>Med vänliga hälsningar,<br>Din Trafikskola HLM</p>

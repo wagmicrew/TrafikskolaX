@@ -340,7 +340,7 @@ export default function EmailTemplatesPage() {
   // Quick page selector for links
   const quickPages = [
     { label: 'Startsida', path: '/' },
-    { label: 'Logga in', path: '/inloggning' },
+    { label: 'Logga in', path: '/login' },
     { label: 'Boka körning', path: '/boka-korning' },
     { label: 'Paketbutik', path: '/packages-store' },
     { label: 'Student dashboard', path: '/dashboard/student' },

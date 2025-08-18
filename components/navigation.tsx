@@ -143,7 +143,7 @@ export const Navigation = memo(function Navigation() {
                 aria-label="Logga in"
               >
                 <LogIn className="w-4 h-4 lg:w-5 lg:h-5" />
-                <span>Inloggning</span>
+                <span>Logga in</span>
               </button>
             )}
             </div>
@@ -222,17 +222,13 @@ export const Navigation = memo(function Navigation() {
                   <HelpCircle className="w-5 h-5 text-gray-500" />
                   <span>Hjälp</span>
                 </Link>
-                <button
-                  onClick={() => {
-                    logout();
-                    router.push('/');
-                    setMobileMenuOpen(false);
-                  }}
+                <Link
+                  href="/login"
                   className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
                 >
                   <LogIn className="w-5 h-5 text-gray-500" />
                   <span>Logga ut</span>
-                </button>
+                </Link>
               </>
             ) : (
               <button
@@ -243,7 +239,7 @@ export const Navigation = memo(function Navigation() {
                 className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 w-full text-left"
               >
                 <LogIn className="w-5 h-5 text-gray-500" />
-                <span>Inloggning</span>
+                <span>Logga in</span>
               </button>
             )}
           </div>

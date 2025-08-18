@@ -24,11 +24,11 @@ interface QliroModernPopupProps {
 }
 
 const CHECKOUT_STEPS: QliroStep[] = [
-  { id: 'warming', title: 'Warming up Qliro connection...', status: 'pending' },
-  { id: 'creating', title: 'Creating the Order', status: 'pending' },
-  { id: 'fetching', title: 'Fetching the details', status: 'pending' },
-  { id: 'showing', title: 'Show the Payment', status: 'pending' },
-  { id: 'listening', title: 'Listening for completion', status: 'pending' }
+  { id: 'warming', title: 'Värmer upp Qliro-anslutning...', status: 'pending' },
+  { id: 'creating', title: 'Skapar ordern', status: 'pending' },
+  { id: 'fetching', title: 'Hämtar detaljer', status: 'pending' },
+  { id: 'showing', title: 'Visar betalning', status: 'pending' },
+  { id: 'listening', title: 'Väntar på betalning', status: 'pending' }
 ];
 
 export function QliroModernPopup({
@@ -231,7 +231,7 @@ export function QliroModernPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -252,10 +252,10 @@ export function QliroModernPopup({
             </Button>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-auto">
-            {/* Step Indicators */}
-            <div className="p-6 border-b bg-gray-50">
+          {/* Two-column layout */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Left column - Steps */}
+            <div className="w-1/3 border-r bg-gray-50 p-6 overflow-y-auto">
               <h3 className="text-sm font-medium text-gray-700 mb-4">Betalningsförlopp</h3>
               <div className="space-y-1">
                 {steps.map((step, index) => (
@@ -264,8 +264,8 @@ export function QliroModernPopup({
               </div>
             </div>
 
-            {/* Payment Content */}
-            <div className="p-6">
+            {/* Right column - Qliro DOM */}
+            <div className="w-2/3 p-6 overflow-y-auto">
               {error ? (
                 <div className="text-center py-8">
                   <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -286,10 +286,10 @@ export function QliroModernPopup({
                 </div>
               ) : currentStep >= 3 ? (
                 // Show Qliro checkout form
-                <div>
+                <div className="h-full">
                   <div 
                     ref={checkoutContainerRef}
-                    className="qliro-checkout-container"
+                    className="qliro-checkout-container h-full"
                     style={{ minHeight: '400px' }}
                   />
                   {!checkoutHtml && (

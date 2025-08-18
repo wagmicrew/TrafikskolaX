@@ -238,7 +238,7 @@ export default function QliroSettingsClient() {
         toast.error('Din admin-session har gått ut. Logga in igen.');
         try {
           const url = typeof window !== 'undefined' ? window.location.href : '/dashboard/admin/settings/qliro';
-          window.location.href = `/inloggning?redirect=${encodeURIComponent(url)}`;
+          window.location.href = `/login?redirect=${encodeURIComponent(url)}`;
         } catch {}
         return;
       }

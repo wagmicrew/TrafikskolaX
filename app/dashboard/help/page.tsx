@@ -95,7 +95,7 @@ export default function HelpPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/inloggning?redirect=%2Fdashboard%2Fhelp');
+      router.push('/login?redirect=%2Fdashboard%2Fhelp');
       return;
     }
   }, [user, router]);

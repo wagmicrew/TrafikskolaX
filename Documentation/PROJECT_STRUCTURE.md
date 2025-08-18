@@ -11,7 +11,7 @@ This document provides a comprehensive guide to the project's file structure, ke
   - `/api` - API route handlers
   - `/dashboard` - Admin and user dashboard pages
   - `/booking` - Booking-related pages
-  - `/inloggning` - Authentication pages
+  - `/login` - Authentication pages
 
 ### 2. `/components` - Reusable UI Components
 - **Purpose**: Shared React components
@@ -61,7 +61,7 @@ This document provides a comprehensive guide to the project's file structure, ke
 5. Email notifications via `lib/email`
 
 ### Authentication Flow
-1. User visits `/inloggning`
+1. User visits `/login`
 2. Auth API routes handle login/register
 3. JWT tokens issued and validated
 4. Protected routes check auth status

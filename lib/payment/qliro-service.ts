@@ -571,7 +571,8 @@ export class QliroService {
     logger.info('payment', 'Creating Qliro checkout', {
       amount: params.amount,
       merchantReference,
-      hasCustomer: !!(params.customerEmail || params.customerFirstName)
+      hasCustomer: !!(params.customerEmail || params.customerFirstName),
+      returnUrl: params.returnUrl
     });
 
     // Add debug logging for URLs being sent to Qliro

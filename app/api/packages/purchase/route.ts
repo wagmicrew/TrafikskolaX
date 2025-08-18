@@ -131,7 +131,29 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
       return NextResponse.json({ error: 'Qliro payment is not available' }, { status: 503 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    // Try to get the correct base URL from multiple sources
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    
+    // If we don't have a proper URL, try to construct it from the request
+    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
+      const requestOrigin = request.headers.get('origin') || request.headers.get('host');
+      if (requestOrigin) {
+        // Extract the host from origin or construct from host header
+        const host = requestOrigin.startsWith('http') 
+          ? new URL(requestOrigin).host 
+          : requestOrigin;
+        
+        // Use HTTPS for production domains
+        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+          baseUrl = `https://${host}`;
+        }
+      }
+    }
+    
+    // Final fallback to environment variable
+    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    }
 
     const checkout = await qliroService.createCheckout({
       amount,

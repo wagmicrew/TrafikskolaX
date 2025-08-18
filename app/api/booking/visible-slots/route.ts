@@ -6,6 +6,7 @@ import { doTimeRangesOverlap, doesAnyBookingOverlapWithSlot } from '@/lib/utils/
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/jwt';
 import { normalizeDateKey } from '@/lib/utils/date';
+import { qliroService } from '@/lib/payment/qliro-service';
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,6 +35,33 @@ export async function GET(request: NextRequest) {
 
     if (dateStrings.length === 0) {
       return NextResponse.json({ error: 'No valid dates provided' }, { status: 400 });
+    }
+
+    // Pre-slot cleanup to keep availability correct
+    try {
+      // 1) Invalidate stale Qliro orders (>24h pending)
+      const expiredCount = await qliroService.invalidateStaleOrders();
+      console.log(`[SLOTS][CLEANUP] Invalidated stale Qliro orders: ${expiredCount}`);
+
+      // 2) Expire Qliro orders tied to bookings in the past (safety net)
+      await db.execute(sql`
+        UPDATE qliro_orders qo
+        SET status = 'expired', updated_at = NOW()
+        FROM bookings b
+        WHERE qo.booking_id = b.id
+          AND (qo.status = 'created' OR qo.status = 'pending')
+          AND b.scheduled_date < CURRENT_DATE
+      `);
+
+      // 3) Remove temp/on_hold unpaid bookings for past dates so they don't block slots
+      await db.execute(sql`
+        DELETE FROM bookings 
+        WHERE (status = 'temp' OR status = 'on_hold')
+          AND (payment_status IS NULL OR payment_status = 'unpaid')
+          AND scheduled_date < CURRENT_DATE
+      `);
+    } catch (cleanupErr) {
+      console.warn('[SLOTS][CLEANUP] Skipping cleanup due to error:', cleanupErr);
     }
 
     // Load optional contact phone

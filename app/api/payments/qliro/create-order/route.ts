@@ -50,10 +50,43 @@ export async function POST(req: NextRequest) {
 
     // Resolve public URL and defaults
     const resolved = await qliroService.getResolvedSettings(false);
-    const baseUrl = resolved.publicUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+    
+    // Try to get the correct base URL from multiple sources
+    let baseUrl = resolved.publicUrl || process.env.NEXT_PUBLIC_APP_URL || '';
+    
+    // If we don't have a proper URL, try to construct it from the request
+    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
+      const requestOrigin = req.headers.get('origin') || req.headers.get('host');
+      if (requestOrigin) {
+        // Extract the host from origin or construct from host header
+        const host = requestOrigin.startsWith('http') 
+          ? new URL(requestOrigin).host 
+          : requestOrigin;
+        
+        // Use HTTPS for production domains
+        if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+          baseUrl = `https://${host}`;
+        }
+      }
+    }
+    
+    // Final fallback to environment variable
+    if (!baseUrl || baseUrl.includes('localhost') || !baseUrl.startsWith('https://')) {
+      baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+    }
+    
     if (!baseUrl || !baseUrl.startsWith('https://')) {
+      logger.error('payment', 'Invalid public URL for Qliro return', { 
+        baseUrl, 
+        resolvedPublicUrl: resolved.publicUrl,
+        envUrl: process.env.NEXT_PUBLIC_APP_URL,
+        requestOrigin: req.headers.get('origin'),
+        requestHost: req.headers.get('host')
+      });
       return NextResponse.json({ error: 'Public https URL not configured' }, { status: 500 });
     }
+    
+    logger.info('payment', 'Using base URL for Qliro return', { baseUrl });
 
     let amount = 0;
     let description = 'Betalning';
@@ -85,7 +118,7 @@ export async function POST(req: NextRequest) {
         customerFirstName = (b.guestName || '').split(' ')[0] || undefined;
         customerLastName = (b.guestName || '').split(' ').slice(1).join(' ') || undefined;
       }
-      returnUrl = `${baseUrl}/payments/qliro/return?booking=${encodeURIComponent(bookingId)}`;
+      returnUrl = `${baseUrl}/qliro/return?ref=${encodeURIComponent(`booking_${bookingId}`)}`;
     }
 
     if (handledarBookingId) {
@@ -97,7 +130,7 @@ export async function POST(req: NextRequest) {
       reference = `handledar_${handledarBookingId}`;
       customerEmail = hb.supervisorEmail || undefined;
       customerPhone = hb.supervisorPhone || undefined;
-      returnUrl = `${baseUrl}/payments/qliro/return?handledar=${encodeURIComponent(handledarBookingId)}`;
+      returnUrl = `${baseUrl}/qliro/return?ref=${encodeURIComponent(`handledar_${handledarBookingId}`)}`;
     }
 
     if (packagePurchaseId) {
@@ -116,14 +149,20 @@ export async function POST(req: NextRequest) {
           customerLastName = u.lastName || undefined;
         }
       }
-      returnUrl = `${baseUrl}/payments/qliro/return?package=${encodeURIComponent(packagePurchaseId)}`;
+      returnUrl = `${baseUrl}/qliro/return?ref=${encodeURIComponent(`package_${packagePurchaseId}`)}`;
     }
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'Invalid amount for order' }, { status: 400 });
     }
 
-    logger.info('payment', 'Unified Qliro create order', { reference, amount, description });
+    logger.info('payment', 'Unified Qliro create order', { 
+      reference, 
+      amount, 
+      description, 
+      returnUrl,
+      baseUrl 
+    });
 
     const result = await qliroService.getOrCreateCheckout({
       amount,

@@ -189,7 +189,30 @@ export class QliroService {
   }
 
   private sanitizeMerchantReference(reference: string): string {
-    return reference.replace(/[^a-zA-Z0-9-_]/g, '').substring(0, 50);
+    // Qliro requires: ^[A-Za-z0-9_-]{1,25}$
+    // Convert UUIDs and long references to shorter, compliant format
+    let sanitized = reference.replace(/[^a-zA-Z0-9-_]/g, '');
+    
+    // For long references (like UUIDs), create a shorter reference
+    if (sanitized.length > 25) {
+      // Extract type prefix and create short hash
+      const parts = sanitized.split('_');
+      if (parts.length >= 2) {
+        const prefix = parts[0].substring(0, 8); // e.g., "booking", "handledar" 
+        const hash = Buffer.from(parts[1]).toString('base64url').substring(0, 15); // Short hash of UUID
+        sanitized = `${prefix}_${hash}`;
+      } else {
+        // Fallback: just truncate and add timestamp
+        const timestamp = Date.now().toString(36).slice(-6);
+        sanitized = sanitized.substring(0, 18) + '_' + timestamp;
+      }
+    }
+    
+    // Ensure it's between 1-25 characters
+    sanitized = sanitized.substring(0, 25);
+    
+    console.log(`[QLIRO DEBUG] Sanitized reference: "${reference}" -> "${sanitized}" (${sanitized.length} chars)`);
+    return sanitized;
   }
 
   private generateCallbackToken(ttlMs: number = 24 * 60 * 60 * 1000): { token: string; expiresAt: Date } {

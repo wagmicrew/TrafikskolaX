@@ -39,18 +39,25 @@ export async function POST(request: Request) {
     // Default test data for preview
     const defaultTestData = {
       appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se',
-      schoolName: 'Din Trafikskola HLM',
+      schoolName: 'Din Trafikskola Hässleholm',
+      schoolPhone: '0760-38 91 92',
+      schoolEmail: 'info@dintrafikskolahlm.se',
       currentYear: new Date().getFullYear().toString(),
+      currentDate: new Date().toLocaleDateString('sv-SE'),
+      currentTime: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
       user: {
         id: 'user123',
         email: 'elev@example.com',
         firstName: 'Kalle',
         lastName: 'Anka',
+        fullName: 'Kalle Anka',
         phone: '070-123 45 67',
+        customerNumber: 'KU2024001',
       },
       booking: {
         id: 'book123',
-        scheduledDate: new Date().toISOString().split('T')[0],
+        shortId: 'B123',
+        scheduledDate: new Date().toLocaleDateString('sv-SE'),
         startTime: '09:00',
         endTime: '10:30',
         status: 'confirmed',
@@ -58,6 +65,14 @@ export async function POST(request: Request) {
         totalPrice: '1200',
         lessonTypeName: 'Körlektion',
         teacherName: 'Kjell Ljung',
+        swishUUID: 'SW123456789',
+      },
+      teacher: {
+        id: 'teacher123',
+        firstName: 'Kjell',
+        lastName: 'Ljung',
+        fullName: 'Kjell Ljung',
+        email: 'kjell@dintrafikskolahlm.se',
       },
       payment: {
         id: 'pay123',
@@ -68,6 +83,21 @@ export async function POST(request: Request) {
         reference: '1234567890',
         paidAt: new Date().toISOString(),
       },
+      customData: {
+        resetToken: 'abc123def456',
+        temporaryPassword: 'TempPass2024!',
+        password: 'NewPassword123!',
+      },
+      bookingsList: `
+        <div style="padding: 12px; border-left: 4px solid #dc2626; background-color: #fef2f2; margin: 8px 0;">
+          <p style="margin: 4px 0; font-weight: 600;">09:00 - 10:30</p>
+          <p style="margin: 4px 0;">Kalle Anka - Körlektion</p>
+        </div>
+        <div style="padding: 12px; border-left: 4px solid #dc2626; background-color: #fef2f2; margin: 8px 0;">
+          <p style="margin: 4px 0; font-weight: 600;">14:00 - 15:30</p>
+          <p style="margin: 4px 0;">Anna Andersson - Riskutbildning</p>
+        </div>
+      `,
     };
 
     // Merge with provided test data

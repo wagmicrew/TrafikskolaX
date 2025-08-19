@@ -5,45 +5,254 @@ import { emailTemplates, emailReceivers } from '@/lib/db/schema/email-templates'
 import { eq } from 'drizzle-orm';
 
 type SeedTemplate = {
-  triggerType:
-    | 'handledar_payment_reminder'
-    | 'booking_payment_reminder'
-    | 'package_payment_reminder'
-    | 'swish_payment_verification';
+  triggerType: string;
   subject: string;
   html: string;
-  receivers: Array<'student' | 'admin' | 'school'>;
+  receivers: Array<'student' | 'admin' | 'teacher' | 'specific_user'>;
 };
 
-const templates: SeedTemplate[] = [
+// Modern email template designs using the improved template structure
+const modernTemplates: SeedTemplate[] = [
   {
-    triggerType: 'handledar_payment_reminder',
-    subject: 'Påminnelse: Betalning för handledarutbildning ({{booking.shortId}})',
-    html:
-      '<div data-standard-email="1" style="max-width:680px;margin:0 auto;background:#0b1220;color:#fff;border-radius:16px;overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">\n  <div style="background:linear-gradient(180deg,#ef4444 0%,#991b1b 100%);padding:20px 24px;">\n    <h1 style="margin:0;font-size:20px;line-height:1.2;">Slutför din betalning</h1>\n    <p style="margin:6px 0 0;opacity:.9;">Handledarutbildning <strong>{{booking.shortId}}</strong></p>\n  </div>\n  <div style="padding:20px 24px;background:#0b1220;">\n    <p>Hej {{user.firstName}}!</p>\n    <p>Vi saknar din betalning för din kommande handledarutbildning. Använd knappen nedan för att öppna betalningssidan.</p>\n    <div style="margin:16px 0;text-align:center;">\n      <a href="{{links.handledarPaymentUrl}}" style="display:inline-block;background:#ef4444;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700;">Öppna betalningssida</a>\n    </div>\n    <p style="opacity:.9;">Om du redan har betalat kan du bortse från detta meddelande.</p>\n    <p style="opacity:.9;">Vänliga hälsningar,<br/>Din Trafikskola Hässleholm</p>\n  </div>\n</div>',
-    receivers: ['student'],
+    triggerType: 'new_user',
+    subject: 'Välkommen till {{schoolName}}!',
+    html: `
+      <h1>Välkommen {{user.firstName}}!</h1>
+      <p>Ditt konto hos {{schoolName}} är nu skapat. Du kan logga in och komma igång direkt.</p>
+      <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+        <p style="margin:8px 0;"><strong>Dina inloggningsuppgifter</strong></p>
+        <p style="margin:8px 0;"><strong>E‑post:</strong> {{user.email}}</p>
+        <p style="margin:8px 0;"><strong>Kundnummer:</strong> {{user.customerNumber}}</p>
+      </div>
+      <div style="margin-top:16px;">
+        <a href="{{appUrl}}/login" data-btn>Öppna kundportalen</a>
+      </div>
+      <p style="margin-top:16px;">Behöver du hjälp? Kontakta oss så hjälper vi dig.</p>
+    `,
+    receivers: ['student']
   },
   {
-    triggerType: 'booking_payment_reminder',
-    subject: 'Påminnelse: Slutför din bokningsbetalning ({{booking.shortId}})',
-    html:
-      '<div data-standard-email="1" style="max-width:680px;margin:0 auto;background:#0b1220;color:#fff;border-radius:16px;overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">\n  <div style="background:linear-gradient(180deg,#ef4444 0%,#991b1b 100%);padding:20px 24px;">\n    <h1 style="margin:0;font-size:20px;line-height:1.2;">Slutför din betalning</h1>\n    <p style="margin:6px 0 0;opacity:.9;">Bokning <strong>{{booking.shortId}}</strong></p>\n  </div>\n  <div style="padding:20px 24px;background:#0b1220;">\n    <p>Hej {{user.firstName}}!</p>\n    <p>Vi saknar din betalning för din kommande bokning. Använd knappen nedan för att öppna betalningssidan.</p>\n    <div style="margin:16px 0;text-align:center;">\n      <a href="{{links.bookingPaymentUrl}}" style="display:inline-block;background:#ef4444;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700;">Öppna betalningssida</a>\n    </div>\n    <div style="margin:18px 0;padding:12px 14px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.04);">\n      <div style="display:flex;gap:16px;flex-wrap:wrap;">\n        <div style="min-width:180px;">\n          <div style="opacity:.7;font-size:12px;">Datum</div>\n          <div style="font-weight:600;">{{booking.scheduledDate}}</div>\n        </div>\n        <div style="min-width:180px;">\n          <div style="opacity:.7;font-size:12px;">Tid</div>\n          <div style="font-weight:600;">{{booking.startTime}}–{{booking.endTime}}</div>\n        </div>\n        <div style="min-width:180px;">\n          <div style="opacity:.7;font-size:12px;">Belopp</div>\n          <div style="font-weight:600;">{{booking.totalPrice}} kr</div>\n        </div>\n      </div>\n    </div>\n    <p style="opacity:.9;">Om du redan har betalat kan du bortse från detta meddelande.</p>\n    <p style="opacity:.9;">Vänliga hälsningar,<br/>Din Trafikskola Hässleholm</p>\n  </div>\n</div>',
-    receivers: ['student'],
+    triggerType: 'new_booking',
+    subject: 'Bokningsbekräftelse - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Tack för din bokning!</h1>
+      <p>Hej {{user.firstName}}, din bokning är registrerad.</p>
+      <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Pris:</strong> {{booking.totalPrice}} kr</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Visa bokning</a>
+      </div>
+      <p style="margin-top:16px;">Om du behöver omboka eller har frågor, hör av dig.</p>
+    `,
+    receivers: ['student', 'admin']
   },
   {
-    triggerType: 'package_payment_reminder',
-    subject: 'Påminnelse: Betalning för paket',
-    html:
-      '<div data-standard-email="1" style="max-width:680px;margin:0 auto;background:#0b1220;color:#fff;border-radius:16px;overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">\n  <div style="background:linear-gradient(180deg,#ef4444 0%,#991b1b 100%);padding:20px 24px;">\n    <h1 style="margin:0;font-size:20px;line-height:1.2;">Slutför din betalning</h1>\n    <p style="margin:6px 0 0;opacity:.9;">Paket</p>\n  </div>\n  <div style="padding:20px 24px;background:#0b1220;">\n    <p>Hej {{user.firstName}}!</p>\n    <p>Vi saknar din betalning för ditt paket. Använd knappen nedan för att öppna betalningssidan.</p>\n    <div style="margin:16px 0;text-align:center;">\n      <a href="{{links.packagesPaymentUrl}}" style="display:inline-block;background:#ef4444;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700;">Öppna betalningssida</a>\n    </div>\n    <p style="opacity:.9;">Om du redan har betalat kan du bortse från detta meddelande.</p>\n    <p style="opacity:.9;">Vänliga hälsningar,<br/>Din Trafikskola Hässleholm</p>\n  </div>\n</div>',
-    receivers: ['student'],
+    triggerType: 'booking_confirmed',
+    subject: 'Körlektion bekräftad - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Din körlektion är bekräftad!</h1>
+      <p>Hej {{user.firstName}}, din lektion är nu fullständigt bokad och bekräftad.</p>
+      <div style="background-color:#dcfce7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #16a34a;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Status:</strong> ✅ Bekräftad</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Mina bokningar</a>
+      </div>
+      <p style="margin-top:16px;">Vi ser fram emot att träffa dig! Kom i tid och ha med dig körkortstillstånd.</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'payment_confirmed',
+    subject: 'Betalning bekräftad - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Tack för din betalning!</h1>
+      <p>Hej {{user.firstName}}, vi har tagit emot din betalning.</p>
+      <div style="background-color:#dcfce7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #16a34a;">
+        <p style="margin:8px 0;"><strong>Boknings‑ID:</strong> {{booking.id}}</p>
+        <p style="margin:8px 0;"><strong>Typ:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
+        <p style="margin:8px 0;"><strong>Status:</strong> ✅ Betald</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Öppna Mina sidor</a>
+      </div>
+      <p style="margin-top:16px;">Din bokning är nu bekräftad. Välkommen!</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'payment_reminder',
+    subject: 'Påminnelse: Slutför din bokning - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Påminnelse om betalning</h1>
+      <p>Hej {{user.firstName}}, din bokning väntar på betalning för att bekräftas.</p>
+      <div style="background-color:#fef3c7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #f59e0b;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
+        <p style="margin:8px 0;"><strong>Swish meddelande:</strong> {{booking.swishUUID}}</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/betalning/swish?booking={{booking.id}}" data-btn>Betala nu</a>
+      </div>
+      <p style="margin-top:16px;"><strong>OBS!</strong> Din bokning kan komma att avbokas om betalning inte sker inom kort.</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'awaiting_school_confirmation',
+    subject: 'Inväntar bekräftelse - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Din betalning inväntar bekräftelse</h1>
+      <p>Hej {{user.firstName}}, tack för din Swish-betalning!</p>
+      <div style="background-color:#fef3c7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #f59e0b;">
+        <p style="margin:8px 0;"><strong>Status:</strong> Inväntar skolans bekräftelse</p>
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Referens:</strong> {{booking.swishUUID}}</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Mina bokningar</a>
+      </div>
+      <p style="margin-top:16px;">Vi kommer att bekräfta din betalning inom kort och skicka en slutgiltig bekräftelse.</p>
+    `,
+    receivers: ['student']
   },
   {
     triggerType: 'swish_payment_verification',
-    subject: 'Betalningskontroll krävs',
-    html:
-      '<div data-standard-email="1" style="max-width:680px;margin:0 auto;background:#0b1220;color:#fff;border-radius:16px;overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">\n  <div style="background:linear-gradient(180deg,#16a34a 0%,#166534 100%);padding:20px 24px;">\n    <h1 style="margin:0;font-size:20px;line-height:1.2;">Bekräfta betalning</h1>\n    <p style="margin:6px 0 0;opacity:.9;">Bokning <strong>{{booking.shortId}}</strong></p>\n  </div>\n  <div style="padding:20px 24px;background:#0b1220;">\n    <p>Hej!</p>\n    <p>En betalning behöver bekräftas. Använd länken nedan för att öppna bekräftelsesidan.</p>\n    <div style="margin:16px 0;text-align:center;">\n      <a href="{{links.adminModerationUrl}}" style="display:inline-block;background:#16a34a;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700;">Öppna bekräftelsesidan</a>\n    </div>\n  </div>\n</div>',
-    receivers: ['admin', 'school'],
+    subject: 'Verifiera din Swish-betalning - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Bekräfta din Swish-betalning</h1>
+      <p>Hej {{user.firstName}}, vi har registrerat en betalning från dig via Swish.</p>
+      <div style="background-color:#e0f2fe; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #0284c7;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
+        <p style="margin:8px 0;"><strong>Referens:</strong> {{booking.swishUUID}}</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/verifiera-betalning?booking={{booking.id}}" data-btn>Bekräfta betalning</a>
+      </div>
+      <p style="margin-top:16px;">Klicka på knappen ovan för att bekräfta att betalningen gäller din bokning.</p>
+    `,
+    receivers: ['student']
   },
+  {
+    triggerType: 'booking_reminder',
+    subject: 'Påminnelse: Din körlektion imorgon - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Påminnelse om din körlektion</h1>
+      <p>Hej {{user.firstName}}, en påminnelse om din kommande körlektion.</p>
+      <div style="background-color:#e0f2fe; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #0284c7;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Status:</strong> ✅ Bekräftad</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Mina bokningar</a>
+      </div>
+      <p style="margin-top:16px;"><strong>Tips:</strong> Kom i tid och ha med dig körkortstillstånd. Vid förseningar, ring oss direkt på {{schoolPhone}}.</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'cancelled_booking',
+    subject: 'Bokning avbokad - {{booking.lessonTypeName}}',
+    html: `
+      <h1>Din bokning har avbokats</h1>
+      <p>Hej {{user.firstName}}, din bokning har avbokats.</p>
+      <div style="background-color:#fee2e2; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+        <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Status:</strong> ❌ Avbokad</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/boka-korning" data-btn>Boka ny tid</a>
+      </div>
+      <p style="margin-top:16px;">Du kan boka en ny tid när som helst. Kontakta oss om du har frågor.</p>
+    `,
+    receivers: ['student', 'admin']
+  },
+  {
+    triggerType: 'forgot_password',
+    subject: 'Återställ ditt lösenord - {{schoolName}}',
+    html: `
+      <h1>Återställ ditt lösenord</h1>
+      <p>Hej {{user.firstName}}, vi fick en begäran om att återställa lösenordet för ditt konto.</p>
+      <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:8px 0;"><strong>E-postadress:</strong> {{user.email}}</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/reset-password?token={{customData.resetToken}}" data-btn>Återställ lösenord</a>
+      </div>
+      <p style="margin-top:16px;">Om du inte begärde detta, kan du ignorera detta meddelande. Länken är giltig i 1 timme.</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'new_password',
+    subject: 'Nytt lösenord skapat - {{schoolName}}',
+    html: `
+      <h1>Ditt lösenord har ändrats</h1>
+      <p>Hej {{user.firstName}}, ditt lösenord har uppdaterats.</p>
+      <div style="background-color:#dcfce7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #16a34a;">
+        <p style="margin:8px 0;"><strong>Ändrat:</strong> {{currentDate}}</p>
+        <p style="margin:8px 0;"><strong>Konto:</strong> {{user.email}}</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/login" data-btn>Logga in</a>
+      </div>
+      <p style="margin-top:16px;">Om du inte gjorde denna ändring, kontakta oss omedelbart på {{schoolPhone}}.</p>
+    `,
+    receivers: ['student']
+  },
+  {
+    triggerType: 'teacher_daily_bookings',
+    subject: 'Dagens bokningar - {{currentDate}}',
+    html: `
+      <h1>Dina bokningar för idag</h1>
+      <p>Hej {{teacher.firstName}}, här är dina bokningar för idag:</p>
+      <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0;">
+        {{bookingsList}}
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard/teacher" data-btn>Se alla bokningar</a>
+      </div>
+      <p style="margin-top:16px;">Ha en bra dag!</p>
+    `,
+    receivers: ['teacher']
+  },
+  {
+    triggerType: 'handledar_booking_confirmed',
+    subject: 'Handledarutbildning bekräftad - {{booking.scheduledDate}}',
+    html: `
+      <h1>Bekräftelse: Handledarutbildning</h1>
+      <p>Hej {{user.firstName}}, en handledarutbildning har bokats.</p>
+      <div style="background-color:#dcfce7; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #16a34a;">
+        <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+        <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+        <p style="margin:8px 0;"><strong>Typ:</strong> {{booking.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Status:</strong> ✅ Bekräftad</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/dashboard" data-btn>Mina bokningar</a>
+      </div>
+      <p style="margin-top:16px;">Denna bekräftelse skickas även till handledaren.</p>
+    `,
+    receivers: ['student']
+  }
 ];
 
 export async function POST(_request: NextRequest) {
@@ -54,7 +263,8 @@ export async function POST(_request: NextRequest) {
 
     const results: any[] = [];
 
-    for (const t of templates) {
+    // Update/create all modern templates
+    for (const t of modernTemplates) {
       const existing = await db
         .select()
         .from(emailTemplates)
@@ -65,7 +275,12 @@ export async function POST(_request: NextRequest) {
       if (existing.length) {
         const [updated] = await db
           .update(emailTemplates)
-          .set({ subject: t.subject, htmlContent: t.html, isActive: true, updatedAt: new Date() })
+          .set({ 
+            subject: t.subject, 
+            htmlContent: t.html.trim(), 
+            isActive: true, 
+            updatedAt: new Date() 
+          })
           .where(eq(emailTemplates.id, existing[0].id))
           .returning({ id: emailTemplates.id });
         templateId = updated.id;
@@ -73,47 +288,70 @@ export async function POST(_request: NextRequest) {
       } else {
         const [inserted] = await db
           .insert(emailTemplates)
-          .values({ triggerType: t.triggerType, subject: t.subject, htmlContent: t.html, isActive: true })
+          .values({ 
+            triggerType: t.triggerType, 
+            subject: t.subject, 
+            htmlContent: t.html.trim(), 
+            isActive: true 
+          })
           .returning({ id: emailTemplates.id });
         templateId = inserted.id;
         results.push({ trigger: t.triggerType, action: 'inserted', id: templateId });
       }
 
-      // Ensure receivers
-      const currentReceivers = await db
-        .select({ receiverType: emailReceivers.receiverType })
-        .from(emailReceivers)
-        .where(eq(emailReceivers.templateId, templateId));
-      for (const r of t.receivers) {
-        if (!currentReceivers.some((er) => er.receiverType === r)) {
-          await db.insert(emailReceivers).values({ templateId, receiverType: r });
-        }
+      // Clear existing receivers and add new ones
+      await db.delete(emailReceivers).where(eq(emailReceivers.templateId, templateId));
+      
+      // Add receivers for this template
+      for (const receiverType of t.receivers) {
+        await db.insert(emailReceivers).values({ 
+          templateId, 
+          receiverType 
+        });
       }
     }
 
-    // Reskin all existing templates to standard wrapper if not yet standardized
+    // Update any existing templates that weren't in modernTemplates to use modern wrapper
     const allTemplates = await db.select().from(emailTemplates);
+    const modernTriggerTypes = modernTemplates.map(t => t.triggerType);
     const standardized: any[] = [];
+    
     for (const tpl of allTemplates as any[]) {
+      // Skip templates we just updated with modern designs
+      if (modernTriggerTypes.includes(tpl.triggerType)) continue;
+      
       const html: string = tpl.htmlContent || '';
-      if (html.includes('data-standard-email="1"')) continue;
-      const safeSubject = (tpl.subject || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const wrapped = `
-<div data-standard-email="1" style="max-width:680px;margin:0 auto;background:#0b1220;color:#fff;border-radius:16px;overflow:hidden;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
-  <div style="background:linear-gradient(180deg,#ef4444 0%,#991b1b 100%);padding:20px 24px;">
-    <h1 style="margin:0;font-size:20px;line-height:1.2;">${safeSubject}</h1>
-  </div>
-  <div style="padding:20px 24px;background:#0b1220;">${html}</div>
-  <div style="padding:14px 20px;background:#0a1020;border-top:1px solid rgba(255,255,255,.12);color:#cbd5e1;font-size:12px;text-align:center;">Din Trafikskola Hässleholm</div>
-</div>`;
+      
+      // Check if it already has modern design elements
+      const hasModernDesign = html.includes('border-radius:8px') && 
+                             html.includes('{{schoolPhone}}') && 
+                             html.includes('{{schoolEmail}}');
+      
+      if (hasModernDesign) continue;
+      
+      // Apply modern wrapper to legacy templates
+      const modernizedHtml = html.includes('data-btn') ? html : html.replace(
+        /<a\s+href="([^"]*)"[^>]*>([^<]*)<\/a>/g,
+        '<a href="$1" data-btn>$2</a>'
+      );
+      
       await db
         .update(emailTemplates)
-        .set({ htmlContent: wrapped, updatedAt: new Date() })
+        .set({ 
+          htmlContent: modernizedHtml,
+          updatedAt: new Date() 
+        })
         .where(eq(emailTemplates.id, tpl.id));
       standardized.push(tpl.id);
     }
 
-    return NextResponse.json({ success: true, results, standardized: standardized.length });
+    return NextResponse.json({ 
+      success: true, 
+      results, 
+      modernized: results.length,
+      standardized: standardized.length,
+      message: `Updated ${results.length} templates with modern design, standardized ${standardized.length} legacy templates`
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Failed to seed templates' }, { status: 500 });
   }

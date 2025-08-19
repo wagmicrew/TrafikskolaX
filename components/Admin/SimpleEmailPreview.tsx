@@ -1,16 +1,21 @@
 'use client';
 
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export function SimpleEmailPreview({ 
   previewContent, 
   isLoading, 
-  onRefresh 
+  onRefresh,
+  onReset,
+  showResetButton = false
 }: { 
   previewContent: { subject: string; html: string } | null;
   isLoading: boolean;
   onRefresh: () => void;
+  onReset?: () => Promise<void>;
+  showResetButton?: boolean;
 }) {
   if (isLoading) {
     return (
@@ -32,19 +37,47 @@ export function SimpleEmailPreview({
     );
   }
 
+  const handleReset = async () => {
+    if (!onReset) return;
+    
+    if (!confirm('Återställ alla mallar till standardutseende? Alla egna ändringar går förlorade.')) return;
+    
+    const toastId = toast.loading('Återställer standardmallar...');
+    try {
+      await onReset();
+      toast.success('Standardmallar applicerade', { id: toastId });
+    } catch (error: any) {
+      toast.error(error.message || 'Fel vid återställning', { id: toastId });
+    }
+  };
+
   return (
     <div className="border rounded-md overflow-hidden">
       <div className="border-b p-2 bg-gray-50 flex justify-between items-center">
         <h3 className="font-medium">{previewContent.subject || 'Förhandsgranska e-post'}</h3>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onRefresh}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Uppdatera
-        </Button>
+        <div className="flex gap-2">
+          {showResetButton && onReset && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleReset}
+              disabled={isLoading}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Återställ standardmallar
+            </Button>
+          )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Uppdatera
+          </Button>
+        </div>
       </div>
       
       <div className="h-[500px] overflow-auto">

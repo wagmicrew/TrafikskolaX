@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useRef } from 'react';
 import { JWTPayload } from '@/lib/auth/jwt';
 import { useRouter } from 'next/navigation';
 
@@ -26,6 +26,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<JWTPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
   const router = useRouter();
 
   // Enhanced token validation
@@ -54,6 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Set mounted ref to true when component mounts
+    mountedRef.current = true;
+
     // Check for existing token on mount
     const checkAuth = async () => {
       try {
@@ -82,43 +86,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           const data = await response.json();
 
-          if (response.ok && data.user) {
+          if (response.ok && data.user && mountedRef.current) {
             setUser(data.user);
-          } else {
+          } else if (mountedRef.current) {
             // Token is invalid, clear it
             clearAuthData();
           }
-        } else if (token) {
+        } else if (token && mountedRef.current) {
           // Token exists but is invalid, clear it
           clearAuthData();
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        clearAuthData();
+        if (mountedRef.current) {
+          clearAuthData();
+        }
       } finally {
-        // Use a ref to prevent state updates after unmount
-        if (!isLoading) {
+        // Only update loading state if component is still mounted
+        if (mountedRef.current) {
           setIsLoading(false);
         }
       }
     };
 
-    let mounted = true;
-    checkAuth().then(() => {
-      if (!mounted) {
-        setIsLoading(false);
-      }
-    });
+    checkAuth();
 
+    // Cleanup function to set mounted ref to false when component unmounts
     return () => {
-      mounted = false;
+      mountedRef.current = false;
     };
   }, []);
 
   const clearAuthData = () => {
     localStorage.removeItem('auth-token');
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
-    setUser(null);
+    if (mountedRef.current) {
+      setUser(null);
+    }
   };
 
   const login = (token: string) => {
@@ -133,7 +137,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Decode token to get user info
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      setUser(payload);
+      if (mountedRef.current) {
+        setUser(payload);
+      }
     } catch (error) {
       console.error('Invalid token format:', error);
       clearAuthData();
@@ -173,14 +179,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      if (response.ok && data.user) {
+      if (response.ok && data.user && mountedRef.current) {
         setUser(data.user);
-      } else {
+      } else if (mountedRef.current) {
         clearAuthData();
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      clearAuthData();
+      if (mountedRef.current) {
+        clearAuthData();
+      }
     }
   };
 

@@ -152,6 +152,41 @@ export function EmailTemplateBuilder() {
     }
   };
 
+  // Handle reset to standard templates
+  const handleReset = async () => {
+    const response = await fetch('/api/admin/email-templates/seed-reminders', { 
+      method: 'POST' 
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Kunde inte återställa mallar');
+    }
+    
+    // Reload templates after reset
+    const templatesResponse = await fetch('/api/admin/email-templates');
+    if (templatesResponse.ok) {
+      const templatesData = await templatesResponse.json();
+      setTemplates(templatesData.templates);
+    }
+    
+    // Clear current form and reload if template was selected
+    if (selectedTemplate) {
+      const updatedTemplate = templatesData.templates.find((t: any) => t.id === selectedTemplate);
+      if (updatedTemplate) {
+        // Load the updated template
+        const templateResponse = await fetch(`/api/admin/email-templates/${selectedTemplate}`);
+        if (templateResponse.ok) {
+          const templateData = await templateResponse.json();
+          form.reset(templateData);
+          // Refresh preview if we're on preview tab
+          if (activeTab === 'preview') {
+            setTimeout(handlePreview, 100);
+          }
+        }
+      }
+    }
+  };
+
   // Handle form submission
   const onSubmit = async (data: TemplateFormValues) => {
     setIsSaving(true);
@@ -531,6 +566,8 @@ export function EmailTemplateBuilder() {
             previewContent={previewContent}
             isLoading={isPreviewLoading}
             onRefresh={handlePreview}
+            onReset={handleReset}
+            showResetButton={true}
           />
         </TabsContent>
       </Tabs>

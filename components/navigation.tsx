@@ -135,28 +135,18 @@ export const Navigation = memo(function Navigation() {
                   <UserAvatarMenu />
                 </div>
               ) : (
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    className="hidden md:flex items-center space-x-2 bg-transparent border-white text-white hover:bg-white/10"
+                <div className="ml-2 flex items-center">
+                  <button
                     onClick={() => {
                       setLoginPopupTab('login')
                       setShowLoginPopup(true)
                     }}
+                    className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                    aria-label="Öppna Kundportal"
                   >
-                    <LogIn className="h-4 w-4" />
-                    <span>Logga in</span>
-                  </Button>
-                  <Button
-                    variant="default"
-                    className="hidden md:flex items-center space-x-2 bg-red-600 hover:bg-red-700"
-                    onClick={() => {
-                      setLoginPopupTab('register')
-                      setShowLoginPopup(true)
-                    }}
-                  >
-                    <span>Registrera</span>
-                  </Button>
+                    <User className="w-4 h-4 lg:w-5 lg:h-5" />
+                    <span>Kundportal</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -254,21 +244,8 @@ export const Navigation = memo(function Navigation() {
                     setShowLoginPopup(true)
                   }}
                 >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Logga in
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-left hover:bg-gray-100"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setMobileMenuOpen(false)
-                    setLoginPopupTab('register')
-                    setShowLoginPopup(true)
-                  }}
-                >
                   <User className="mr-2 h-4 w-4" />
-                  Registrera konto
+                  Kundportal
                 </Button>
               </div>
             )}
@@ -332,9 +309,10 @@ export const Navigation = memo(function Navigation() {
                   setShowLoginPopup(true)
                 }}
                 className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
+                aria-label="Öppna Kundportal"
               >
-                <LogIn className="w-5 h-5 text-gray-500" />
-                <span className="text-xs font-medium">Logga</span>
+                <User className="w-5 h-5 text-gray-500" />
+                <span className="text-xs font-medium">Kundportal</span>
               </button>
             )}
           </div>

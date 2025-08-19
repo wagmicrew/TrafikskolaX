@@ -10,14 +10,17 @@ import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu,
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useAuthActions } from "@/hooks/useAuthActions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { LoginPopup } from "@/components/auth/login-popup"
 
 export const Navigation = memo(function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
+  const [showLoginPopup, setShowLoginPopup] = useState(false)
+  const [loginPopupTab, setLoginPopupTab] = useState<'login' | 'register'>('login')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
-  const { handleLogin, handleRegister, handleLogout } = useAuthActions()
+  const { handleLogout } = useAuthActions()
 
   const menuItems = [
     { href: "/", label: "Hem", icon: Home },
@@ -136,7 +139,10 @@ export const Navigation = memo(function Navigation() {
                   <Button
                     variant="outline"
                     className="hidden md:flex items-center space-x-2 bg-transparent border-white text-white hover:bg-white/10"
-                    onClick={handleLogin}
+                    onClick={() => {
+                      setLoginPopupTab('login')
+                      setShowLoginPopup(true)
+                    }}
                   >
                     <LogIn className="h-4 w-4" />
                     <span>Logga in</span>
@@ -144,7 +150,10 @@ export const Navigation = memo(function Navigation() {
                   <Button
                     variant="default"
                     className="hidden md:flex items-center space-x-2 bg-red-600 hover:bg-red-700"
-                    onClick={handleRegister}
+                    onClick={() => {
+                      setLoginPopupTab('register')
+                      setShowLoginPopup(true)
+                    }}
                   >
                     <span>Registrera</span>
                   </Button>
@@ -241,7 +250,8 @@ export const Navigation = memo(function Navigation() {
                   onClick={(e) => {
                     e.preventDefault()
                     setMobileMenuOpen(false)
-                    handleLogin(e)
+                    setLoginPopupTab('login')
+                    setShowLoginPopup(true)
                   }}
                 >
                   <LogIn className="mr-2 h-4 w-4" />
@@ -253,7 +263,8 @@ export const Navigation = memo(function Navigation() {
                   onClick={(e) => {
                     e.preventDefault()
                     setMobileMenuOpen(false)
-                    handleRegister(e)
+                    setLoginPopupTab('register')
+                    setShowLoginPopup(true)
                   }}
                 >
                   <User className="mr-2 h-4 w-4" />
@@ -316,7 +327,10 @@ export const Navigation = memo(function Navigation() {
               </Link>
             ) : (
               <button
-                onClick={handleLogin}
+                onClick={() => {
+                  setLoginPopupTab('login')
+                  setShowLoginPopup(true)
+                }}
                 className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
               >
                 <LogIn className="w-5 h-5 text-gray-500" />
@@ -338,6 +352,12 @@ export const Navigation = memo(function Navigation() {
           <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
         </DialogContent>
       </Dialog>
+
+      <LoginPopup 
+        isOpen={showLoginPopup} 
+        onClose={() => setShowLoginPopup(false)} 
+        defaultTab={loginPopupTab}
+      />
     </>
   )
 })

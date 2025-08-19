@@ -19,6 +19,7 @@ import { SwishPaymentDialog } from './swish-payment-dialog'
 import { QliroPaymentDialog } from './qliro-payment-dialog'
 import { useQliroListener } from '@/hooks/use-qliro-listener'
 import { EmailConflictDialog } from './email-conflict-dialog'
+import { AddStudentPopup } from './add-student-popup'
 
 interface LessonType {
   id: string
@@ -98,6 +99,7 @@ export function BookingConfirmation({
   const [showQliroDialog, setShowQliroDialog] = useState(false)
   const [qliroCheckoutUrl, setQliroCheckoutUrl] = useState('')
   const [showEmailConflictDialog, setShowEmailConflictDialog] = useState(false)
+  const [showAddStudentDialog, setShowAddStudentDialog] = useState(false)
   const [conflictingEmail, setConflictingEmail] = useState('')
   const [emailValidationStatus, setEmailValidationStatus] = useState<'idle' | 'checking' | 'available' | 'exists'>('idle')
   const [existingUserName, setExistingUserName] = useState('')
@@ -636,6 +638,28 @@ export function BookingConfirmation({
     }, 100)
   }
 
+  const handleStudentAdded = async (newStudent: { id: string; firstName: string; lastName: string; email: string }) => {
+    try {
+      // Add the new student to the students list
+      setStudents(prev => [...prev, newStudent])
+      
+      // Select the newly added student
+      setSelectedStudent(newStudent.id)
+      
+      // Close the dialog
+      setShowAddStudentDialog(false)
+      
+      // Show success notification
+      showNotification('Student tillagd', `${newStudent.firstName} ${newStudent.lastName} har lagts till och valts för bokningen`, 'success')
+      
+      // Reload students list to ensure we have the latest data
+      await loadStudents()
+    } catch (error) {
+      console.error('Error handling student addition:', error)
+      showNotification('Fel', 'Kunde inte lägga till studenten', 'error')
+    }
+  }
+
   const isHandledarSession = bookingData.lessonType.type === 'handledar'
   const hasHandledarCredits = isStudent && userCredits > 0 && isHandledarutbildning
   const canUseCredits = isStudent && userCredits > 0 && (bookingData.lessonType.type !== 'handledar' || isHandledarutbildning)
@@ -709,9 +733,21 @@ export function BookingConfirmation({
             {/* Student Selection for Admin/Teacher */}
             {isAdminOrTeacher && (
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <Label htmlFor="student-select" className="text-sm font-medium text-gray-700 mb-2 block">
-                  Välj elev för bokningen *
-                </Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="student-select" className="text-sm font-medium text-gray-700">
+                    Välj elev för bokningen *
+                  </Label>
+                  <Button
+                    type="button"
+                    onClick={() => setShowAddStudentDialog(true)}
+                    variant="outline"
+                    size="sm"
+                    className="bg-white hover:bg-gray-50"
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Lägg till student
+                  </Button>
+                </div>
                 <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                   <SelectTrigger>
                     <SelectValue placeholder="Välj en elev..." />
@@ -1246,6 +1282,13 @@ export function BookingConfirmation({
         onUseExistingAccount={handleUseExistingAccount}
         onUseNewEmail={handleUseNewEmail}
         onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Add Student Dialog */}
+      <AddStudentPopup
+        isOpen={showAddStudentDialog}
+        onClose={() => setShowAddStudentDialog(false)}
+        onStudentAdded={handleStudentAdded}
       />
     </div>
   )

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/hooks/useAuth"
 import { Toaster } from "react-hot-toast"
 import { CookieConsent } from "@/components/CookieConsent"
 import ImpersonationBanner from '@/components/ImpersonationBanner'
+import { getOpeningHours, toJsonLd } from "@/lib/site-settings/opening-hours"
 
 const inter = Inter({ subsets: ["latin"] })
 const playfair = Playfair_Display({ subsets: ["latin"] })
@@ -97,11 +98,13 @@ export const metadata: Metadata = {
   generator: "v0.dev",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const opening = await getOpeningHours()
+  const { openingHoursSpecification, specialOpeningHoursSpecification } = toJsonLd(opening)
   return (
     <html lang="sv">
       <head>
@@ -137,7 +140,8 @@ export default function RootLayout({
                 latitude: "56.1589",
                 longitude: "13.7666",
               },
-              openingHours: ["We 16:00-18:00", "Fr 14:00-16:00", "Mo-Fr 08:00-18:00", "Sa 09:00-15:00"],
+              openingHoursSpecification,
+              specialOpeningHoursSpecification,
               priceRange: "500-2000 SEK",
               areaServed: {
                 "@type": "City",
@@ -214,10 +218,10 @@ export default function RootLayout({
           <ImpersonationBanner />
           <Navigation />
           <main>{children}</main>
-          <Footer />
           <Toaster />
           <CookieConsent />
         </AuthProvider>
+        <Footer />
       </body>
     </html>
   )

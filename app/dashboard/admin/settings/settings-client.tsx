@@ -30,9 +30,12 @@ import {
   Settings as SettingsIcon,
   AlertTriangle,
   Edit,
-  Copy
+  Copy,
+  Clock
 } from 'lucide-react';
 import { ResetSiteButton } from '@/components/Admin/ResetSiteButton';
+import OpeningHoursEditor from '@/components/Admin/OpeningHoursEditor';
+import type { OpeningHoursConfig } from '@/lib/site-settings/opening-hours';
 
 interface Settings {
   // Email settings
@@ -87,6 +90,8 @@ interface Settings {
   google_maps_api_key?: string;
   // Debug
   debug_extended_logs?: boolean;
+  // Opening hours
+  opening_hours?: OpeningHoursConfig;
 }
 
 interface TestResult {
@@ -125,6 +130,7 @@ export default function SettingsClient() {
   const [editSchool, setEditSchool] = useState(false);
   const [editSite, setEditSite] = useState(false);
   const [editPayment, setEditPayment] = useState(false);
+  const [editOpening, setEditOpening] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Cron setup dialog state
@@ -672,7 +678,7 @@ export default function SettingsClient() {
         </Link>
       </div>
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
+        <TabsList className="grid w-full grid-cols-7 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
           <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Mail className="w-4 h-4" />
             E-postinställningar
@@ -684,6 +690,10 @@ export default function SettingsClient() {
           <TabsTrigger value="site" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Globe className="w-4 h-4" />
             Webbplatsinställningar
+          </TabsTrigger>
+          <TabsTrigger value="opening" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+            <Clock className="w-4 h-4" />
+            Öppettider
           </TabsTrigger>
           <TabsTrigger value="payment" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <CreditCard className="w-4 h-4" />
@@ -941,6 +951,40 @@ export default function SettingsClient() {
                  {/* Add School Receiver Type Button */}
                  {/* moved to Nyttigt tab */}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Opening Hours Tab */}
+        <TabsContent value="opening">
+          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <CardTitle className="text-white font-extrabold drop-shadow">Öppettider</CardTitle>
+              <CardDescription className="text-slate-300">
+                Redigera öppettider för kontor och körlektioner samt undantag
+              </CardDescription>
+              <div className="ml-auto flex items-center gap-2">
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    Osparade ändringar
+                  </div>
+                )}
+                <button onClick={() => setEditOpening((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20">
+                  <Edit className="w-4 h-4 text-white" />
+                </button>
+                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className={`space-y-6 ${editOpening ? '' : 'opacity-60 pointer-events-none'}`}>
+              {settings.opening_hours && (
+                <OpeningHoursEditor
+                  value={settings.opening_hours}
+                  onChange={(next) => updateSetting('opening_hours', next)}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>

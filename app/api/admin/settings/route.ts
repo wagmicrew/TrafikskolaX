@@ -3,6 +3,7 @@ import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { siteSettings } from '@/lib/db/schema';
 import { eq, or, inArray } from 'drizzle-orm';
+import { withDefaults } from '@/lib/site-settings/opening-hours';
 
 export async function GET(request: Request) {
   try {
@@ -22,6 +23,18 @@ export async function GET(request: Request) {
                          setting.value || '';
       return acc;
     }, {} as Record<string, any>);
+
+    // Parse opening_hours JSON safely and provide defaults
+    const ohRow = settings.find((s) => s.key === 'opening_hours');
+    if (ohRow && ohRow.value) {
+      try {
+        settingsMap['opening_hours'] = withDefaults(JSON.parse(ohRow.value));
+      } catch {
+        settingsMap['opening_hours'] = withDefaults(null);
+      }
+    } else {
+      settingsMap['opening_hours'] = withDefaults(null);
+    }
 
     // Ensure all expected keys exist with defaults
     const defaultSettings = {
@@ -145,8 +158,20 @@ export async function PUT(request: Request) {
 
     // Update or insert each setting
     for (const [key, value] of Object.entries(updates)) {
-      const stringValue = typeof value === 'boolean' ? value.toString() : String(value);
       const category = categoryMapping[key] || 'general';
+      let stringValue: string;
+
+      if (key === 'opening_hours') {
+        // Validate and normalize opening_hours JSON
+        try {
+          const normalized = typeof value === 'string' ? withDefaults(JSON.parse(value)) : withDefaults(value as any);
+          stringValue = JSON.stringify(normalized);
+        } catch (e) {
+          return NextResponse.json({ error: 'Invalid opening_hours payload' }, { status: 400 });
+        }
+      } else {
+        stringValue = typeof value === 'boolean' ? value.toString() : String(value);
+      }
 
       // Check if setting exists
       const existing = await db

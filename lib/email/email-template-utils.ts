@@ -104,6 +104,17 @@ export async function getDefaultTemplate(triggerType: string): Promise<{
       htmlContent: `
         <h1>Välkommen {{user.firstName}}!</h1>
         <p>Ditt konto har skapats framgångsrikt hos {{schoolName}}.</p>
+        {{#if customData.password}}
+        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #dc2626;">
+          <p style="margin: 8px 0;"><strong>Dina inloggningsuppgifter:</strong></p>
+          <p style="margin: 8px 0;"><strong>E-post:</strong> {{user.email}}</p>
+          <p style="margin: 8px 0;"><strong>Lösenord:</strong> {{customData.password}}</p>
+          {{#if customData.customerNumber}}
+          <p style="margin: 8px 0;"><strong>Kundnummer:</strong> {{customData.customerNumber}}</p>
+          {{/if}}
+        </div>
+        <p><strong>Viktigt:</strong> Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
+        {{/if}}
         <p>Du kan nu logga in och boka dina körlektioner.</p>
         <p><a href="{{appUrl}}/login" style="color: #dc2626; text-decoration: underline;">Logga in här</a></p>
         <p>Om du har några frågor, tveka inte att kontakta oss.</p>

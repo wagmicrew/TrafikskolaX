@@ -1,7 +1,64 @@
 import Link from "next/link"
 import { Phone, Mail, Clock } from "lucide-react"
+import { getOpeningHours } from "@/lib/site-settings/opening-hours"
 
-export function Footer() {
+type Day = "mo" | "tu" | "we" | "th" | "fr" | "sa" | "su"
+type TimeInterval = { start: string; end: string }
+type WeeklySchedule = Record<Day, TimeInterval[]>
+
+const ORDER: Day[] = ["mo", "tu", "we", "th", "fr", "sa", "su"]
+const DAY_SV: Record<Day, string> = {
+  mo: "Måndag",
+  tu: "Tisdag",
+  we: "Onsdag",
+  th: "Torsdag",
+  fr: "Fredag",
+  sa: "Lördag",
+  su: "Söndag",
+}
+
+function sameIntervals(a: TimeInterval[], b: TimeInterval[]) {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].start !== b[i].start || a[i].end !== b[i].end) return false
+  }
+  return true
+}
+
+function compressWeekly(weekly: WeeklySchedule) {
+  const groups: { start: Day; end: Day; intervals: TimeInterval[] }[] = []
+  let current: { start: Day; end: Day; intervals: TimeInterval[] } | null = null
+  for (const d of ORDER) {
+    const intervals = weekly[d]
+    if (!current) {
+      current = { start: d, end: d, intervals }
+      continue
+    }
+    if (sameIntervals(current.intervals, intervals)) {
+      current.end = d
+    } else {
+      groups.push(current)
+      current = { start: d, end: d, intervals }
+    }
+  }
+  if (current) groups.push(current)
+  // Filter out groups that represent fully closed days (no intervals)
+  return groups.filter((g) => g.intervals.length > 0)
+}
+
+function formatGroupLabel(g: { start: Day; end: Day }) {
+  return g.start === g.end ? DAY_SV[g.start] : `${DAY_SV[g.start]} - ${DAY_SV[g.end]}`
+}
+
+function formatIntervals(list: TimeInterval[]) {
+  return list.map((iv) => `${iv.start} - ${iv.end}`).join(", ")
+}
+
+export async function Footer() {
+  const oh = await getOpeningHours()
+  const officeGroups = compressWeekly(oh.office.weekly)
+  const drivingGroups = compressWeekly(oh.driving.weekly)
+
   return (
     <footer className="bg-gray-100 border-t">
       <div className="container mx-auto px-6 py-12">
@@ -74,26 +131,36 @@ export function Footer() {
             <h3 className="text-lg font-bold text-gray-800 mb-4">Öppettider</h3>
             <h4 className="font-medium text-gray-700 mb-2">Kontorstider:</h4>
             <ul className="space-y-2 mb-4">
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Onsdag: 16:00 - 18:00</span>
-              </li>
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Fredag: 14:00 - 16:00</span>
-              </li>
+              {officeGroups.length === 0 ? (
+                <li className="flex items-center">
+                  <Clock className="w-4 h-4 text-red-600 mr-2" />
+                  <span className="text-gray-600">Stängt</span>
+                </li>
+              ) : (
+                officeGroups.map((g, idx) => (
+                  <li className="flex items-center" key={`office-${idx}`}>
+                    <Clock className="w-4 h-4 text-red-600 mr-2" />
+                    <span className="text-gray-600">{formatGroupLabel(g)}: {formatIntervals(g.intervals)}</span>
+                  </li>
+                ))
+              )}
             </ul>
 
             <h4 className="font-medium text-gray-700 mb-2">Körlektioner:</h4>
             <ul className="space-y-2">
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Måndag - Fredag: 08:00 - 18:00</span>
-              </li>
-              <li className="flex items-center">
-                <Clock className="w-4 h-4 text-red-600 mr-2" />
-                <span className="text-gray-600">Lördag: 09:00 - 15:00</span>
-              </li>
+              {drivingGroups.length === 0 ? (
+                <li className="flex items-center">
+                  <Clock className="w-4 h-4 text-red-600 mr-2" />
+                  <span className="text-gray-600">Stängt</span>
+                </li>
+              ) : (
+                drivingGroups.map((g, idx) => (
+                  <li className="flex items-center" key={`driving-${idx}`}>
+                    <Clock className="w-4 h-4 text-red-600 mr-2" />
+                    <span className="text-gray-600">{formatGroupLabel(g)}: {formatIntervals(g.intervals)}</span>
+                  </li>
+                ))
+              )}
               <li className="text-sm text-yellow-600 mt-2">* Flexibla tider efter överenskommelse</li>
             </ul>
           </div>

@@ -230,7 +230,7 @@ export default function HomePage() {
             <div className="text-center">
               <img
                 src="/images/storefront.jpg"
-                alt="Din Trafikskola Hässleholm butik på Östergatan 3a i Hässleholm"
+                alt="Din Trafikskola Hässleholm lokaler på Östergatan 3a i Hässleholm"
                 className="rounded-lg shadow-lg max-w-full h-auto"
                 width="500"
                 height="400"

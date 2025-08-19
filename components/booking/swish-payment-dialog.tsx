@@ -48,7 +48,12 @@ export function SwishPaymentDialog({
 
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
-  const message = customMessage || (mode === 'package' ? `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`)
+  const message = customMessage || (mode === 'package' ? 
+    `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : 
+    booking.sessionType === 'handledar' || booking.sessionType === 'teorilektion' ?
+    `Teori ${booking.id ? booking.id.slice(0, 8) : 'temp'}` :
+    `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
+  )
 
   useEffect(() => {
     if (!isOpen) return;

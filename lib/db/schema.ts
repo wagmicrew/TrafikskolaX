@@ -375,6 +375,7 @@ export const handledarSessions = pgTable('handledar_sessions', {
   pricePerParticipant: decimal('price_per_participant', { precision: 10, scale: 2 }).notNull(),
   teacherId: uuid('teacher_id').references(() => users.id),
   isActive: boolean('is_active').default(true),
+  sessionType: varchar('session_type', { length: 50 }).default('handledarutbildning'), // 'handledarutbildning' or 'riskettan'
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -387,15 +388,29 @@ export const handledarBookings = pgTable('handledar_bookings', {
   supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
   supervisorEmail: varchar('supervisor_email', { length: 255 }),
   supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  status: varchar('status', { length: 50 }).default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  basePrice: decimal('base_price', { precision: 10, scale: 2 }).default('500.00'),
+  supervisorCount: integer('supervisor_count').default(1),
+  pricePerSupervisor: decimal('price_per_supervisor', { precision: 10, scale: 2 }).default('500.00'),
   paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
   paymentMethod: varchar('payment_method', { length: 50 }),
-  swishUUID: varchar('swish_uuid', { length: 255 }),
-  status: varchar('status', { length: 50 }).default('pending'),
-  bookedBy: uuid('booked_by').references(() => users.id), // Who made the booking
+  swishUuid: varchar('swish_uuid', { length: 255 }),
+  bookedBy: uuid('booked_by').references(() => users.id),
   reminderSent: boolean('reminder_sent').default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Supervisor details table for multiple supervisors per booking
+export const supervisorDetails = pgTable('supervisor_details', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  handledarBookingId: uuid('handledar_booking_id').notNull().references(() => handledarBookings.id, { onDelete: 'cascade' }),
+  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
+  supervisorEmail: varchar('supervisor_email', { length: 255 }),
+  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 20 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // Slot overrides table

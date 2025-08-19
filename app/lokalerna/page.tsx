@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ContactForm } from "@/components/contact-form"
 import { MapPin, Phone, Mail, Car, Building2, Users, Lightbulb, Sofa, Monitor } from "lucide-react"
 import Link from "next/link"
+import OpeningHoursDynamic from "@/components/site/opening-hours-dynamic"
 
 export default function PremisesPage() {
   const [showContactForm, setShowContactForm] = useState(false)
@@ -166,41 +167,7 @@ export default function PremisesPage() {
 
               <Card className="p-6">
                 <h2 className="text-2xl font-bold text-red-600 mb-4">Öppettider</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-2">Kontorstider:</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-700">Onsdag:</span>
-                        <span className="text-gray-700">16:00 - 18:00</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-700">Fredag:</span>
-                        <span className="text-gray-700">14:00 - 16:00</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-2">Körlektioner:</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-700">Måndag - Fredag:</span>
-                        <span className="text-gray-700">08:00 - 18:00</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-700">Lördag:</span>
-                        <span className="text-gray-700">09:00 - 15:00</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                    <p className="text-sm text-yellow-800">
-                      <strong>*</strong> Flexibla tider efter överenskommelse
-                    </p>
-                  </div>
-                </div>
+                <OpeningHoursDynamic className="space-y-4" scope="both" showSectionTitles />
               </Card>
             </div>
 
@@ -239,14 +206,14 @@ export default function PremisesPage() {
               <Card className="overflow-hidden">
                 <img
                   src="/images/storefront.jpg"
-                  alt="Din Trafikskola Hässleholm butik på Östergatan 3a i Hässleholm"
+                  alt="Din Trafikskola Hässleholm lokaler på Östergatan 3a i Hässleholm"
                   className="w-full h-96 object-cover"
                   loading="lazy"
                 />
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-red-600 mb-3">Vår butik på Östergatan</h3>
+                  <h3 className="text-xl font-bold text-red-600 mb-3">Våra lokaler på Östergatan</h3>
                   <p className="text-gray-700">
-                    Våra lokaler på Östergatan 3a är lätt att hitta och välkomnar dig med professionell skyltning. Den
+                    Våra lokaler på Östergatan 3a är lätta att hitta och välkomnar dig med professionell skyltning. Den
                     centrala platsen gör det enkelt att besöka oss oavsett om du kommer med bil, cykel eller
                     kollektivtrafik.
                   </p>

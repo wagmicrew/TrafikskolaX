@@ -124,8 +124,8 @@ export default function AdminDashboard() {
       color: 'bg-indigo-500'
     },
     {
-      title: 'Handledarutbildning',
-      description: 'Hantera handledarutbildningar',
+      title: 'Teorilektioner',
+      description: 'Hantera teorilektioner och handledarutbildningar',
       href: '/dashboard/admin/handledarkurs',
       icon: FaGraduationCap,
       color: 'bg-teal-500'

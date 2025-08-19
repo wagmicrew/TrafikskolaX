@@ -103,22 +103,22 @@ export async function getDefaultTemplate(triggerType: string): Promise<{
       subject: 'Välkommen till {{schoolName}}!',
       htmlContent: `
         <h1>Välkommen {{user.firstName}}!</h1>
-        <p>Ditt konto har skapats framgångsrikt hos {{schoolName}}.</p>
+        <p>Ditt konto hos {{schoolName}} är nu skapat. Du kan logga in och komma igång direkt.</p>
         {{#if customData.password}}
-        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #dc2626;">
-          <p style="margin: 8px 0;"><strong>Dina inloggningsuppgifter:</strong></p>
-          <p style="margin: 8px 0;"><strong>E-post:</strong> {{user.email}}</p>
-          <p style="margin: 8px 0;"><strong>Lösenord:</strong> {{customData.password}}</p>
+        <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #dc2626;">
+          <p style="margin:8px 0;"><strong>Dina inloggningsuppgifter</strong></p>
+          <p style="margin:8px 0;"><strong>E‑post:</strong> {{user.email}}</p>
+          <p style="margin:8px 0;"><strong>Lösenord:</strong> {{customData.password}}</p>
           {{#if customData.customerNumber}}
-          <p style="margin: 8px 0;"><strong>Kundnummer:</strong> {{customData.customerNumber}}</p>
+          <p style="margin:8px 0;"><strong>Kundnummer:</strong> {{customData.customerNumber}}</p>
           {{/if}}
         </div>
-        <p><strong>Viktigt:</strong> Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
+        <p style="margin:8px 0 0 0;"><strong>Viktigt:</strong> Byt lösenord efter första inloggningen.</p>
         {{/if}}
-        <p>Du kan nu logga in och boka dina körlektioner.</p>
-        <p><a href="{{appUrl}}/login" style="color: #dc2626; text-decoration: underline;">Logga in här</a></p>
-        <p>Om du har några frågor, tveka inte att kontakta oss.</p>
-        <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
+        <div style="margin-top:16px;">
+          <a href="{{appUrl}}/login" data-btn>Öppna kundportalen</a>
+        </div>
+        <p style="margin-top:16px;">Behöver du hjälp? Kontakta oss så hjälper vi dig.</p>
       `,
       receivers: ['student']
     },
@@ -126,17 +126,17 @@ export async function getDefaultTemplate(triggerType: string): Promise<{
       subject: 'Bokningsbekräftelse - {{booking.lessonTypeName}}',
       htmlContent: `
         <h1>Tack för din bokning!</h1>
-        <p>Hej {{user.firstName}},</p>
-        <p>Din körlektion har bokats enligt följande:</p>
-        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 8px 0;"><strong>Typ av lektion:</strong> {{booking.lessonTypeName}}</p>
-          <p style="margin: 8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
-          <p style="margin: 8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
-          <p style="margin: 8px 0;"><strong>Pris:</strong> {{booking.totalPrice}} kr</p>
+        <p>Hej {{user.firstName}}, din bokning är registrerad.</p>
+        <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0;">
+          <p style="margin:8px 0;"><strong>Lektion:</strong> {{booking.lessonTypeName}}</p>
+          <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+          <p style="margin:8px 0;"><strong>Tid:</strong> {{booking.startTime}} - {{booking.endTime}}</p>
+          <p style="margin:8px 0;"><strong>Pris:</strong> {{booking.totalPrice}} kr</p>
         </div>
-        <p>Du kan se och hantera din bokning genom att logga in på din profil.</p>
-        <p>Om du behöver omförboka eller har några frågor, kontakta oss gärna.</p>
-        <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
+        <div style="margin-top:12px;">
+          <a href="{{appUrl}}/dashboard" data-btn>Visa bokning</a>
+        </div>
+        <p style="margin-top:16px;">Om du behöver omboka eller har frågor, hör av dig.</p>
       `,
       receivers: ['student', 'admin']
     },
@@ -144,16 +144,17 @@ export async function getDefaultTemplate(triggerType: string): Promise<{
       subject: 'Betalning mottagen - {{booking.lessonTypeName}}',
       htmlContent: `
         <h1>Tack för din betalning!</h1>
-        <p>Hej {{user.firstName}},</p>
-        <p>Vi har mottagit din betalning för följande bokning:</p>
-        <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 8px 0;"><strong>Boknings-ID:</strong> {{booking.id}}</p>
-          <p style="margin: 8px 0;"><strong>Typ av lektion:</strong> {{booking.lessonTypeName}}</p>
-          <p style="margin: 8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
-          <p style="margin: 8px 0;"><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
+        <p>Hej {{user.firstName}}, vi har tagit emot din betalning.</p>
+        <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0;">
+          <p style="margin:8px 0;"><strong>Boknings‑ID:</strong> {{booking.id}}</p>
+          <p style="margin:8px 0;"><strong>Typ:</strong> {{booking.lessonTypeName}}</p>
+          <p style="margin:8px 0;"><strong>Datum:</strong> {{booking.scheduledDate}}</p>
+          <p style="margin:8px 0;"><strong>Belopp:</strong> {{booking.totalPrice}} kr</p>
         </div>
-        <p>Din bokning är nu helt bekräftad. Vi ser fram emot att träffa dig!</p>
-        <p>Med vänliga hälsningar,<br>{{schoolName}}</p>
+        <div style="margin-top:12px;">
+          <a href="{{appUrl}}/dashboard" data-btn>Öppna Mina sidor</a>
+        </div>
+        <p style="margin-top:16px;">Din bokning är nu bekräftad. Välkommen!</p>
       `,
       receivers: ['student']
     },

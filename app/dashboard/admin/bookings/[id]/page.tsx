@@ -1,4 +1,4 @@
-import { Toaster } from 'react-hot-toast';
+
 
 import { db } from '@/lib/db';
 import { bookings, users, cars, lessonTypes } from '@/lib/db/schema';
@@ -87,7 +87,6 @@ export default async function BookingDetailsPage({
 return (
       <>
         <BookingDetailsClient booking={bookingData} />
-        <Toaster position="top-right" />
       </>
     );
   } catch (error) {

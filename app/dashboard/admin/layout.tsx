@@ -58,7 +58,7 @@ export default async function AdminLayout({
                 <div className="py-2">
                   <Link href="/dashboard/admin/lessons" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Lektioner & Paket</Link>
                   <Link href="/dashboard/admin/lesson-content" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Lektionsinnehåll</Link>
-                  <Link href="/dashboard/admin/handledarkurs" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Handledar Management</Link>
+                  <Link href="/dashboard/admin/handledarkurs" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Teorihantering</Link>
                 </div>
               </div>
             </div>

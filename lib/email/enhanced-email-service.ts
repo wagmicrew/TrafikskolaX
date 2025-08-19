@@ -24,9 +24,14 @@ export type EmailTriggerType =
   | 'teacher_feedback_reminder'
   | 'awaiting_school_confirmation'
   | 'pending_school_confirmation'
-  | 'new_password';
+  | 'new_password'
+  | 'swish_payment_verification'
+  | 'handledar_booking_confirmed'
+  | 'handledar_payment_reminder'
+  | 'booking_payment_reminder'
+  | 'package_payment_reminder';
 
-export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user';
+export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user' | 'supervisor';
 
 interface EmailConfig {
   // Email method priority: 'sendgrid' | 'smtp' | 'internal'
@@ -58,7 +63,7 @@ interface EmailConfig {
   forceInternalOnly: boolean;
 }
 
-interface EmailContext {
+export interface EmailContext {
   user?: {
     id: string;
     email: string;
@@ -396,17 +401,13 @@ logger.info('email', 'Email sent via SMTP', {
 
     let success = false;
 
-    // Ensure all outgoing emails use the branded template unless already a full HTML document
+    // Ensure all outgoing emails use the branded template
     let wrappedOptions = { ...options };
     if (wrappedOptions.html) {
-      const lower = wrappedOptions.html.toLowerCase();
-      const isFullDocument = lower.includes('<html') || lower.includes('<!doctype');
-      if (!isFullDocument) {
-        wrappedOptions.html = this.applyEmailTemplate(wrappedOptions.html);
-      }
+      wrappedOptions.html = this.applyEmailTemplate(wrappedOptions.html);
     } else if (wrappedOptions.text) {
       // Simple text fallback inside template
-      wrappedOptions.html = this.applyEmailTemplate(`<pre style="white-space: pre-wrap; font-family: inherit;">${wrappedOptions.text}</pre>`);
+      wrappedOptions.html = this.applyEmailTemplate(`<pre style="white-space: pre-wrap; font-family: inherit; color: #374151;">${wrappedOptions.text}</pre>`);
     }
 
     // If force internal only is enabled, skip email providers
@@ -579,8 +580,11 @@ logger.info('email', 'Email sent via SMTP', {
     // Custom data
     if (context.customData) {
       Object.entries(context.customData).forEach(([key, value]) => {
-        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        const regex = new RegExp(`\\{\\{customData\\.${key}\\}\\}`, 'g');
         processed = processed.replace(regex, String(value));
+        // Also support direct key access for backward compatibility
+        const directRegex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        processed = processed.replace(directRegex, String(value));
       });
     }
 
@@ -625,30 +629,48 @@ logger.info('email', 'Email sent via SMTP', {
     processed = processed.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
     processed = processed.replace(/\{\{currentDate\}\}/g, new Date().toLocaleDateString('sv-SE'));
 
+    // Normalize links (href/src) to absolute URLs and style marked buttons
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se';
+      processed = this.normalizeEmailUrls(processed, baseUrl);
+      processed = this.applyButtonStyles(processed);
+    } catch (err) {
+      logger.warn('email', 'Email template post-processing (URL/button styling) failed', { error: (err as Error).message });
+    }
+
     return processed;
   }
 
   /**
-   * Apply branded email template
+   * Apply branded email template wrapper
+   * Only wrap content if it's not already a full HTML document
    */
   private static applyEmailTemplate(content: string): string {
+    // Check if content is already a full HTML document
+    const lower = content.toLowerCase();
+    const isFullDocument = lower.includes('<html') || lower.includes('<!doctype');
+    
+    if (isFullDocument) {
+      return content; // Return as-is if already complete
+    }
+
     return `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Din Trafikskola HLM</title>
+        <title>{{schoolName}}</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <div data-standard-email="1" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
           
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 30px 20px; text-align: center;">
             <div style="background-color: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; display: inline-block;">
               <div style="color: #ffffff; margin: 0; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                <div style="font-size: 20px; font-weight: bold; margin-bottom: 2px;">Din Trafikskola</div>
-                <div style="font-size: 16px; font-weight: normal;">Hässleholm</div>
+                <div style="font-size: 20px; font-weight: bold; margin-bottom: 2px;">{{schoolName}}</div>
+                <div style="font-size: 14px; font-weight: normal; opacity: 0.9;">Din körskola</div>
               </div>
             </div>
           </div>
@@ -658,25 +680,22 @@ logger.info('email', 'Email sent via SMTP', {
             <div style="color: #374151; line-height: 1.6; font-size: 16px;">
               ${content}
             </div>
-            
-            <!-- Call to Action -->
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="{{appUrl}}/dashboard" 
-                 style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px rgba(220, 38, 38, 0.3);">
-                📚 Gå till Min Sida
-              </a>
-            </div>
           </div>
           
           <!-- Footer -->
           <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-            <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+            <div style="margin-bottom: 20px;">
+              <p style="color: #6b7280; margin: 0; font-size: 14px; font-weight: 500;">
+                Har du frågor? Vi hjälper dig gärna!
+              </p>
+            </div>
+            <div style="border-top: 1px solid #e5e7eb; padding-top: 15px;">
               <p style="color: #9ca3af; margin: 0; font-size: 12px;">
                 📧 <a href="mailto:{{schoolEmail}}" style="color: #dc2626; text-decoration: none;">{{schoolEmail}}</a> | 
                 📞 <a href="tel:{{schoolPhone}}" style="color: #dc2626; text-decoration: none;">{{schoolPhone}}</a>
               </p>
               <p style="color: #9ca3af; margin: 5px 0 0 0; font-size: 12px;">
-                © {{currentYear}} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
+                © {{currentYear}} {{schoolName}}. Alla rättigheter förbehållna.
               </p>
             </div>
           </div>
@@ -684,6 +703,92 @@ logger.info('email', 'Email sent via SMTP', {
       </body>
       </html>
     `;
+  }
+
+  /**
+   * Convert relative href/src URLs to absolute ones based on baseUrl
+   */
+  private static normalizeEmailUrls(html: string, baseUrl: string): string {
+    const ensureAbsolute = (url: string): string => {
+      const trimmed = url.trim();
+      // Skip absolute and special schemes
+      if (/^(https?:)?\/\//i.test(trimmed)) return trimmed;
+      if (/^(mailto:|tel:|data:|#)/i.test(trimmed)) return trimmed;
+      if (trimmed.startsWith('{{')) return trimmed; // leave template tokens
+
+      try {
+        if (trimmed.startsWith('/')) {
+          return new URL(trimmed, baseUrl).toString();
+        }
+        // Relative like ./ or ../ or plain path
+        if (/^(\.\/|\.\.\/)/.test(trimmed) || !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+          return new URL(trimmed, baseUrl + '/').toString();
+        }
+      } catch (_) {
+        return trimmed;
+      }
+      return trimmed;
+    };
+
+    return html.replace(/\b(href|src)\s*=\s*"([^"]*)"/gi, (_m, attr: string, url: string) => {
+      const abs = ensureAbsolute(url);
+      return `${attr}="${abs}"`;
+    });
+  }
+
+  /**
+   * Apply consistent inline styles to anchors that are marked as buttons
+   * Markers: data-btn, data-button, role="button", class containing btn/button
+   */
+  private static applyButtonStyles(html: string): string {
+    const anchorRegex = /<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
+
+    const hasButtonMarker = (attrs: string): boolean => {
+      if (/data-(btn|button)\b/i.test(attrs)) return true;
+      if (/\brole\s*=\s*"button"/i.test(attrs)) return true;
+      const cls = attrs.match(/\bclass\s*=\s*"([^"]*)"/i)?.[1] || '';
+      return /(\bbtn\b|\bbutton\b)/i.test(cls);
+    };
+
+    const isSecondary = (attrs: string): boolean => {
+      if (/data-variant\s*=\s*"secondary"/i.test(attrs)) return true;
+      if (/data-secondary\b/i.test(attrs)) return true;
+      const cls = attrs.match(/\bclass\s*=\s*"([^"]*)"/i)?.[1] || '';
+      return /secondary/i.test(cls);
+    };
+
+    const alreadyStyled = (attrs: string): boolean => {
+      if (/data-std-btn\b/i.test(attrs)) return true;
+      const style = attrs.match(/\bstyle\s*=\s*"([^"]*)"/i)?.[1] || '';
+      return /linear-gradient\(|box-shadow:|border-radius: 8px/i.test(style);
+    };
+
+    const primaryStyle = 'background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); color: #ffffff; padding: 12px 18px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; box-shadow: 0 4px 6px rgba(220,38,38,0.3);';
+    const secondaryStyle = 'background: #ffffff; color: #dc2626; padding: 12px 18px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; border: 1px solid #dc2626;';
+
+    return html.replace(anchorRegex, (full, attrs: string, inner: string) => {
+      const a = String(attrs || '');
+      if (!hasButtonMarker(a) || alreadyStyled(a)) return full;
+
+      const styleMatch = a.match(/\bstyle\s*=\s*"([^"]*)"/i);
+      const baseStyle = isSecondary(a) ? secondaryStyle : primaryStyle;
+      let newAttrs = a.replace(/\s+$/, '');
+
+      if (styleMatch) {
+        const existing = styleMatch[1].trim().replace(/;\s*$/, '');
+        const merged = `${existing}; ${baseStyle}`;
+        newAttrs = newAttrs.replace(styleMatch[0], `style="${merged}"`);
+      } else {
+        newAttrs = `${newAttrs} style="${baseStyle}"`;
+      }
+
+      // Mark as standardized to avoid re-styling
+      if (!/data-std-btn\b/i.test(newAttrs)) {
+        newAttrs = `${newAttrs} data-std-btn="1"`;
+      }
+
+      return `<a${newAttrs}>${inner}</a>`;
+    });
   }
 
   /**
@@ -706,6 +811,9 @@ logger.info('email', 'Email sent via SMTP', {
       case 'specific_user':
         // TODO: Implement specific user lookup
         return null;
+      case 'supervisor':
+        // Support supervisor email via customData.supervisorEmail if provided
+        return (context.customData && (context.customData as any).supervisorEmail) || null;
       default:
         return null;
     }
@@ -734,7 +842,12 @@ logger.info('email', 'Email sent via SMTP', {
       teacher_feedback_reminder: 'general',
       awaiting_school_confirmation: 'booking_related',
       pending_school_confirmation: 'booking_related',
-      new_password: 'general'
+      new_password: 'general',
+      swish_payment_verification: 'payment_confirmation',
+      handledar_booking_confirmed: 'booking_related',
+      handledar_payment_reminder: 'payment_confirmation',
+      booking_payment_reminder: 'payment_confirmation',
+      package_payment_reminder: 'payment_confirmation'
     };
 
     return mappings[triggerType] || 'general';

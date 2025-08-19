@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { users, bookings, packages, packagePurchases, handledarBookings } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
-import { EmailService, type EmailContext } from './email-service';
+import { EnhancedEmailService, type EmailContext } from './enhanced-email-service';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
@@ -30,7 +30,7 @@ export class NotificationService {
         }
       };
 
-      return await EmailService.sendTriggeredEmail('new_user', context);
+      return await EnhancedEmailService.sendTriggeredEmail('new_user', context);
     } catch (error) {
       console.error('Error in onUserRegistered:', error);
       return false;
@@ -79,7 +79,7 @@ export class NotificationService {
         }
       };
 
-      return await EmailService.sendTriggeredEmail('new_booking', context);
+      return await EnhancedEmailService.sendTriggeredEmail('new_booking', context);
     } catch (error) {
       console.error('Error in onNewBooking:', error);
       return false;
@@ -127,7 +127,7 @@ export class NotificationService {
         } : undefined
       };
 
-      return await EmailService.sendTriggeredEmail('booking_confirmed', context);
+      return await EnhancedEmailService.sendTriggeredEmail('booking_confirmed', context);
     } catch (error) {
       console.error('Error in onBookingConfirmed:', error);
       return false;
@@ -174,7 +174,7 @@ export class NotificationService {
         }
       };
 
-      return await EmailService.sendTriggeredEmail('payment_reminder', context);
+      return await EnhancedEmailService.sendTriggeredEmail('payment_reminder', context);
     } catch (error) {
       console.error('Error in onPaymentNeeded:', error);
       return false;
@@ -275,7 +275,7 @@ export class NotificationService {
         }
       };
 
-      return await EmailService.sendTriggeredEmail('payment_confirmed', context);
+      return await EnhancedEmailService.sendTriggeredEmail('payment_confirmed', context);
     } catch (error) {
       console.error('Error in onPaymentConfirmed:', error);
       return false;
@@ -332,7 +332,7 @@ export class NotificationService {
         }
       };
 
-      return await EmailService.sendTriggeredEmail('teacher_daily_bookings', context);
+      return await EnhancedEmailService.sendTriggeredEmail('teacher_daily_bookings', context);
     } catch (error) {
       console.error('Error in sendDailyBookingSummary:', error);
       return false;

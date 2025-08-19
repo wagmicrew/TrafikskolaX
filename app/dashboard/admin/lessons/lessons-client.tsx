@@ -310,12 +310,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
                   <BookOpen className="w-6 h-6 text-sky-400" />
                   <h3 className="text-lg font-semibold text-white">Redigera Lektionstyp</h3>
                 </div>
-                <button
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="text-white/70 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+
               </div>
               
               <p className="text-slate-300 mb-6">
@@ -567,9 +562,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
                   <Trash2 className="w-6 h-6 text-rose-400" />
                   <h3 className="text-lg font-semibold text-white">Bekräfta {deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'arkivering' : 'radering'}</h3>
                 </div>
-                <button onClick={() => setDeleteLessonTarget(null)} className="text-white/70 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
+
               </div>
               <p className="text-slate-300 mb-6">
                 {deleteLessonTarget && deleteLessonTarget.bookingCount > 0
@@ -597,9 +590,7 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
                   <Trash2 className="w-6 h-6 text-rose-400" />
                   <h3 className="text-lg font-semibold text-white">Bekräfta {deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'arkivering' : 'radering'}</h3>
                 </div>
-                <button onClick={() => setDeletePackageTarget(null)} className="text-white/70 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
+
               </div>
               <p className="text-slate-300 mb-6">
                 {deletePackageTarget && deletePackageTarget.purchaseCount > 0

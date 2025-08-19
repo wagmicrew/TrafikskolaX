@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logging/logger';
 
+// Normalize Swish payee alias:
+// - Merchant alias starts with '123' (no country code)
+// - MSISDN should be in international format without '+', e.g. '46XXXXXXXXX'
+// - If we detect '46' prefixed in front of a merchant alias (e.g. '46123...'), strip the '46'
+function normalizePayee(input: string): string {
+  try {
+    let p = (input || '').toString().trim();
+    // Remove spaces and non-digits, strip leading '+'
+    p = p.replace(/\s+/g, '').replace(/^\+/, '');
+    p = p.replace(/[^\d]/g, '');
+
+    // If someone configured '46' + merchant alias (e.g., '46123xxxxxxx'), fix it
+    if (p.startsWith('46') && p.slice(2).startsWith('123')) {
+      p = p.slice(2);
+    }
+
+    // Merchant alias
+    if (p.startsWith('123')) {
+      return p;
+    }
+
+    // MSISDN (Swedish) handling
+    if (p.startsWith('46')) return p;
+    if (p.startsWith('0')) return '46' + p.slice(1);
+    return '46' + p;
+  } catch {
+    return input;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -15,9 +45,13 @@ export async function POST(request: NextRequest) {
       editable = false
     } = body;
 
+    const normalizedPayee = typeof payee === 'string' && payee
+      ? normalizePayee(payee)
+      : undefined;
+
     // Log the QR code generation request
     logger.info('Generating Swish QR code', { 
-      payee, 
+      payee: normalizedPayee, 
       amount, 
       message: message?.substring(0, 20) + '...', // Log only first part of message for privacy
       format,
@@ -43,9 +77,9 @@ export async function POST(request: NextRequest) {
     };
 
     // Add payee if provided
-    if (payee) {
+    if (normalizedPayee) {
       qrPayload.payee = {
-        value: payee.replace(/\s/g, ''), // Remove spaces
+        value: normalizedPayee, // Already normalized
         editable
       };
     }
@@ -90,7 +124,7 @@ export async function POST(request: NextRequest) {
       
       // If Swish API fails, fall back to local QR generation
       logger.info('Falling back to local QR generation');
-      return await generateLocalQR(payee, amount, message, format, size, transparent);
+      return await generateLocalQR(normalizedPayee, amount, message, format, size, transparent);
     }
 
     // Get the image buffer from Swish API
@@ -124,7 +158,8 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
       const { payee, amount, message, format = 'png', size = 300, transparent = true } = body;
-      return await generateLocalQR(payee, amount, message, format, size, transparent);
+      const normalizedPayee = typeof payee === 'string' && payee ? normalizePayee(payee) : undefined;
+      return await generateLocalQR(normalizedPayee, amount, message, format, size, transparent);
     } catch (fallbackError) {
       console.error('Swish QR generation error:', error);
       return NextResponse.json(

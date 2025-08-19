@@ -2,7 +2,6 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
 
 export const runtime = 'nodejs';
 
@@ -44,24 +43,6 @@ export default function SettingsPage() {
           <SettingsClient />
         </Suspense>
       </div>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          success: {
-            iconTheme: {
-              primary: '#0ea5e9',
-              secondary: '#0b1220',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#0b1220',
-            },
-          },
-        }}
-      />
     </>
   );
 }

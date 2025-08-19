@@ -64,7 +64,7 @@ export function SwishPaymentDialog({
           amount: amount.toString(),
           message: message,
           format: 'png',
-          size: 256,
+          size: 300,
           transparent: false,
           border: 2
         };
@@ -90,7 +90,7 @@ export function SwishPaymentDialog({
             message: { value: message, editable: false }
           };
           const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishData))}`;
-          const qrUrl = await QRCode.toDataURL(swishUrl, { width: 256, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
+          const qrUrl = await QRCode.toDataURL(swishUrl, { width: 300, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
           setQrCodeUrl(qrUrl);
         } catch (fallbackError) {
           console.error("Fallback QR generation also failed:", fallbackError);

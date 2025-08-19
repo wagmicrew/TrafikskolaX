@@ -23,24 +23,35 @@ export default function SwishQR({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
+  // Normalize Swish payee alias similar to server
+  const normalizePayee = (input: string) => {
+    try {
+      let p = (input || '').toString().trim();
+      p = p.replace(/\s+/g, '').replace(/^\+/, '');
+      p = p.replace(/[^\d]/g, '');
+      if (p.startsWith('46') && p.slice(2).startsWith('123')) p = p.slice(2);
+      if (p.startsWith('123')) return p; // merchant alias
+      if (p.startsWith('46')) return p;  // MSISDN already intl
+      if (p.startsWith('0')) return '46' + p.slice(1);
+      return '46' + p;
+    } catch {
+      return input;
+    }
+  };
+
   useEffect(() => {
     const generateQR = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Format phone number for Swish (remove spaces and ensure it starts with 46 for Sweden)
-        let formattedPhone = phoneNumber.replace(/\s/g, ''); // Remove all spaces first
-        if (formattedPhone.startsWith('0')) {
-          formattedPhone = '46' + formattedPhone.substring(1); // Replace leading 0 with 46
-        } else if (!formattedPhone.startsWith('46')) {
-          formattedPhone = '46' + formattedPhone; // Add 46 if not present
-        }
+        // Normalize phone or merchant alias
+        const formattedPhone = normalizePayee(phoneNumber);
         
         // Prepare request payload
         const requestPayload: Record<string, unknown> = {
           format,
-          size,
+          size: Math.max(size ?? 300, 300),
           transparent: true,
           border: 0
         };

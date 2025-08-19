@@ -1,6 +1,6 @@
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+
 
 export const runtime = 'nodejs';
 
@@ -25,14 +25,6 @@ export default function DatabaseUpdatesPage() {
         </div>
         <DatabaseUpdatesClient />
       </div>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          success: { iconTheme: { primary: '#0ea5e9', secondary: '#0b1220' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#0b1220' } },
-        }}
-      />
     </>
   );
 }

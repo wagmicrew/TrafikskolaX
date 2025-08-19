@@ -259,13 +259,7 @@ export function QliroModernPopup({
                   <p className="text-sm text-gray-600">{description} • {amount} kr</p>
                 </div>
               </div>
-              <button
-                onClick={handleClose}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all duration-200 group flex-shrink-0"
-                aria-label="Stäng checkout"
-              >
-                <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 group-hover:scale-110 transition-transform" />
-              </button>
+
             </div>
 
             {/* Two-column layout */}

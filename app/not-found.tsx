@@ -112,11 +112,10 @@ function NotFoundContent() {
               <div>
                 <h3 className="text-lg font-semibold text-red-600 mb-3">Våra tjänster:</h3>
                 <ul className="space-y-2 text-gray-700">
-                  <li>• A-körkort (motorcykel)</li>
                   <li>• B-körkort (personbil)</li>
                   <li>• Bedömningslektion (500 kr)</li>
                   <li>• Taxiförarlegitimation</li>
-                  <li>• Övriga behörigheter: BE, C, D (kontakta oss för vägledning)</li>
+                  <li>• Övriga behörigheter: A, BE, C, D (kontakta oss för vägledning)</li>
                 </ul>
               </div>
               <div>

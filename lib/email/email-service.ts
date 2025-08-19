@@ -66,16 +66,22 @@ function applyRedTemplate(htmlContent: string): string {
   if (htmlContent.includes('data-standard-email="1"')) {
     return htmlContent;
   }
-  // Wrap the content in a div with class for red theme (logo removed as requested)
+  // Branded, consistent wrapper (header + content + footer). Variables are resolved later in processTemplate.
   return `
-    <div style="background-color: #ffffff; color: #333333; padding: 20px; font-family: Arial, sans-serif;">
-      <div style="max-width: 600px; margin: 0 auto; border: 1px solid #dc2626; border-radius: 8px; padding: 30px;">
-        <div style="border-left: 4px solid #dc2626; padding-left: 16px; margin-bottom: 20px;">
-          ${htmlContent}
+    <div data-standard-email="1" style="background-color:#f8fafc; color:#111827; padding:20px; font-family: Arial, sans-serif;">
+      <div style="max-width:640px; margin:0 auto;">
+        <div style="text-align:center; margin-bottom:12px;">
+          <a href="{{appUrl}}" style="text-decoration:none; color:#dc2626; font-weight:700; font-size:18px;">{{schoolName}}</a>
         </div>
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e5e5; color: #666666; font-size: 12px;">
-          <p style="margin: 0;">Med vänliga hälsningar,<br><strong style="color: #dc2626;">Din Trafikskola HLM</strong></p>
-          <p style="margin: 5px 0 0 0;">E-post: info@dintrafikskolahlm.se | Telefon: 08-XXX XX XX</p>
+        <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden;">
+          <div style="height:4px; background:linear-gradient(90deg, #ef4444, #dc2626, #b91c1c);"></div>
+          <div style="padding:24px;">
+            ${htmlContent}
+          </div>
+          <div style="border-top:1px solid #e5e7eb; padding:16px; font-size:12px; color:#6b7280; text-align:center;">
+            <p style="margin:0;">Med vänliga hälsningar, <strong style="color:#dc2626;">{{schoolName}}</strong></p>
+            <p style="margin:6px 0 0 0;">E-post: {{schoolEmail}} | Telefon: {{schoolPhone}}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -265,13 +271,41 @@ const allSuccess = results.every(result => result === true);
       console.warn('Failed to fetch school phonenumber from database, using default', error);
     }
 
-    // Replace system variables
-    const standardLoginUrl = 'https://www.dintrafikskolahlm.se/login';
-    processed = processed.replace(/\{\{appUrl\}\}/g, process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se');
-    processed = processed.replace(/\{\{loginUrl\}\}/g, standardLoginUrl);
+    // Get school email from database (fallback to sensible default)
+    let schoolEmail = 'info@dintrafikskolahlm.se';
+    try {
+      const schoolEmailSetting = await db
+        .select()
+        .from(siteSettings)
+        .where(eq(siteSettings.key, 'school_email'))
+        .limit(1);
+      if (schoolEmailSetting.length > 0 && schoolEmailSetting[0].value) {
+        schoolEmail = schoolEmailSetting[0].value;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch school email from database, using default', error);
+    }
+
+    // Replace system variables and normalize URLs
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://dintrafikskolahlm.se').replace(/\/$/, '');
+    const loginUrl = `${appUrl}/login`;
+    processed = processed.replace(/\{\{appUrl\}\}/g, appUrl);
+    processed = processed.replace(/\{\{loginUrl\}\}/g, loginUrl);
     processed = processed.replace(/\{\{schoolName\}\}/g, schoolname);
     processed = processed.replace(/\{\{schoolPhone\}\}/g, schoolPhonenumber);
+    processed = processed.replace(/\{\{schoolEmail\}\}/g, schoolEmail);
     processed = processed.replace(/\{\{currentYear\}\}/g, new Date().getFullYear().toString());
+
+    // Post-process: absolutize relative links and style marked links as buttons
+    // 1) Prefix relative hrefs with appUrl
+    processed = processed.replace(/href="\/(?!\/)([^"]*)"/g, (_m, path) => `href="${appUrl}/${path}"`);
+
+    // 2) Style anchors that indicate button usage (data-btn/data-button or class contains btn/button)
+    const buttonStyle = 'display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:600';
+    processed = processed.replace(/<a\b([^>]*?(?:data-btn|data-button|class=\"[^\"]*(?:btn|button)[^\"]*\")[^>]*)>/gi, (full, attrs) => {
+      if (/style=/i.test(attrs)) return `<a ${attrs}>`;
+      return `<a ${attrs} style="${buttonStyle}">`;
+    });
 
     return processed;
   }

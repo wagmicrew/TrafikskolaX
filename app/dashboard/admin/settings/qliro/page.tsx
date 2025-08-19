@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+
 
 export default function QliroSettingsPage() {
   const QliroSettingsClient = dynamic(() => import('./qliro-settings-client'), {
@@ -25,7 +25,6 @@ export default function QliroSettingsPage() {
         </div>
         <QliroSettingsClient />
       </div>
-      <Toaster position="top-right" />
     </>
   );
 }

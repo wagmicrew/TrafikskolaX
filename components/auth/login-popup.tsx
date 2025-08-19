@@ -122,13 +122,7 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
                   <DialogTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-white drop-shadow-lg pr-2">
                     {activeTab === 'login' ? 'Logga in' : 'Registrera konto'}
                   </DialogTitle>
-                  <button
-                    onClick={onClose}
-                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 group flex-shrink-0"
-                    aria-label="Stang formulär"
-                  >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
-                  </button>
+
                 </div>
                 <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-3 sm:mt-4"></div>
               </DialogHeader>

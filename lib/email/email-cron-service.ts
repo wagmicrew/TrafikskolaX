@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { bookings, users, lessonTypes, userCredits } from '@/lib/db/schema';
 import { eq, and, gte, lte, gt, lt, sql } from 'drizzle-orm';
-import { EmailService } from './email-service';
+import { EnhancedEmailService } from './enhanced-email-service';
 import { format, addDays, subDays, startOfDay, endOfDay } from 'date-fns';
 
 export class EmailCronService {
@@ -50,7 +50,7 @@ export class EmailCronService {
           }
         };
 
-        await EmailService.sendTriggeredEmail('booking_reminder', emailContext);
+        await EnhancedEmailService.sendTriggeredEmail('booking_reminder', emailContext);
       }
 
       console.log(`Sent ${tomorrowBookings.length} booking reminders`);
@@ -118,7 +118,7 @@ export class EmailCronService {
           }
         };
 
-        await EmailService.sendTriggeredEmail('teacher_daily_bookings', emailContext);
+        await EnhancedEmailService.sendTriggeredEmail('teacher_daily_bookings', emailContext);
       }
 
       console.log(`Sent daily bookings to ${teachers.length} teachers`);
@@ -174,7 +174,7 @@ export class EmailCronService {
           }
         };
 
-        await EmailService.sendTriggeredEmail('credits_reminder', emailContext);
+        await EnhancedEmailService.sendTriggeredEmail('credits_reminder', emailContext);
       }
 
       console.log('Credit reminders sent');
@@ -236,7 +236,7 @@ export class EmailCronService {
           }
         };
 
-        await EmailService.sendTriggeredEmail('teacher_feedback_reminder', emailContext);
+        await EnhancedEmailService.sendTriggeredEmail('teacher_feedback_reminder', emailContext);
       }
 
       console.log(`Sent feedback reminders to ${Object.keys(bookingsByTeacher).length} teachers`);

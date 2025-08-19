@@ -168,7 +168,7 @@ export default function HandledarSessionManager() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Hantera Handledarkurser</h1>
+        <h1 className="text-2xl font-bold">Hantera Teorilektioner</h1>
         <Button onClick={() => handleOpenDialog()}>Skapa Ny Session</Button>
       </div>
       <div className="bg-white shadow-sm rounded-lg overflow-hidden">
@@ -218,12 +218,7 @@ export default function HandledarSessionManager() {
                   <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
                     {isEditing ? 'Redigera Session' : 'Skapa Ny Session'}
                   </DialogTitle>
-                  <button
-                    onClick={handleCloseDialog}
-                    className="text-white/70 hover:text-white transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+
                 </div>
               </DialogHeader>
               
@@ -348,9 +343,7 @@ export default function HandledarSessionManager() {
                   <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
                     Lägg till deltagare
                   </DialogTitle>
-                  <button onClick={() => setIsAddBookingOpen(false)} className="text-white/70 hover:text-white transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
+
                 </div>
               </DialogHeader>
               <div className="space-y-4">

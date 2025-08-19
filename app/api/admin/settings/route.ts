@@ -7,11 +7,13 @@ import { withDefaults } from '@/lib/site-settings/opening-hours';
 
 export async function GET(request: Request) {
   try {
-    const user = await requireAuthAPI('admin');
+    const authResult = await requireAuthAPI('admin');
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+
+    const user = authResult.user;
 
     // Fetch all settings
     const settings = await db.select().from(siteSettings);
@@ -94,11 +96,13 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const user = await requireAuthAPI('admin');
+    const authResult = await requireAuthAPI('admin');
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+
+    const user = authResult.user;
 
     const updates = await request.json();
 

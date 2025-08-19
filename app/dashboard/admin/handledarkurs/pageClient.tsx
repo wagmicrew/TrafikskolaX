@@ -183,7 +183,7 @@ export default function HandledarKursClient({ sessions: initialSessions }: { ses
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-white">Handledarkurs</h1>
+        <h1 className="text-2xl font-extrabold text-white">Teorihantering</h1>
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-lg overflow-hidden border border-white/20">
             <button onClick={()=>setTab('future')} className={`px-3 py-1.5 ${tab==='future'?'bg-white/20 text-white':'bg-white/10 text-slate-200'}`}>Kommande</button>

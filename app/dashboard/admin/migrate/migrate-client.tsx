@@ -13,7 +13,7 @@ import {
   FaSeedling,
   FaBroom
 } from "react-icons/fa";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 interface MigrationResult {
   success: boolean;
@@ -387,17 +387,6 @@ const OperationCard = ({
         </ul>
         </div>
         
-        <Toaster 
-          position="bottom-right" 
-          toastOptions={{
-            style: {
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.5rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-            },
-          }}
-        />
       </div>
     </div>
   );

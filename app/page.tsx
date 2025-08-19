@@ -166,7 +166,7 @@ export default function HomePage() {
                 <Award className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">Övriga behörigheter</h3>
                 <p className="text-gray-600">
-                  För behörigheter såsom A BE C D
+                  För behörigheter såsom A, BE, C, D
                   <br />
                   Kontakta oss för vägledning med råd och tips
                 </p>

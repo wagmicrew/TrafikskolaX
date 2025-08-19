@@ -138,7 +138,36 @@ export default function SettingsClient() {
   const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
 
   useEffect(() => {
-    fetchSettings();
+    let mounted = true;
+    
+    const loadSettings = async () => {
+      if (!mounted) return;
+      setLoading(true);
+      try {
+        const response = await fetch('/api/admin/settings');
+        if (!mounted) return;
+        if (!response.ok) throw new Error('Failed to fetch settings');
+        const data = await response.json();
+        if (!mounted) return;
+        setSettings(data.settings);
+        setHasUnsavedChanges(false);
+        toast.success('Inställningar hämtade');
+      } catch (error) {
+        if (!mounted) return;
+        console.error('Error fetching settings:', error);
+        toast.error('Kunde inte hämta inställningar');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const fetchSettings = async () => {

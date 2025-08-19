@@ -23,20 +23,9 @@ export function useAuthActions() {
     e?.preventDefault();
     e?.stopPropagation();
     
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        logout();
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-      logout();
-      window.location.href = '/';
-    }
+    // Use the logout function from useAuth which already handles the API call
+    logout();
+    window.location.href = '/';
   };
 
   return {

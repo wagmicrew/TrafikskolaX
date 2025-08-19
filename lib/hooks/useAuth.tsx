@@ -96,11 +96,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Auth check error:', error);
         clearAuthData();
       } finally {
-        setIsLoading(false);
+        // Use a ref to prevent state updates after unmount
+        if (!isLoading) {
+          setIsLoading(false);
+        }
       }
     };
 
-    checkAuth();
+    let mounted = true;
+    checkAuth().then(() => {
+      if (!mounted) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const clearAuthData = () => {
@@ -139,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     }).catch(error => {
       console.error('Logout API error:', error);
+      // Don't throw error, just log it since we've already cleared local data
     });
   };
 

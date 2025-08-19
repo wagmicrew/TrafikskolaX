@@ -113,53 +113,7 @@ type CronInfo = {
 };
 
 export default function SettingsClient() {
-  const [settings, setSettings] = useState<Settings>({
-    use_sendgrid: false,
-    sendgrid_api_key: '',
-    use_smtp: false,
-    smtp_host: 'mailcluster.loopia.se',
-    smtp_port: 587,
-    smtp_username: 'admin@dintrafikskolahlm.se',
-    smtp_password: '',
-    smtp_secure: false,
-    qliro_dev_api_url: 'https://playground.qliro.com',
-    qliro_prod_api_url: 'https://api.qliro.com',
-    qliro_use_prod_env: false,
-    from_name: 'Din Trafikskola Hässleholm',
-    from_email: 'admin@dintrafikskolahlm.se',
-    reply_to: 'info@dintrafikskolahlm.se',
-    school_email: 'info@dintrafikskolahlm.se',
-    force_internal_only: false,
-    fallback_to_internal: true,
-    site_domain: '',
-    public_app_url: '',
-    site_name: 'Din Trafikskola Hässleholm',
-    schoolname: 'Din Trafikskola Hässleholm',
-    school_phonenumber: '',
-    internal_messages_enabled: true,
-    social_facebook: '',
-    social_instagram: '',
-    social_tiktok: '',
-    swish_number: '',
-    swish_enabled: false,
-    qliro_api_key: '',
-    qliro_api_secret: '',
-    qliro_secret: '',
-    qliro_merchant_id: '',
-    qliro_sandbox: true,
-    qliro_enabled: false,
-    qliro_prod_enabled: false,
-    qliro_prod_merchant_id: '',
-    qliro_prod_api_key: '',
-    qliro_prod_api_secret: '',
-    qliro_checkout_flow: 'window',
-    google_maps_api_key: '',
-    debug_extended_logs: false,
-  });
-
-  // Cron setup dialog state
-  const [cronDialogOpen, setCronDialogOpen] = useState(false);
-  const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
+  const [settings, setSettings] = useState<Settings>({} as Settings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -171,17 +125,24 @@ export default function SettingsClient() {
   const [editSchool, setEditSchool] = useState(false);
   const [editSite, setEditSite] = useState(false);
   const [editPayment, setEditPayment] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Cron setup dialog state
+  const [cronDialogOpen, setCronDialogOpen] = useState(false);
+  const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
 
   useEffect(() => {
     fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/admin/settings');
       if (!response.ok) throw new Error('Failed to fetch settings');
       const data = await response.json();
       setSettings(data.settings);
+      setHasUnsavedChanges(false);
       toast.success('Inställningar hämtade');
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -209,6 +170,7 @@ export default function SettingsClient() {
       toast.success('Inställningar sparade framgångsrikt!', {
         id: loadingToast,
       });
+      setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Kunde inte spara inställningar', {
@@ -221,6 +183,7 @@ export default function SettingsClient() {
 
   const updateSetting = (key: keyof Settings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
   };
 
   const testQliroPayment = async () => {
@@ -675,6 +638,20 @@ export default function SettingsClient() {
     );
   }
 
+  // Warn user before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
+        return 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   return (
     <div className="max-w-6xl mx-auto text-white">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -731,10 +708,16 @@ export default function SettingsClient() {
                 Konfigurera hur e-postmeddelanden skickas från systemet
               </CardDescription>
               <div className="ml-auto flex items-center gap-2">
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    Osparade ändringar
+                  </div>
+                )}
                 <button onClick={() => setEditEmail((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20">
                   <Edit className="w-4 h-4 text-white" />
                 </button>
-                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
                   <Save className="w-4 h-4" />
                 </button>
               </div>
@@ -971,10 +954,16 @@ export default function SettingsClient() {
                 Grundläggande information om trafikskolan
               </CardDescription>
               <div className="ml-auto flex items-center gap-2">
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    Osparade ändringar
+                  </div>
+                )}
                 <button onClick={() => setEditSchool((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
                   <Edit className="w-4 h-4" />
                 </button>
-                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
                   <Save className="w-4 h-4" />
                 </button>
               </div>
@@ -1057,10 +1046,16 @@ export default function SettingsClient() {
                 Allmänna inställningar för webbplatsen
               </CardDescription>
               <div className="ml-auto flex items-center gap-2">
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    Osparade ändringar
+                  </div>
+                )}
                 <button onClick={() => setEditSite((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
                   <Edit className="w-4 h-4" />
                 </button>
-                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
                   <Save className="w-4 h-4" />
                 </button>
               </div>
@@ -1196,7 +1191,7 @@ export default function SettingsClient() {
                       if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera setting');
                       toast.success('Qliro checkout flow setting initierad!', { id: t });
                       // Reload settings
-                      loadSettings();
+                      fetchSettings();
                     } catch (error: any) {
                       toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
                     }
@@ -1314,10 +1309,16 @@ export default function SettingsClient() {
                 Konfigurera betalningsmetoder och API-nycklar
               </CardDescription>
               <div className="ml-auto flex items-center gap-2">
+                {hasUnsavedChanges && (
+                  <div className="flex items-center gap-2 text-sm text-amber-400">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    Osparade ändringar
+                  </div>
+                )}
                 <button onClick={() => setEditPayment((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
                   <Edit className="w-4 h-4" />
                 </button>
-                <button onClick={saveSettings} disabled={saving} className="p-2 rounded-lg bg-sky-600/90 hover:bg-sky-600 text-white">
+                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
                   <Save className="w-4 h-4" />
                 </button>
               </div>
@@ -1703,10 +1704,16 @@ export default function SettingsClient() {
 
       {/* Save Button */}
       <div className="mt-6 flex justify-end">
+        {hasUnsavedChanges && (
+          <div className="flex items-center gap-2 text-sm text-amber-400 mr-4">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+            Osparade ändringar
+          </div>
+        )}
         <Button 
           onClick={saveSettings} 
-          disabled={saving}
-          className="bg-red-600 hover:bg-red-700"
+          disabled={saving || !hasUnsavedChanges}
+          className={`${hasUnsavedChanges ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
         >
           {saving ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

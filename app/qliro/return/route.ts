@@ -15,10 +15,10 @@ export async function GET(request: NextRequest) {
       if (status === 'paid' || status === 'completed') {
         await db.update(bookings).set({ paymentStatus: 'paid', status: 'confirmed', updatedAt: new Date() }).where(eq(bookings.id, bookingId));
       }
-      // Redirect to thank-you page regardless; UI will show success/failure toast
-      const url = new URL('/payments/qliro/thank-you', request.nextUrl.origin);
-      url.searchParams.set('ref', ref);
-      if (status) url.searchParams.set('status', status);
+      // Redirect to booking confirmation page (same as Swish confirmation)
+      const url = new URL(`/booking/confirmation/${bookingId}`, request.nextUrl.origin);
+      url.searchParams.set('payment_method', 'qliro');
+      url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
     }
     if (ref.startsWith('handledar_')) {
@@ -26,8 +26,9 @@ export async function GET(request: NextRequest) {
       if (status === 'paid' || status === 'completed') {
         await db.update(handledarBookings).set({ paymentStatus: 'paid', updatedAt: new Date() }).where(eq(handledarBookings.id, handledarBookingId));
       }
-      // Redirect to handledar payment success page
-      const url = new URL(`/handledar/payment/${handledarBookingId}`, request.nextUrl.origin);
+      // Redirect to handledar booking confirmation page
+      const url = new URL(`/handledar/confirmation/${handledarBookingId}`, request.nextUrl.origin);
+      url.searchParams.set('payment_method', 'qliro');
       url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
     }
@@ -36,15 +37,17 @@ export async function GET(request: NextRequest) {
       if (status === 'paid' || status === 'completed') {
         await db.update(packagePurchases).set({ paymentStatus: 'paid', paidAt: new Date() }).where(eq(packagePurchases.id, purchaseId));
       }
-      const url = new URL('/payments/qliro/thank-you', request.nextUrl.origin);
-      url.searchParams.set('ref', ref);
-      if (status) url.searchParams.set('status', status);
+      // Redirect to package purchase confirmation page
+      const url = new URL(`/packages-store/confirmation/${purchaseId}`, request.nextUrl.origin);
+      url.searchParams.set('payment_method', 'qliro');
+      url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
     }
 
     // Fallback: redirect to dashboard
     return NextResponse.redirect(new URL('/dashboard/student', request.nextUrl.origin));
   } catch (e) {
+    console.error('Qliro return error:', e);
     return NextResponse.redirect(new URL('/dashboard/student', request.nextUrl.origin));
   }
 }

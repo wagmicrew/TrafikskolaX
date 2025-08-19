@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { JWTPayload } from '@/lib/auth/jwt';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: JWTPayload | null;
@@ -9,6 +10,7 @@ interface AuthContextType {
   logout: () => void;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +26,32 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<JWTPayload | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+
+  // Enhanced token validation
+  const validateToken = (token: string): boolean => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const now = Math.floor(Date.now() / 1000);
+      
+      // Check if token is expired
+      if (payload.exp && payload.exp < now) {
+        console.log('Token expired');
+        return false;
+      }
+      
+      // Check if token has required fields
+      if (!payload.userId || !payload.email || !payload.role) {
+        console.log('Token missing required fields');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Check for existing token on mount
@@ -42,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (token) {
+        if (token && validateToken(token)) {
           // Verify token with server
           const response = await fetch('/api/auth/verify', {
             method: 'POST',
@@ -58,14 +86,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data.user);
           } else {
             // Token is invalid, clear it
-            localStorage.removeItem('auth-token');
-            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+            clearAuthData();
           }
+        } else if (token) {
+          // Token exists but is invalid, clear it
+          clearAuthData();
         }
       } catch (error) {
         console.error('Auth check error:', error);
-        localStorage.removeItem('auth-token');
-        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+        clearAuthData();
       } finally {
         setIsLoading(false);
       }
@@ -74,9 +103,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  const clearAuthData = () => {
+    localStorage.removeItem('auth-token');
+    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
+    setUser(null);
+  };
+
   const login = (token: string) => {
+    if (!validateToken(token)) {
+      console.error('Invalid token provided to login');
+      return;
+    }
+
     localStorage.setItem('auth-token', token);
-    document.cookie = `auth-token=${token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
+    document.cookie = `auth-token=${token}; path=/; max-age=604800; SameSite=Lax; Secure`; // 7 days
 
     // Decode token to get user info
     try {
@@ -84,19 +124,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(payload);
     } catch (error) {
       console.error('Invalid token format:', error);
+      clearAuthData();
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('auth-token');
-    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-    setUser(null);
+    clearAuthData();
+    
+    // Call logout API to invalidate token on server
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).catch(error => {
+      console.error('Logout API error:', error);
+    });
   };
 
   const refreshUser = async () => {
     try {
       const token = localStorage.getItem('auth-token');
-      if (!token) return;
+      if (!token || !validateToken(token)) {
+        clearAuthData();
+        return;
+      }
 
       const response = await fetch('/api/auth/verify', {
         method: 'POST',
@@ -110,14 +162,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok && data.user) {
         setUser(data.user);
+      } else {
+        clearAuthData();
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
+      clearAuthData();
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshUser, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      refreshUser, 
+      isLoading,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

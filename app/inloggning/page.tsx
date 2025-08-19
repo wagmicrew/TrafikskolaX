@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { User, Lock, Mail, Phone, UserPlus, LogIn, Shield, AlertCircle } from "lucide-react"
+import { useAuth } from "@/lib/hooks/useAuth"
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('login')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { login, isAuthenticated } = useAuth()
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Redirect to dashboard or intended page
+      const redirectUrl = searchParams?.get('redirect') || '/dashboard'
+      router.push(redirectUrl)
+    }
+  }, [isAuthenticated, router, searchParams])
+
+  // Set active tab based on URL parameter
+  useEffect(() => {
+    const tab = searchParams?.get('tab')
+    if (tab === 'register') {
+      setActiveTab('register')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,15 +58,13 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        // Store token
-        localStorage.setItem('auth-token', data.token)
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`
+        // Use the auth context login method
+        if (data.token) {
+          login(data.token)
+        }
 
         // Check for redirect parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirectUrl = urlParams.get('redirect') || data.redirectUrl;
-
-        // Redirect to appropriate page
+        const redirectUrl = searchParams?.get('redirect') || data.redirectUrl || '/dashboard'
         router.push(redirectUrl)
       } else {
         setError(data.error || 'Inloggning misslyckades')
@@ -85,11 +104,12 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        // Store token
-        localStorage.setItem('auth-token', data.token)
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800`
+        // Use the auth context login method
+        if (data.token) {
+          login(data.token)
+        }
         
-        // Redirect to dashboard
+        // Redirect to appropriate dashboard
         const redirectUrl = userData.role === 'admin' ? '/dashboard/admin' : 
                            userData.role === 'teacher' ? '/dashboard/teacher' : 
                            '/dashboard/student'

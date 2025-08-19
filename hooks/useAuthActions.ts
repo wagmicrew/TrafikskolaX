@@ -10,13 +10,13 @@ export function useAuthActions() {
   const handleLogin = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    router.push('/login');
+    router.push('/inloggning');
   };
 
   const handleRegister = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
-    router.push('/register');
+    router.push('/inloggning?tab=register');
   };
 
   const handleLogout = async (e?: React.MouseEvent) => {

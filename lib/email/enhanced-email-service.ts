@@ -28,6 +28,11 @@ export type EmailTriggerType =
   | 'swish_payment_verification'
   | 'handledar_booking_confirmed'
   | 'handledar_payment_reminder'
+  | 'handledar_booking_cancelled'
+  | 'handledar_booking_moved'
+  | 'handledar_student_confirmation'
+  | 'handledar_supervisor_confirmation'
+  | 'handledar_supervisor_payment_request'
   | 'booking_payment_reminder'
   | 'package_payment_reminder';
 

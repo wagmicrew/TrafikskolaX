@@ -6,8 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { Loader2, Save, Mail, AlertCircle, Eye, Pencil } from 'lucide-react';
+import { Loader2, Save, Mail, AlertCircle, Eye, Pencil, Copy, Info, Zap } from 'lucide-react';
 import { SimpleEmailPreview } from './SimpleEmailPreview';
+import { TriggerFlowPopup } from './TriggerFlowPopup';
+import { TRIGGER_DEFINITIONS, getTriggerById, type TriggerDefinition } from '@/lib/email/trigger-definitions';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,21 +33,23 @@ const templateFormSchema = z.object({
 
 type TemplateFormValues = z.infer<typeof templateFormSchema>;
 
-// Available triggers with descriptions
-const TRIGGER_TYPES = [
-  { value: 'new_user', label: 'Ny användare registrerad' },
-  { value: 'new_booking', label: 'Ny bokning' },
-  { value: 'booking_confirmed', label: 'Bokning bekräftad' },
-  { value: 'payment_reminder', label: 'Betalningspåminnelse' },
-  { value: 'payment_confirmed', label: 'Betalning bekräftad' },
-  { value: 'teacher_daily_bookings', label: 'Dagens bokningar' },
-];
+// Convert trigger definitions to options for select
+const TRIGGER_TYPES = TRIGGER_DEFINITIONS.map(trigger => ({
+  value: trigger.id,
+  label: trigger.name,
+  description: trigger.description,
+  category: trigger.category,
+  variables: trigger.availableVariables,
+  receivers: trigger.defaultReceivers
+}));
 
 // Available receiver types
 const RECEIVER_TYPES = [
   { value: 'student', label: 'Elev' },
   { value: 'teacher', label: 'Lärare' },
   { value: 'admin', label: 'Administratör' },
+  { value: 'supervisor', label: 'Handledare' },
+  { value: 'school', label: 'Skola' },
   { value: 'specific_user', label: 'Specifik användare' },
 ];
 
@@ -58,6 +62,8 @@ export function EmailTemplateBuilder() {
   const [templates, setTemplates] = useState<Array<{ id: string; triggerType: string; subject: string }>>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [activeTab, setActiveTab] = useState('edit');
+  const [showTriggerPopup, setShowTriggerPopup] = useState(false);
+  const [selectedTriggerInfo, setSelectedTriggerInfo] = useState<TriggerDefinition | null>(null);
 
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateFormSchema),
@@ -75,6 +81,19 @@ export function EmailTemplateBuilder() {
   const watchSubject = watch('subject');
   const watchTriggerType = watch('triggerType');
   const watchReceivers = watch('receivers');
+
+  // Update trigger info when trigger type changes
+  useEffect(() => {
+    if (watchTriggerType) {
+      const triggerInfo = getTriggerById(watchTriggerType as any);
+      setSelectedTriggerInfo(triggerInfo || null);
+      
+      // Auto-populate default receivers if form is new
+      if (triggerInfo && !form.getValues('id')) {
+        form.setValue('receivers', triggerInfo.defaultReceivers);
+      }
+    }
+  }, [watchTriggerType, form]);
 
   // Load templates on component mount or when trigger type changes
   useEffect(() => {
@@ -187,6 +206,39 @@ export function EmailTemplateBuilder() {
     }
   };
 
+  // Handle template copying
+  const handleCopyTemplate = async () => {
+    const currentValues = form.getValues();
+    if (!currentValues.subject || !currentValues.htmlContent) {
+      toast.error('Ingen mall att kopiera');
+      return;
+    }
+
+    // Create copy with modified name
+    const copyName = `${currentValues.subject} (kopia)`;
+    
+    form.reset({
+      id: undefined, // Clear ID to create new template
+      triggerType: '', // Clear trigger type for selection
+      subject: copyName,
+      htmlContent: currentValues.htmlContent,
+      isActive: true,
+      receivers: currentValues.receivers,
+    });
+
+    setSelectedTemplate('');
+    toast.success('Mall kopierad - välj ny trigger och spara');
+  };
+
+  // Handle trigger selection from popup
+  const handleTriggerSelect = (trigger: TriggerDefinition) => {
+    form.setValue('triggerType', trigger.id);
+    form.setValue('receivers', trigger.defaultReceivers);
+    setSelectedTriggerInfo(trigger);
+    setShowTriggerPopup(false);
+    toast.success(`Trigger vald: ${trigger.name}`);
+  };
+
   // Handle form submission
   const onSubmit = async (data: TemplateFormValues) => {
     setIsSaving(true);
@@ -279,14 +331,59 @@ export function EmailTemplateBuilder() {
         <div className="lg:col-span-3 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{form.watch('id') ? 'Redigera mall' : 'Skapa ny mall'}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>{form.watch('id') ? 'Redigera mall' : 'Skapa ny mall'}</CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyTemplate}
+                    disabled={!watchSubject || !watchHtmlContent}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Kopiera mall
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTriggerPopup(true)}
+                  >
+                    <Zap className="h-4 w-4 mr-1" />
+                    Visa triggers
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
                 <input type="hidden" {...form.register('id')} />
                 
                 <div>
-                  <Label>Utlösare</Label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Label>Utlösare</Label>
+                    {selectedTriggerInfo && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm">
+                              <Info className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-md p-4">
+                            <div className="space-y-2">
+                              <p><strong>{selectedTriggerInfo.name}</strong></p>
+                              <p className="text-sm">{selectedTriggerInfo.description}</p>
+                              <p className="text-xs"><strong>Kategori:</strong> {selectedTriggerInfo.category}</p>
+                              <p className="text-xs"><strong>Utlöses:</strong> {selectedTriggerInfo.whenTriggered}</p>
+                              <p className="text-xs"><strong>Flödesposition:</strong> {selectedTriggerInfo.flowPosition}</p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                   <Select
                     value={form.watch('triggerType')}
                     onValueChange={(value) => form.setValue('triggerType', value)}
@@ -298,11 +395,28 @@ export function EmailTemplateBuilder() {
                     <SelectContent>
                       {TRIGGER_TYPES.map((trigger) => (
                         <SelectItem key={trigger.value} value={trigger.value}>
-                          {trigger.label}
+                          <div className="flex flex-col">
+                            <span>{trigger.label}</span>
+                            <span className="text-xs text-muted-foreground">{trigger.category}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedTriggerInfo && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <p className="text-sm text-blue-800 mb-2">
+                        <strong>Tillgängliga variabler för denna trigger:</strong>
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedTriggerInfo.availableVariables.map(variable => (
+                          <span key={variable} className="text-xs font-mono bg-blue-100 px-2 py-1 rounded">
+                            {variable}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -571,6 +685,13 @@ export function EmailTemplateBuilder() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Trigger Flow Popup */}
+      <TriggerFlowPopup
+        open={showTriggerPopup}
+        onClose={() => setShowTriggerPopup(false)}
+        onSelectTrigger={handleTriggerSelect}
+      />
     </div>
   );
 }

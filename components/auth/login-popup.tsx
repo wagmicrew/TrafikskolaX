@@ -43,18 +43,15 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
       const data = await response.json()
 
       if (response.ok) {
-        login(data.token)
         setSuccess("Inloggning lyckades! Omdirigerar...")
+        
+        // Use the improved login function with automatic redirection
+        login(data.token)
+        
+        // Close popup after a short delay
         setTimeout(() => {
           onClose()
-          if (data.user.role === 'admin') {
-            router.push('/dashboard/admin')
-          } else if (data.user.role === 'teacher') {
-            router.push('/dashboard/teacher')
-          } else {
-            router.push('/dashboard/student')
-          }
-        }, 1500)
+        }, 1000)
       } else {
         setError(data.error || "Inloggning misslyckades")
       }
@@ -94,12 +91,15 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
       const data = await response.json()
 
       if (response.ok) {
-        login(data.token)
         setSuccess("Registrering lyckades! Omdirigerar...")
+        
+        // Use the improved login function with automatic redirection
+        login(data.token)
+        
+        // Close popup after a short delay
         setTimeout(() => {
           onClose()
-          router.push('/dashboard/student')
-        }, 1500)
+        }, 1000)
       } else {
         setError(data.error || "Registrering misslyckades")
       }

@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { handledarSessions, handledarBookings, users, userCredits, siteSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { EmailService } from '@/lib/email/email-service';
+import { EnhancedEmailService } from '@/lib/email/enhanced-email-service';
 
 export async function POST(
   request: NextRequest,
@@ -49,28 +49,100 @@ export async function POST(
       .set({ currentParticipants: Number(session.current || 0) + 1, updatedAt: new Date() })
       .where(eq(handledarSessions.id, sessionId));
 
-    // Optionally send Swish payment email
+    // Send confirmation emails using trigger system
+    const emailService = new EnhancedEmailService();
+    
+    // Send student confirmation if studentId exists
+    if (studentId) {
+      try {
+        const student = await db.select().from(users).where(eq(users.id, studentId)).limit(1);
+        if (student.length > 0) {
+          await emailService.sendTemplatedEmail('handledar_student_confirmation', {
+            user: {
+              id: student[0].id,
+              email: student[0].email,
+              firstName: student[0].firstName || '',
+              lastName: student[0].lastName || '',
+              role: student[0].role || 'student'
+            },
+            booking: {
+              id: created.id,
+              scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
+              startTime: String(session.startTime).slice(0,5),
+              endTime: String(session.endTime).slice(0,5),
+              title: session.title,
+              supervisorName: supervisorName,
+              price: String(session.price || ''),
+              status: created.status,
+              paymentStatus: created.paymentStatus
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send student confirmation email:', error);
+      }
+    }
+
+    // Send supervisor confirmation
+    if (supervisorEmail) {
+      try {
+        await emailService.sendTemplatedEmail('handledar_supervisor_confirmation', {
+          supervisor: {
+            name: supervisorName,
+            email: supervisorEmail,
+            phone: supervisorPhone || ''
+          },
+          booking: {
+            id: created.id,
+            scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
+            startTime: String(session.startTime).slice(0,5),
+            endTime: String(session.endTime).slice(0,5),
+            title: session.title,
+            supervisorName: supervisorName,
+            price: String(session.price || ''),
+            status: created.status,
+            paymentStatus: created.paymentStatus
+          }
+        }, supervisorEmail);
+      } catch (error) {
+        console.error('Failed to send supervisor confirmation email:', error);
+      }
+    }
+
+    // Send payment request if needed
     if (sendPaymentEmail && supervisorEmail) {
-      const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '';
-      const amount = String(session.price || '');
-      const message = `Handledar ${new Date(String(session.date)).toLocaleDateString('sv-SE')} ${String(session.startTime).slice(0,5)}`;
-              const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
-      const landingUrl = `${baseUrl}/handledar/payment/${created.id}`;
-      await EmailService.sendEmail({
-        to: supervisorEmail,
-        subject: 'Betalning för Handledarutbildning',
-        html: `
-          <p>Hej ${supervisorName},</p>
-          <p>Du är bokad till handledarutbildningen "${session.title}" ${new Date(String(session.date)).toLocaleDateString('sv-SE')} kl ${String(session.startTime).slice(0,5)}-${String(session.endTime).slice(0,5)}.</p>
-          <p>Vänligen betala ${amount} kr före kurstillfället. Använd länken nedan för betalning och detaljer:</p>
-          <div style="text-align:center;margin:12px 0">
-            <a href="${landingUrl}" style="background:#dc2626;color:white;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Öppna betalningssida</a>
-          </div>
-          <p>Tack!</p>
-        `,
-        messageType: 'general',
-        userId: studentId || null,
-      });
+      try {
+        const baseUrl = request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
+        const landingUrl = `${baseUrl}/handledar/payment/${created.id}`;
+        const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '';
+        
+        await emailService.sendTemplatedEmail('handledar_supervisor_payment_request', {
+          supervisor: {
+            name: supervisorName,
+            email: supervisorEmail,
+            phone: supervisorPhone || ''
+          },
+          booking: {
+            id: created.id,
+            scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
+            startTime: String(session.startTime).slice(0,5),
+            endTime: String(session.endTime).slice(0,5),
+            title: session.title,
+            supervisorName: supervisorName,
+            price: String(session.price || ''),
+            status: created.status,
+            paymentStatus: created.paymentStatus
+          },
+          payment: {
+            amount: String(session.price || ''),
+            swishNumber: swishNumber,
+            landingUrl: landingUrl,
+            method: 'swish'
+          }
+        }, supervisorEmail);
+      } catch (error) {
+        console.error('Failed to send payment request email:', error);
+      }
     }
 
     // If marked paid, optionally credit handling is not required here.

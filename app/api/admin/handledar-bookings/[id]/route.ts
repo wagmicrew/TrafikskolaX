@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { handledarBookings, handledarSessions, users } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
-import { EmailService } from '@/lib/email/email-service';
+import { EnhancedEmailService } from '@/lib/email/enhanced-email-service';
 
 export async function DELETE(
   request: NextRequest,
@@ -60,27 +60,30 @@ export async function DELETE(
       .where(eq(handledarSessions.id, bookingData.sessionId))
       .limit(1);
 
-    // Send cancellation email to supervisor (best-effort)
+    // Send cancellation email using trigger system
     if (bookingData.supervisorEmail) {
       try {
+        const emailService = new EnhancedEmailService();
         const dateStr = session?.date ? new Date(session.date as any).toLocaleDateString('sv-SE') : '';
         const timeStr = `${String(session?.startTime||'').slice(0,5)}–${String(session?.endTime||'').slice(0,5)}`;
-        const html = `
-<div data-standard-email="1">
-  <h1 style="margin:0 0 12px 0; font-size:22px;">Avbokning bekräftad</h1>
-  <p>Hej ${bookingData.supervisorName || ''},</p>
-  <p>Din bokning för handledarutbildning har avbokats.</p>
-  <div style="margin:16px 0; padding:12px; border-radius:12px; background:#0f172a; color:#fff;">
-    <div style="font-size:14px; opacity:0.9">Tid och datum</div>
-    <div style="font-size:24px; font-weight:800;">${dateStr} • ${timeStr}</div>
-    <div style="font-size:14px; opacity:0.9">${session?.title||'Handledarutbildning'}</div>
-  </div>
-  <p>Vid frågor, kontakta oss gärna.</p>
-  <p>Vänliga hälsningar,<br/>Din Trafikskola</p>
-  <hr style="border:none; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0;"/>
-  <div style="font-size:12px; opacity:0.7">Detta är ett automatiskt meddelande.</div>
-  </div>`;
-        await EmailService.sendEmail({ to: bookingData.supervisorEmail, subject: 'Avbokning – Handledarutbildning', html });
+        
+        await emailService.sendTemplatedEmail('handledar_booking_cancelled', {
+          supervisor: {
+            name: bookingData.supervisorName || '',
+            email: bookingData.supervisorEmail,
+            phone: ''
+          },
+          booking: {
+            id: bookingData.id,
+            scheduledDate: dateStr,
+            startTime: String(session?.startTime||'').slice(0,5),
+            endTime: String(session?.endTime||'').slice(0,5),
+            title: session?.title || 'Handledarutbildning',
+            supervisorName: bookingData.supervisorName || '',
+            status: 'cancelled',
+            paymentStatus: bookingData.paymentStatus
+          }
+        }, bookingData.supervisorEmail);
       } catch (e) {
         console.error('Failed to send handledar cancellation email', e);
       }
@@ -205,28 +208,32 @@ export async function POST(
         .set({ currentParticipants: sql`current_participants + 1`, updatedAt: new Date() })
         .where(eq(handledarSessions.id, targetSession.id));
 
-      // Send move email (best-effort)
+      // Send move email using trigger system
       if ((b as any).supervisorEmail) {
         try {
+          const emailService = new EnhancedEmailService();
           const dateStr = targetSession?.date ? new Date(targetSession.date as any).toLocaleDateString('sv-SE') : '';
-          const timeStr = `${String(targetSession?.startTime||'').slice(0,5)}–${String(targetSession?.endTime||'').slice(0,5)}`;
-          const html = `
-<div data-standard-email="1">
-  <h1 style="margin:0 0 12px 0; font-size:22px;">Bokningen har flyttats</h1>
-  <p>Hej ${(b as any).supervisorName || ''},</p>
-  <p>Din handledarutbildning har flyttats till följande tid:</p>
-  <div style=\"margin:16px 0; padding:12px; border-radius:12px; background:#0f172a; color:#fff;\">
-    <div style=\"font-size:14px; opacity:0.9\">Ny tid och datum</div>
-    <div style=\"font-size:24px; font-weight:800;\">${dateStr} • ${timeStr}</div>
-    <div style=\"font-size:14px; opacity:0.9\">${targetSession?.title||'Handledarutbildning'}</div>
-  </div>
-  <p>Vid frågor, kontakta oss gärna.</p>
-  <p>Vänliga hälsningar,<br/>Din Trafikskola</p>
-  <hr style=\"border:none; border-top:1px solid rgba(255,255,255,0.15); margin:16px 0;\"/>
-  <div style=\"font-size:12px; opacity:0.7\">Detta är ett automatiskt meddelande.</div>
-</div>`;
-          await EmailService.sendEmail({ to: (b as any).supervisorEmail, subject: 'Flyttad bokning – Handledarutbildning', html });
-        } catch (e) { console.error('Failed to send handledar move email', e); }
+          
+          await emailService.sendTemplatedEmail('handledar_booking_moved', {
+            supervisor: {
+              name: (b as any).supervisorName || '',
+              email: (b as any).supervisorEmail,
+              phone: ''
+            },
+            booking: {
+              id: bookingId,
+              scheduledDate: dateStr,
+              startTime: String(targetSession?.startTime||'').slice(0,5),
+              endTime: String(targetSession?.endTime||'').slice(0,5),
+              title: targetSession?.title || 'Handledarutbildning',
+              supervisorName: (b as any).supervisorName || '',
+              status: 'confirmed',
+              paymentStatus: (b as any).paymentStatus
+            }
+          }, (b as any).supervisorEmail);
+        } catch (e) { 
+          console.error('Failed to send handledar move email', e); 
+        }
       }
 
       return NextResponse.json({ message: 'Booking moved successfully' });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { User, Mail, Calendar, CreditCard, Key, RefreshCw } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -141,7 +142,7 @@ export default function UserDetailClient({ user }: UserDetailProps) {
         <div className="flex-shrink-0 mr-6">
           <div className="h-32 w-32 rounded-full bg-gray-300 overflow-hidden border-4 border-white shadow-lg">
             {formData.profileImage ? (
-              <img src={formData.profileImage} alt="Avatar" className="h-full w-full object-cover" />
+              <Image src={formData.profileImage} alt="Avatar" width={128} height={128} className="h-full w-full object-cover" />
             ) : (
               <div className="h-full w-full flex items-center justify-center bg-blue-500 text-white text-3xl font-bold">
                 {formData.firstName?.[0]}{formData.lastName?.[0]}

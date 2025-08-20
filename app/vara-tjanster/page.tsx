@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -371,11 +372,13 @@ export default function ServicesPage() {
               </p>
             </div>
             <div>
-              <img
+              <Image
                 src="/images/promo-flyer.jpg"
                 alt="Bedömningslektion kampanj"
+                width={400}
+                height={300}
                 className="rounded-lg shadow-md max-w-full h-auto"
-                loading="lazy"
+                priority={false}
               />
             </div>
           </div>

@@ -3,21 +3,21 @@ import dynamic from 'next/dynamic';
 // ExportSchedule is a client component; import dynamically and pass required props
 const ExportSchedule = dynamic(() => import('@/components/Admin/ExportSchedule'), {
   ssr: false,
-  loading: () => <div>Loading...</div>
+  loading: () => <div>Laddar...</div>
 });
 
 // Dynamic imports to avoid SSR issues with auth hooks
 const UserManagement = dynamic(() => import('@/components/Admin/UserManagement'), {
   ssr: false,
-  loading: () => <div>Loading...</div>
+  loading: () => <div>Laddar...</div>
 });
 const LessonManagement = dynamic(() => import('@/components/Admin/LessonManagement'), {
   ssr: false,
-  loading: () => <div>Loading...</div>
+  loading: () => <div>Laddar...</div>
 });
 const BookingManagement = dynamic(() => import('@/components/Admin/BookingManagement'), {
   ssr: false,
-  loading: () => <div>Loading...</div>
+  loading: () => <div>Laddar...</div>
 });
 
 const AdminDashboard = () => {

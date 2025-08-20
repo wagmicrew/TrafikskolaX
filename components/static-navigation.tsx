@@ -2,6 +2,7 @@
 
 import { memo } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Home, User, Car, Building2, Calendar } from "lucide-react"
 
 export const StaticNavigation = memo(function StaticNavigation() {
@@ -17,9 +18,11 @@ export const StaticNavigation = memo(function StaticNavigation() {
     <header className="bg-black text-white py-4 px-6 relative z-50 shadow-lg">
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
-          <img
+          <Image
             src="/images/din-logo.png"
             alt="Din Trafikskola Hässleholm - Körkort och körkortsutbildning"
+            width={64}
+            height={64}
             className="h-12 sm:h-14 md:h-16 w-auto"
           />
           <div className="flex flex-col">

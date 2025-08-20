@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X, Smartphone, Copy, CheckCircle } from "lucide-react"
@@ -260,16 +261,18 @@ export function SwishPaymentDialog({
                     Scanna QR-koden med Swish-appen
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Öppna Swish-appen och välj "Scanna QR-kod"
+                    Öppna Swish-appen och välj &quot;Scanna QR-kod&quot;
                   </p>
                 </div>
                 
                 <div className="flex justify-center mb-4">
                   {qrCodeUrl ? (
                     <div className="bg-white p-4 rounded-lg shadow-lg">
-                      <img 
+                      <Image 
                         src={qrCodeUrl} 
                         alt="Swish QR Code" 
+                        width={192}
+                        height={192}
                         className="w-48 h-48"
                       />
                     </div>

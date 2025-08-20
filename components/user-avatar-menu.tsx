@@ -91,12 +91,14 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
   };
 
   useEffect(() => {
-    // Check if currently impersonating
-    fetch('/api/auth/impersonation-status')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setIsImpersonating(Boolean(data?.impersonating)))
-      .catch(() => setIsImpersonating(false))
-  }, [])
+    if (user) {
+      // Check if currently impersonating
+      fetch('/api/auth/impersonation-status')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => setIsImpersonating(Boolean(data?.impersonating)))
+        .catch(() => setIsImpersonating(false))
+    }
+  }, [user])
 
   const handleRestoreAdmin = async () => {
     try {

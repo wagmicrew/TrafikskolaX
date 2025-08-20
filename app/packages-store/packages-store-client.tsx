@@ -9,8 +9,7 @@ import {
   FaPercent,
   FaCreditCard,
   FaMobileAlt,
-  FaSpinner,
-  FaCheckCircle
+  FaSpinner
 } from 'react-icons/fa';
 
 interface Package {
@@ -34,7 +33,7 @@ interface User {
 }
 import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
-import Image from 'next/image';
+
 import toast from 'react-hot-toast';
 import { useEffect } from 'react';
 import StudentHeader from '@/app/dashboard/student/StudentHeader';
@@ -50,13 +49,12 @@ interface PackagesStoreClientProps {
 }
 
 const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: PackagesStoreClientProps): ReactElement => {
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+
   const [paymentMethod, setPaymentMethod] = useState('swish');
   const [loading, setLoading] = useState(false);
   const [showSwishDialog, setShowSwishDialog] = useState(false);
   const [showQliroDialog, setShowQliroDialog] = useState(false);
-  const [notifyingPaid, setNotifyingPaid] = useState(false);
-  const [paidNotified, setPaidNotified] = useState(false);
+
   
   // Qliro availability state
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true);
@@ -68,7 +66,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
     swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231',
     purchaseId: ''
   });
-  const [qliroPaymentData, setQliroPaymentData] = useState({
+  const [qliroPaymentData] = useState({
     amount: 0,
     purchaseId: '',
     checkoutUrl: ''
@@ -115,11 +113,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
     return pkg.price;
   };
 
-  const getPricePerCredit = (pkg: Package): string => {
-    const effectivePrice = getEffectivePrice(pkg);
-    const pricePerCredit = (effectivePrice / pkg.credits).toFixed(2);
-    return pricePerCredit;
-  };
+
 
   const getSavingsPercentage = (pkg: Package): number => {
     const originalPrice = pkg.price;

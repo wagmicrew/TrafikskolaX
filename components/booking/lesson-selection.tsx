@@ -31,7 +31,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
 
   const fetchSessionTypes = async () => {
     try {
-      let allSessions = [];
+      const allSessions = [];
       
       // Fetch regular lessons
       try {

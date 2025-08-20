@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface SwishQRProps {
   phoneNumber: string;
@@ -126,9 +127,11 @@ export default function SwishQR({
   return (
     <div className={`text-center ${className}`}>
       <div className="bg-white p-4 rounded-lg shadow-lg inline-block">
-        <img 
+        <Image 
           src={qrCodeUrl} 
           alt="Swish QR Code" 
+          width={192}
+          height={192}
           className="w-48 h-48 mx-auto"
         />
         <div className="mt-4 space-y-2">

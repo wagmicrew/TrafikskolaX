@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Phone, Mail, Clock } from "lucide-react"
 import { getOpeningHours } from "@/lib/site-settings/opening-hours"
 
@@ -71,7 +72,7 @@ export async function Footer() {
               B-körkort i en trygg och modern miljö.
             </p>
             <div className="flex items-center">
-              <img src="/images/din-logo-small.png" alt="Din Trafikskola" className="h-12" />
+              <Image src="/images/din-logo-small.png" alt="Din Trafikskola" width={48} height={48} className="h-12" />
             </div>
           </div>
 

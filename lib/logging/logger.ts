@@ -155,7 +155,7 @@ class Logger {
       const content = fs.readFileSync(filePath, 'utf-8');
       const logLines = content.trim().split('\n').filter(line => line.length > 0);
 
-      let parsedLogs: LogEntry[] = [];
+      const parsedLogs: LogEntry[] = [];
       
       // Parse each line safely
       for (const line of logLines) {

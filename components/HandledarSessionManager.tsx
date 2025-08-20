@@ -119,7 +119,7 @@ const HandledarSessionManager = () => {
             </div>
             
             <p className="text-gray-700 mb-4">
-              Are you sure you want to delete the handledar session "{sessionToDelete.title}"? This action cannot be undone.
+              Are you sure you want to delete the handledar session &quot;{sessionToDelete.title}&quot;? This action cannot be undone.
             </p>
             
             {deleteError && (

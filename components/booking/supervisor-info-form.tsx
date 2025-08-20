@@ -299,7 +299,7 @@ export function SupervisorInfoForm({
         <div className="text-center py-8 text-gray-500">
           <UserPlus className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>Inga handledare tillagda än</p>
-          <p className="text-sm">Klicka på "Lägg till handledare" för att börja</p>
+          <p className="text-sm">Klicka på &quot;Lägg till handledare&quot; för att börja</p>
         </div>
       )}
     </div>

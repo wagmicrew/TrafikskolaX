@@ -141,13 +141,13 @@ export default function SettingsClient() {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/settings');
-      if (!response.ok) throw new Error('Failed to fetch settings');
+      if (!response.ok) throw new Error('Kunde inte hämta inställningar');
       const data = await response.json();
       setSettings(data.settings);
       setHasUnsavedChanges(false);
       toast.success('Inställningar hämtade');
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Fel vid hämtning av inställningar:', error);
       toast.error('Kunde inte hämta inställningar');
     } finally {
       setLoading(false);
@@ -162,13 +162,13 @@ export default function SettingsClient() {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/settings');
-      if (!response.ok) throw new Error('Failed to fetch settings');
+      if (!response.ok) throw new Error('Kunde inte hämta inställningar');
       const data = await response.json();
       setSettings(data.settings);
       setHasUnsavedChanges(false);
       toast.success('Inställningar hämtade');
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Fel vid hämtning av inställningar:', error);
       toast.error('Kunde inte hämta inställningar');
     } finally {
       setLoading(false);
@@ -188,14 +188,14 @@ export default function SettingsClient() {
         body: JSON.stringify(settings),
       });
 
-      if (!response.ok) throw new Error('Failed to save settings');
+      if (!response.ok) throw new Error('Kunde inte spara inställningar');
 
       toast.success('Inställningar sparade framgångsrikt!', {
         id: loadingToast,
       });
       setHasUnsavedChanges(false);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error('Fel vid sparande av inställningar:', error);
       toast.error('Kunde inte spara inställningar', {
         id: loadingToast,
       });
@@ -262,8 +262,8 @@ export default function SettingsClient() {
     setTestResults([]);
     const loadingToast = toast.loading('Kör krediteringstester...');
     
-    console.log('=== Credits API Test Started ===');
-    console.log('Test User ID:', testUserId);
+    console.log('=== Krediterings-API-test startat ===');
+    console.log('Testanvändar-ID:', testUserId);
 
     const apiBase = `/api/admin/users/${testUserId}/credits`;
     
@@ -314,11 +314,11 @@ export default function SettingsClient() {
 
     for (const test of tests) {
       try {
-        console.log(`\n=== Running ${test.name} ===`);
-        console.log('Endpoint:', test.endpoint);
-        console.log('Method:', test.method);
+        console.log(`\n=== Kör ${test.name} ===`);
+        console.log('Slutpunkt:', test.endpoint);
+        console.log('Metod:', test.method);
         if (test.body) {
-          console.log('Body:', JSON.stringify(test.body, null, 2));
+          console.log('Innehåll:', JSON.stringify(test.body, null, 2));
         }
         
         const options: RequestInit = {

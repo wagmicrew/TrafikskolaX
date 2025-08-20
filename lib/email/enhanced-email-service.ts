@@ -407,7 +407,7 @@ logger.info('email', 'Email sent via SMTP', {
     let success = false;
 
     // Ensure all outgoing emails use the branded template
-    let wrappedOptions = { ...options };
+    const wrappedOptions = { ...options };
     if (wrappedOptions.html) {
       wrappedOptions.html = this.applyEmailTemplate(wrappedOptions.html);
     } else if (wrappedOptions.text) {

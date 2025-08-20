@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Home, Phone, Mail, MapPin, ArrowLeft } from "lucide-react"
@@ -14,9 +15,11 @@ function NotFoundContent() {
         <div className="container mx-auto flex justify-between items-center">
           {/* Logo with custom text */}
           <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
-            <img
+            <Image
               src="/images/din-logo.png"
               alt="Din Trafikskola Hässleholm"
+              width={64}
+              height={64}
               className="h-12 sm:h-14 md:h-16 w-auto"
             />
             <div className="flex flex-col">

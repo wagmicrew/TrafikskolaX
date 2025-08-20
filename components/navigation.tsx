@@ -2,6 +2,7 @@
 
 import { useState, memo } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ContactForm } from "@/components/contact-form"
@@ -37,12 +38,12 @@ export const Navigation = memo(function Navigation() {
         <div className="container mx-auto flex justify-between items-center">
           {/* Logo with custom text */}
           <Link href="/" className="flex items-center space-x-4 hover:opacity-80 transition-opacity">
-            <img
+            <Image
               src="/images/din-logo.png"
               alt="Din Trafikskola Hässleholm - Körkort och körkortsutbildning"
+              width={72}
+              height={72}
               className="h-12 sm:h-14 md:h-16 lg:h-18 w-auto"
-              width="72"
-              height="72"
             />
             <div className="flex flex-col">
               <h1
@@ -171,7 +172,7 @@ export const Navigation = memo(function Navigation() {
           <div className="bg-red-600 text-white p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <img src="/images/din-logo-small.png" alt="Din Trafikskola" className="h-8 w-8" />
+                <Image src="/images/din-logo-small.png" alt="Din Trafikskola" width={32} height={32} className="h-8 w-8" />
                 <span className="font-semibold text-lg">Meny</span>
               </div>
               <button

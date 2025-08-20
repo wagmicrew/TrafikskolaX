@@ -6,11 +6,19 @@
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/no-require-imports": "off"
+    "@typescript-eslint/no-require-imports": "off",
+    "react/no-unescaped-entities": "warn",
+    "prefer-const": "warn",
+    "@next/next/no-img-element": "warn",
+    "react-hooks/exhaustive-deps": "warn",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/ban-ts-comment": "warn"
   },
   "ignorePatterns": [
     "lib/payment/qliro-service-broken.ts",
     "lib/working-seed.js",
-    "scripts/*.js"
+    "scripts/*.js",
+    "*.config.js",
+    "*.config.mjs"
   ]
 }

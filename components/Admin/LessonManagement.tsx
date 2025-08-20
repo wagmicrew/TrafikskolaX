@@ -70,7 +70,7 @@ const LessonManagement = () => {
           <DialogHeader>
             <DialogTitle>Edit Lesson Type</DialogTitle>
             <DialogDescription>
-              Make changes to the lesson type here. Click save when you're done.
+              Make changes to the lesson type here. Click save when you&apos;re done.
             </DialogDescription>
           </DialogHeader>
           {/* Form fields for editing */}

@@ -7,7 +7,7 @@ import PackagesStoreClient from './packages-store-client';
 export default async function PackagesStorePage({ searchParams }: { searchParams?: Record<string, string | string[]> }) {
   const user = await requireAuth('student');
   const params = searchParams || {};
-  const openPayment = (Array.isArray(params.openPayment) ? params.openPayment[0] : params.openPayment) || '';
+
 
   // Fetch all active packages with their contents
   const packagesData = await db

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -120,13 +121,13 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="text-center">
-                <img
+                <Image
                   src="/images/promo-flyer.jpg"
                   alt="Bedömningslektion kampanj - BMW trafikskola bil för körkortsutbildning"
+                  width={400}
+                  height={300}
                   className="rounded-lg shadow-md max-w-full h-auto"
-                  width="400"
-                  height="300"
-                  loading="lazy"
+                  priority={false}
                 />
               </div>
             </div>
@@ -228,13 +229,13 @@ export default function HomePage() {
               </div>
             </div>
             <div className="text-center">
-              <img
+              <Image
                 src="/images/storefront.jpg"
                 alt="Din Trafikskola Hässleholm lokaler på Östergatan 3a i Hässleholm"
+                width={500}
+                height={400}
                 className="rounded-lg shadow-lg max-w-full h-auto"
-                width="500"
-                height="400"
-                loading="lazy"
+                priority={false}
               />
             </div>
           </div>

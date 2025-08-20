@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ContactForm } from "@/components/contact-form"
@@ -25,13 +26,13 @@ export default function PremisesPage() {
             <div className="mb-12">
               <Card className="p-8 bg-gradient-to-r from-red-50 to-yellow-50 border-red-200">
                 <div className="text-center">
-                  <img
+                  <Image
                     src="/images/welcome-sign.jpg"
                     alt="Välkomstskylt - Här börjar din resa mot frihet"
+                    width={600}
+                    height={400}
                     className="rounded-lg shadow-md max-w-full h-auto mx-auto mb-6"
-                    width="600"
-                    height="400"
-                    loading="lazy"
+                    priority={false}
                   />
                   <h2 className="text-3xl font-bold text-gray-800 mb-4">
                     "Här börjar din resa mot frihet - Varmt välkommen!"
@@ -48,11 +49,13 @@ export default function PremisesPage() {
             <div className="grid lg:grid-cols-2 gap-8 mb-16">
               {/* Reception Area */}
               <Card className="overflow-hidden">
-                <img
+                <Image
                   src="/images/office-reception.jpg"
                   alt="Moderna och välkomnande reception med elegant inredning"
+                  width={600}
+                  height={256}
                   className="w-full h-64 object-cover"
-                  loading="lazy"
+                  priority={false}
                 />
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-red-600 mb-3">Modern reception och väntområde</h3>
@@ -76,11 +79,13 @@ export default function PremisesPage() {
 
               {/* Waiting Area */}
               <Card className="overflow-hidden">
-                <img
+                <Image
                   src="/images/waiting-area.jpg"
                   alt="Bekvämt väntområde med moderna fåtöljer och gula accentkuddar"
+                  width={600}
+                  height={256}
                   className="w-full h-64 object-cover"
-                  loading="lazy"
+                  priority={false}
                 />
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-red-600 mb-3">Komfortabelt väntområde</h3>
@@ -204,11 +209,13 @@ export default function PremisesPage() {
             {/* Storefront Image */}
             <div className="mb-16">
               <Card className="overflow-hidden">
-                <img
+                <Image
                   src="/images/storefront.jpg"
                   alt="Din Trafikskola Hässleholm lokaler på Östergatan 3a i Hässleholm"
+                  width={800}
+                  height={384}
                   className="w-full h-96 object-cover"
-                  loading="lazy"
+                  priority={false}
                 />
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-red-600 mb-3">Våra lokaler på Östergatan</h3>

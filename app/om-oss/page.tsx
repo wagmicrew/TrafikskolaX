@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ContactForm } from "@/components/contact-form"
@@ -64,19 +65,21 @@ export default function AboutPage() {
               </div>
 
               <div className="space-y-6">
-                <img
+                <Image
                   src="/images/storefront.jpg"
                   alt="Din Trafikskola Hässleholm lokaler"
+                  width={600}
+                  height={400}
                   className="rounded-lg shadow-lg w-full"
-                  loading="lazy"
+                  priority={false}
                 />
 
                 <Card className="p-6 bg-yellow-50">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">Referens och kvalitet</h3>
                   <div className="space-y-3 text-gray-700">
                     <p className="italic">
-                      "Enligt tidigare tjänstgöringsintyg från Trafikverket har vi uppfyllt arbetsuppgifter med{" "}
-                      <strong>mycket gott resultat</strong> och erhållit uppskattning från kollegor och kunder."
+                      &quot;Enligt tidigare tjänstgöringsintyg från Trafikverket har vi uppfyllt arbetsuppgifter med{" "}
+                      <strong>mycket gott resultat</strong> och erhållit uppskattning från kollegor och kunder.&quot;
                     </p>
                   </div>
                 </Card>

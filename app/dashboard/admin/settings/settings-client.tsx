@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,40 +137,7 @@ export default function SettingsClient() {
   const [cronDialogOpen, setCronDialogOpen] = useState(false);
   const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadSettings = async () => {
-      if (!mounted) return;
-      setLoading(true);
-      try {
-        const response = await fetch('/api/admin/settings');
-        if (!mounted) return;
-        if (!response.ok) throw new Error('Failed to fetch settings');
-        const data = await response.json();
-        if (!mounted) return;
-        setSettings(data.settings);
-        setHasUnsavedChanges(false);
-        toast.success('Inställningar hämtade');
-      } catch (error) {
-        if (!mounted) return;
-        console.error('Error fetching settings:', error);
-        toast.error('Kunde inte hämta inställningar');
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadSettings();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const fetchSettings = async () => {
+  const loadSettings = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/admin/settings');
@@ -185,9 +152,30 @@ export default function SettingsClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const saveSettings = async () => {
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const fetchSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      const data = await response.json();
+      setSettings(data.settings);
+      setHasUnsavedChanges(false);
+      toast.success('Inställningar hämtade');
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      toast.error('Kunde inte hämta inställningar');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const saveSettings = useCallback(async () => {
     setSaving(true);
     const loadingToast = toast.loading('Sparar inställningar...');
     
@@ -214,12 +202,12 @@ export default function SettingsClient() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [settings]);
 
-  const updateSetting = (key: keyof Settings, value: any) => {
+  const updateSetting = useCallback((key: keyof Settings, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasUnsavedChanges(true);
-  };
+  }, []);
 
   const testQliroPayment = async () => {
     setQliroTestOpen(true);

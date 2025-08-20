@@ -25,3 +25,39 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Additional build and cache files
+.turbo/
+.cache/
+dist/
+*.log
+*.lock
+
+# Backup directories
+backup-*/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# PM2 files
+.pm2/
+
+# Redis dump files
+dump.rdb
+
+# Temporary files
+tmp/
+temp/

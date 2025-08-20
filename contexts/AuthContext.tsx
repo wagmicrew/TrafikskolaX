@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 type AuthMode = 'login' | 'register';
@@ -22,6 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const openAuthPopup = useCallback((mode: AuthMode = 'login') => {
+    setMode(mode);
+    setIsOpen(true);
+  }, []);
+
+  const closeAuthPopup = useCallback(() => {
+    setIsOpen(false);
+    // Small delay to allow animations to complete
+    setTimeout(() => {
+      setMode('login');
+      setRedirectAfterAuth(undefined);
+    }, 300);
+  }, []);
+
   // Handle auth redirects from protected routes
   useEffect(() => {
     if (pathname === '/login' || pathname === '/registrering') {
@@ -37,21 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       newUrl.pathname = '';
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, [pathname, searchParams]);
-
-  const openAuthPopup = (mode: AuthMode = 'login') => {
-    setMode(mode);
-    setIsOpen(true);
-  };
-
-  const closeAuthPopup = () => {
-    setIsOpen(false);
-    // Small delay to allow animations to complete
-    setTimeout(() => {
-      setMode('login');
-      setRedirectAfterAuth(undefined);
-    }, 300);
-  };
+  }, [pathname, searchParams, openAuthPopup]);
 
   const value = {
     isOpen,

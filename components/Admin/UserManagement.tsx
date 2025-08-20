@@ -1,34 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import fetcher from '@/lib/fetcher';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  inskriven: boolean;
+}
 
 const UserManagement = () => {
   const { user, token } = useAuth();
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      try {
-        const response = await fetcher('/api/admin/users', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUsers(response || []);
-      } catch (error) {
-        console.error('Failed to fetch users', error);
-      } finally {
-         setLoading(false);
-      }
-    };
-    if (user && user.role === 'admin') {
-      fetchUsers();
+  const fetchUsers = useCallback(async () => {
+    if (!user || user.role !== 'admin' || !token) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetcher('/api/admin/users', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(response || []);
+    } catch (error) {
+      console.error('Failed to fetch users', error);
+    } finally {
+       setLoading(false);
     }
   }, [user, token]);
 
-  const handleToggleInskriven = async (userId, inskriven) => {
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleToggleInskriven = useCallback(async (userId: string, inskriven: boolean) => {
     try {
       await fetcher(`/api/admin/users`, {
         method: 'PATCH',
@@ -38,9 +47,9 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error toggling inskriven', error);
     }
-  };
+  }, []);
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = useCallback(async (userId: string) => {
     try {
       await fetcher(`/api/admin/users?id=${userId}`, {
         method: 'DELETE',
@@ -49,7 +58,7 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error deleting user', error);
     }
-  };
+  }, []);
 
   if (loading) return <div>Loading...</div>;
 

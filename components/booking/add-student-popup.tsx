@@ -84,14 +84,14 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
           phone: '',
           personalNumber: ''
         })
-              } else {
-          const error = await response.json()
-          toast.error(`Fel: ${error.error || 'Kunde inte skapa studenten'}`)
-        }
-      } catch (error) {
-        console.error('Error creating student:', error)
-        toast.error('Fel: Ett oväntat fel uppstod')
-      } finally {
+      } else {
+        const error = await response.json()
+        toast.error(`Fel: ${error.error || 'Kunde inte skapa studenten'}`)
+      }
+    } catch (error) {
+      console.error('Error creating student:', error)
+      toast.error('Fel: Ett oväntat fel uppstod')
+    } finally {
       setLoading(false)
     }
   }
@@ -104,15 +104,15 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
             <UserPlus className="w-5 h-5 text-blue-600" />
             Lägg till ny student
           </DialogTitle>
         </DialogHeader>
         
-        <Card className="border-0 shadow-none">
+        <Card className="border-0 shadow-none bg-white">
           <CardContent className="p-0">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -127,7 +127,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     placeholder="Förnamn"
                     required
-                    className="mt-1"
+                    className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -141,7 +141,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Efternamn"
                     required
-                    className="mt-1"
+                    className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -157,7 +157,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="student@example.com"
                   required
-                  className="mt-1"
+                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
@@ -171,7 +171,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder="070-123 45 67"
-                  className="mt-1"
+                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
@@ -185,7 +185,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                   value={formData.personalNumber}
                   onChange={(e) => handleInputChange('personalNumber', e.target.value)}
                   placeholder="YYYYMMDD-XXXX"
-                  className="mt-1"
+                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
@@ -195,7 +195,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                   variant="outline"
                   onClick={handleClose}
                   disabled={loading}
-                  className="flex-1"
+                  className="flex-1 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   <X className="w-4 h-4 mr-2" />
                   Avbryt
@@ -203,7 +203,7 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">

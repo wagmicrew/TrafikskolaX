@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/lib/hooks/use-toast';
 
 const AdminEmailSettings = () => {
@@ -6,11 +6,7 @@ const AdminEmailSettings = () => {
   const [loading, setLoading] = useState(true);
   const toast = useToast();
 
-  useEffect(() => {
-    fetchEmailSettings();
-  }, []);
-
-  const fetchEmailSettings = async () => {
+  const fetchEmailSettings = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/email-settings');
       if (!response.ok) throw new Error('Failed to fetch email settings');
@@ -22,13 +18,17 @@ const AdminEmailSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchEmailSettings();
+  }, [fetchEmailSettings]);
 
   const handleSettingChange = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/email-settings', {
         method: 'PUT',
@@ -42,9 +42,9 @@ const AdminEmailSettings = () => {
       console.error('Error updating email settings:', error);
       toast({ title: 'Error', description: 'Failed to update email settings.', variant: 'destructive' });
     }
-  };
+  }, [settings, toast]);
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/email-settings', {
         method: 'POST',
@@ -57,7 +57,7 @@ const AdminEmailSettings = () => {
       console.error('Error sending test email:', error);
       toast({ title: 'Error', description: 'Failed to send test email.', variant: 'destructive' });
     }
-  };
+  }, [toast]);
 
   if (loading) {
     return <div>Loading...</div>;

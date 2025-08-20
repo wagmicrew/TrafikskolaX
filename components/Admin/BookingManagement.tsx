@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
 
@@ -7,26 +7,27 @@ const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setLoading(true);
-      try {
-        const response = await fetcher('/api/admin/bookings', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setBookings(response || []);
-      } catch (error) {
-        console.error('Failed to fetch bookings', error);
-      } finally {
-         setLoading(false);
-      }
-    };
-    if (user && user.role === 'admin') {
-      fetchBookings();
+  const fetchBookings = useCallback(async () => {
+    if (!user || user.role !== 'admin' || !token) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetcher('/api/admin/bookings', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setBookings(response || []);
+    } catch (error) {
+      console.error('Failed to fetch bookings', error);
+    } finally {
+       setLoading(false);
     }
   }, [user, token]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const handleUpdateStatus = async (bookingId, status) => {
     try {

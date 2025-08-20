@@ -1,7 +1,7 @@
 'use client';
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -93,7 +93,7 @@ export function EmailTemplateBuilder() {
         form.setValue('receivers', triggerInfo.defaultReceivers);
       }
     }
-  }, [watchTriggerType, form]);
+  }, [watchTriggerType]);
 
   // Load templates on component mount or when trigger type changes
   useEffect(() => {
@@ -124,9 +124,9 @@ export function EmailTemplateBuilder() {
       }, 500);
       return () => clearTimeout(debounceTimer);
     }
-  }, [watchHtmlContent, watchSubject, watchTriggerType, watchReceivers, activeTab]);
+  }, [activeTab, watchHtmlContent, watchSubject, handlePreview]);
 
-  const handlePreview = async () => {
+  const handlePreview = useCallback(async () => {
     if (!watchHtmlContent || !watchSubject) return;
     
     setIsPreviewLoading(true);
@@ -162,7 +162,7 @@ export function EmailTemplateBuilder() {
     } finally {
       setIsPreviewLoading(false);
     }
-  };
+  }, [watchHtmlContent, watchSubject, watchTriggerType, watchReceivers, form]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -172,7 +172,7 @@ export function EmailTemplateBuilder() {
   };
 
   // Handle reset to standard templates
-  const handleReset = async () => {
+  const handleReset = useCallback(async () => {
     const response = await fetch('/api/admin/email-templates/seed-reminders', { 
       method: 'POST' 
     });
@@ -199,15 +199,15 @@ export function EmailTemplateBuilder() {
           form.reset(templateData);
           // Refresh preview if we're on preview tab
           if (activeTab === 'preview') {
-            setTimeout(handlePreview, 100);
+            setTimeout(() => handlePreview(), 100);
           }
         }
       }
     }
-  };
+  }, [selectedTemplate, activeTab, handlePreview, form]);
 
   // Handle template copying
-  const handleCopyTemplate = async () => {
+  const handleCopyTemplate = useCallback(async () => {
     const currentValues = form.getValues();
     if (!currentValues.subject || !currentValues.htmlContent) {
       toast.error('Ingen mall att kopiera');
@@ -228,7 +228,7 @@ export function EmailTemplateBuilder() {
 
     setSelectedTemplate('');
     toast.success('Mall kopierad - välj ny trigger och spara');
-  };
+  }, [form]);
 
   // Handle trigger selection from popup
   const handleTriggerSelect = (trigger: TriggerDefinition) => {
@@ -240,7 +240,7 @@ export function EmailTemplateBuilder() {
   };
 
   // Handle form submission
-  const onSubmit = async (data: TemplateFormValues) => {
+  const onSubmit = useCallback(async (data: TemplateFormValues) => {
     setIsSaving(true);
     try {
       const method = data.id ? 'PUT' : 'POST';
@@ -259,11 +259,17 @@ export function EmailTemplateBuilder() {
       const result = await response.json();
       toast.success('Mall sparad');
       
-      // Update templates list
-      if (data.id) {
-        setTemplates(templates.map(t => t.id === data.id ? result : t));
-      } else {
-        setTemplates([...templates, result]);
+      // Update templates list without causing re-renders
+      setTemplates(prev => {
+        if (data.id) {
+          return prev.map(t => t.id === data.id ? result : t);
+        } else {
+          return [...prev, result];
+        }
+      });
+      
+      // Update selected template and form
+      if (!data.id) {
         setSelectedTemplate(result.id);
         form.reset(result);
       }
@@ -273,7 +279,7 @@ export function EmailTemplateBuilder() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [form]);
 
   if (isLoading) {
     return (

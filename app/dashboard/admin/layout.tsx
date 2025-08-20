@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/auth/server-auth';
 import Link from 'next/link';
-import { ShieldCheck, Home, CalendarDays, Users, BookOpen, Clock8, Settings, Mail, ChevronDown, CreditCard } from 'lucide-react';
+import { ShieldCheck, Home, CalendarDays, Users, BookOpen, Clock8, Settings, Mail, ChevronDown, CreditCard, Trash2 } from 'lucide-react';
 import ScrollToTopButton from '@/components/ui/scroll-to-top-button';
 
 export const dynamic = 'force-dynamic';
@@ -79,6 +79,7 @@ export default async function AdminLayout({
                 <div className="py-2">
                   <Link href="/dashboard/admin/settings" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Inställningar</Link>
                   <Link href="/dashboard/admin/settings/database-updates" className="block px-4 py-2 hover:bg-white/10 rounded-lg text-yellow-300">Databasuppdateringar</Link>
+                  <Link href="/dashboard/admin/supervisor-cleanup" className="block px-4 py-2 hover:bg-white/10 rounded-lg text-red-300">Handledare Data Cleanup</Link>
                 </div>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthAPI } from '@/lib/auth/requireAuth';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { supervisorDetails, handledarBookings, handledarSessions } from '@/lib/db/schema';
 import { eq, and, lt, isNotNull } from 'drizzle-orm';
@@ -7,7 +7,7 @@ import { eq, and, lt, isNotNull } from 'drizzle-orm';
 export async function POST(request: NextRequest) {
   try {
     // Require admin authentication
-    const authResult = await requireAuthAPI(['admin']);
+    const authResult = await requireAuthAPI('admin');
     if (!authResult.success) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Require admin authentication
-    const authResult = await requireAuthAPI(['admin']);
+    const authResult = await requireAuthAPI('admin');
     if (!authResult.success) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

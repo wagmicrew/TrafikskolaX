@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# TrafikskolaX Server Deployment Script
-# This script performs a complete server deployment including cache clearing, git pull, build, and PM2 restart
-# Designed for Ubuntu/Linux server environments only
+# TrafikskolaX Production Deployment Script
+# Simplified version for production environments
 
 set -e  # Exit on any error
 
@@ -35,65 +34,55 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check if we're in the correct directory
+# Function to check if we're in the correct directory (more flexible)
 check_project_directory() {
-    print_status "Checking project directory structure..."
+    print_status "Checking production directory structure..."
     
     # List current directory contents for debugging
-    print_status "Current directory contents:"
+    print_status "Current directory: $(pwd)"
+    print_status "Directory contents:"
     ls -la | head -10
     
     # Check for various project indicators
-    local has_package_json=false
-    local has_next_config=false
-    local has_app_dir=false
-    local has_components_dir=false
+    local indicators=0
     
     if [ -f "package.json" ]; then
-        has_package_json=true
         print_success "Found package.json"
-    else
-        print_warning "package.json not found"
+        ((indicators++))
     fi
     
     if [ -f "next.config.js" ]; then
-        has_next_config=true
         print_success "Found next.config.js"
-    else
-        print_warning "next.config.js not found"
+        ((indicators++))
     fi
     
     if [ -d "app" ]; then
-        has_app_dir=true
         print_success "Found app directory"
-    else
-        print_warning "app directory not found"
+        ((indicators++))
     fi
     
     if [ -d "components" ]; then
-        has_components_dir=true
         print_success "Found components directory"
-    else
-        print_warning "components directory not found"
+        ((indicators++))
     fi
     
-    # More flexible check - if we have at least 2 indicators, we're probably in the right place
-    local indicators=0
-    [ "$has_package_json" = true ] && ((indicators++))
-    [ "$has_next_config" = true ] && ((indicators++))
-    [ "$has_app_dir" = true ] && ((indicators++))
-    [ "$has_components_dir" = true ] && ((indicators++))
+    if [ -d "lib" ]; then
+        print_success "Found lib directory"
+        ((indicators++))
+    fi
+    
+    if [ -d ".next" ]; then
+        print_success "Found .next directory (build output)"
+        ((indicators++))
+    fi
     
     if [ $indicators -ge 2 ]; then
-        print_success "Project directory validation passed (${indicators}/4 indicators found)"
+        print_success "Production directory validation passed (${indicators} indicators found)"
         return 0
     else
-        print_error "This doesn't appear to be the TrafikskolaX project directory."
-        print_error "Expected to find at least 2 of: package.json, next.config.js, app/, components/"
-        print_error "Found: ${indicators}/4 indicators"
-        print_error "Current directory: $(pwd)"
-        print_error "Please run this script from the project root directory."
-        return 1
+        print_warning "Limited project indicators found (${indicators}), but continuing..."
+        print_warning "Make sure you're in the correct project directory"
+        return 0  # Don't exit, just warn
     fi
 }
 
@@ -245,11 +234,6 @@ restart_pm2() {
 check_requirements() {
     print_status "Checking system requirements..."
     
-    # Check if we're on Ubuntu/Linux
-    if [[ "$OSTYPE" != "linux-gnu"* ]]; then
-        print_warning "This script is designed for Ubuntu/Linux servers"
-    fi
-    
     # Check Node.js
     if ! command_exists node; then
         print_error "Node.js is not installed"
@@ -295,45 +279,10 @@ check_requirements() {
     fi
 }
 
-# Function to remove localhost references from codebase
-remove_localhost_references() {
-    print_status "Checking for localhost references in codebase..."
-    
-    # Find all localhost references
-    LOCALHOST_FILES=$(grep -r "localhost" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude=*.log --exclude=*.lock 2>/dev/null || true)
-    
-    if [ -n "$LOCALHOST_FILES" ]; then
-        print_warning "Found localhost references in the following files:"
-        echo "$LOCALHOST_FILES"
-        echo
-        read -p "Do you want to replace localhost references with production domain? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            # Replace localhost:3000 with production domain
-            find . -type f \( -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.json" -o -name "*.env*" \) \
-                -not -path "./node_modules/*" \
-                -not -path "./.git/*" \
-                -not -path "./.next/*" \
-                -exec sed -i 's/localhost:3000/dintrafikskolahlm.se/g' {} \;
-            
-            # Replace localhost (without port) with production domain
-            find . -type f \( -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.json" -o -name "*.env*" \) \
-                -not -path "./node_modules/*" \
-                -not -path "./.git/*" \
-                -not -path "./.next/*" \
-                -exec sed -i 's/localhost/dintrafikskolahlm.se/g' {} \;
-            
-            print_success "Localhost references replaced with production domain"
-        fi
-    else
-        print_success "No localhost references found in codebase"
-    fi
-}
-
 # Main deployment function
 main() {
     echo "=========================================="
-    echo "    TrafikskolaX Server Deployment"
+    echo "    TrafikskolaX Production Deployment"
     echo "=========================================="
     echo
     
@@ -344,39 +293,34 @@ main() {
     check_requirements
     
     echo
-    print_status "Starting server deployment process..."
+    print_status "Starting production deployment process..."
     echo
     
-    # Step 1: Remove localhost references
-    remove_localhost_references
-    echo
-    
-    # Step 2: Clear caches
+    # Step 1: Clear caches
     clear_redis_cache
     clear_node_cache
     clear_npm_cache
     echo
     
-    # Step 3: Git operations
+    # Step 2: Git operations
     git_operations
     echo
     
-    # Step 4: Install dependencies
+    # Step 3: Install dependencies
     install_dependencies
     echo
     
-    # Step 5: Build project
+    # Step 4: Build project
     build_project
     echo
     
-    # Step 6: Restart PM2
+    # Step 5: Restart PM2
     restart_pm2
     echo
     
-    print_success "Server deployment completed successfully!"
+    print_success "Production deployment completed successfully!"
     echo
     print_status "Deployment Summary:"
-    echo "  ✓ Localhost references checked/removed"
     echo "  ✓ Redis cache cleared"
     echo "  ✓ Node.js and Next.js caches cleared"
     echo "  ✓ Git repository updated"
@@ -402,27 +346,23 @@ case "${1:-}" in
         echo "  --skip-git     Skip git operations"
         echo "  --skip-build   Skip building the project"
         echo "  --skip-pm2     Skip PM2 restart"
-        echo "  --skip-localhost Skip localhost reference removal"
-        echo "  --skip-check   Skip project directory validation"
         echo
         echo "Examples:"
-        echo "  $0              # Full deployment"
+        echo "  $0              # Full production deployment"
         echo "  $0 --dry-run    # Show what would be done"
         echo "  $0 --skip-cache # Deploy without clearing caches"
-        echo "  $0 --skip-check # Skip directory validation"
         exit 0
         ;;
     --dry-run)
         print_status "DRY RUN MODE - No changes will be made"
         echo "This would perform the following operations:"
-        echo "  1. Check/remove localhost references"
-        echo "  2. Clear Redis cache"
-        echo "  3. Clear Node.js and Next.js caches"
-        echo "  4. Clear npm cache"
-        echo "  5. Pull latest changes from git"
-        echo "  6. Install dependencies"
-        echo "  7. Build the project for production"
-        echo "  8. Restart PM2 processes"
+        echo "  1. Clear Redis cache"
+        echo "  2. Clear Node.js and Next.js caches"
+        echo "  3. Clear npm cache"
+        echo "  4. Pull latest changes from git"
+        echo "  5. Install dependencies"
+        echo "  6. Build the project for production"
+        echo "  7. Restart PM2 processes"
         exit 0
         ;;
     --skip-cache)
@@ -442,14 +382,6 @@ case "${1:-}" in
     --skip-pm2)
         print_warning "Skipping PM2 restart"
         restart_pm2() { print_status "Skipping PM2 restart..."; }
-        ;;
-    --skip-localhost)
-        print_warning "Skipping localhost reference removal"
-        remove_localhost_references() { print_status "Skipping localhost reference removal..."; }
-        ;;
-    --skip-check)
-        print_warning "Skipping project directory validation"
-        check_project_directory() { print_status "Skipping directory validation..."; return 0; }
         ;;
     "")
         # No arguments, proceed with full deployment

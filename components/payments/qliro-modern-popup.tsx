@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, XCircle, X, CreditCard, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, X, CreditCard, AlertCircle, FileText, Shield } from "lucide-react";
 import { useQliroListener } from "@/hooks/use-qliro-listener";
 import { useToast } from "@/hooks/use-toast";
 
@@ -134,7 +134,7 @@ export function QliroModernPopup({
       });
 
       if (!orderData.OrderHtmlSnippet) {
-        throw new Error('Ingen HTML-snippet mottagen från Qliro');
+        throw new Error('Ingen HTML mottagen från Qliro');
       }
 
       updateStepStatus(2, 'completed');
@@ -271,6 +271,44 @@ export function QliroModernPopup({
                   {steps.map((step, index) => (
                     <StepIndicator key={step.id} step={step} index={index} />
                   ))}
+                </div>
+                
+                {/* Legal Documents Mini-Links */}
+                <div className="mt-8 pt-4 border-t border-gray-300">
+                  <h4 className="text-xs font-medium text-gray-700 mb-3 uppercase tracking-wide">Juridiska dokument</h4>
+                  <div className="space-y-2">
+                    <a
+                      href="/villkor"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full p-2 text-xs text-gray-600 hover:text-red-600 hover:bg-white rounded-lg transition-all duration-200 group"
+                    >
+                      <FileText className="w-3 h-3 flex-shrink-0 group-hover:text-red-600" />
+                      <span className="truncate">Allmänna villkor</span>
+                      <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                    
+                    <a
+                      href="/integritetspolicy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 w-full p-2 text-xs text-gray-600 hover:text-red-600 hover:bg-white rounded-lg transition-all duration-200 group"
+                    >
+                      <Shield className="w-3 h-3 flex-shrink-0 group-hover:text-red-600" />
+                      <span className="truncate">Integritetspolicy</span>
+                      <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-gray-500">
+                    <p className="leading-relaxed">
+                      Genom att fortsätta godkänner du våra villkor och integritetspolicy.
+                    </p>
+                  </div>
                 </div>
               </div>
 

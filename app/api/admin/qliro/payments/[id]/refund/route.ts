@@ -4,14 +4,15 @@ import { db } from '@/lib/db';
 import { packagePurchases } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function POST(_request: NextRequest, context: { params: { id: string } }) {
+export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuthAPI('admin');
     if (!auth.success) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { id } = context.params;
+    const resolvedParams = await context.params;
+    const { id } = resolvedParams;
 
     // Ensure purchase exists and is a Qliro payment
     const rows = await db

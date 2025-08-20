@@ -44,6 +44,16 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
   const [messagesEnabled, setMessagesEnabled] = useState(false)
   const [isImpersonating, setIsImpersonating] = useState(false)
 
+  useEffect(() => {
+    if (user) {
+      // Check if currently impersonating
+      fetch('/api/auth/impersonation-status')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => setIsImpersonating(Boolean(data?.impersonating)))
+        .catch(() => setIsImpersonating(false))
+    }
+  }, [user])
+
   if (!user) return null
 
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim()
@@ -89,16 +99,6 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
       default: return 'Användare';
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      // Check if currently impersonating
-      fetch('/api/auth/impersonation-status')
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => setIsImpersonating(Boolean(data?.impersonating)))
-        .catch(() => setIsImpersonating(false))
-    }
-  }, [user])
 
   const handleRestoreAdmin = async () => {
     try {

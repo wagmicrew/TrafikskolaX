@@ -6,7 +6,7 @@ import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuthAPI('admin');
@@ -14,10 +14,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params;
     const template = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.id, params.id))
+      .where(eq(emailTemplates.id, resolvedParams.id))
       .limit(1);
 
     if (template.length === 0) {
@@ -28,7 +29,7 @@ export async function GET(
     const receivers = await db
       .select()
       .from(emailReceivers)
-      .where(eq(emailReceivers.templateId, params.id));
+      .where(eq(emailReceivers.templateId, resolvedParams.id));
 
     return NextResponse.json({
       ...template[0],
@@ -42,7 +43,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuthAPI('admin');
@@ -50,6 +51,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params;
     const body = await request.json();
     const { subject, htmlContent, isActive, receivers } = body;
 
@@ -57,7 +59,7 @@ export async function PUT(
     const existingTemplate = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.id, params.id))
+      .where(eq(emailTemplates.id, resolvedParams.id))
       .limit(1);
 
     if (existingTemplate.length === 0) {
@@ -73,7 +75,7 @@ export async function PUT(
         isActive,
         updatedAt: new Date(),
       })
-      .where(eq(emailTemplates.id, params.id))
+      .where(eq(emailTemplates.id, resolvedParams.id))
       .returning();
 
     // Update receivers if provided
@@ -81,12 +83,12 @@ export async function PUT(
       // Delete existing receivers
       await db
         .delete(emailReceivers)
-        .where(eq(emailReceivers.templateId, params.id));
+        .where(eq(emailReceivers.templateId, resolvedParams.id));
 
       // Add new receivers
       if (receivers.length > 0) {
         const receiverValues = receivers.map((receiverType: string) => ({
-          templateId: params.id,
+          templateId: resolvedParams.id,
           receiverType,
         }));
 
@@ -106,7 +108,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuthAPI('admin');
@@ -114,15 +116,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const resolvedParams = await params;
     // Delete receivers first (foreign key constraint)
     await db
       .delete(emailReceivers)
-      .where(eq(emailReceivers.templateId, params.id));
+      .where(eq(emailReceivers.templateId, resolvedParams.id));
 
     // Delete template
     const deletedTemplate = await db
       .delete(emailTemplates)
-      .where(eq(emailTemplates.id, params.id))
+      .where(eq(emailTemplates.id, resolvedParams.id))
       .returning();
 
     if (deletedTemplate.length === 0) {

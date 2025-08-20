@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { bookingId: string } }
+  { params }: { params: Promise<{ bookingId: string }> }
 ) {
   try {
     const cookieStore = await cookies();
@@ -22,7 +22,8 @@ export async function POST(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const bookingId = params.bookingId;
+    const resolvedParams = await params;
+    const bookingId = resolvedParams.bookingId;
 
     // Verify that the booking exists and belongs to this teacher
     const booking = await db
@@ -42,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking[0].teacherId !== (user.userId || user.id)) {
+    if (booking[0].teacherId !== user.userId) {
       return NextResponse.json({ error: 'Access denied - not your booking' }, { status: 403 });
     }
 

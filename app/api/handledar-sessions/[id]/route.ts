@@ -7,10 +7,11 @@ import { requireAuthAPI, getServerUser } from '@/lib/auth/server-auth';
 // GET endpoint to fetch a specific handledar session by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionId = params.id;
+    const resolvedParams = await params;
+    const sessionId = resolvedParams.id;
 
     // Fetch the session data
     const session = await db
@@ -43,7 +44,7 @@ export async function GET(
 // DELETE endpoint to delete a handledar session
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate and authorize (only admins should be able to delete sessions)

@@ -70,9 +70,10 @@ export async function GET(req: NextRequest) {
 }
 
 // DELETE endpoint for cancelling bookings
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const bookingId = params.id;
+    const resolvedParams = await params;
+    const bookingId = resolvedParams.id;
     console.log(`Attempting to cancel booking with ID: ${bookingId}`);
     
     // Get cancellation reason from request body if provided

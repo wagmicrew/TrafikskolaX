@@ -196,14 +196,15 @@ export async function Footer() {
 
         <div className="border-t border-gray-200 mt-12 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-600 mb-4 md:mb-0">
-              &copy; {new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.
-            </p>
+            <div className="text-gray-600 mb-4 md:mb-0">
+              <p>&copy; {new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.</p>
+              <p className="text-sm">Org.nr: 559123-4567 | F-skattsedel: Ja</p>
+            </div>
             <div className="flex space-x-6">
-              <Link href="/kopvillkor" className="text-red-600 hover:text-red-700 text-sm">
-                Köpvillkor
+              <Link href="/villkor" className="text-red-600 hover:text-red-700 text-sm">
+                Allmänna villkor
               </Link>
-              <Link href="/kopvillkor" className="text-red-600 hover:text-red-700 text-sm">
+              <Link href="/integritetspolicy" className="text-red-600 hover:text-red-700 text-sm">
                 Integritetspolicy
               </Link>
             </div>

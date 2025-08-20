@@ -176,19 +176,21 @@ git_operations() {
 install_dependencies() {
     print_status "Installing dependencies..."
     
-    # Remove node_modules and package-lock.json for clean install
+    # Remove node_modules for clean install
     if [ -d "node_modules" ]; then
         print_status "Removing existing node_modules..."
         rm -rf node_modules
     fi
     
+    # Check if package-lock.json exists
     if [ -f "package-lock.json" ]; then
-        print_status "Removing package-lock.json for clean install..."
-        rm package-lock.json
+        print_status "Using npm ci for clean install with package-lock.json..."
+        npm ci --production=false
+    else
+        print_status "package-lock.json not found, using npm install..."
+        npm install
     fi
     
-    # Install dependencies
-    npm ci --production=false
     print_success "Dependencies installed successfully"
 }
 

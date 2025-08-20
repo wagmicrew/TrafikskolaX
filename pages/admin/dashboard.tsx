@@ -26,7 +26,7 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Admin Portal</h1>
         <ExportSchedule role="admin" />
       </div>
       <div className="border-b border-gray-200 mb-6">
@@ -80,14 +80,14 @@ const AdminDashboard = () => {
         {activeSection === 'bookings' && <BookingManagement />}
         {activeSection === 'slots' && (
           <div>
-            <h2>Slot Settings</h2>
-            <p>Slot settings management coming soon...</p>
+            <h2>Tidsluckor</h2>
+            <p>Hantering av tidsluckor kommer snart...</p>
           </div>
         )}
         {activeSection === 'settings' && (
           <div>
-            <h2>Site Settings</h2>
-            <p>Site settings management coming soon...</p>
+            <h2>Webbplatsinställningar</h2>
+            <p>Hantering av webbplatsinställningar kommer snart...</p>
           </div>
         )}
       </div>

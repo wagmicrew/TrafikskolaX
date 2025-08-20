@@ -26,11 +26,11 @@ export default function HandledarkursBookingPage() {
   const fetchSessions = async () => {
     try {
       const response = await fetch('/api/handledar-sessions');
-      if (!response.ok) throw new Error('Failed to fetch sessions');
+      if (!response.ok) throw new Error('Kunde inte hämta sessioner');
       const data = await response.json();
       setSessions(data.sessions);
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('Fel vid hämtning av sessioner:', error);
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function HandledarkursBookingPage() {
 
   const handleBooking = async () => {
     if (!selectedSession) {
-      setBookingMessage('Please select a session to book.');
+      setBookingMessage('Vänligen välj en session att boka.');
       return;
     }
 
@@ -71,7 +71,7 @@ export default function HandledarkursBookingPage() {
 
       if (!response.ok) throw new Error(data.error);
 
-      setBookingMessage(`Booking successful! Total price: ${data.totalPrice}. Payment required to confirm booking.`);
+      setBookingMessage(`Bokning lyckades! Totalt pris: ${data.totalPrice}. Betalning krävs för att bekräfta bokningen.`);
       setParticipants([{ supervisorName: '', supervisorEmail: '', supervisorPhone: '' }]);
       setSelectedSession(null);
 
@@ -80,8 +80,8 @@ export default function HandledarkursBookingPage() {
         router.push('/payment');
       }, 3000);
     } catch (error) {
-      setBookingMessage(`Error: ${error.message}`);
-      console.error('Error creating booking:', error);
+      setBookingMessage(`Fel: ${error.message}`);
+      console.error('Fel vid skapande av bokning:', error);
     }
   };
 
@@ -89,7 +89,7 @@ export default function HandledarkursBookingPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Book Handledarkurs</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Boka Handledarkurs</h1>
 
       {bookingMessage && <p className="mb-4 text-center text-green-500">{bookingMessage}</p>}
 
@@ -101,8 +101,8 @@ export default function HandledarkursBookingPage() {
               <p className="text-sm text-gray-500">{session.formattedDateTime}</p>
             </CardHeader>
             <CardContent>
-              <p>Spots left: {session.spotsLeft}</p>
-              <p>Price per participant: {session.pricePerParticipant}</p>
+              <p>Lediga platser: {session.spotsLeft}</p>
+              <p>Pris per deltagare: {session.pricePerParticipant}</p>
               <p>{session.teacherName}</p>
             </CardContent>
           </Card>
@@ -111,22 +111,22 @@ export default function HandledarkursBookingPage() {
 
       {selectedSession && (
         <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4">Add Participants</h2>
+          <h2 className="text-2xl font-bold mb-4">Lägg till deltagare</h2>
 
           {participants.map((participant, index) => (
             <div key={index} className="flex space-x-4 mb-4">
-              <Input placeholder="Name" value={participant.supervisorName} onChange={(e) => handleParticipantChange(index, 'supervisorName', e.target.value)} />
-              <Input placeholder="Email" value={participant.supervisorEmail} onChange={(e) => handleParticipantChange(index, 'supervisorEmail', e.target.value)} />
-              <Input placeholder="Phone" value={participant.supervisorPhone} onChange={(e) => handleParticipantChange(index, 'supervisorPhone', e.target.value)} />
+              <Input placeholder="Namn" value={participant.supervisorName} onChange={(e) => handleParticipantChange(index, 'supervisorName', e.target.value)} />
+              <Input placeholder="E-post" value={participant.supervisorEmail} onChange={(e) => handleParticipantChange(index, 'supervisorEmail', e.target.value)} />
+              <Input placeholder="Telefon" value={participant.supervisorPhone} onChange={(e) => handleParticipantChange(index, 'supervisorPhone', e.target.value)} />
               {participants.length > 1 && (
-                <Button onClick={() => removeParticipant(index)} className="text-red-500">Remove</Button>
+                <Button onClick={() => removeParticipant(index)} className="text-red-500">Ta bort</Button>
               )}
             </div>
           ))}
 
-          <Button onClick={addParticipant} className="mb-4">Add Another Participant</Button>
+          <Button onClick={addParticipant} className="mb-4">Lägg till ännu en deltagare</Button>
 
-          <Button onClick={handleBooking} className="bg-blue-600 text-white">Book Now</Button>
+          <Button onClick={handleBooking} className="bg-blue-600 text-white">Boka nu</Button>
         </div>
       )}
     </div>

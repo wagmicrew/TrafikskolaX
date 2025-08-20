@@ -211,16 +211,16 @@ export default function SettingsClient() {
 
   const testQliroPayment = async () => {
     setQliroTestOpen(true);
-    const loadingToast = toast.loading('Testing Qliro payment...');
+    const loadingToast = toast.loading('Testar Qliro-betalning...');
     try {
       // First, get a real package ID
       const packagesResponse = await fetch('/api/packages');
       if (!packagesResponse.ok) {
-        throw new Error('Failed to fetch packages');
+        throw new Error('Kunde inte hämta paket');
       }
       const packagesData = await packagesResponse.json();
       if (packagesData.length === 0) {
-        throw new Error('No packages available for testing');
+        throw new Error('Inga paket tillgängliga för testning');
       }
       const testPackageId = packagesData[0].id;
       
@@ -236,13 +236,13 @@ export default function SettingsClient() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to test Qliro payment');
+        throw new Error(data.error || 'Kunde inte testa Qliro-betalning');
       }
-      toast.success('Qliro payment test initiated successfully!', { id: loadingToast });
+      toast.success('Qliro-betalningstest initierat framgångsrikt!', { id: loadingToast });
     } catch (error: unknown) {
-      console.error('Qliro test error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Qliro test failed: ${errorMessage}`, { id: loadingToast });
+      console.error('Qliro-testfel:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
+      toast.error(`Qliro-test misslyckades: ${errorMessage}`, { id: loadingToast });
     } finally {
       setQliroTestOpen(false);
     }
@@ -279,17 +279,17 @@ export default function SettingsClient() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch lesson types:', error);
+      console.error('Kunde inte hämta lektionstyper:', error);
     }
     
     const tests = [
       { 
-        name: 'GET credits',
+        name: 'Hämta krediter',
         method: 'GET', 
         endpoint: apiBase 
       },
       { 
-        name: 'POST lesson credits',
+        name: 'Lägg till lektionskrediter',
         method: 'POST', 
         endpoint: apiBase,
         body: { 
@@ -299,7 +299,7 @@ export default function SettingsClient() {
         }
       },
       { 
-        name: 'POST handledar credits',
+        name: 'Lägg till handledarkrediter',
         method: 'POST', 
         endpoint: apiBase,
         body: { 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { FaEnvelope, FaEye, FaPaperPlane, FaInbox, FaEdit } from 'react-icons/fa';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useToast } from '@/lib/hooks/use-toast';
-import { LoadingSpinner } from '@/components/isLoading-spinner';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 interface Message {
   id: string;

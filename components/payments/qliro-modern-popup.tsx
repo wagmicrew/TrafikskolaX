@@ -123,7 +123,7 @@ export function QliroModernPopup({
       // Step 3: Fetching order details
       const response = await fetch(`/api/payments/qliro/get-order?orderId=${orderId}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch order: ${response.status}`);
+        throw new Error(`Kunde inte hämta order: ${response.status}`);
       }
       
       const orderData = await response.json();
@@ -134,7 +134,7 @@ export function QliroModernPopup({
       });
 
       if (!orderData.OrderHtmlSnippet) {
-        throw new Error('No HTML snippet received from Qliro');
+        throw new Error('Ingen HTML-snippet mottagen från Qliro');
       }
 
       updateStepStatus(2, 'completed');

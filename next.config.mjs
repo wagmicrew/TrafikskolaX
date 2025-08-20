@@ -17,12 +17,14 @@ const nextConfig = {
   },
   
   // Performance optimizations
-  swcMinify: true,
   reactStrictMode: true,
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   
   // Bundle optimization
+  // External packages for server components
+  serverExternalPackages: ['bcryptjs', 'jsonwebtoken'],
+  
   experimental: {
     turbo: {
       rules: {
@@ -39,7 +41,6 @@ const nextConfig = {
       '@radix-ui/react-tabs',
       'react-hot-toast'
     ],
-    serverComponentsExternalPackages: ['bcryptjs', 'jsonwebtoken'],
   },
   
   // Tree shaking optimizations

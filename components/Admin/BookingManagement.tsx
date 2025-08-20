@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
 
-const BookingManagement = memo(() => {
+const BookingManagement: React.FC = memo(() => {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = useCallback(async () => {
@@ -30,7 +30,7 @@ const BookingManagement = memo(() => {
     fetchBookings();
   }, [fetchBookings]);
 
-  const handleUpdateStatus = async (bookingId, status) => {
+  const handleUpdateStatus = async (bookingId: string, status: string) => {
     try {
       await fetcher(`/api/admin/bookings`, {
         method: 'PUT',
@@ -42,7 +42,7 @@ const BookingManagement = memo(() => {
     }
   };
 
-  const handleUpdatePaymentStatus = async (bookingId, paymentStatus) => {
+  const handleUpdatePaymentStatus = async (bookingId: string, paymentStatus: string) => {
     try {
       await fetcher(`/api/admin/bookings`, {
         method: 'PUT',
@@ -54,7 +54,7 @@ const BookingManagement = memo(() => {
     }
   };
 
-  const handleDeleteBooking = async (bookingId) => {
+  const handleDeleteBooking = async (bookingId: string) => {
     try {
       await fetcher(`/api/admin/bookings?id=${bookingId}`, {
         method: 'DELETE',
@@ -124,6 +124,8 @@ const BookingManagement = memo(() => {
       </table>
     </div>
   );
-};
+});
+
+BookingManagement.displayName = 'BookingManagement';
 
 export default BookingManagement;

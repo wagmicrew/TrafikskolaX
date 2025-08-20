@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/hooks/useAuth"
 import { Toaster } from "react-hot-toast"
 import { CookieConsent } from "@/components/CookieConsent"
 import ImpersonationBanner from '@/components/ImpersonationBanner'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { getOpeningHours, toJsonLd } from "@/lib/site-settings/opening-hours"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -214,14 +215,16 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <ImpersonationBanner />
-          <Navigation />
-          <main>{children}</main>
-          <Toaster />
-          <CookieConsent />
-        </AuthProvider>
-        <Footer />
+        <ErrorBoundary>
+          <AuthProvider>
+            <ImpersonationBanner />
+            <Navigation />
+            <main>{children}</main>
+            <Toaster />
+            <CookieConsent />
+          </AuthProvider>
+          <Footer />
+        </ErrorBoundary>
       </body>
     </html>
   )

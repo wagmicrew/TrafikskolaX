@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { useToast } from '@/lib/hooks/use-toast';
 
 function MessageComposer() {

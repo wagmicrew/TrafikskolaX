@@ -8,7 +8,7 @@ export function getPublicBaseUrl(): string {
   // This will be overridden by the actual request context in most cases
   return process.env.NODE_ENV === 'production' 
     ? 'https://www.dintrafikskolahlm.se' 
-    : 'http://localhost:3000';
+    : 'https://www.dintrafikskolahlm.se'; // Always use production URL, even in development
 }
 
 export function toAbsoluteUrl(pathOrUrl: string): string {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import fetcher from '@/lib/fetcher';
 
@@ -10,16 +10,17 @@ interface User {
   inskriven: boolean;
 }
 
-const UserManagement = () => {
-  const { user, token } = useAuth();
+const UserManagement = memo(() => {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   
   const fetchUsers = useCallback(async () => {
-    if (!user || user.role !== 'admin' || !token) return;
+    if (!user || user.role !== 'admin') return;
     
     setLoading(true);
     try {
+      const token = localStorage.getItem('auth-token');
       const response = await fetcher('/api/admin/users', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -31,7 +32,7 @@ const UserManagement = () => {
     } finally {
        setLoading(false);
     }
-  }, [user, token]);
+  }, [user]);
 
   useEffect(() => {
     fetchUsers();
@@ -96,6 +97,8 @@ const UserManagement = () => {
       </table>
     </div>
   );
-};
+});
+
+UserManagement.displayName = 'UserManagement';
 
 export default UserManagement;

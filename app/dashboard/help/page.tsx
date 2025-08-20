@@ -117,11 +117,12 @@ export default function HelpPage() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Översikt</TabsTrigger>
           <TabsTrigger value="bookings">Bokningar</TabsTrigger>
           <TabsTrigger value="users">Användare</TabsTrigger>
           <TabsTrigger value="settings">Inställningar</TabsTrigger>
+          <TabsTrigger value="features">Nya Funktioner</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -200,13 +201,14 @@ export default function HelpPage() {
               <div className="bg-green-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">✅ Bekräfta Bokningar</h3>
                 <p className="text-sm text-gray-700 mb-3">
-                  När studenter bokar lektioner via Swish behöver du bekräfta betalningen:
+                  Systemet hanterar betalningar automatiskt, men du kan övervaka och hantera bokningar:
                 </p>
                 <ol className="space-y-1 text-sm text-gray-600">
-                  <li>1. Gå till bokningssidan och leta efter "Väntande Swish-betalning"</li>
-                  <li>2. Kontrollera Swish-appen för betalningen</li>
-                  <li>3. Klicka "Bekräfta betalning" eller "Avvisa betalning"</li>
-                  <li>4. Studenten får automatiskt bekräftelse via e-post</li>
+                  <li>1. <strong>Swish-betalningar:</strong> Kontrollera Swish-appen och bekräfta betalningar</li>
+                  <li>2. <strong>Qliro-betalningar:</strong> Hanteras automatiskt via popup-system</li>
+                  <li>3. <strong>Kreditbetalningar:</strong> Studentens krediter dras automatiskt</li>
+                  <li>4. <strong>Betalning senare:</strong> För inskrivna studenter (max 2 obetalda)</li>
+                  <li>5. Studenten får automatiskt bekräftelse via e-post</li>
                 </ol>
               </div>
 
@@ -217,10 +219,11 @@ export default function HelpPage() {
                 </p>
                 <ol className="space-y-1 text-sm text-gray-600">
                   <li>1. Gå till "Skapa bokning" i bokningsmenyn</li>
-                  <li>2. Välj student från listan</li>
-                  <li>3. Välj lektionstyp och lärare</li>
-                  <li>4. Välj datum och tid</li>
-                  <li>5. Bekräfta bokningen</li>
+                  <li>2. Välj student från listan (eller skapa ny student)</li>
+                  <li>3. Välj lektionstyp (B-körkort, handledarutbildning, riskettan)</li>
+                  <li>4. Välj lärare och datum/tid</li>
+                  <li>5. För handledarutbildning: Lägg till handledare med personnummer</li>
+                  <li>6. Bekräfta bokningen</li>
                 </ol>
               </div>
             </CardContent>
@@ -302,9 +305,11 @@ export default function HelpPage() {
                 <h3 className="font-semibold mb-2">💳 Betalningsinställningar</h3>
                 <ul className="space-y-1 text-sm text-gray-600">
                   <li>• <strong>Swish-nummer:</strong> Ange skolans Swish-nummer för betalningar</li>
-                  <li>• <strong>Qliro:</strong> Konfigurera Qliro för avbetalningar</li>
+                  <li>• <strong>Qliro-konfiguration:</strong> API-nycklar, checkout-flöde (popup/fönster)</li>
+                  <li>• <strong>Qliro betalningsmetoder:</strong> Välj tillgängliga metoder (faktura, kampanj, etc.)</li>
                   <li>• <strong>Priser:</strong> Ställ in standardpriser för olika lektionstyper</li>
-                  <li>• <strong>Rabatter:</strong> Konfigurera studentrabatter och paketpriser</li>
+                  <li>• <strong>Paketpriser:</strong> Konfigurera lektionspaket och rabatter</li>
+                  <li>• <strong>Kreditsystem:</strong> Hantera studentkrediter och priser</li>
                 </ul>
               </div>
 
@@ -330,6 +335,58 @@ export default function HelpPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="features" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FaStar className="text-yellow-600" />
+                Nya Funktioner & Förbättringar
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">🎯 Handledarutbildning & Teorilektioner</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Handledarutbildning:</strong> Student + handledare(s) med personnummer</li>
+                  <li>• <strong>Riskettan:</strong> Teorilektion för studenter</li>
+                  <li>• <strong>Personnummer:</strong> Krypterad lagring, automatiskt radering efter lektion</li>
+                  <li>• <strong>Prisberäkning:</strong> Baspris + extra handledare</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">💳 Moderna Betalningslösningar</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Qliro Popup:</strong> Modern popup-betalning utan sidwrapper</li>
+                  <li>• <strong>Swish:</strong> Direktbetalning med order-ID som meddelande</li>
+                  <li>• <strong>Kreditsystem:</strong> Studentkrediter för rabatterade priser</li>
+                  <li>• <strong>Betalning senare:</strong> För inskrivna studenter (max 2 obetalda)</li>
+                </ul>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">📦 Paketsystem</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Lektionspaket:</strong> Föreslagna paket med rabatter</li>
+                  <li>• <strong>Flexibla paket:</strong> Anpassningsbara lektionskombinationer</li>
+                  <li>• <strong>Automatisk aktivering:</strong> Paket aktiveras vid köp</li>
+                  <li>• <strong>Förfallodatum:</strong> Paket har utgångsdatum</li>
+                </ul>
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">🔧 Admin-verktyg</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Ny student-popup:</strong> Skapa student direkt vid bokning</li>
+                  <li>• <strong>Supervisor cleanup:</strong> Automatisk radering av personnummer</li>
+                  <li>• <strong>Error boundaries:</strong> Förbättrad felhantering</li>
+                  <li>• <strong>Modern UI:</strong> Uppdaterad design med bättre UX</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -347,9 +404,10 @@ export default function HelpPage() {
       </div>
 
       <Tabs defaultValue="booking" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="booking">Boka Lektioner</TabsTrigger>
             <TabsTrigger value="dashboard">Din sida</TabsTrigger>
+            <TabsTrigger value="features">Nya Funktioner</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
@@ -366,12 +424,12 @@ export default function HelpPage() {
                 <h3 className="font-semibold mb-2">📅 Steg för steg bokning</h3>
                 <ol className="space-y-2 text-sm text-gray-700">
                   <li><strong>1. Gå till bokningssidan</strong> - Klicka på "Boka lektion" i menyn</li>
-                  <li><strong>2. Välj lektionstyp</strong> - T.ex. B-körkort, handledarutbildning</li>
+                  <li><strong>2. Välj lektionstyp</strong> - B-körkort, handledarutbildning, riskettan, eller teorilektioner</li>
                   <li><strong>3. Välj datum</strong> - Bläddra i kalendern och välj önskat datum</li>
                   <li><strong>4. Välj tid</strong> - Klicka på en ledig tid i schemat</li>
                   <li><strong>5. Välj lärare</strong> - Om flera lärare finns tillgängliga</li>
                   <li><strong>6. Bekräfta bokning</strong> - Granska informationen och bekräfta</li>
-                  <li><strong>7. Betala</strong> - Välj betalningsmetod (Swish/Qliro/Krediter)</li>
+                  <li><strong>7. Betala</strong> - Välj betalningsmetod (Swish/Qliro/Krediter/Betalning senare)</li>
                 </ol>
               </div>
 
@@ -382,6 +440,7 @@ export default function HelpPage() {
                   <li>• <strong>Kontrollera din e-post:</strong> Du får bekräftelse via e-post</li>
                   <li>• <strong>Avbokning:</strong> Du kan avboka upp till 24h före lektionen</li>
                   <li>• <strong>Krediter:</strong> Använd dina krediter för att spara pengar</li>
+                  <li>• <strong>Paket:</strong> Köp lektionspaket för bättre priser</li>
                   <li>• <strong>Påminnelser:</strong> Du får SMS/e-post 24h före lektionen</li>
                 </ul>
               </div>
@@ -416,7 +475,8 @@ export default function HelpPage() {
                   <li>• <strong>Kommande lektioner</strong> - Dina bokade lektioner</li>
                   <li>• <strong>Genomförda lektioner</strong> - Din utveckling</li>
                   <li>• <strong>Tillgängliga krediter</strong> - Dina lektionskrediter</li>
-                  
+                  <li>• <strong>Lektionspaket</strong> - Dina aktiva paket och förfallodatum</li>
+                  <li>• <strong>Betalningshistorik</strong> - Översikt över dina betalningar</li>
                 </ul>
               </div>
 
@@ -435,6 +495,57 @@ export default function HelpPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="features" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FaStar className="text-yellow-600" />
+                Nya Funktioner för Studenter
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">💳 Förbättrade Betalningsmetoder</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Qliro Popup:</strong> Modern popup-betalning som öppnas direkt</li>
+                  <li>• <strong>Swish:</strong> Direktbetalning med order-ID som meddelande</li>
+                  <li>• <strong>Krediter:</strong> Använd dina lektionskrediter för rabatter</li>
+                  <li>• <strong>Betalning senare:</strong> För inskrivna studenter (max 2 obetalda)</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">📦 Lektionspaket</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Föreslagna paket:</strong> Spara pengar med lektionspaket</li>
+                  <li>• <strong>Flexibla paket:</strong> Anpassa paketet efter dina behov</li>
+                  <li>• <strong>Automatisk aktivering:</strong> Paket aktiveras direkt vid köp</li>
+                  <li>• <strong>Förfallodatum:</strong> Paket har utgångsdatum</li>
+                </ul>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">🎯 Handledarutbildning & Teorilektioner</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Handledarutbildning:</strong> Boka för dig och handledare(s)</li>
+                  <li>• <strong>Riskettan:</strong> Teorilektion för att förbereda dig</li>
+                  <li>• <strong>Säker hantering:</strong> Personnummer krypteras och raderas automatiskt</li>
+                  <li>• <strong>Prisberäkning:</strong> Transparent prissättning för alla deltagare</li>
+                </ul>
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">📱 Förbättrad Användarupplevelse</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Modern design:</strong> Uppdaterad och användarvänlig gränssnitt</li>
+                  <li>• <strong>Responsiv design:</strong> Fungerar perfekt på alla enheter</li>
+                  <li>• <strong>Snabbare laddning:</strong> Förbättrad prestanda</li>
+                  <li>• <strong>Bättre felhantering:</strong> Tydliga felmeddelanden och hjälp</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="support" className="space-y-6">
           <Card>
@@ -465,6 +576,14 @@ export default function HelpPage() {
                     <h4 className="font-semibold">Hur många lektioner behöver jag?</h4>
                     <p className="text-sm text-gray-600">Det varierar beroende på erfarenhet och inlärningsförmåga. Vi rekommenderar att börja med 5-10 lektioner.</p>
                   </div>
+                  <div className="p-3 bg-white rounded border">
+                    <h4 className="font-semibold">Vilka betalningsmetoder finns?</h4>
+                    <p className="text-sm text-gray-600">Swish (direktbetalning), Qliro (popup-betalning), krediter (för rabatter), och betalning senare (för inskrivna studenter).</p>
+                  </div>
+                  <div className="p-3 bg-white rounded border">
+                    <h4 className="font-semibold">Vad är handledarutbildning?</h4>
+                    <p className="text-sm text-gray-600">Handledarutbildning är för dig som ska handleda en annan student. Du bokar för dig själv och handledare(s) med säker hantering av personnummer.</p>
+                  </div>
                 </div>
               </div>
 
@@ -489,11 +608,12 @@ export default function HelpPage() {
       </div>
 
       <Tabs defaultValue="schedule" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="schedule">Schema</TabsTrigger>
           <TabsTrigger value="students">Studenter</TabsTrigger>
           <TabsTrigger value="feedback">Feedback</TabsTrigger>
           <TabsTrigger value="tools">Verktyg</TabsTrigger>
+          <TabsTrigger value="features">Nya Funktioner</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule" className="space-y-6">
@@ -560,6 +680,8 @@ export default function HelpPage() {
                   <li>• <strong>Lektionshistorik:</strong> Tidigare lektioner och framsteg</li>
                   <li>• <strong>Bokningar:</strong> Kommande lektioner</li>
                   <li>• <strong>Betalningsstatus:</strong> Om studenten har betalat</li>
+                  <li>• <strong>Handledare-information:</strong> För handledarutbildning (krypterad)</li>
+                  <li>• <strong>Lektionstyp:</strong> B-körkort, handledarutbildning, riskettan</li>
                 </ul>
               </div>
 
@@ -679,6 +801,58 @@ export default function HelpPage() {
                   <li>• <strong>Videobibliotek:</strong> Instruktiva videor för studenter</li>
                   <li>• <strong>Körkortsboken:</strong> Digital version tillgänglig</li>
                   <li>• <strong>Forum:</strong> Diskutera med andra lärare</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="features" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FaStar className="text-yellow-600" />
+                Nya Funktioner för Lärare
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">🎯 Handledarutbildning & Teorilektioner</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Handledarutbildning:</strong> Undervisa studenter med handledare</li>
+                  <li>• <strong>Riskettan:</strong> Teorilektioner för studenter</li>
+                  <li>• <strong>Säker hantering:</strong> Personnummer krypteras automatiskt</li>
+                  <li>• <strong>Automatisk radering:</strong> Personnummer raderas efter lektion</li>
+                </ul>
+              </div>
+
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">👥 Förbättrad Studenthantering</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Ny student-popup:</strong> Skapa student direkt vid bokning</li>
+                  <li>• <strong>Handledare-information:</strong> Se handledare-detaljer för handledarutbildning</li>
+                  <li>• <strong>Personnummer-säkerhet:</strong> Krypterad lagring av känslig data</li>
+                  <li>• <strong>Automatisk cleanup:</strong> Personnummer raderas efter utgångna lektioner</li>
+                </ul>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">💳 Betalningsövervakning</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Swish-betalningar:</strong> Order-ID som meddelande för enkel identifiering</li>
+                  <li>• <strong>Qliro-betalningar:</strong> Automatisk hantering via popup-system</li>
+                  <li>• <strong>Kreditbetalningar:</strong> Automatisk hantering av studentkrediter</li>
+                  <li>• <strong>Betalningsstatus:</strong> Tydlig översikt över betalningsstatus</li>
+                </ul>
+              </div>
+
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-2">📱 Förbättrad Användarupplevelse</h3>
+                <ul className="space-y-1 text-sm text-gray-600">
+                  <li>• <strong>Modern design:</strong> Uppdaterad och användarvänlig gränssnitt</li>
+                  <li>• <strong>Responsiv design:</strong> Fungerar perfekt på alla enheter</li>
+                  <li>• <strong>Snabbare laddning:</strong> Förbättrad prestanda</li>
+                  <li>• <strong>Bättre felhantering:</strong> Tydliga felmeddelanden och hjälp</li>
                 </ul>
               </div>
             </CardContent>

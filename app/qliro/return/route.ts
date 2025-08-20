@@ -9,6 +9,11 @@ export async function GET(request: NextRequest) {
     const ref = searchParams.get('ref') || '';
     const status = (searchParams.get('status') || '').toLowerCase();
 
+    // Get the correct base URL for redirects
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                   process.env.NEXTAUTH_URL || 
+                   'https://www.dintrafikskolahlm.se';
+
     // If we got a merchant reference (booking_*, handledar_*, package_*), mark accordingly
     if (ref.startsWith('booking_')) {
       const bookingId = ref.replace('booking_', '');
@@ -16,7 +21,7 @@ export async function GET(request: NextRequest) {
         await db.update(bookings).set({ paymentStatus: 'paid', status: 'confirmed', updatedAt: new Date() }).where(eq(bookings.id, bookingId));
       }
       // Redirect to booking confirmation page (same as Swish confirmation)
-      const url = new URL(`/booking/confirmation/${bookingId}`, request.nextUrl.origin);
+      const url = new URL(`/booking/confirmation/${bookingId}`, baseUrl);
       url.searchParams.set('payment_method', 'qliro');
       url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
@@ -27,7 +32,7 @@ export async function GET(request: NextRequest) {
         await db.update(handledarBookings).set({ paymentStatus: 'paid', updatedAt: new Date() }).where(eq(handledarBookings.id, handledarBookingId));
       }
       // Redirect to handledar booking confirmation page
-      const url = new URL(`/handledar/confirmation/${handledarBookingId}`, request.nextUrl.origin);
+      const url = new URL(`/handledar/confirmation/${handledarBookingId}`, baseUrl);
       url.searchParams.set('payment_method', 'qliro');
       url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
@@ -38,17 +43,20 @@ export async function GET(request: NextRequest) {
         await db.update(packagePurchases).set({ paymentStatus: 'paid', paidAt: new Date() }).where(eq(packagePurchases.id, purchaseId));
       }
       // Redirect to package purchase confirmation page
-      const url = new URL(`/packages-store/confirmation/${purchaseId}`, request.nextUrl.origin);
+      const url = new URL(`/packages-store/confirmation/${purchaseId}`, baseUrl);
       url.searchParams.set('payment_method', 'qliro');
       url.searchParams.set('status', status === 'paid' || status === 'completed' ? 'success' : 'failed');
       return NextResponse.redirect(url);
     }
 
     // Fallback: redirect to dashboard
-    return NextResponse.redirect(new URL('/dashboard/student', request.nextUrl.origin));
+    return NextResponse.redirect(new URL('/dashboard/student', baseUrl));
   } catch (e) {
     console.error('Qliro return error:', e);
-    return NextResponse.redirect(new URL('/dashboard/student', request.nextUrl.origin));
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                   process.env.NEXTAUTH_URL || 
+                   'https://www.dintrafikskolahlm.se';
+    return NextResponse.redirect(new URL('/dashboard/student', baseUrl));
   }
 }
 

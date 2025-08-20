@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaEnvelope, FaEye, FaPaperPlane, FaInbox, FaEdit } from 'react-icons/fa';
-import { useAuth } from '@/lib/hooks/useAuth';
+import { useAuth } from '@/lib/hooks/use-auth';
 import { useToast } from '@/lib/hooks/use-toast';
-import { LoadingSpinner } from '@/components/isLoading-spinner';
+import { LoadingSpinner } from '@/components/loading-spinner';
 
 interface Message {
   id: string;
@@ -30,7 +30,7 @@ function MessagesClient() {
   const { addToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [isLoading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'inbox' | 'compose'>('inbox');
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   
@@ -157,7 +157,7 @@ function MessagesClient() {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return <LoadingSpinner />;
   }
 

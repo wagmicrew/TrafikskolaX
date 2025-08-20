@@ -128,7 +128,7 @@ export default function SupervisorCleanupPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : stats?.totalExpiredBookings || 0}
+              {loading ? '...' : (stats?.totalExpiredBookings ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Bookings with passed session dates
@@ -143,7 +143,7 @@ export default function SupervisorCleanupPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {loading ? '...' : stats?.totalPersonalNumbersToClean || 0}
+              {loading ? '...' : (stats?.totalPersonalNumbersToClean ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">
               Personal numbers to be cleaned

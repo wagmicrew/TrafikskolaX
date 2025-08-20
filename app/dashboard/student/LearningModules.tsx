@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { Loader2 } from 'lucide-react'
 
 type Step = {
   id: string
@@ -57,7 +58,14 @@ export default function LearningModules({ userId }: { userId: string }) {
   const grouped = useMemo(()=> groupByCategory(steps), [steps])
 
   if (loading) {
-    return <div className="text-slate-300">Laddar moduler...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="flex flex-col items-center space-y-2">
+          <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
+          <p className="text-slate-300">Laddar moduler...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

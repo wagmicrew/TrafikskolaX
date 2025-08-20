@@ -1,17 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
 
-const BookingManagement = () => {
-  const { user, token } = useAuth();
+const BookingManagement = memo(() => {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = useCallback(async () => {
-    if (!user || user.role !== 'admin' || !token) return;
+    if (!user || user.role !== 'admin') return;
     
     setLoading(true);
     try {
+      const token = localStorage.getItem('auth-token');
       const response = await fetcher('/api/admin/bookings', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -23,7 +24,7 @@ const BookingManagement = () => {
     } finally {
        setLoading(false);
     }
-  }, [user, token]);
+  }, [user]);
 
   useEffect(() => {
     fetchBookings();

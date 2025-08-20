@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     // Test SMTP connection if configured
     if (debugInfo.smtpConfigComplete && settingsMap['use_smtp'] === 'true') {
       try {
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
           host: settingsMap['smtp_host']!,
           port: settingsMap['smtp_port'] ? parseInt(settingsMap['smtp_port']) : 587,
           secure: settingsMap['smtp_secure'] === 'true',

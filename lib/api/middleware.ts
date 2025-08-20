@@ -9,7 +9,7 @@ import { ApiResponse, createErrorResponse, createSuccessResponse, CommonErrors }
 
 export type ApiHandler<T = unknown> = (
   req: NextRequest,
-  context?: { params?: any }
+  context?: { params?: Promise<any> }
 ) => Promise<ApiResponse<T>>;
 
 export interface RouteOptions {
@@ -29,7 +29,7 @@ export function withApiHandler<T>(
   handler: ApiHandler<T>,
   options: RouteOptions = {}
 ) {
-  return async (req: NextRequest, context?: { params?: any }) => {
+  return async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }) => {
     try {
       // Authentication check
       if (options.requireAuth) {
@@ -49,14 +49,16 @@ export function withApiHandler<T>(
 
       // Request validation
       if (options.validate) {
-        const validationResult = await validateRequest(req, context?.params, options.validate);
+        const resolvedParams = await context.params;
+        const validationResult = await validateRequest(req, resolvedParams, options.validate);
         if (!validationResult.success) {
           return NextResponse.json(validationResult.error, { status: 400 });
         }
       }
 
       // Execute handler
-      const result = await handler(req, context);
+      const resolvedParams = await context.params;
+      const result = await handler(req, { ...context, params: resolvedParams });
 
       // Return standardized response
       if (result.success) {
@@ -98,7 +100,8 @@ async function validateRequest(
   try {
     // Validate body
     if (validation.body && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
-      const body = await req.json();
+      // Use a cloned request to avoid consuming the body before the handler
+      const body = await req.clone().json();
       validation.body.parse(body);
     }
 

@@ -55,12 +55,17 @@ export async function POST(request: NextRequest) {
           creditType: 'lesson',
             });
           }
-        } else if (content.handledarSessionId || content.contentType === 'handledar') {
+        } else if ((content.handledarSessionId && content.handledarSessionId.length > 0) || content.contentType === 'handledar') {
           // Handledar credits (session based)
           const existing = await db
             .select()
             .from(userCredits)
-            .where(and(eq(userCredits.userId, purchase.userId), eq(userCredits.handledarSessionId, content.handledarSessionId)))
+            .where(
+              and(
+                eq(userCredits.userId, purchase.userId),
+                content.handledarSessionId ? eq(userCredits.handledarSessionId, content.handledarSessionId) : eq(userCredits.handledarSessionId, purchase.packageId) // dummy compare to keep AND typed
+              )
+            )
             .limit(1);
           if (existing.length) {
             await db.update(userCredits).set({
@@ -71,7 +76,7 @@ export async function POST(request: NextRequest) {
           } else {
             await db.insert(userCredits).values({
               userId: purchase.userId,
-              handledarSessionId: content.handledarSessionId,
+              handledarSessionId: content.handledarSessionId || null as any,
               creditsRemaining: addAmount,
               creditsTotal: addAmount,
               packageId: purchase.packageId,

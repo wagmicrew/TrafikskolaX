@@ -50,7 +50,7 @@ export async function PUT(
     await db
       .update(bookings)
       .set({
-        scheduledDate: new Date(scheduledDate),
+        scheduledDate: scheduledDate,
         startTime,
         endTime,
         updatedAt: new Date(),

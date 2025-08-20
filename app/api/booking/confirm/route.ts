@@ -252,7 +252,7 @@ async function sendSwishPaymentNotification(booking: any, isHandledar: boolean =
     }
 
     // Generate signed admin action URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
     const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret';
     const payloadBase = {
       type: 'swish_action',

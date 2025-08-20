@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
       .where(eq(siteSettings.key, 'school_email'))
       .limit(1);
 
-    const schoolname = schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm';
-    const schoolPhone = schoolPhoneSetting.length > 0 ? schoolPhoneSetting[0].value : '08-XXX XX XX';
-    const schoolEmail = schoolEmailSetting.length > 0 ? schoolEmailSetting[0].value : 'info@dintrafikskolahlm.se';
+    const schoolname = (schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm') || 'Din Trafikskola Hässleholm';
+    const schoolPhone = (schoolPhoneSetting.length > 0 ? schoolPhoneSetting[0].value : '08-XXX XX XX') || '08-XXX XX XX';
+    const schoolEmail = (schoolEmailSetting.length > 0 ? schoolEmailSetting[0].value : 'info@dintrafikskolahlm.se') || 'info@dintrafikskolahlm.se';
 
     // Create test data for template variables
     const testData = {
@@ -112,38 +112,38 @@ export async function POST(request: NextRequest) {
     let processedContent = emailTemplate.htmlContent;
 
     // Replace variables in subject
-    processedSubject = processedSubject
-      .replace(/\{\{user\.firstName\}\}/g, testData.user.firstName)
-      .replace(/\{\{user\.lastName\}\}/g, testData.user.lastName)
-      .replace(/\{\{user\.fullName\}\}/g, testData.user.fullName)
-      .replace(/\{\{user\.email\}\}/g, testData.user.email)
-      .replace(/\{\{user\.customerNumber\}\}/g, testData.user.customerNumber)
-      .replace(/\{\{booking\.lessonTypeName\}\}/g, testData.booking.lessonTypeName)
-      .replace(/\{\{schoolName\}\}/g, testData.schoolName);
+    processedSubject = (processedSubject || '')
+      .replace(/\{\{user\.firstName\}\}/g, testData.user.firstName || '')
+      .replace(/\{\{user\.lastName\}\}/g, testData.user.lastName || '')
+      .replace(/\{\{user\.fullName\}\}/g, testData.user.fullName || '')
+      .replace(/\{\{user\.email\}\}/g, testData.user.email || '')
+      .replace(/\{\{user\.customerNumber\}\}/g, testData.user.customerNumber || '')
+      .replace(/\{\{booking\.lessonTypeName\}\}/g, testData.booking.lessonTypeName || '')
+      .replace(/\{\{schoolName\}\}/g, testData.schoolName || '');
 
     // Replace variables in content
-    processedContent = processedContent
-      .replace(/\{\{user\.firstName\}\}/g, testData.user.firstName)
-      .replace(/\{\{user\.lastName\}\}/g, testData.user.lastName)
-      .replace(/\{\{user\.fullName\}\}/g, testData.user.fullName)
-      .replace(/\{\{user\.email\}\}/g, testData.user.email)
-      .replace(/\{\{user\.customerNumber\}\}/g, testData.user.customerNumber)
-      .replace(/\{\{booking\.id\}\}/g, testData.booking.id)
-      .replace(/\{\{booking\.scheduledDate\}\}/g, testData.booking.scheduledDate)
-      .replace(/\{\{booking\.startTime\}\}/g, testData.booking.startTime)
-      .replace(/\{\{booking\.endTime\}\}/g, testData.booking.endTime)
-      .replace(/\{\{booking\.lessonTypeName\}\}/g, testData.booking.lessonTypeName)
-      .replace(/\{\{booking\.totalPrice\}\}/g, testData.booking.totalPrice)
-      .replace(/\{\{booking\.swishUUID\}\}/g, testData.booking.swishUUID)
-      .replace(/\{\{customData\.swishNumber\}\}/g, testData.customData.swishNumber)
-      .replace(/\{\{schoolName\}\}/g, testData.schoolName)
-      .replace(/\{\{schoolPhone\}\}/g, testData.schoolPhone)
-      .replace(/\{\{schoolEmail\}\}/g, testData.schoolEmail)
-      .replace(/\{\{appUrl\}\}/g, testData.appUrl)
-      .replace(/\{\{baseUrl\}\}/g, testData.baseUrl)
-      .replace(/\{\{currentYear\}\}/g, testData.currentYear)
-      .replace(/\{\{currentDate\}\}/g, testData.currentDate)
-      .replace(/\{\{temporaryPassword\}\}/g, testData.temporaryPassword);
+    processedContent = (processedContent || '')
+      .replace(/\{\{user\.firstName\}\}/g, testData.user.firstName || '')
+      .replace(/\{\{user\.lastName\}\}/g, testData.user.lastName || '')
+      .replace(/\{\{user\.fullName\}\}/g, testData.user.fullName || '')
+      .replace(/\{\{user\.email\}\}/g, testData.user.email || '')
+      .replace(/\{\{user\.customerNumber\}\}/g, testData.user.customerNumber || '')
+      .replace(/\{\{booking\.id\}\}/g, testData.booking.id || '')
+      .replace(/\{\{booking\.scheduledDate\}\}/g, testData.booking.scheduledDate || '')
+      .replace(/\{\{booking\.startTime\}\}/g, testData.booking.startTime || '')
+      .replace(/\{\{booking\.endTime\}\}/g, testData.booking.endTime || '')
+      .replace(/\{\{booking\.lessonTypeName\}\}/g, testData.booking.lessonTypeName || '')
+      .replace(/\{\{booking\.totalPrice\}\}/g, testData.booking.totalPrice || '')
+      .replace(/\{\{booking\.swishUUID\}\}/g, testData.booking.swishUUID || '')
+      .replace(/\{\{customData\.swishNumber\}\}/g, testData.customData.swishNumber || '')
+      .replace(/\{\{schoolName\}\}/g, testData.schoolName || '')
+      .replace(/\{\{schoolPhone\}\}/g, testData.schoolPhone || '')
+      .replace(/\{\{schoolEmail\}\}/g, testData.schoolEmail || '')
+      .replace(/\{\{appUrl\}\}/g, testData.appUrl || '')
+      .replace(/\{\{baseUrl\}\}/g, testData.baseUrl || '')
+      .replace(/\{\{currentYear\}\}/g, testData.currentYear || '')
+      .replace(/\{\{currentDate\}\}/g, testData.currentDate || '')
+      .replace(/\{\{temporaryPassword\}\}/g, testData.temporaryPassword || '');
 
     // Add test banner to the email
     const testBanner = `
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       testEmail,
       success: emailSent,
       adminUser: user.email
-    }, user.id);
+    }, user.userId);
 
     if (emailSent) {
       return NextResponse.json({

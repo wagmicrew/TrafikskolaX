@@ -8,10 +8,15 @@ import { EmailService } from '@/lib/email/email-service';
 
 type Decision = 'confirm' | 'deny' | 'remind';
 
-  function verifyActionToken(token: string): { type: string; bookingId: string; sessionType?: 'handledar' | 'regular' | 'order'; decision?: Decision } {
+function verifyActionToken(token: string): { type: string; bookingId: string; sessionType?: 'handledar' | 'regular' | 'order'; decision?: Decision } {
   const secret = process.env.JWT_SECRET || 'your-fallback-secret';
-  const payload = jwt.verify(token, secret) as { action?: string; id?: string };
-  return payload;
+  const payload = jwt.verify(token, secret) as any;
+  return {
+    type: payload?.type || payload?.action || '',
+    bookingId: payload?.bookingId || payload?.id || '',
+    sessionType: payload?.sessionType,
+    decision: payload?.decision,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -156,7 +161,19 @@ export async function POST(request: NextRequest) {
               await db.insert(userCredits).values({ userId: p.userId, lessonTypeId: content.lessonTypeId, creditsRemaining: addAmount, creditsTotal: addAmount, packageId: p.packageId, creditType: 'lesson' });
             }
           } else if (content.handledarSessionId || content.contentType === 'handledar') {
-            const existing = await db.select().from(userCredits).where(and(eq(userCredits.userId, p.userId), eq(userCredits.handledarSessionId, content.handledarSessionId))).limit(1);
+            let existing: Array<any> = [];
+            if (content.handledarSessionId) {
+              existing = await db
+                .select()
+                .from(userCredits)
+                .where(
+                  and(
+                    eq(userCredits.userId, p.userId),
+                    eq(userCredits.handledarSessionId, content.handledarSessionId)
+                  )
+                )
+                .limit(1);
+            }
             if (existing.length) {
               await db.update(userCredits).set({
                 creditsRemaining: Number(existing[0].creditsRemaining || 0) + addAmount,

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       );
 
     const settings = settingsRows.reduce((acc, row) => {
-      acc[row.key] = row.value;
+      acc[row.key] = row.value || '';
       return acc;
     }, {} as Record<string, string>);
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         eq(siteSettings.key, 'school_contact_email')
       );
 
-    const schoolContactEmail = contactSettingsRows.length > 0 ? contactSettingsRows[0].value : settings.from_email;
+    const schoolContactEmail = (contactSettingsRows.length > 0 ? contactSettingsRows[0].value : settings.from_email) || settings.from_email || 'noreply@dintrafikskolahlm.se';
     const schoolContactName = settings.school_contact_name || 'Trafikskolan';
     
     // Create test email content

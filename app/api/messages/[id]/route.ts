@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { internalMessages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -17,17 +16,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const userId = auth.user.id;
 
     const { id } = await params;
     const { isRead } = await request.json();
@@ -44,7 +37,7 @@ export async function PUT(
       .where(
         and(
           eq(internalMessages.id, id),
-          eq(internalMessages.toUserId, user.userId || user.id)
+          eq(internalMessages.toUserId, userId)
         )
       )
       .returning();
@@ -68,20 +61,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const userId = auth.user.id;
 
     const { id } = await params;
-    const userId = user.userId || user.id;
 
     // Validate UUID format
     if (!isValidUUID(id)) {

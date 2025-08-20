@@ -479,7 +479,7 @@ logger.info('email', 'Email sent via SMTP', {
         .from(emailTemplates)
         .where(
           and(
-            eq(emailTemplates.triggerType, triggerType),
+            eq(emailTemplates.triggerType, triggerType as any),
             eq(emailTemplates.isActive, true)
           )
         )

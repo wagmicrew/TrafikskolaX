@@ -66,14 +66,14 @@ export async function GET(request: NextRequest) {
       .where(eq(handledarSessions.isActive, true));
 
     if (scope === 'future') {
-      baseQuery = baseQuery.where(
-        and(eq(handledarSessions.isActive, true), gte(handledarSessions.date as any, today as any))
-      ).orderBy(desc(handledarSessions.date));
+      baseQuery = (baseQuery as any)
+        .where(and(eq(handledarSessions.isActive, true), gte(handledarSessions.date as any, today as any)))
+        .orderBy(desc(handledarSessions.date));
     } else {
       // past
-      baseQuery = baseQuery.where(
-        and(eq(handledarSessions.isActive, true), lt(handledarSessions.date as any, today as any))
-      ).orderBy(desc(handledarSessions.date));
+      baseQuery = (baseQuery as any)
+        .where(and(eq(handledarSessions.isActive, true), lt(handledarSessions.date as any, today as any)))
+        .orderBy(desc(handledarSessions.date));
     }
 
     let totalPages = 1;
@@ -89,10 +89,10 @@ export async function GET(request: NextRequest) {
       baseQuery = (baseQuery as any).limit(pageSize).offset(offset);
     }
 
-    const sessions = await baseQuery;
+    const sessions = await (baseQuery as any);
 
     // Compute participant counts excluding temporary names
-    const sessionIds = sessions.map(s => s.id);
+    const sessionIds = (sessions as any[]).map((s: any) => s.id);
     const bookings = sessionIds.length ? await db
       .select({ sessionId: handledarBookings.sessionId, supervisorName: handledarBookings.supervisorName, status: handledarBookings.status })
       .from(handledarBookings)
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       countMap[key] = (countMap[key] || 0) + 1;
     }
 
-    const formattedSessions = sessions.map(session => {
+    const formattedSessions = (sessions as any[]).map((session: any) => {
       const computed = countMap[String(session.id)] || 0;
       return {
         ...session,
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       endTime,
       maxParticipants: parseInt(maxParticipants) || 2,
       currentParticipants: 0,
-      pricePerParticipant: parseFloat(pricePerParticipant),
+      pricePerParticipant: String(parseFloat(pricePerParticipant)),
       teacherId: teacherId || null,
       isActive: true,
     }).returning();

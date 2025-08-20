@@ -7,10 +7,11 @@ import { sendEmail } from '@/lib/mailer/universal-mailer';
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     const body = await request.json();
     const { bookingIds, reimburseCredits = true, sendEmails = true } = body;
@@ -54,7 +55,7 @@ export async function DELETE(request: NextRequest) {
 
     // Group bookings by user for credit reimbursement
     const bookingsByUser = new Map();
-    const guestBookings = [];
+    const guestBookings: any[] = [];
 
     bookingsToDelete.forEach(booking => {
       if (booking.userId && !booking.isGuestBooking) {
@@ -85,8 +86,7 @@ export async function DELETE(request: NextRequest) {
                 lessonTypeId: booking.lessonTypeId,
                 creditsRemaining: 1,
                 creditsTotal: 1,
-                creditType: 'lesson',
-                description: `Återbetald för avbokad lektion - ${booking.scheduledDate} ${booking.startTime}`
+                creditType: 'lesson'
               });
               creditsReimbursed++;
             }
@@ -95,7 +95,7 @@ export async function DELETE(request: NextRequest) {
 
         // Delete user's bookings
         await tx.delete(bookings).where(
-          inArray(bookings.id, userBookings.map(b => b.id))
+          inArray(bookings.id, userBookings.map((b: any) => b.id))
         );
 
         deletionResults.push({
@@ -107,11 +107,11 @@ export async function DELETE(request: NextRequest) {
         });
       }
 
-      // Delete guest bookings
-      if (guestBookings.length > 0) {
-        await tx.delete(bookings).where(
-          inArray(bookings.id, guestBookings.map(b => b.id))
-        );
+              // Delete guest bookings
+        if (guestBookings.length > 0) {
+          await tx.delete(bookings).where(
+            inArray(bookings.id, guestBookings.map((b: any) => b.id))
+          );
 
         deletionResults.push({
           guestBookings: guestBookings.length,
@@ -147,8 +147,8 @@ export async function DELETE(request: NextRequest) {
                   </li>
                 `).join('')}
               </ul>
-              ${result.creditsReimbursed > 0 ? 
-                `<p><strong>${result.creditsReimbursed} kredit(er) har återbetalats till ditt konto.</strong></p>` : 
+                            ${(result.creditsReimbursed ?? 0) > 0 ?
+                `<p><strong>${result.creditsReimbursed} kredit(er) har återbetalats till ditt konto.</strong></p>` :
                 ''
               }
               <p>Du kan boka nya tider på vår hemsida.</p>
@@ -166,8 +166,8 @@ export async function DELETE(request: NextRequest) {
                   Betalning: ${booking.paymentStatus}
               `).join('')}
               
-              ${result.creditsReimbursed > 0 ? 
-                `${result.creditsReimbursed} kredit(er) har återbetalats till ditt konto.` : 
+                            ${(result.creditsReimbursed ?? 0) > 0 ?
+                `${result.creditsReimbursed} kredit(er) har återbetalats till ditt konto.` :
                 ''
               }
               

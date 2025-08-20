@@ -22,20 +22,30 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let query = db.select().from(blockedSlots);
-
+    let blocked;
     if (date) {
-      query = query.where(eq(blockedSlots.date, date));
+      blocked = await db
+        .select()
+        .from(blockedSlots)
+        .where(eq(blockedSlots.date, date))
+        .orderBy(blockedSlots.date, blockedSlots.timeStart);
     } else if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(blockedSlots.date, startDate),
-          lte(blockedSlots.date, endDate)
+      blocked = await db
+        .select()
+        .from(blockedSlots)
+        .where(
+          and(
+            gte(blockedSlots.date, startDate),
+            lte(blockedSlots.date, endDate)
+          )
         )
-      );
+        .orderBy(blockedSlots.date, blockedSlots.timeStart);
+    } else {
+      blocked = await db
+        .select()
+        .from(blockedSlots)
+        .orderBy(blockedSlots.date, blockedSlots.timeStart);
     }
-
-    const blocked = await query.orderBy(blockedSlots.date, blockedSlots.timeStart);
 
     return NextResponse.json({ blockedSlots: blocked });
   } catch (error) {
@@ -92,14 +102,18 @@ export async function POST(request: NextRequest) {
       }
 
       if (!isAllDay && !blocked.isAllDay) {
-        if (
-          (timeStart >= blocked.timeStart && timeStart < blocked.timeEnd) ||
-          (timeEnd > blocked.timeStart && timeEnd <= blocked.timeEnd) ||
-          (timeStart <= blocked.timeStart && timeEnd >= blocked.timeEnd)
-        ) {
-          return NextResponse.json({ 
-            error: `Time overlaps with existing blocked slot: ${blocked.timeStart} - ${blocked.timeEnd}` 
-          }, { status: 400 });
+        const bStart = blocked.timeStart;
+        const bEnd = blocked.timeEnd;
+        if (bStart && bEnd) {
+          if (
+            (timeStart >= bStart && timeStart < bEnd) ||
+            (timeEnd > bStart && timeEnd <= bEnd) ||
+            (timeStart <= bStart && timeEnd >= bEnd)
+          ) {
+            return NextResponse.json({ 
+              error: `Time overlaps with existing blocked slot: ${bStart} - ${bEnd}` 
+            }, { status: 400 });
+          }
         }
       }
     }

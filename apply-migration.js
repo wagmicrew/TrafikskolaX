@@ -10,10 +10,15 @@ const fs = require('fs');
   }
 
   const sql = neon(dbUrl);
-  const migrationPath = './lib/db/migrations/add-missing-columns.sql';
+  const argPath = process.argv[2];
+  const migrationPath = argPath || './lib/db/migrations/add-missing-columns.sql';
 
   try {
-    console.log('Reading migration file...');
+    console.log('Reading migration file:', migrationPath);
+    if (!fs.existsSync(migrationPath)) {
+      console.error('Migration file not found:', migrationPath);
+      process.exit(1);
+    }
     const migration = fs.readFileSync(migrationPath, 'utf8');
 
     // Split the migration into individual statements

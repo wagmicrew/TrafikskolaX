@@ -17,7 +17,17 @@
     "db:migrate": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "npx ts-node --esm lib/seed-users.ts",
-    "db:setup": "tsx scripts/setup-database.ts"
+    "db:setup": "tsx scripts/setup-database.ts",
+    "ts:check": "npx tsc -noEmit",
+    "ts:analyze": "node scripts/ts-analyze-fix.mjs",
+    "ts:analyze:apply": "node scripts/ts-analyze-fix.mjs --apply",
+    "ts:analyze:prompt": "node scripts/ts-analyze-fix.mjs --prompt --max 20",
+    "ts:analyze:ci": "node scripts/ts-analyze-fix.mjs --ci",
+    "ts:analyze:ci:prompt": "node scripts/ts-analyze-fix.mjs --ci --prompt --max 20",
+    "db:analyze": "node scripts/db-schema-analyze.mjs --prompt --write --truth=code",
+    "db:analyze:ci": "node scripts/db-schema-analyze.mjs --prompt --ci",
+    "db:analyze:ci:code": "node scripts/db-schema-analyze.mjs --prompt --ci --truth=code --write",
+    "db:analyze:ci:db": "node scripts/db-schema-analyze.mjs --prompt --ci --truth=db"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",

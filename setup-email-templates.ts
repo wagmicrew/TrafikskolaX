@@ -161,7 +161,7 @@ async function setupEmailTemplates() {
       const existing = await db
         .select()
         .from(emailTemplates)
-        .where(eq(emailTemplates.triggerType, template.triggerType))
+        .where(eq(emailTemplates.triggerType, template.triggerType as any))
         .limit(1);
 
       if (existing.length === 0) {

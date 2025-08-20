@@ -50,14 +50,13 @@ export async function POST(
       .where(eq(handledarSessions.id, sessionId));
 
     // Send confirmation emails using trigger system
-    const emailService = new EnhancedEmailService();
     
     // Send student confirmation if studentId exists
     if (studentId) {
       try {
         const student = await db.select().from(users).where(eq(users.id, studentId)).limit(1);
         if (student.length > 0) {
-          await emailService.sendTemplatedEmail('handledar_student_confirmation', {
+          await EnhancedEmailService.sendTriggeredEmail('handledar_student_confirmation', {
             user: {
               id: student[0].id,
               email: student[0].email,
@@ -66,15 +65,15 @@ export async function POST(
               role: student[0].role || 'student'
             },
             booking: {
-              id: created.id,
+              id: String(created.id),
               scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
               startTime: String(session.startTime).slice(0,5),
               endTime: String(session.endTime).slice(0,5),
-              title: session.title,
-              supervisorName: supervisorName,
-              price: String(session.price || ''),
-              status: created.status,
-              paymentStatus: created.paymentStatus
+              lessonTypeName: session.title,
+              totalPrice: String(session.price || '')
+            },
+            customData: {
+              supervisorName: supervisorName
             }
           });
         }
@@ -86,24 +85,21 @@ export async function POST(
     // Send supervisor confirmation
     if (supervisorEmail) {
       try {
-        await emailService.sendTemplatedEmail('handledar_supervisor_confirmation', {
-          supervisor: {
-            name: supervisorName,
-            email: supervisorEmail,
-            phone: supervisorPhone || ''
-          },
+        await EnhancedEmailService.sendTriggeredEmail('handledar_supervisor_confirmation', {
           booking: {
-            id: created.id,
+            id: String(created.id),
             scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
             startTime: String(session.startTime).slice(0,5),
             endTime: String(session.endTime).slice(0,5),
-            title: session.title,
+            lessonTypeName: session.title,
+            totalPrice: String(session.price || '')
+          },
+          customData: {
+            supervisorEmail: supervisorEmail,
             supervisorName: supervisorName,
-            price: String(session.price || ''),
-            status: created.status,
-            paymentStatus: created.paymentStatus
+            supervisorPhone: supervisorPhone || ''
           }
-        }, supervisorEmail);
+        });
       } catch (error) {
         console.error('Failed to send supervisor confirmation email:', error);
       }
@@ -116,30 +112,25 @@ export async function POST(
         const landingUrl = `${baseUrl}/handledar/payment/${created.id}`;
         const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || '';
         
-        await emailService.sendTemplatedEmail('handledar_supervisor_payment_request', {
-          supervisor: {
-            name: supervisorName,
-            email: supervisorEmail,
-            phone: supervisorPhone || ''
-          },
+        await EnhancedEmailService.sendTriggeredEmail('handledar_supervisor_payment_request', {
           booking: {
-            id: created.id,
+            id: String(created.id),
             scheduledDate: new Date(String(session.date)).toLocaleDateString('sv-SE'),
             startTime: String(session.startTime).slice(0,5),
             endTime: String(session.endTime).slice(0,5),
-            title: session.title,
-            supervisorName: supervisorName,
-            price: String(session.price || ''),
-            status: created.status,
-            paymentStatus: created.paymentStatus
+            lessonTypeName: session.title,
+            totalPrice: String(session.price || '')
           },
-          payment: {
+          customData: {
+            supervisorEmail: supervisorEmail,
+            supervisorName: supervisorName,
+            supervisorPhone: supervisorPhone || '',
             amount: String(session.price || ''),
             swishNumber: swishNumber,
             landingUrl: landingUrl,
             method: 'swish'
           }
-        }, supervisorEmail);
+        });
       } catch (error) {
         console.error('Failed to send payment request email:', error);
       }

@@ -268,7 +268,7 @@ export async function POST(_request: NextRequest) {
       const existing = await db
         .select()
         .from(emailTemplates)
-        .where(eq(emailTemplates.triggerType, t.triggerType))
+        .where(eq(emailTemplates.triggerType, t.triggerType as any))
         .limit(1);
 
       let templateId: string;
@@ -289,7 +289,7 @@ export async function POST(_request: NextRequest) {
         const [inserted] = await db
           .insert(emailTemplates)
           .values({ 
-            triggerType: t.triggerType, 
+            triggerType: t.triggerType as any, 
             subject: t.subject, 
             htmlContent: t.html.trim(), 
             isActive: true 

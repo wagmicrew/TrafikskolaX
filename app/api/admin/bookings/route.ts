@@ -30,12 +30,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate && endDate) {
-      conditions.push(
-        and(
-          gte(bookings.scheduledDate, startDate.split('T')[0]),
-          lte(bookings.scheduledDate, endDate.split('T')[0])
-        )
-      );
+      const startDateStr = startDate.split('T')[0];
+      const endDateStr = endDate.split('T')[0];
+      if (startDateStr && endDateStr) {
+        const dateCondition = and(
+          gte(bookings.scheduledDate, startDateStr),
+          lte(bookings.scheduledDate, endDateStr)
+        );
+        if (dateCondition) {
+          conditions.push(dateCondition);
+        }
+      }
     }
 
     const allBookings = await db
@@ -63,7 +68,7 @@ export async function GET(request: NextRequest) {
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
-      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
+      .where(conditions.length === 1 ? conditions[0] : conditions.length > 1 ? and(...conditions.filter(Boolean)) : undefined)
       .orderBy(desc(bookings.createdAt));
 
     // Format the results for the frontend

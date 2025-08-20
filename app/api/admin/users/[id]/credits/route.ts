@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const creditType = searchParams.get('creditType');
 
     // Get all credits for the user
-    let baseQuery = db
+    let baseQuery: any = db
       .select({
         id: userCredits.id,
         userId: userCredits.userId,
@@ -42,19 +42,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Apply credit type filter if specified
     if (creditType) {
-      baseQuery = baseQuery.where(and(
-        eq(userCredits.userId, id),
-        eq(userCredits.creditType, creditType)
-      ));
+      baseQuery = (baseQuery as any)
+        .where(and(eq(userCredits.userId, id), eq(userCredits.creditType, creditType)));
     }
 
     // Get base credits first
-    const baseCredits = await baseQuery;
+    const baseCredits = await (baseQuery as any);
     console.log('Base credits found:', baseCredits.length);
 
     // Enrich with lesson type or handledar session names
     const enrichedCredits = await Promise.all(
-      baseCredits.map(async (credit) => {
+      (baseCredits as any[]).map(async (credit: any) => {
         if (credit.creditType === 'lesson' && credit.lessonTypeId) {
           const lessonType = await db
             .select({ name: lessonTypes.name })

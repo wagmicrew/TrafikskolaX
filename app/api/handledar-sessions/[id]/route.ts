@@ -59,7 +59,8 @@ export async function DELETE(
     // We already verified the user is an admin in the requireAuthAPI call
     // No need to check again
 
-    const sessionId = params.id;
+    const resolvedParams = await params;
+    const sessionId = resolvedParams.id;
 
     // Check if session exists
     const existingSession = await db

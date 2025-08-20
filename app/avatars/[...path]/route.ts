@@ -21,9 +21,10 @@ function getContentType(ext: string): string {
   }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   try {
-    const rel = sanitizePath((params.path || []).join('/'));
+    const resolvedParams = await params;
+    const rel = sanitizePath((resolvedParams.path || []).join('/'));
     const avatarsDir = join(process.cwd(), 'public', 'avatars');
     const filePath = normalize(join(avatarsDir, rel));
 

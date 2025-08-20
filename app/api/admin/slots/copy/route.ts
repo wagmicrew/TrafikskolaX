@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error copying slots:', error);
     return NextResponse.json(
-      { error: 'Failed to copy slots', details: error.message },
+      { error: 'Failed to copy slots', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

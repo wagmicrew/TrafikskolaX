@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { userCredits, users, lessonTypes, handledarSessions } from '@/lib/db/schema';
-import { verifyToken } from '@/lib/auth/jwt';
-import { cookies } from 'next/headers';
+import { userCredits, lessonTypes, handledarSessions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,18 +11,12 @@ export async function GET(request: NextRequest) {
     const handledarSessionId = searchParams.get('handledarSessionId');
     const creditType = searchParams.get('creditType'); // 'lesson' or 'handledar'
 
-    // Check if user is logged in
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-    
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth via centralized utility
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const userId = auth.user.id;
 
     if (lessonTypeId) {
       // Handle special case for grouped handledar sessions
@@ -41,7 +34,7 @@ export async function GET(request: NextRequest) {
         .from(userCredits)
         .where(
           and(
-            eq(userCredits.userId, payload.userId || payload.id),
+            eq(userCredits.userId, userId),
             eq(userCredits.lessonTypeId, lessonTypeId),
             eq(userCredits.creditType, 'lesson')
           )
@@ -58,7 +51,7 @@ export async function GET(request: NextRequest) {
         .from(userCredits)
         .where(
           and(
-            eq(userCredits.userId, payload.userId || payload.id),
+            eq(userCredits.userId, userId),
             eq(userCredits.handledarSessionId, handledarSessionId),
             eq(userCredits.creditType, 'handledar')
           )
@@ -83,7 +76,7 @@ export async function GET(request: NextRequest) {
         .from(userCredits)
         .where(
           and(
-            eq(userCredits.userId, payload.userId || payload.id),
+            eq(userCredits.userId, userId),
             eq(userCredits.creditType, creditType)
           )
         );
@@ -138,7 +131,7 @@ export async function GET(request: NextRequest) {
         .from(userCredits)
         .leftJoin(lessonTypes, eq(userCredits.lessonTypeId, lessonTypes.id))
         .leftJoin(handledarSessions, eq(userCredits.handledarSessionId, handledarSessions.id))
-        .where(eq(userCredits.userId, payload.userId || payload.id));
+        .where(eq(userCredits.userId, userId));
 
       return NextResponse.json({ 
         credits: allCredits,

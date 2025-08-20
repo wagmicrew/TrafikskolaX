@@ -2,25 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { userFeedback } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { verifyToken } from '@/lib/auth/jwt';
-import { cookies } from 'next/headers';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function PUT(
   request: NextRequest, 
   { params }: { params: Promise<{ id: string; feedbackId: string }> }
 ) {
   try {
-    // Verify admin authentication
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Auth: require admin
+    const auth = await requireAuthAPI('admin');
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const { feedbackId } = await params;
@@ -31,8 +23,7 @@ export async function PUT(
       .update(userFeedback)
       .set({
         feedbackText,
-        valuation,
-        updatedAt: new Date()
+        valuation
       })
       .where(eq(userFeedback.id, feedbackId));
 
@@ -48,17 +39,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; feedbackId: string }> }
 ) {
   try {
-    // Verify admin authentication
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Auth: require admin
+    const auth = await requireAuthAPI('admin');
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const { feedbackId } = await params;

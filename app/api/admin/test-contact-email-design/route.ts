@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .where(eq(siteSettings.key, 'school_email'))
       .limit(1);
 
-    const schoolname = schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm';
+    const schoolname = (schoolnameSetting.length > 0 ? schoolnameSetting[0].value : 'Din Trafikskola Hässleholm') || 'Din Trafikskola Hässleholm';
     const schoolPhone = schoolPhoneSetting.length > 0 ? schoolPhoneSetting[0].value : '08-XXX XX XX';
     const schoolEmail = schoolEmailSetting.length > 0 ? schoolEmailSetting[0].value : 'info@dintrafikskolahlm.se';
 
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       to: testEmail,
       subject,
       html: emailContent,
-      fromName: schoolname,
+      fromName: schoolname || 'Din Trafikskola Hässleholm',
       replyTo: testContactData.email,
     });
 

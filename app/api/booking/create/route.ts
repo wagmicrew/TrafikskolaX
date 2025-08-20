@@ -314,11 +314,11 @@ export async function POST(request: NextRequest) {
             supervisorName: guestName || '',
             supervisorEmail: guestEmail || '',
             supervisorPhone: guestPhone || '',
-            price: totalPrice,
+            price: String(totalPrice),
             paymentStatus: 'paid',
             status: 'confirmed',
             bookedBy: currentUserId,
-            swishUUID: uuidv4(),
+            swishUuid: uuidv4(),
           })
           .returning();
 
@@ -447,11 +447,11 @@ export async function POST(request: NextRequest) {
               supervisorName: guestName || '',
               supervisorEmail: guestEmail || '',
               supervisorPhone: guestPhone || '',
-              price: totalPrice,
+              price: String(totalPrice),
               paymentStatus: 'paid',
               status: 'confirmed',
               bookedBy: currentUserId || userId,
-              swishUUID: uuidv4(),
+              swishUuid: uuidv4(),
               paymentMethod: 'credits'
             })
             .returning();
@@ -490,11 +490,11 @@ export async function POST(request: NextRequest) {
             supervisorName: guestName || '',
             supervisorEmail: guestEmail || '',
             supervisorPhone: guestPhone || '',
-            price: totalPrice,
+            price: String(totalPrice),
             paymentStatus: alreadyPaid ? 'paid' : 'pending',
             status: alreadyPaid ? 'confirmed' : 'pending',
             bookedBy: currentUserId || userId,
-            swishUUID: uuidv4(),
+            swishUuid: uuidv4(),
           })
           .returning();
 
@@ -1148,7 +1148,7 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
         );
       
       // Check if teacher has availability for this day and time
-      const isAvailable = availability.some(slot => {
+      const isAvailable = availability.some((slot: any) => {
         const slotStartMinutes = timeToMinutes(slot.startTime);
         const slotEndMinutes = timeToMinutes(slot.endTime);
         return startMinutes >= slotStartMinutes && endMinutes <= slotEndMinutes;

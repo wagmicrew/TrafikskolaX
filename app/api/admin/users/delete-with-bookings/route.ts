@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, bookings, handledarBookings, userCredits, userPackages, internalMessages, userFeedback } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { users, bookings, handledarBookings, handledarSessions, userCredits, userPackages, internalMessages, userFeedback } from '@/lib/db/schema';
+import { eq, and, or } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -45,21 +46,22 @@ export async function DELETE(request: NextRequest) {
       .from(bookings)
       .where(eq(bookings.userId, userId));
 
-    // Get all handledar bookings where user is the teacher
+    // Get all handledar bookings where user is the teacher (via session's teacherId)
     const teacherBookings = await db
-      .select()
+      .select({ id: handledarBookings.id })
       .from(handledarBookings)
-      .where(eq(handledarBookings.teacherId, userId));
+      .leftJoin(handledarSessions, eq(handledarBookings.sessionId, handledarSessions.id))
+      .where(eq(handledarSessions.teacherId, userId));
 
     // Start database transaction
     await db.transaction(async (tx) => {
       // 1. Delete all user's bookings
       await tx.delete(bookings).where(eq(bookings.userId, userId));
 
-      // 2. Unassign teacher from all handledar bookings
-      await tx.update(handledarBookings)
+      // 2. Unassign teacher from all handledar sessions taught by this user
+      await tx.update(handledarSessions)
         .set({ teacherId: null })
-        .where(eq(handledarBookings.teacherId, userId));
+        .where(eq(handledarSessions.teacherId, userId));
 
       // 3. Delete user credits
       await tx.delete(userCredits).where(eq(userCredits.userId, userId));
@@ -67,11 +69,9 @@ export async function DELETE(request: NextRequest) {
       // 4. Delete user packages
       await tx.delete(userPackages).where(eq(userPackages.userId, userId));
 
-      // 5. Delete internal messages
+      // 5. Delete internal messages (both sent and received)
       await tx.delete(internalMessages).where(
-        and(
-          eq(internalMessages.senderId, userId)
-        )
+        or(eq(internalMessages.fromUserId, userId), eq(internalMessages.toUserId, userId))
       );
 
       // 6. Delete user feedback

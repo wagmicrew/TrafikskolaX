@@ -17,20 +17,30 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    let query = db.select().from(extraSlots);
-
+    let extra;
     if (date) {
-      query = query.where(eq(extraSlots.date, date));
+      extra = await db
+        .select()
+        .from(extraSlots)
+        .where(eq(extraSlots.date, date))
+        .orderBy(extraSlots.date, extraSlots.timeStart);
     } else if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(extraSlots.date, startDate),
-          lte(extraSlots.date, endDate)
+      extra = await db
+        .select()
+        .from(extraSlots)
+        .where(
+          and(
+            gte(extraSlots.date, startDate),
+            lte(extraSlots.date, endDate)
+          )
         )
-      );
+        .orderBy(extraSlots.date, extraSlots.timeStart);
+    } else {
+      extra = await db
+        .select()
+        .from(extraSlots)
+        .orderBy(extraSlots.date, extraSlots.timeStart);
     }
-
-    const extra = await query.orderBy(extraSlots.date, extraSlots.timeStart);
 
     return NextResponse.json({ extraSlots: extra });
   } catch (error) {

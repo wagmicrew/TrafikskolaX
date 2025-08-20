@@ -7,9 +7,9 @@ import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     // Get all email templates with their receivers
@@ -56,19 +56,21 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching email templates:', error);
-    return NextResponse.json({ error: 'Failed to fetch email templates' }, { status: 500 });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    return NextResponse.json({ error: 'Failed to fetch email templates', message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const body = await request.json();
     const { triggerType, subject, htmlContent, receivers } = body;
+    const safeTriggerType = triggerType as any; // Allow dynamic enum values at runtime
 
     // Ensure enum value exists in DB for provided triggerType
     if (typeof triggerType !== 'string' || triggerType.trim() === '') {
@@ -95,7 +97,7 @@ export async function POST(request: NextRequest) {
     const existingTemplate = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.triggerType, triggerType))
+      .where(eq(emailTemplates.triggerType, safeTriggerType))
       .limit(1);
 
     let template;
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
           isActive: true,
           updatedAt: new Date(),
         })
-        .where(eq(emailTemplates.triggerType, triggerType))
+        .where(eq(emailTemplates.triggerType, safeTriggerType))
         .returning();
       
       template = updatedTemplate;
@@ -124,7 +126,7 @@ export async function POST(request: NextRequest) {
       const [newTemplate] = await db
         .insert(emailTemplates)
         .values({
-          triggerType,
+          triggerType: safeTriggerType,
           subject,
           htmlContent,
           isActive: true,
@@ -136,7 +138,7 @@ export async function POST(request: NextRequest) {
       // Create trigger (only for new templates)
       await db.insert(emailTriggers).values({
         templateId: template.id,
-        triggerType,
+        triggerType: safeTriggerType,
         description: `Auto-generated trigger for ${triggerType}`,
         isActive: true,
       });
@@ -158,15 +160,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating/updating email template:', error);
-    return NextResponse.json({ error: 'Failed to create/update email template' }, { status: 500 });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    return NextResponse.json({ error: 'Failed to create/update email template', message }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     const body = await request.json();
@@ -208,6 +211,7 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error updating email template:', error);
-    return NextResponse.json({ error: 'Failed to update email template' }, { status: 500 });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    return NextResponse.json({ error: 'Failed to update email template', message }, { status: 500 });
   }
 }

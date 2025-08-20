@@ -69,9 +69,11 @@ export async function POST(request: NextRequest) {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
-          customerNumber: user.customerNumber
-        }
-      });
+        },
+        customData: {
+          customerNumber: user.customerNumber,
+        },
+      } as any);
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError);
       // Don't fail the registration if email fails

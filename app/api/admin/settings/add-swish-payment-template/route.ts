@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const existingTemplate = await db
       .select()
       .from(emailTemplates)
-      .where(eq(emailTemplates.triggerType, 'swish_payment_verification'))
+      .where(eq(emailTemplates.triggerType, 'swish_payment_verification' as any))
       .limit(1);
 
     if (existingTemplate.length > 0) {

@@ -75,7 +75,7 @@ export async function POST(request: Request) {
         );
 
       const settings = settingsRows.reduce((acc, row) => {
-        acc[row.key] = row.value;
+        acc[row.key] = row.value || '';
         return acc;
       }, {} as Record<string, string>);
 

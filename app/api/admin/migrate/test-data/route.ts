@@ -69,10 +69,15 @@ export async function POST(request: NextRequest) {
     // Insert sample bookings
     try {
       // First get lesson type IDs and user IDs
-      const lessonTypes = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
-      const users = await db.execute(sql`SELECT id FROM users WHERE role = 'student' LIMIT 2`);
-      const cars = await db.execute(sql`SELECT id FROM cars WHERE is_active = true LIMIT 1`);
-      const teachers = await db.execute(sql`SELECT id FROM users WHERE role = 'teacher' LIMIT 1`);
+      const lessonTypesRes = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
+      const usersRes = await db.execute(sql`SELECT id FROM users WHERE role = 'student' LIMIT 2`);
+      const carsRes = await db.execute(sql`SELECT id FROM cars WHERE is_active = true LIMIT 1`);
+      const teachersRes = await db.execute(sql`SELECT id FROM users WHERE role = 'teacher' LIMIT 1`);
+
+      const lessonTypes = (lessonTypesRes as any).rows ?? (lessonTypesRes as any);
+      const users = (usersRes as any).rows ?? (usersRes as any);
+      const cars = (carsRes as any).rows ?? (carsRes as any);
+      const teachers = (teachersRes as any).rows ?? (teachersRes as any);
 
       if (lessonTypes.length > 0 && users.length > 0) {
         const lessonTypeId = lessonTypes[0].id;
@@ -112,12 +117,14 @@ export async function POST(request: NextRequest) {
 
     // Insert some guest bookings
     try {
-      const lessonTypes = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
-      const cars = await db.execute(sql`SELECT id FROM cars WHERE is_active = true LIMIT 1`);
+      const lessonTypesRes2 = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
+      const carsRes2 = await db.execute(sql`SELECT id FROM cars WHERE is_active = true LIMIT 1`);
+      const lessonTypes2 = (lessonTypesRes2 as any).rows ?? (lessonTypesRes2 as any);
+      const cars2 = (carsRes2 as any).rows ?? (carsRes2 as any);
       
-      if (lessonTypes.length > 0) {
-        const lessonTypeId = lessonTypes[0].id;
-        const carId = cars.length > 0 ? cars[0].id : null;
+      if (lessonTypes2.length > 0) {
+        const lessonTypeId = lessonTypes2[0].id;
+        const carId = cars2.length > 0 ? cars2[0].id : null;
 
         await db.execute(sql`
           INSERT INTO bookings (
@@ -138,13 +145,15 @@ export async function POST(request: NextRequest) {
 
     // Insert sample user credits
     try {
-      const lessonTypes = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
-      const students = await db.execute(sql`SELECT id FROM users WHERE role = 'student' LIMIT 1`);
+      const lessonTypesRes3 = await db.execute(sql`SELECT id FROM lesson_types WHERE is_active = true LIMIT 1`);
+      const studentsRes = await db.execute(sql`SELECT id FROM users WHERE role = 'student' LIMIT 1`);
+      const lessonTypes3 = (lessonTypesRes3 as any).rows ?? (lessonTypesRes3 as any);
+      const students = (studentsRes as any).rows ?? (studentsRes as any);
       
-      if (lessonTypes.length > 0 && students.length > 0) {
+      if (lessonTypes3.length > 0 && students.length > 0) {
         await db.execute(sql`
           INSERT INTO user_credits (user_id, lesson_type_id, credits_remaining, credits_total)
-          VALUES (${students[0].id}, ${lessonTypes[0].id}, 5, 10)
+          VALUES (${students[0].id}, ${lessonTypes3[0].id}, 5, 10)
           ON CONFLICT DO NOTHING
         `);
         results.push('Inserted user credits');

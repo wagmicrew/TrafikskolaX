@@ -4,9 +4,10 @@ import { packages, packageContents, lessonTypes, userCredits } from '@/lib/db/sc
 import { eq } from 'drizzle-orm';
 import PackagesStoreClient from './packages-store-client';
 
-export default async function PackagesStorePage({ searchParams }: { searchParams?: Record<string, string | string[]> }) {
+export default async function PackagesStorePage({ searchParams }: { searchParams?: Promise<Record<string, string | string[]>> }) {
   const user = await requireAuth('student');
-  const params = searchParams || {};
+  const resolvedSearchParams = await searchParams;
+  const params = resolvedSearchParams || {};
 
 
   // Fetch all active packages with their contents

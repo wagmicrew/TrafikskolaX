@@ -46,21 +46,21 @@ export async function GET(request: NextRequest) {
 
     const blockedByDate: Record<string, any[]> = {}
     for (const b of allBlocked) {
-      const k = b.date instanceof Date ? b.date.toISOString().split('T')[0] : String(b.date)
+      const k = String(b.date)
       if (!blockedByDate[k]) blockedByDate[k] = []
       blockedByDate[k].push(b)
     }
 
     const extrasByDate: Record<string, any[]> = {}
     for (const e of allExtras) {
-      const k = e.date instanceof Date ? e.date.toISOString().split('T')[0] : String(e.date)
+      const k = String(e.date)
       if (!extrasByDate[k]) extrasByDate[k] = []
       extrasByDate[k].push(e)
     }
 
     const bookingsByDate: Record<string, any[]> = {}
     for (const b of allBookings) {
-      const k = b.scheduledDate instanceof Date ? b.scheduledDate.toISOString().split('T')[0] : String(b.scheduledDate)
+      const k = String(b.scheduledDate)
       if (!bookingsByDate[k]) bookingsByDate[k] = []
       bookingsByDate[k].push(b)
     }

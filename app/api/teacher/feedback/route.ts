@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { userFeedback, bookings, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+    if (auth.user.role !== 'teacher' && auth.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -40,7 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking[0].teacherId !== user.userId) {
+    // Teachers must own the booking; admins bypass this check
+    if (auth.user.role !== 'admin' && booking[0].teacherId !== auth.user.id) {
       return NextResponse.json({ error: 'Access denied - not your booking' }, { status: 403 });
     }
 
@@ -93,15 +89,11 @@ export async function POST(request: NextRequest) {
 // GET - Fetch existing feedback for a booking
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+    if (auth.user.role !== 'teacher' && auth.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -126,7 +118,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking[0].teacherId !== user.userId) {
+    // Teachers must own the booking; admins bypass this check
+    if (auth.user.role !== 'admin' && booking[0].teacherId !== auth.user.id) {
       return NextResponse.json({ error: 'Access denied - not your booking' }, { status: 403 });
     }
 

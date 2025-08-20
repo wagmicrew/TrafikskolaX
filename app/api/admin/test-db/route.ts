@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       console.error('Error accessing slot_settings table:', slotsError);
       return NextResponse.json({ 
         error: 'Cannot access slot_settings table', 
-        details: slotsError.message 
+        details: (slotsError as Error)?.message || 'Unknown error' 
       }, { status: 500 });
     }
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       console.error('Error accessing blocked_slots table:', blockedError);
       return NextResponse.json({ 
         error: 'Cannot access blocked_slots table', 
-        details: blockedError.message 
+        details: (blockedError as Error)?.message || 'Unknown error' 
       }, { status: 500 });
     }
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     console.error('Database test error:', error);
     return NextResponse.json({ 
       error: 'Database connection failed', 
-      details: error.message 
+      details: (error as Error)?.message || 'Unknown error' 
     }, { status: 500 });
   }
 }

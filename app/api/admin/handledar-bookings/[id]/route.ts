@@ -63,27 +63,22 @@ export async function DELETE(
     // Send cancellation email using trigger system
     if (bookingData.supervisorEmail) {
       try {
-        const emailService = new EnhancedEmailService();
         const dateStr = session?.date ? new Date(session.date as any).toLocaleDateString('sv-SE') : '';
-        const timeStr = `${String(session?.startTime||'').slice(0,5)}–${String(session?.endTime||'').slice(0,5)}`;
-        
-        await emailService.sendTemplatedEmail('handledar_booking_cancelled', {
-          supervisor: {
-            name: bookingData.supervisorName || '',
-            email: bookingData.supervisorEmail,
-            phone: ''
-          },
+        await EnhancedEmailService.sendTriggeredEmail('handledar_booking_cancelled', {
+          user: undefined,
           booking: {
-            id: bookingData.id,
+            id: String(bookingData.id),
             scheduledDate: dateStr,
             startTime: String(session?.startTime||'').slice(0,5),
             endTime: String(session?.endTime||'').slice(0,5),
-            title: session?.title || 'Handledarutbildning',
-            supervisorName: bookingData.supervisorName || '',
-            status: 'cancelled',
-            paymentStatus: bookingData.paymentStatus
+            lessonTypeName: session?.title || 'Handledarutbildning',
+            totalPrice: ''
+          },
+          customData: {
+            supervisorEmail: bookingData.supervisorEmail,
+            supervisorName: bookingData.supervisorName || ''
           }
-        }, bookingData.supervisorEmail);
+        });
       } catch (e) {
         console.error('Failed to send handledar cancellation email', e);
       }
@@ -211,26 +206,21 @@ export async function POST(
       // Send move email using trigger system
       if ((b as any).supervisorEmail) {
         try {
-          const emailService = new EnhancedEmailService();
           const dateStr = targetSession?.date ? new Date(targetSession.date as any).toLocaleDateString('sv-SE') : '';
-          
-          await emailService.sendTemplatedEmail('handledar_booking_moved', {
-            supervisor: {
-              name: (b as any).supervisorName || '',
-              email: (b as any).supervisorEmail,
-              phone: ''
-            },
+          await EnhancedEmailService.sendTriggeredEmail('handledar_booking_moved', {
             booking: {
-              id: bookingId,
+              id: String(bookingId),
               scheduledDate: dateStr,
               startTime: String(targetSession?.startTime||'').slice(0,5),
               endTime: String(targetSession?.endTime||'').slice(0,5),
-              title: targetSession?.title || 'Handledarutbildning',
-              supervisorName: (b as any).supervisorName || '',
-              status: 'confirmed',
-              paymentStatus: (b as any).paymentStatus
+              lessonTypeName: targetSession?.title || 'Handledarutbildning',
+              totalPrice: ''
+            },
+            customData: {
+              supervisorEmail: (b as any).supervisorEmail,
+              supervisorName: (b as any).supervisorName || ''
             }
-          }, (b as any).supervisorEmail);
+          });
         } catch (e) { 
           console.error('Failed to send handledar move email', e); 
         }

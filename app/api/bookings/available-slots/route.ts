@@ -4,6 +4,7 @@ import { slotSettings, bookings, blockedSlots } from '@/lib/db/schema';
 import { eq, sql, and, gte, lte, not } from 'drizzle-orm';
 import { parseISO, format, addDays, getDay } from 'date-fns';
 import { doesAnyBookingOverlapWithSlot } from '@/lib/utils/time-overlap';
+import { formatDateForColumn } from '@/lib/utils/date';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       .from(bookings)
       .where(
         and(
-          eq(bookings.scheduledDate, selectedDate),
+          eq(bookings.scheduledDate, formatDateForColumn(selectedDate)),
           not(eq(bookings.status, 'cancelled'))
         )
       );
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     const blocked = await db
       .select()
       .from(blockedSlots)
-      .where(eq(blockedSlots.date, selectedDate));
+      .where(eq(blockedSlots.date, formatDateForColumn(selectedDate)));
 
     // Build available slots
     const availableSlots: Array<{ startTime: string; endTime: string }> = [];

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Date and lessonTypeId are required' }, { status: 400 });
     }
 
-    const slotsForWeek = {};
+    const slotsForWeek: Record<string, Array<{ timeStart: string; timeEnd: string }>> = {};
     const start = new Date(startDate);
     const end = new Date(endDate);
 

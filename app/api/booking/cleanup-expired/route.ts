@@ -57,15 +57,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const totalCleaned = (expiredRegularBookings as any)?.rows?.length || 0 + expiredHandledarBookings.length;
+    const regularDeleted = ((expiredRegularBookings as any)?.rows?.length ?? 0) as number;
+    const handledarDeleted = expiredHandledarBookings.length;
+    const totalCleaned = regularDeleted + handledarDeleted;
 
-    console.log(`Cleaned up ${totalCleaned} expired bookings (${expiredRegularBookings.length} regular, ${expiredHandledarBookings.length} handledar)`);
+    console.log(`Cleaned up ${totalCleaned} expired bookings (${regularDeleted} regular, ${handledarDeleted} handledar)`);
 
     return NextResponse.json({ 
       success: true,
       message: `Cleaned up ${totalCleaned} expired bookings`,
-      regularBookings: ((expiredRegularBookings as any)?.rows?.length || 0),
-      handledarBookings: expiredHandledarBookings.length,
+      regularBookings: regularDeleted,
+      handledarBookings: handledarDeleted,
       cleanupTime: new Date().toISOString()
     });
 

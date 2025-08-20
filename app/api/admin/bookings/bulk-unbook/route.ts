@@ -71,27 +71,30 @@ export async function POST(request: NextRequest) {
                 userId: booking.userId,
                 creditType: 'lesson',
                 lessonTypeId: booking.lessonTypeId,
-                amount: 1,
-                description: `Återbetalning för avbokad lektion: ${booking.lessonTypeName} (${new Date(booking.scheduledDate).toLocaleDateString('sv-SE')} ${booking.startTime})`
+                creditsRemaining: 1,
+                creditsTotal: 1
               });
           }
 
           // 3. Send unbook email
-          const emailData = {
-            to: booking.userEmail || booking.guestEmail,
-            subject: 'Din bokning har avbokats',
-            template: 'booking-cancelled',
-            context: {
-              userName: booking.userName ? `${booking.userName} ${booking.userLastName}` : booking.guestName,
-              lessonType: booking.lessonTypeName,
-              scheduledDate: new Date(booking.scheduledDate).toLocaleDateString('sv-SE'),
-              startTime: booking.startTime,
-              endTime: booking.endTime,
-              creditReimbursed: booking.userId ? 'Ja' : 'Nej (gästbokning)'
-            }
-          };
+          const emailAddress = booking.userEmail || booking.guestEmail;
+          if (emailAddress) {
+            const emailData = {
+              to: emailAddress,
+              subject: 'Din bokning har avbokats',
+              template: 'booking-cancelled',
+              context: {
+                userName: booking.userName ? `${booking.userName} ${booking.userLastName}` : booking.guestName,
+                lessonType: booking.lessonTypeName,
+                scheduledDate: new Date(booking.scheduledDate).toLocaleDateString('sv-SE'),
+                startTime: booking.startTime,
+                endTime: booking.endTime,
+                creditReimbursed: booking.userId ? 'Ja' : 'Nej (gästbokning)'
+              }
+            };
 
-          await sendEmail(emailData);
+            await sendEmail(emailData);
+          }
 
           results.push({
             bookingId: booking.id,

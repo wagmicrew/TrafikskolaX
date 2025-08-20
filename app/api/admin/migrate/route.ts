@@ -153,7 +153,8 @@ export async function POST(request: NextRequest) {
       results.push('Added unique constraint to lesson_types.name');
     } catch (e) {
       // Constraint might already exist, that's okay
-      results.push(`Unique constraint on lesson_types.name: ${e.message?.includes('already exists') ? 'Already exists' : e}`);
+      const msg = (e as Error)?.message ?? String(e);
+      results.push(`Unique constraint on lesson_types.name: ${msg.includes('already exists') ? 'Already exists' : msg}`);
     }
 
     // Update lesson types

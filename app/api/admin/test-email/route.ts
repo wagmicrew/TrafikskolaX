@@ -17,10 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await verifyToken(token.value);
+    if (!payload || !payload.userId) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+
     const currentUser = await db
       .select()
       .from(users)
-      .where(eq(users.id, payload.userId))
+      .where(eq(users.id, payload.userId as string))
       .limit(1);
 
     if (!currentUser.length || currentUser[0].role !== 'admin') {
@@ -34,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email or userId is required' }, { status: 400 });
     }
 
-    let targetEmail = email;
+    let targetEmail = email as string;
 
     // If userId is provided, get the user's email
     if (userId && !email) {
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
-      targetEmail = user[0].email;
+      targetEmail = user[0].email as string;
     }
 
     // Send test email

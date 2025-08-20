@@ -26,3 +26,19 @@ export function normalizeDateKey(dateValue: unknown): string {
 
   return '';
 }
+
+/**
+ * Alias: produce a YYYY-MM-DD string for Drizzle PG "date" columns.
+ * Keeps naming intuitive at call sites.
+ */
+export function toDateKey(dateValue: unknown): string {
+  return normalizeDateKey(dateValue);
+}
+
+/**
+ * Generic alias for clarity when comparing against date columns.
+ * Prefer this in API routes: eq(table.pgDateColumn, formatDateForColumn(value)).
+ */
+export function formatDateForColumn(dateValue: unknown): string {
+  return normalizeDateKey(dateValue);
+}

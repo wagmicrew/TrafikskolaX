@@ -6,8 +6,9 @@ import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function CartPage({ searchParams }: { searchParams?: Record<string, string | string[]> }) {
-  const params = searchParams || {};
+export default async function CartPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[]>> }) {
+  const resolvedSearchParams = await searchParams;
+  const params = resolvedSearchParams || {};
   const type = (Array.isArray(params.type) ? params.type[0] : params.type) || '';
   const id = (Array.isArray(params.id) ? params.id[0] : params.id) || '';
 

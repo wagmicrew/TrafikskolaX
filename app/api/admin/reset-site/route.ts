@@ -55,7 +55,6 @@ export async function POST() {
           firstName: 'Admin',
           lastName: 'User',
           role: 'admin',
-          emailVerified: true,
           isActive: true,
         })
         .onConflictDoUpdate({
@@ -71,43 +70,21 @@ export async function POST() {
 
       // Create default lesson types
       const defaultLessonTypes = [
-        { name: 'Körlektion', duration: 45, price: 80000, description: 'Standard körlektion' },
-        { name: 'Risktvåan', duration: 60, price: 100000, description: 'Risktvåan utbildning' },
-        { name: 'Halkbana', duration: 60, price: 90000, description: 'Halkbanekörning' },
+        { name: 'Körlektion', durationMinutes: 45, price: '800.00', description: 'Standard körlektion', isActive: true },
+        { name: 'Risktvåan', durationMinutes: 60, price: '1000.00', description: 'Risktvåan utbildning', isActive: true },
+        { name: 'Halkbana', durationMinutes: 60, price: '900.00', description: 'Halkbanekörning', isActive: true },
       ];
 
-      await tx.insert(lessonTypes).values(defaultLessonTypes);
+      await tx.insert(lessonTypes).values(defaultLessonTypes as any);
 
       // Create default packages
       const defaultPackages = [
-        { 
-          name: 'Startpaket', 
-          description: '5 körlektioner', 
-          price: 350000,
-          credits: 5,
-          isActive: true,
-          validDays: 180
-        },
-        { 
-          name: 'Standardpaket', 
-          description: '10 körlektioner', 
-          price: 650000,
-          credits: 10,
-          isActive: true,
-          validDays: 365
-        },
-        { 
-          name: 'Förarprovspaket', 
-          description: '2 körlektioner + förarprov', 
-          price: 250000,
-          credits: 2,
-          isActive: true,
-          validDays: 90,
-          includesExam: true
-        },
+        { name: 'Startpaket', description: '5 körlektioner', price: '3500.00', isActive: true },
+        { name: 'Standardpaket', description: '10 körlektioner', price: '6500.00', isActive: true },
+        { name: 'Förarprovspaket', description: '2 körlektioner + förarprov', price: '2500.00', isActive: true },
       ];
 
-      await tx.insert(packages).values(defaultPackages);
+      await tx.insert(packages).values(defaultPackages as any);
 
       // Send email with new password
       await sendEmail({

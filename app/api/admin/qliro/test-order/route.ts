@@ -33,11 +33,7 @@ export async function POST(request: NextRequest) {
       customerPhone: customer.phone,
       customerFirstName: customer.firstName,
       customerLastName: customer.lastName,
-      personalNumber: customer.personalNumber,
-      // Test mode: only bank/trustly and Qliro (invoice/campaign/partpayment), no card/swish
-      overrideAllowedPaymentMethods: ['DirectBank', 'Invoice'],
-      overrideAllowedPaymentMethodIds: ['TRUSTLY_DIRECT', 'QLIRO_INVOICE', 'QLIRO_CAMPAIGN', 'QLIRO_PARTPAYMENT'],
-      overrideDisallowedPaymentMethods: ['Swish', 'CREDITCARDS']
+      // Payment methods are controlled by admin settings; no per-request overrides
     });
     return NextResponse.json({
       success: true,

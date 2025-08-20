@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { internalMessages, siteSettings } from '@/lib/db/schema';
 import { eq as drEq } from 'drizzle-orm';
 import { eq, and, count } from 'drizzle-orm';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+    const userId = auth.user.id;
 
     // Check if internal messages are globally enabled
     try {
@@ -38,7 +31,7 @@ export async function GET(request: NextRequest) {
       .from(internalMessages)
       .where(
         and(
-          eq(internalMessages.toUserId, user.userId || user.id),
+          eq(internalMessages.toUserId, userId),
           eq(internalMessages.isRead, false)
         )
       );

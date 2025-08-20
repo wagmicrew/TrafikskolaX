@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { siteSettings, users, bookings, packagePurchases, packages, handledarBookings, handledarSessions } from '@/lib/db/schema';
+import { siteSettings, users, bookings, packagePurchases, packages, handledarBookings, handledarSessions, lessonTypes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email/sendEmail';
 import { createPaymentConfirmationTemplate } from '@/lib/email/templates/payment-confirmation-template';
@@ -124,12 +124,14 @@ export async function POST(request: Request) {
 
         // Get lesson type name
         try {
-          const lessonTypeResult = await db.query.lessonTypes.findFirst({
-            where: eq(db.dynamic.ref('id'), booking.lessonTypeId)
-          });
-          
-          itemName = lessonTypeResult?.name || 'Körlektion';
-          itemDescription = lessonTypeResult?.description || '';
+          const lessonTypeRows = await db
+            .select()
+            .from(lessonTypes)
+            .where(eq(lessonTypes.id, booking.lessonTypeId as any))
+            .limit(1);
+          const lessonTypeResult = lessonTypeRows[0];
+          itemName = (lessonTypeResult as any)?.name || 'Körlektion';
+          itemDescription = (lessonTypeResult as any)?.description || '';
         } catch (error) {
           console.error('Error fetching lesson type:', error);
           itemName = 'Körlektion';
@@ -278,7 +280,7 @@ export async function POST(request: Request) {
         .where(eq(siteSettings.category, 'email'));
 
       const settings = settingsRows.reduce((acc, row) => {
-        acc[row.key] = row.value;
+        acc[row.key] = row.value || '';
         return acc;
       }, {} as Record<string, string>);
 
@@ -288,9 +290,9 @@ export async function POST(request: Request) {
         .from(siteSettings)
         .where(eq(siteSettings.key, 'school_contact_email'));
 
-      const schoolContactEmail = contactSettingsRows.length > 0 ? 
+      const schoolContactEmail = (contactSettingsRows.length > 0 ? 
         contactSettingsRows[0].value : 
-        settings.from_email || 'noreply@dintrafikskolahlm.se';
+        settings.from_email || 'noreply@dintrafikskolahlm.se') || 'noreply@dintrafikskolahlm.se';
 
       const schoolContactName = settings.school_contact_name || '';
       
@@ -349,7 +351,7 @@ export async function POST(request: Request) {
           .where(eq(siteSettings.key, 'school_contact_email'));
 
         if (contactSettingsRows.length > 0 && contactSettingsRows[0].value) {
-          const schoolContactEmail = contactSettingsRows[0].value;
+          const schoolContactEmail = contactSettingsRows[0].value || 'noreply@dintrafikskolahlm.se';
           
           // Get email settings
           const settingsRows = await db
@@ -358,7 +360,7 @@ export async function POST(request: Request) {
             .where(eq(siteSettings.category, 'email'));
 
           const settings = settingsRows.reduce((acc, row) => {
-            acc[row.key] = row.value;
+            acc[row.key] = row.value || '';
             return acc;
           }, {} as Record<string, string>);
 

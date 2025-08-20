@@ -1,0 +1,595 @@
+﻿app/api/admin/migrate/route.ts(156,63): error TS18046: 'e' is of type 'unknown'.
+app/api/admin/migrate/test-data/route.ts(77,23): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(77,43): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(78,30): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(79,28): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(79,41): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(80,36): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(80,49): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(89,16): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(90,16): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(93,19): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(101,18): error TS7053: Element implicitly has an 'any' type because expression of type '1' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '1' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(118,23): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(119,30): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(120,28): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(120,41): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(144,23): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(144,46): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(147,21): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/migrate/test-data/route.ts(147,40): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'NeonHttpQueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/admin/payment/confirmation/route.ts(128,26): error TS2339: Property 'dynamic' does not exist on type 'NeonHttpDatabase<typeof import("C:/projects/trafikskola/TrafikskolaX/lib/db/schema")> & { $client: NeonQueryFunction<false, false>; }'.
+app/api/admin/payment/confirmation/route.ts(281,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/admin/payment/confirmation/route.ts(319,11): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/admin/payment/confirmation/route.ts(361,13): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/admin/payments/swish/confirm/route.ts(63,65): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | SQLWrapper'.
+      Type 'undefined' is not assignable to type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string | undefined>, right: string | SQLWrapper | undefined): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string | undefined>'.
+      Type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string | undefined>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/admin/qliro/test-order/route.ts(36,7): error TS2353: Object literal may only specify known properties, and 'personalNumber' does not exist in type '{ amount: number; reference: string; description: string; returnUrl: string; bookingId?: string | undefined; handledarBookingId?: string | undefined; customerEmail?: string | undefined; customerPhone?: string | undefined; customerFirstName?: string | undefined; customerLastName?: string | undefined; callbackToken?: ...'.
+app/api/admin/reset-site/route.ts(52,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'emailVerified' does not exist in type '{ email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'email' does not exist in type '{ email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+app/api/admin/reset-site/route.ts(79,43): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ name: string; duration: number; price: number; description: string; }[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }'.
+      Type '{ name: string; duration: number; price: number; description: string; }[]' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }': name, price
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ name: string; duration: number; price: number; description: string; }[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }[]'.
+      Type '{ name: string; duration: number; price: number; description: string; }' is not assignable to type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }'.
+        Types of property 'price' are incompatible.
+          Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.
+app/api/admin/reset-site/route.ts(110,40): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '({ name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam?: undefined; } | { name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam: boolean; })[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }'.
+      Type '({ name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam?: undefined; } | { name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam: boolean; })[]' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }': name, price
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '({ name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam?: undefined; } | { name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam: boolean; })[]' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }[]'.
+      Type '{ name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam?: undefined; } | { name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam: boolean; }' is not assignable to type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }'.
+        Type '{ name: string; description: string; price: number; credits: number; isActive: boolean; validDays: number; includesExam?: undefined; }' is not assignable to type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; salePrice?: string | ... 3 more ... | undefined; }'.
+          Types of property 'price' are incompatible.
+            Type 'number' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.
+app/api/admin/site-db-status/route.ts(47,16): error TS18046: 'dbError' is of type 'unknown'.
+app/api/admin/site-db-status/route.ts(52,74): error TS2339: Property 'id' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'id' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/site-db-status/route.ts(61,74): error TS18046: 'error' is of type 'unknown'.
+app/api/admin/slots/copy/route.ts(113,49): error TS18046: 'error' is of type 'unknown'.
+app/api/admin/swish/email-action/route.ts(14,3): error TS2739: Type '{ action?: string | undefined; id?: string | undefined; }' is missing the following properties from type '{ type: string; bookingId: string; sessionType?: "handledar" | "order" | "regular" | undefined; decision?: Decision | undefined; }': type, bookingId
+app/api/admin/swish/email-action/route.ts(159,110): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string | undefined' is not assignable to parameter of type 'string | SQLWrapper'.
+      Type 'undefined' is not assignable to type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string | undefined>, right: string | SQLWrapper | undefined): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string | undefined>'.
+      Type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string | undefined>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "handledar_session_id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/admin/teachers/remove/route.ts(46,16): error TS2353: Object literal may only specify known properties, and 'teacherId' does not exist in type '{ price?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; sessionId?: string | SQL<...> | PgColumn<...> | undefined; ... 15 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }'.
+app/api/admin/teachers/remove/route.ts(47,37): error TS2339: Property 'teacherId' does not exist on type 'PgTableWithColumns<{ name: "handledar_bookings"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "handledar_bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 16 more ...; updatedAt: PgColumn...'.
+app/api/admin/test-contact-email-design/route.ts(95,7): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+app/api/admin/test-db/route.ts(23,18): error TS18046: 'slotsError' is of type 'unknown'.
+app/api/admin/test-db/route.ts(35,18): error TS18046: 'blockedError' is of type 'unknown'.
+app/api/admin/test-db/route.ts(63,16): error TS18046: 'error' is of type 'unknown'.
+app/api/admin/test-email/route.ts(23,27): error TS18047: 'payload' is possibly 'null'.
+app/api/admin/test-school-email/route.ts(33,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/admin/test-school-email/route.ts(52,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/admin/users/[id]/credits/route.ts(45,29): error TS2339: Property 'where' does not exist on type 'Omit<PgSelectBase<"user_credits", { id: PgColumn<{ name: "id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 8 more ...; updatedAt: PgColumn<...>; }, .....'.
+app/api/admin/users/create-student/route.ts(13,45): error TS2345: Argument of type 'string[]' is not assignable to parameter of type '"student" | "teacher" | "admin" | undefined'.
+app/api/admin/users/create-student/route.ts(53,52): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ email: any; password: string; firstName: any; lastName: any; phone: any; personalNumber: any; role: string; isActive: boolean; customerNumber: string; inskriven: boolean; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }'.
+      Types of property 'role' are incompatible.
+        Type 'string' is not assignable to type '"student" | "teacher" | "admin" | SQL<unknown> | Placeholder<string, any> | undefined'.
+  Overload 2 of 2, '(values: { email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ email: any; password: string; firstName: any; lastName: any; phone: any; personalNumber: any; role: string; isActive: boolean; customerNumber: string; inskriven: boolean; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+      Type '{ email: any; password: string; firstName: any; lastName: any; phone: any; personalNumber: any; role: string; isActive: boolean; customerNumber: string; inskriven: boolean; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ email: string | SQL<unknown> | Placeholder<string, any>; password: string | SQL<unknown> | Placeholder<string, any>; firstName: string | SQL<unknown> | Placeholder<...>; ... 28 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+app/api/admin/users/delete-with-bookings/route.ts(52,35): error TS2339: Property 'teacherId' does not exist on type 'PgTableWithColumns<{ name: "handledar_bookings"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "handledar_bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 16 more ...; updatedAt: PgColumn...'.
+app/api/admin/users/delete-with-bookings/route.ts(61,16): error TS2353: Object literal may only specify known properties, and 'teacherId' does not exist in type '{ price?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; sessionId?: string | SQL<...> | PgColumn<...> | undefined; ... 15 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }'.
+app/api/admin/users/delete-with-bookings/route.ts(62,37): error TS2339: Property 'teacherId' does not exist on type 'PgTableWithColumns<{ name: "handledar_bookings"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "handledar_bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 16 more ...; updatedAt: PgColumn...'.
+app/api/admin/users/delete-with-bookings/route.ts(73,31): error TS2339: Property 'senderId' does not exist on type 'PgTableWithColumns<{ name: "internal_messages"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "internal_messages"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 8 more ...; readAt: PgColumn<...>;...'.
+app/api/admin/users/delete-with-bookings/route.ts(87,18): error TS2339: Property 'email' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'email' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/users/delete-with-bookings/route.ts(99,50): error TS2339: Property 'firstName' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'firstName' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/users/delete-with-bookings/route.ts(99,68): error TS2339: Property 'lastName' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'lastName' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/users/delete-with-bookings/route.ts(112,30): error TS2339: Property 'firstName' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'firstName' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/users/delete-with-bookings/route.ts(112,48): error TS2339: Property 'lastName' does not exist on type '{ success: true; user: AuthUser; } | { success: false; error: string; status: number; }'.
+  Property 'lastName' does not exist on type '{ success: true; user: AuthUser; }'.
+app/api/admin/users/route.ts(140,34): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<number>, right: number | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<number>'.
+      Type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<number>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/auth/register/route.ts(72,11): error TS2353: Object literal may only specify known properties, and 'customerNumber' does not exist in type '{ id: string; email: string; firstName: string; lastName: string; role: string; }'.
+app/api/booking/available-slots/route.ts(141,7): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+app/api/booking/cleanup-expired/route.ts(62,88): error TS2339: Property 'length' does not exist on type 'NeonHttpQueryResult<Record<string, unknown>>'.
+app/api/booking/confirm/route.ts(255,56): error TS2552: Cannot find name 'request'. Did you mean 'Request'?
+app/api/booking/create/route.ts(311,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, but 'swishUUID' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }'. Did you mean to write 'swishUuid'?
+  Overload 2 of 2, '(values: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'sessionId' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]'.
+app/api/booking/create/route.ts(444,14): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, but 'swishUUID' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }'. Did you mean to write 'swishUuid'?
+  Overload 2 of 2, '(values: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'sessionId' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]'.
+app/api/booking/create/route.ts(487,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, but 'swishUUID' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }'. Did you mean to write 'swishUuid'?
+  Overload 2 of 2, '(values: { price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<...> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'sessionId' does not exist in type '{ price: string | SQL<unknown> | Placeholder<string, any>; sessionId: string | SQL<unknown> | Placeholder<string, any>; supervisorName: string | SQL<unknown> | Placeholder<...>; ... 14 more ...; reminderSent?: boolean | ... 3 more ... | undefined; }[]'.
+app/api/booking/create/route.ts(1151,45): error TS7006: Parameter 'slot' implicitly has an 'any' type.
+app/api/booking/create/route.ts(1178,70): error TS7006: Parameter 'booking' implicitly has an 'any' type.
+app/api/booking/create/route.ts(1213,70): error TS7006: Parameter 'booking' implicitly has an 'any' type.
+app/api/bookings/[id]/payment-confirmation/route.ts(46,21): error TS2339: Property 'id' does not exist on type '{ firstName: string; lastName: string; email: string; }'.
+app/api/bookings/[id]/route.ts(57,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | SQLWrapper'.
+      Type 'null' is not assignable to type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string | null>, right: string | SQLWrapper | null): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string | null>'.
+      Type 'PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string | null>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/bookings/[id]/route.ts(179,16): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string | null' is not assignable to parameter of type 'string | SQLWrapper'.
+      Type 'null' is not assignable to type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string | null>, right: string | SQLWrapper | null): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string | null>'.
+      Type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string | null>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "id"; tableName: "users"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/bookings/available-slots/route.ts(41,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/bookings/available-slots/route.ts(50,14): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "date"; tableName: "blocked_slots"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "date"; tableName: "blocked_slots"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "date"; tableName: "blocked_slots"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "date"; tableName: "blocked_slots"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/bookings/available-slots/route.ts(56,19): error TS2339: Property 'isBlocked' does not exist on type '{ id: string; dayOfWeek: number; timeStart: string; timeEnd: string; isActive: boolean | null; adminMinutes: number | null; createdAt: Date; updatedAt: Date; }'.
+app/api/bookings/available-slots/route.ts(58,33): error TS2339: Property 'startTime' does not exist on type '{ id: string; dayOfWeek: number; timeStart: string; timeEnd: string; isActive: boolean | null; adminMinutes: number | null; createdAt: Date; updatedAt: Date; }'.
+app/api/bookings/available-slots/route.ts(59,31): error TS2339: Property 'endTime' does not exist on type '{ id: string; dayOfWeek: number; timeStart: string; timeEnd: string; isActive: boolean | null; adminMinutes: number | null; createdAt: Date; updatedAt: Date; }'.
+app/api/cron/daily-bookings/route.ts(56,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/cron/daily-bookings/route.ts(57,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+app/api/cron/daily-bookings/route.ts(75,11): error TS2740: Type '{ id: string; firstName: string; lastName: string; email: string; }' is missing the following properties from type '{ id: string; email: string; password: string; firstName: string; lastName: string; phone: string | null; personalNumber: string | null; address: string | null; postalCode: string | null; ... 22 more ...; updatedAt: Date; }': password, phone, personalNumber, address, and 24 more.
+app/api/cron/daily-bookings/route.ts(100,21): error TS18047: 'booking.student' is possibly 'null'.
+app/api/cron/daily-bookings/route.ts(100,50): error TS18047: 'booking.student' is possibly 'null'.
+app/api/cron/daily-bookings/route.ts(103,34): error TS18047: 'booking.student' is possibly 'null'.
+app/api/cron/daily-bookings/route.ts(103,66): error TS18047: 'booking.student' is possibly 'null'.
+app/api/cron/daily-bookings/route.ts(150,88): error TS18046: 'error' is of type 'unknown'.
+app/api/dashboard/admin/qliro/order-management/route.ts(15,40): error TS2339: Property 'adminPost' does not exist on type 'QliroService'.
+app/api/dashboard/admin/qliro/order-management/route.ts(19,40): error TS2339: Property 'adminPost' does not exist on type 'QliroService'.
+app/api/dashboard/admin/qliro/order-management/route.ts(23,40): error TS2339: Property 'adminPost' does not exist on type 'QliroService'.
+app/api/dashboard/admin/qliro/order-management/route.ts(27,40): error TS2339: Property 'adminPost' does not exist on type 'QliroService'.
+app/api/dashboard/admin/qliro/settlements/route.ts(29,36): error TS2339: Property 'adminGet' does not exist on type 'QliroService'.
+app/api/email/notify/route.ts(130,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/email/notify/route.ts(131,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/email/notify/route.ts(155,35): error TS2339: Property 'teacherEmail' does not exist on type '{ id: string; scheduledDate: string; startTime: string; endTime: string; status: string | null; paymentStatus: string | null; totalPrice: string; lessonTypeName: string; teacherName: string; }'.
+app/api/email/notify/route.ts(156,35): error TS2339: Property 'teacherEmail' does not exist on type '{ id: string; scheduledDate: string; startTime: string; endTime: string; status: string | null; paymentStatus: string | null; totalPrice: string; lessonTypeName: string; teacherName: string; }'.
+app/api/email/notify/route.ts(165,30): error TS2339: Property 'specificEmail' does not exist on type '{ id: string; templateId: string; receiverType: "student" | "teacher" | "admin" | "supervisor" | "specific_user" | "school"; specificUserId: string | null; createdAt: Date; }'.
+app/api/handledar-sessions/route.ts(49,26): error TS18047: 'session.currentParticipants' is possibly 'null'.
+app/api/handledar-sessions/route.ts(49,56): error TS18047: 'session.maxParticipants' is possibly 'null'.
+app/api/handledar-sessions/route.ts(55,20): error TS18047: 'session.maxParticipants' is possibly 'null'.
+app/api/handledar-sessions/route.ts(55,46): error TS18047: 'session.currentParticipants' is possibly 'null'.
+app/api/messages/[id]/route.ts(47,61): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/[id]/route.ts(84,40): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(43,78): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(46,76): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(50,61): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(56,63): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(57,61): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/route.ts(134,41): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/messages/unread-count/route.ts(41,61): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/packages/confirm-payment/route.ts(55,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'credits' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }[]'.
+app/api/packages/confirm-payment/route.ts(68,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+app/api/packages/purchase/route.ts(162,7): error TS2322: Type 'string | number | undefined' is not assignable to type 'string | undefined'.
+  Type 'number' is not assignable to type 'string'.
+app/api/payments/swish/callback/route.ts(78,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'credits' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'userId' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; createdAt?: SQL<unknown> | Date | Placeholder<...> | undefined; ... 6 more ...; creditType?: string | ... 2 more ... | undefined; }[]'.
+app/api/payments/swish/callback/route.ts(95,15): error TS2552: Cannot find name 'users'. Did you mean 'user'?
+app/api/payments/swish/callback/route.ts(96,19): error TS2552: Cannot find name 'users'. Did you mean 'user'?
+app/api/payments/swish/qr-code/route.ts(53,17): error TS2345: Argument of type '"Generating Swish QR code"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+app/api/payments/swish/qr-code/route.ts(117,20): error TS2345: Argument of type '"Swish QR API error"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+app/api/payments/swish/qr-code/route.ts(126,14): error TS2554: Expected 2-5 arguments, but got 1.
+app/api/payments/swish/qr-code/route.ts(133,17): error TS2345: Argument of type '"Swish QR code generated successfully"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+app/api/payments/swish/qr-code/route.ts(153,18): error TS2345: Argument of type '"Error generating Swish QR code"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+app/api/payments/swish/qr-code/route.ts(251,18): error TS2345: Argument of type '"Local QR generation failed"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+app/api/student/bookings/route.ts(23,57): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/student/bookings/route.ts(29,49): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/student/bookings/route.ts(59,49): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/student/feedback/route.ts(38,54): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/[id]/live/route.ts(27,47): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/[id]/plan/route.ts(31,74): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/[id]/plan/route.ts(60,74): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/create-for-student/route.ts(115,47): error TS2345: Argument of type '{ id: string; notes: string | null; createdAt: Date; updatedAt: Date; teacherId: string | null; carId: string | null; paymentStatus: string | null; isCompleted: boolean | null; ... 19 more ...; deletedAt: Date | null; }' is not assignable to parameter of type 'BookingBasic'.
+  Types of property 'swishUUID' are incompatible.
+    Type 'string | null' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+app/api/teacher/bookings/route.ts(59,57): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/route.ts(62,66): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/teacher/bookings/route.ts(84,7): error TS2741: Property 'orderBy' is missing in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...' but required in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...'.
+app/api/teacher/bookings/route.ts(86,7): error TS2741: Property 'orderBy' is missing in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...' but required in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...'.
+app/api/teacher/bookings/route.ts(91,7): error TS2741: Property 'where' is missing in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...' but required in type 'Omit<import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/query-builders/select").PgSelectBase<"bookings", { id: import("C:/projects/trafikskola/TrafikskolaX/node_modules/drizzle-orm/pg-core/columns/common").PgColumn<{ name: "id"; tableName: "bookings"; dataType: "string"; columnType: "PgUUI...'.
+app/api/teacher/feedback/route.ts(73,37): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; bookingId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; isFromTeacher?: boolean | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'string | null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.
+      Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { userId: string | SQL<unknown> | Placeholder<string, any>; bookingId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<...> | undefined; ... 5 more ...; isFromTeacher?: boolean | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'bookingId' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; bookingId: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 5 more ...; isFromTeacher?: boolean | ... 2 more ... | undefined; }[]'.
+app/api/test/qliro/route.ts(38,15): error TS2339: Property 'extendedConnection' does not exist on type '{ enabled: true; basicConnection: { success: boolean; message: string; details?: any; debug?: any; }; }'.
+app/api/test/qliro/route.ts(56,17): error TS2339: Property 'orderCreation' does not exist on type '{ enabled: true; basicConnection: { success: boolean; message: string; details?: any; debug?: any; }; }'.
+app/api/test/qliro/route.ts(65,17): error TS2339: Property 'orderCreation' does not exist on type '{ enabled: true; basicConnection: { success: boolean; message: string; details?: any; debug?: any; }; }'.
+app/api/test/qliro/route.ts(74,63): error TS2339: Property 'orderCreation' does not exist on type '{ enabled: true; basicConnection: { success: boolean; message: string; details?: any; debug?: any; }; }'.
+app/api/user/credits/route.ts(44,62): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/user/credits/route.ts(61,62): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/user/credits/route.ts(86,62): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/user/credits/route.ts(94,12): error TS2339: Property 'select' does not exist on type 'Omit<PgSelectBase<"user_credits", { id: PgColumn<{ name: "id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 7 more ...; updatedAt: PgColumn<...>; }, .....'.
+app/api/user/credits/route.ts(109,12): error TS2339: Property 'select' does not exist on type 'Omit<PgSelectBase<"user_credits", { id: PgColumn<{ name: "id"; tableName: "user_credits"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 7 more ...; updatedAt: PgColumn<...>; }, .....'.
+app/api/user/credits/route.ts(141,65): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/user/messages/route.ts(19,20): error TS18047: 'payload' is possibly 'null'.
+app/api/user/messages/route.ts(25,34): error TS2551: Property 'userId' does not exist on type 'PgTableWithColumns<{ name: "internal_messages"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "internal_messages"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 8 more ...; readAt: PgColumn<...>;...'. Did you mean 'toUserId'?
+app/api/user/messages/route.ts(46,20): error TS18047: 'payload' is possibly 'null'.
+app/api/user/packages/route.ts(37,65): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/api/users/route.ts(42,22): error TS2345: Argument of type 'SQL<unknown> | undefined' is not assignable to parameter of type 'SQL<unknown>'.
+  Type 'undefined' is not assignable to type 'SQL<unknown>'.
+app/avatars/[...path]/route.ts(44,29): error TS2345: Argument of type 'Buffer<ArrayBufferLike>' is not assignable to parameter of type 'BodyInit | null | undefined'.
+  Type 'Buffer<ArrayBufferLike>' is missing the following properties from type 'URLSearchParams': size, append, delete, get, and 2 more.
+app/betalning/swish/moderera/moderate-client.tsx(10,17): error TS18047: 'params' is possibly 'null'.
+app/booking/success/page.tsx(32,23): error TS18047: 'searchParams' is possibly 'null'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(163,31): error TS7006: Parameter 'stepId' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(163,39): error TS7006: Parameter 'field' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(163,46): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(240,33): error TS7006: Parameter 'feedbackItem' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(248,34): error TS7006: Parameter 'field' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(248,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(250,7): error TS2698: Spread types may only be created from object types.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(262,98): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(268,41): error TS2339: Property 'feedbackText' does not exist on type 'never'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(269,38): error TS2339: Property 'valuation' does not exist on type 'never'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(297,33): error TS7006: Parameter 'feedbackId' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(549,27): error TS7006: Parameter 'status' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(577,28): error TS7006: Parameter 'paymentStatus' implicitly has an 'any' type.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(1008,83): error TS2339: Property 'valuation' does not exist on type 'never'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(1010,90): error TS2339: Property 'valuation' does not exist on type 'never'.
+app/dashboard/admin/bookings/[id]/BookingDetailsClient.tsx(1014,56): error TS2339: Property 'feedbackText' does not exist on type 'never'.
+app/dashboard/admin/bookings/bookings-client.tsx(107,16): error TS2345: Argument of type '{ title: string; }' is not assignable to parameter of type 'ToasterToast'.
+  Property 'id' is missing in type '{ title: string; }' but required in type 'ToastProps'.
+app/dashboard/admin/bookings/bookings-client.tsx(113,16): error TS2345: Argument of type '{ title: string; description: any; variant: string; }' is not assignable to parameter of type 'ToasterToast'.
+  Property 'id' is missing in type '{ title: string; description: any; variant: string; }' but required in type 'ToastProps'.
+app/dashboard/admin/bookings/bookings-client.tsx(131,16): error TS2345: Argument of type '{ title: string; description: string; }' is not assignable to parameter of type 'ToasterToast'.
+  Property 'id' is missing in type '{ title: string; description: string; }' but required in type 'ToastProps'.
+app/dashboard/admin/bookings/bookings-client.tsx(136,16): error TS2345: Argument of type '{ title: string; description: any; variant: string; }' is not assignable to parameter of type 'ToasterToast'.
+  Property 'id' is missing in type '{ title: string; description: any; variant: string; }' but required in type 'ToastProps'.
+app/dashboard/admin/bookings/page.tsx(95,7): error TS2322: Type '{ id: string; scheduledDate: string; startTime: string; endTime: string; durationMinutes: number; transmissionType: string | null; status: string | null; paymentStatus: string | null; ... 10 more ...; teacherId: string | null; }[]' is not assignable to type 'Booking[]'.
+  Type '{ id: string; scheduledDate: string; startTime: string; endTime: string; durationMinutes: number; transmissionType: string | null; status: string | null; paymentStatus: string | null; ... 10 more ...; teacherId: string | null; }' is not assignable to type 'Booking'.
+    Types of property 'userName' are incompatible.
+      Type 'unknown' is not assignable to type 'string'.
+app/dashboard/admin/bookings/page.tsx(96,7): error TS2322: Type '{ id: string; name: unknown; email: string; }[]' is not assignable to type 'User[]'.
+  Type '{ id: string; name: unknown; email: string; }' is not assignable to type 'User'.
+    Types of property 'name' are incompatible.
+      Type 'unknown' is not assignable to type 'string'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(68,24): error TS2339: Property 'title' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(69,30): error TS2339: Property 'description' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(70,32): error TS2339: Property 'date' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(71,28): error TS2339: Property 'startTime' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(72,26): error TS2339: Property 'endTime' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(73,34): error TS2339: Property 'maxParticipants' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(74,38): error TS2339: Property 'pricePerParticipant' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(96,33): error TS7006: Parameter 'session' implicitly has an 'any' type.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(110,65): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(119,29): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(124,31): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(126,62): error TS18047: 'currentSession' is possibly 'null'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(148,31): error TS7006: Parameter 'sessionId' implicitly has an 'any' type.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(188,32): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(189,104): error TS2339: Property 'title' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(190,101): error TS2339: Property 'date' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(191,92): error TS2339: Property 'startTime' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(191,114): error TS2339: Property 'endTime' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(192,92): error TS2339: Property 'currentParticipants' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(192,124): error TS2339: Property 'maxParticipants' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(193,92): error TS2339: Property 'pricePerParticipant' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/HandledarSessionManager.tsx(196,63): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/admin/handledarkurs/page.tsx(30,31): error TS2322: Type '{ id: string; title: string; description: string | null; date: string; startTime: string; endTime: string; maxParticipants: number | null; currentParticipants: number | null; pricePerParticipant: string; teacherId: string | null; isActive: boolean | null; createdAt: Date; }[]' is not assignable to type 'Session[]'.
+  Type '{ id: string; title: string; description: string | null; date: string; startTime: string; endTime: string; maxParticipants: number | null; currentParticipants: number | null; pricePerParticipant: string; teacherId: string | null; isActive: boolean | null; createdAt: Date; }' is not assignable to type 'Session'.
+    Types of property 'maxParticipants' are incompatible.
+      Type 'number | null' is not assignable to type 'number'.
+        Type 'null' is not assignable to type 'number'.
+app/dashboard/admin/lessons/page.tsx(72,7): error TS2322: Type '{ id: string; name: string; description: string | null; durationMinutes: number; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; createdAt: Date; bookingCount: number; }[]' is not assignable to type 'Lesson[]'.
+  Type '{ id: string; name: string; description: string | null; durationMinutes: number; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; createdAt: Date; bookingCount: number; }' is not assignable to type 'Lesson'.
+    Types of property 'isActive' are incompatible.
+      Type 'boolean | null' is not assignable to type 'boolean'.
+        Type 'null' is not assignable to type 'boolean'.
+app/dashboard/admin/lessons/page.tsx(73,7): error TS2322: Type '{ id: string; name: string; description: string | null; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; createdAt: Date; purchaseCount: number; }[]' is not assignable to type 'Package[]'.
+  Property 'contents' is missing in type '{ id: string; name: string; description: string | null; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; createdAt: Date; purchaseCount: number; }' but required in type 'Package'.
+app/dashboard/admin/lessons/page.tsx(74,7): error TS2322: Type '{ id: string; title: string; isActive: boolean | null; }[]' is not assignable to type '{ id: string; title: string; isActive: boolean; }[]'.
+  Type '{ id: string; title: string; isActive: boolean | null; }' is not assignable to type '{ id: string; title: string; isActive: boolean; }'.
+    Types of property 'isActive' are incompatible.
+      Type 'boolean | null' is not assignable to type 'boolean'.
+        Type 'null' is not assignable to type 'boolean'.
+app/dashboard/admin/logs/page.tsx(8,19): error TS2339: Property 'success' does not exist on type 'AuthUser'.
+app/dashboard/admin/logs/page.tsx(8,42): error TS2339: Property 'user' does not exist on type 'AuthUser'.
+app/dashboard/admin/packages/packages-client.tsx(247,15): error TS2719: Type 'Package | undefined' is not assignable to type 'Package | undefined'. Two different types with this name exist, but they are unrelated.
+  Type 'Package' is not assignable to type 'Package'. Two different types with this name exist, but they are unrelated.
+    Types of property 'description' are incompatible.
+      Type 'string | null' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+app/dashboard/admin/payments/qliro/qliro-payments-client.tsx(42,11): error TS2339: Property 'toast' does not exist on type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }'.
+app/dashboard/admin/payments/swish/swish-payments-client.tsx(41,11): error TS2339: Property 'toast' does not exist on type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }'.
+app/dashboard/admin/users/[id]/credits/credits-client.tsx(162,49): error TS2322: Type '"primary"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+app/dashboard/admin/users/[id]/credits/credits-client.tsx(192,77): error TS2322: Type '"success"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+app/dashboard/admin/users/[id]/credits/credits-client.tsx(201,45): error TS2339: Property 'amount' does not exist on type 'Credit'.
+app/dashboard/admin/users/[id]/credits/credits-client.tsx(205,26): error TS2322: Type '"warning"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+app/dashboard/admin/users/[id]/credits/credits-client.tsx(208,77): error TS2322: Type '"danger"' is not assignable to type '"default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+app/dashboard/admin/users/[id]/credits/page.tsx(37,32): error TS2322: Type '{ user: { id: string; firstName: string; lastName: string; email: string; role: "student" | "teacher" | "admin"; }; }' is not assignable to type 'IntrinsicAttributes & CreditsClientProps'.
+  Property 'user' does not exist on type 'IntrinsicAttributes & CreditsClientProps'.
+app/dashboard/admin/users/[id]/page.tsx(47,28): error TS2741: Property 'bookingCount' is missing in type '{ id: string; email: string; password: string; firstName: string; lastName: string; phone: string | null; personalNumber: string | null; address: string | null; postalCode: string | null; ... 22 more ...; updatedAt: Date; }' but required in type '{ id: string; firstName: string; lastName: string; email: string; phone?: string | undefined; role: "student" | "teacher" | "admin"; isActive: boolean; inskriven: boolean; inskrivenDate: string | null; ... 10 more ...; confirmPassword?: string | undefined; }'.
+app/dashboard/handledarutbildning/page.tsx(39,32): error TS7006: Parameter 'session' implicitly has an 'any' type.
+app/dashboard/handledarutbildning/page.tsx(41,36): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/dashboard/handledarutbildning/page.tsx(41,43): error TS7006: Parameter 'field' implicitly has an 'any' type.
+app/dashboard/handledarutbildning/page.tsx(41,50): error TS7006: Parameter 'value' implicitly has an 'any' type.
+app/dashboard/handledarutbildning/page.tsx(43,5): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ supervisorName: string; supervisorEmail: string; supervisorPhone: string; }'.
+app/dashboard/handledarutbildning/page.tsx(49,30): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/dashboard/handledarutbildning/page.tsx(61,79): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(83,33): error TS18046: 'error' is of type 'unknown'.
+app/dashboard/handledarutbildning/page.tsx(98,30): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(98,80): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(98,95): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(100,35): error TS2339: Property 'title' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(101,61): error TS2339: Property 'formattedDateTime' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(104,43): error TS2339: Property 'spotsLeft' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(105,47): error TS2339: Property 'pricePerParticipant' does not exist on type 'never'.
+app/dashboard/handledarutbildning/page.tsx(106,27): error TS2339: Property 'teacherName' does not exist on type 'never'.
+app/dashboard/help/page.tsx(37,31): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/dashboard/help/page.tsx(38,31): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/dashboard/help/page.tsx(39,5): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/dashboard/help/page.tsx(60,31): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/dashboard/help/page.tsx(61,5): error TS2686: 'React' refers to a UMD global, but the current file is a module. Consider adding an import instead.
+app/dashboard/meddelande/page.tsx(154,50): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(154,65): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(154,70): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/meddelande/page.tsx(231,78): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(231,93): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(231,98): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/meddelande/page.tsx(271,66): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(271,81): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(271,86): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/meddelande/page.tsx(279,68): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(279,83): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(279,88): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/meddelande/page.tsx(284,69): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(284,84): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(284,89): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/meddelande/page.tsx(287,68): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(287,83): error TS18047: 'user' is possibly 'null'.
+app/dashboard/meddelande/page.tsx(287,88): error TS2339: Property 'id' does not exist on type 'JWTPayload'.
+app/dashboard/student/feedback/student-feedback-client.tsx(8,34): error TS7031: Binding element 'user' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(8,40): error TS7031: Binding element 'feedback' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(8,50): error TS7031: Binding element 'total' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(19,25): error TS7006: Parameter 'bookingId' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(23,30): error TS7006: Parameter 'valuation' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(29,29): error TS7006: Parameter 'valuation' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(35,42): error TS7006: Parameter 'f' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(35,64): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(36,39): error TS7006: Parameter 'f' implicitly has an 'any' type.
+app/dashboard/student/feedback/student-feedback-client.tsx(36,61): error TS7006: Parameter 'item' implicitly has an 'any' type.
+app/dashboard/teacher/page.tsx(30,34): error TS2741: Property 'id' is missing in type 'JWTPayload' but required in type 'User'.
+app/dashboard/utbildningskort/user-settings-client.tsx(64,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+app/dashboard/utbildningskort/user-settings-client.tsx(69,31): error TS7006: Parameter 'event' implicitly has an 'any' type.
+app/dashboard/utbildningskort/user-settings-client.tsx(75,35): error TS7006: Parameter 'event' implicitly has an 'any' type.
+app/dashboard/utbildningskort/user-settings-client.tsx(206,23): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(210,23): error TS2339: Property 'category' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(210,41): error TS2339: Property 'subcategory' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(212,50): error TS2339: Property 'description' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(214,14): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+app/dashboard/utbildningskort/user-settings-client.tsx(214,28): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(216,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+app/dashboard/utbildningskort/user-settings-client.tsx(216,32): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(219,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+app/dashboard/utbildningskort/user-settings-client.tsx(219,32): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(220,19): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+app/dashboard/utbildningskort/user-settings-client.tsx(220,33): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/user-settings-client.tsx(223,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
+app/dashboard/utbildningskort/user-settings-client.tsx(223,32): error TS2339: Property 'id' does not exist on type 'never'.
+app/dashboard/utbildningskort/utbildningskort-client.tsx(32,18): error TS18047: 'params' is possibly 'null'.
+app/packages-store/packages-store-client.tsx(270,11): error TS2304: Cannot find name 'setNotifyingPaid'.
+app/packages-store/packages-store-client.tsx(273,13): error TS2304: Cannot find name 'setPaidNotified'.
+app/packages-store/packages-store-client.tsx(275,13): error TS2304: Cannot find name 'setNotifyingPaid'.
+app/packages-store/page.tsx(76,7): error TS2741: Property 'name' is missing in type 'AuthUser' but required in type 'User'.
+app/packages-store/page.tsx(77,7): error TS2322: Type '{ features: string[]; credits: number; image: string; isPopular: boolean; id: string; name: string; description: string | null; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; }[]' is not assignable to type 'Package[]'.
+  Type '{ features: string[]; credits: number; image: string; isPopular: boolean; id: string; name: string; description: string | null; price: string; priceStudent: string | null; salePrice: string | null; isActive: boolean | null; }' is not assignable to type 'Package'.
+    Types of property 'description' are incompatible.
+      Type 'string | null' is not assignable to type 'string'.
+        Type 'null' is not assignable to type 'string'.
+app/payments/qliro/checkout/page.tsx(8,19): error TS18047: 'searchParams' is possibly 'null'.
+components/Admin/EmailSettings.tsx(17,7): error TS2349: This expression is not callable.
+  Type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }' has no call signatures.
+components/Admin/EmailSettings.tsx(27,32): error TS7006: Parameter 'key' implicitly has an 'any' type.
+components/Admin/EmailSettings.tsx(27,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+components/Admin/EmailSettings.tsx(28,30): error TS2698: Spread types may only be created from object types.
+components/Admin/EmailSettings.tsx(40,7): error TS2349: This expression is not callable.
+  Type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }' has no call signatures.
+components/Admin/EmailSettings.tsx(43,7): error TS2349: This expression is not callable.
+  Type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }' has no call signatures.
+components/Admin/EmailSettings.tsx(55,7): error TS2349: This expression is not callable.
+  Type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }' has no call signatures.
+components/Admin/EmailSettings.tsx(58,7): error TS2349: This expression is not callable.
+  Type '{ toasts: ToastMessage[]; addToast: (toast: Omit<ToastMessage, "id">) => void; removeToast: (id: string) => void; }' has no call signatures.
+components/Admin/EmailSettings.tsx(76,15): error TS2322: Type 'unknown' is not assignable to type 'string | number | readonly string[] | undefined'.
+components/Admin/EmailTemplateBuilder.tsx(127,50): error TS2448: Block-scoped variable 'handlePreview' used before its declaration.
+components/Admin/EmailTemplateBuilder.tsx(127,50): error TS2454: Variable 'handlePreview' is used before being assigned.
+components/Admin/EmailTemplateBuilder.tsx(193,31): error TS2552: Cannot find name 'templatesData'. Did you mean 'templates'?
+components/Admin/LessonManagement.tsx(16,17): error TS2339: Property 'token' does not exist on type 'AuthContextType'.
+components/Admin/LessonManagement.tsx(41,37): error TS7006: Parameter 'lessonId' implicitly has an 'any' type.
+components/Admin/LessonManagement.tsx(46,51): error TS2339: Property 'id' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(52,28): error TS7006: Parameter 'lesson' implicitly has an 'any' type.
+components/Admin/LessonManagement.tsx(105,29): error TS2339: Property 'id' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(106,27): error TS2339: Property 'name' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(107,27): error TS2339: Property 'price' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(108,27): error TS2339: Property 'duration' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(109,27): error TS2339: Property 'active' does not exist on type 'never'.
+components/Admin/LessonManagement.tsx(111,66): error TS2339: Property 'id' does not exist on type 'never'.
+components/Admin/TestEmailButton.tsx(94,7): error TS2322: Type '"sm" | "lg" | "md"' is not assignable to type '"default" | "icon" | "sm" | "lg" | null | undefined'.
+  Type '"md"' is not assignable to type '"default" | "icon" | "sm" | "lg" | null | undefined'.
+components/booking/booking-confirmation.tsx(618,20): error TS2554: Expected 0-1 arguments, but got 2.
+components/booking/booking-confirmation.tsx(656,13): error TS2552: Cannot find name 'loadStudents'. Did you mean 'students'?
+components/booking/booking-confirmation.tsx(1282,9): error TS2322: Type '(e: React.MouseEvent) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+components/booking/lesson-selection.tsx(41,62): error TS7006: Parameter 'lesson' implicitly has an 'any' type.
+components/booking/lesson-selection.tsx(65,66): error TS7006: Parameter 'session' implicitly has an 'any' type.
+components/booking/swish-payment-dialog.tsx(54,13): error TS2339: Property 'sessionType' does not exist on type '{ id?: string | undefined; totalPrice: number; }'.
+components/booking/swish-payment-dialog.tsx(54,52): error TS2339: Property 'sessionType' does not exist on type '{ id?: string | undefined; totalPrice: number; }'.
+components/bookings/bookings-table.tsx(138,19): error TS18046: 'error' is of type 'unknown'.
+lib/api/middleware.ts(61,55): error TS2739: Type 'Record<string, string | string[]>' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+lib/email/booking-emails.ts(64,14): error TS18046: 'error' is of type 'unknown'.
+lib/email/booking-emails.ts(98,11): error TS2353: Object literal may only specify known properties, and 'paymentTime' does not exist in type '{ id: string; scheduledDate: string; startTime: string; endTime: string; lessonTypeName: string; totalPrice: string; paymentMethod?: string | undefined; swishUUID?: string | undefined; }'.
+lib/email/booking-emails.ts(117,14): error TS18046: 'error' is of type 'unknown'.
+lib/email/email-cron-service.ts(198,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "completed_at"; tableName: "bookings"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: Date | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'Date | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "completed_at"; tableName: "bookings"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.
+      Type 'PgColumn<{ name: "completed_at"; tableName: "bookings"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "completed_at"; tableName: "bookings"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+lib/email/email-service.ts(358,11): error TS2739: Type '{ user_login: string; forgot_password: string; new_user: string; new_booking: string; moved_booking: string; cancelled_booking: string; booking_reminder: string; booking_confirmed: string; ... 11 more ...; swish_payment_verification: string; }' is missing the following properties from type 'Record<EmailTriggerType, string>': handledar_payment_reminder, booking_payment_reminder, package_payment_reminder
+lib/email/enhanced-email-service.ts(215,76): error TS18046: 'error' is of type 'unknown'.
+lib/email/enhanced-email-service.ts(256,25): error TS2345: Argument of type '{ to: string; from: { email: string; name: string; }; replyTo: string; subject: string; text: string | undefined; html: string | undefined; }' is not assignable to parameter of type 'MailDataRequired | MailDataRequired[]'.
+  Type '{ to: string; from: { email: string; name: string; }; replyTo: string; subject: string; text: string | undefined; html: string | undefined; }' is not assignable to type 'MailData & { content: MailContent[] & { 0: MailContent; }; }'.
+    Property 'content' is missing in type '{ to: string; from: { email: string; name: string; }; replyTo: string; subject: string; text: string | undefined; html: string | undefined; }' but required in type '{ content: MailContent[] & { 0: MailContent; }; }'.
+lib/email/enhanced-email-service.ts(269,16): error TS18046: 'error' is of type 'unknown'.
+lib/email/enhanced-email-service.ts(326,16): error TS18046: 'error' is of type 'unknown'.
+lib/email/enhanced-email-service.ts(385,16): error TS18046: 'error' is of type 'unknown'.
+lib/email/enhanced-email-service.ts(547,16): error TS18046: 'error' is of type 'unknown'.
+lib/email/enhanced-email-service.ts(831,11): error TS2739: Type '{ user_login: string; forgot_password: string; new_user: string; new_booking: string; moved_booking: string; cancelled_booking: string; booking_reminder: string; booking_confirmed: string; ... 15 more ...; package_payment_reminder: string; }' is missing the following properties from type 'Record<EmailTriggerType, string>': handledar_booking_cancelled, handledar_booking_moved, handledar_student_confirmation, handledar_supervisor_confirmation, handledar_supervisor_payment_request
+lib/email/enhanced-email-service.ts(920,16): error TS18046: 'error' is of type 'unknown'.
+lib/email/notification-service.ts(70,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+lib/email/notification-service.ts(120,11): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+lib/email/notification-service.ts(238,54): error TS2339: Property 'userId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; studentId: string | null; price: string; paymentStatus: string | null; status: string | null; paymentMethod: string | null; ... 10 more ...; session: { ...; }; }'.
+lib/email/notification-service.ts(241,50): error TS2339: Property 'userId' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; studentId: string | null; price: string; paymentStatus: string | null; status: string | null; paymentMethod: string | null; ... 10 more ...; session: { ...; }; }'.
+lib/email/notification-service.ts(297,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+lib/email/notification-service.ts(298,11): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: string | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'Date' is not assignable to parameter of type 'string | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<Date>, right: Date | SQLWrapper): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<Date>'.
+      Type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<Date>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "scheduled_date"; tableName: "bookings"; dataType: "string"; columnType: "PgDateString"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+lib/email/notification-service.ts(329,42): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/email/notification-service.ts(330,56): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+lib/email/unified-email-service.ts(120,16): error TS2554: Expected 2-5 arguments, but got 1.
+lib/email/unified-email-service.ts(125,49): error TS2551: Property 'createTransporter' does not exist on type 'typeof import("C:/projects/trafikskola/TrafikskolaX/node_modules/@types/nodemailer/index")'. Did you mean 'createTransport'?
+lib/email/unified-email-service.ts(134,16): error TS2554: Expected 2-5 arguments, but got 1.
+lib/email/unified-email-service.ts(139,20): error TS2345: Argument of type '"Failed to initialize email providers:"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(154,20): error TS2345: Argument of type '"Failed to get email settings:"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(194,36): error TS2345: Argument of type '{ to: string[]; from: any; subject: string; html: string | undefined; text: string | undefined; replyTo: string | undefined; attachments: { filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }[] | undefined; }' is not assignable to parameter of type 'MailDataRequired | MailDataRequired[]'.
+  Type '{ to: string[]; from: any; subject: string; html: string | undefined; text: string | undefined; replyTo: string | undefined; attachments: { filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }[] | undefined; }' is not assignable to type 'MailData & { content: MailContent[] & { 0: MailContent; }; }'.
+    Type '{ to: string[]; from: any; subject: string; html: string | undefined; text: string | undefined; replyTo: string | undefined; attachments: { filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }[] | undefined; }' is not assignable to type 'MailData'.
+      Types of property 'attachments' are incompatible.
+        Type '{ filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }[] | undefined' is not assignable to type 'AttachmentData[] | undefined'.
+          Type '{ filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }[]' is not assignable to type 'AttachmentData[]'.
+            Type '{ filename: string; content: string | Buffer<ArrayBufferLike>; type: string; }' is not assignable to type 'AttachmentData'.
+              Types of property 'content' are incompatible.
+                Type 'string | Buffer<ArrayBufferLike>' is not assignable to type 'string'.
+                  Type 'Buffer<ArrayBufferLike>' is not assignable to type 'string'.
+lib/email/unified-email-service.ts(241,19): error TS2345: Argument of type '"Email sent successfully via sendgrid" | "Email sent successfully via smtp"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+  Type '"Email sent successfully via sendgrid"' is not assignable to type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(248,20): error TS2345: Argument of type '"Failed to send email:"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(310,22): error TS2345: Argument of type '"Some emails failed to send:"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(323,20): error TS2345: Argument of type '"Failed to send triggered email:"' is not assignable to parameter of type '"email" | "booking" | "payment" | "auth" | "system"'.
+lib/email/unified-email-service.ts(345,32): error TS2339: Property 'triggerId' does not exist on type 'PgTableWithColumns<{ name: "email_receivers"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "email_receivers"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; templateId: PgColumn<...>; receiverType: P...'.
+scripts/analyze-email-templates.ts(2,48): error TS2307: Cannot find module '../lib/db/schema/index.js' or its corresponding type declarations.
+scripts/fix-smtp-secure.ts(35,9): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+scripts/migrate-email-templates.ts(78,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { subject: string | SQL<unknown> | Placeholder<string, any>; triggerType: SQL<unknown> | "user_login" | "forgot_password" | "new_user" | "new_booking" | "moved_booking" | ... 19 more ... | Placeholder<...>; ... 4 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'EmailTriggerType' is not assignable to type 'SQL<unknown> | "user_login" | "forgot_password" | "new_user" | "new_booking" | "moved_booking" | "cancelled_booking" | "booking_reminder" | "booking_confirmed" | "credits_reminder" | ... 15 more ... | Placeholder<...>'.
+      Type '"handledar_booking_cancelled"' is not assignable to type 'SQL<unknown> | "user_login" | "forgot_password" | "new_user" | "new_booking" | "moved_booking" | "cancelled_booking" | "booking_reminder" | "booking_confirmed" | "credits_reminder" | ... 15 more ... | Placeholder<...>'. Did you mean '"handledar_booking_confirmed"'?
+  Overload 2 of 2, '(values: { subject: string | SQL<unknown> | Placeholder<string, any>; triggerType: SQL<unknown> | "user_login" | "forgot_password" | "new_user" | "new_booking" | "moved_booking" | ... 19 more ... | Placeholder<...>; ... 4 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'triggerType' does not exist in type '{ subject: string | SQL<unknown> | Placeholder<string, any>; triggerType: SQL<unknown> | "user_login" | "forgot_password" | "new_user" | "new_booking" | "moved_booking" | ... 19 more ... | Placeholder<...>; ... 4 more ...; updatedAt?: SQL<...> | ... 2 more ... | undefined; }[]'.
+scripts/test-daily-summary.ts(58,59): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; teacherId: string; lessonTypeId: number; scheduledDate: string; startTime: string; endTime: string; status: string; paymentStatus: string; totalPrice: string; transmissionType: "manual"; isCompleted: boolean; feedbackReady: boolean; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }'.
+      Property 'durationMinutes' is missing in type '{ userId: string; teacherId: string; lessonTypeId: number; scheduledDate: string; startTime: string; endTime: string; status: string; paymentStatus: string; totalPrice: string; transmissionType: "manual"; isCompleted: boolean; feedbackReady: boolean; createdAt: Date; updatedAt: Date; }' but required in type '{ durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }'.
+  Overload 2 of 2, '(values: { durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Argument of type '{ userId: string; teacherId: string; lessonTypeId: number; scheduledDate: string; startTime: string; endTime: string; status: string; paymentStatus: string; totalPrice: string; transmissionType: "manual"; isCompleted: boolean; feedbackReady: boolean; createdAt: Date; updatedAt: Date; }' is not assignable to parameter of type '{ durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }[]'.
+      Type '{ userId: string; teacherId: string; lessonTypeId: number; scheduledDate: string; startTime: string; endTime: string; status: string; paymentStatus: string; totalPrice: string; transmissionType: "manual"; isCompleted: boolean; feedbackReady: boolean; createdAt: Date; updatedAt: Date; }' is missing the following properties from type '{ durationMinutes: number | SQL<unknown> | Placeholder<string, any>; lessonTypeId: string | SQL<unknown> | Placeholder<string, any>; scheduledDate: string | ... 1 more ... | Placeholder<...>; ... 24 more ...; deletedAt?: SQL<...> | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.
+setup-test-data.ts(13,9): error TS2769: No overload matches this call.
+  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; price: string | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<unknown> | Placeholder<string, any> | undefined; ... 6 more ...; salePrice?: string | ... 3 more ... | undefined; }[]'.

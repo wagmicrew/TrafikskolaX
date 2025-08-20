@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
           paymentMethod: useHandledarCredit ? 'credits' : paymentMethod,
           status: useHandledarCredit || paymentStatus === 'paid' ? 'confirmed' : 'pending',
           bookedBy: authResult.user?.id || studentId,
-          swishUUID: uuidv4(),
+          swishUuid: uuidv4(),
         })
         .returning();
 

@@ -137,7 +137,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    await db.delete(users).where(eq(users.id, parseInt(id)));
+    await db.delete(users).where(eq(users.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

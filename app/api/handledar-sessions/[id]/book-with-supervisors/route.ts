@@ -8,13 +8,14 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
-    const sessionId = params.id;
+    const resolvedParams = await params;
+    const sessionId = resolvedParams.id;
     const body = await request.json();
     const { studentId, supervisors } = body;
 
@@ -34,7 +35,7 @@ export async function POST(
     let bookedBy = null;
     if (token) {
       const user = await verifyToken(token);
-      bookedBy = user?.userId || user?.id;
+      bookedBy = user?.userId;
     }
 
     // Get session details
@@ -57,7 +58,7 @@ export async function POST(
 
     // Check if session has enough spots
     const spotsNeeded = supervisors.length;
-    const spotsAvailable = sessionData.maxParticipants - sessionData.currentParticipants;
+    const spotsAvailable = (sessionData.maxParticipants ?? 0) - (sessionData.currentParticipants ?? 0);
 
     if (spotsNeeded > spotsAvailable) {
       return NextResponse.json({ 
@@ -118,12 +119,12 @@ export async function POST(
     await db
       .update(handledarSessions)
       .set({
-        currentParticipants: sessionData.currentParticipants + spotsNeeded,
+        currentParticipants: (sessionData.currentParticipants ?? 0) + spotsNeeded,
         updatedAt: new Date(),
       })
       .where(eq(handledarSessions.id, sessionId));
 
-    const totalPrice = sessionData.pricePerParticipant * spotsNeeded;
+    const totalPrice = Number(sessionData.pricePerParticipant ?? 0) * spotsNeeded;
 
     return NextResponse.json({
       message: 'Booking successful',

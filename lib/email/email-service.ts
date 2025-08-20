@@ -120,7 +120,7 @@ export class EmailService {
         .from(emailTemplates)
         .where(
           and(
-            eq(emailTemplates.triggerType, triggerType),
+            eq(emailTemplates.triggerType, triggerType as any),
             eq(emailTemplates.isActive, true)
           )
         )

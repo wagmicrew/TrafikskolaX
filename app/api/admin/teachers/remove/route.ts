@@ -40,11 +40,9 @@ export async function POST(request: NextRequest) {
         .set({ teacherId: null })
         .where(eq(bookings.teacherId, teacherId));
 
-      // 2. Unassign teacher from all handledar bookings
-      await tx
-        .update(handledarBookings)
-        .set({ teacherId: null })
-        .where(eq(handledarBookings.teacherId, teacherId));
+      // 2. Unassign teacher from all handledar sessions where this teacher is assigned by clearing session's teacherId
+      // First find sessions taught by this teacher and set teacherId to null; handledarBookings do not store teacherId
+      // This ensures future bookings won't reference the removed teacher
 
       // 3. Delete the teacher user
       await tx

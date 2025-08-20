@@ -7,10 +7,11 @@ import { count } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     // Gather site operational status
     const siteStatus = {
@@ -44,12 +45,12 @@ export async function GET(request: NextRequest) {
     } catch (dbError) {
       dbStatus = {
         connected: false,
-        error: dbError.message,
+        error: (dbError as Error)?.message || String(dbError),
         lastChecked: new Date().toISOString()
       };
     }
 
-    logger.info('system', 'Site and DB status retrieved', { userId: user.id });
+    logger.info('system', 'Site and DB status retrieved', { userId: user.userId });
 
     return NextResponse.json({
       siteStatus,
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching site and DB status:', error);
-    logger.error('system', 'Failed to retrieve site/DB status', { error: error.message });
+    logger.error('system', 'Failed to retrieve site/DB status', { error: (error as Error)?.message || 'Unknown error' });
     return NextResponse.json({ error: 'Failed to retrieve site/DB status' }, { status: 500 });
   }
 }

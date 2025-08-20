@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/lib/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminEmailSettings = () => {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
+  const { toast } = useToast();
 
   const fetchEmailSettings = useCallback(async () => {
     try {
@@ -37,7 +37,7 @@ const AdminEmailSettings = () => {
       });
       if (!response.ok) throw new Error('Failed to update email settings');
 
-      toast({ title: 'Success', description: 'Email settings updated successfully.', variant: 'success' });
+      toast({ title: 'Success', description: 'Email settings updated successfully.', variant: 'default' });
     } catch (error) {
       console.error('Error updating email settings:', error);
       toast({ title: 'Error', description: 'Failed to update email settings.', variant: 'destructive' });
@@ -52,7 +52,7 @@ const AdminEmailSettings = () => {
         body: JSON.stringify({ action: 'test_connection' }),
       });
       const result = await response.json();
-      toast({ title: 'Test Email', description: result.message, variant: result.success ? 'success' : 'destructive' });
+      toast({ title: 'Test Email', description: result.message, variant: result.success ? 'default' : 'destructive' });
     } catch (error) {
       console.error('Error sending test email:', error);
       toast({ title: 'Error', description: 'Failed to send test email.', variant: 'destructive' });

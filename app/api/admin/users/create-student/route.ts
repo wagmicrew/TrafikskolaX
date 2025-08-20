@@ -10,9 +10,12 @@ import { EmailService } from '@/lib/email/email-service';
 // POST create student (admin/teacher)
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuthAPI(['admin', 'teacher']);
+    const authResult = await requireAuthAPI();
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+    if (authResult.user.role !== 'admin' && authResult.user.role !== 'teacher') {
+      return NextResponse.json({ error: 'Admin or teacher access required' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -40,15 +43,13 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone?.trim() || null,
-      personalNumber: personalNumber?.trim() || null,
-      role: 'student',
+      phone: phone?.trim() || undefined,
+      personalNumber: personalNumber?.trim() || undefined,
+      role: 'student' as 'student',
       isActive: true,
       customerNumber,
       inskriven: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    } as const;
 
     const inserted = await db.insert(users).values(values).returning();
     const created = inserted[0];

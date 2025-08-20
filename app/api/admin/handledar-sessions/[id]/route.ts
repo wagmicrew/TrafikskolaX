@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { handledarSessions, handledarBookings, users, userCredits } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { EmailService } from '@/lib/email/email-service';
+import { requireAuthAPI } from '@/lib/auth/server-auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAuthAPI();
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    const user = await verifyToken(token);
-    if (!user || (user.role !== 'admin' && user.role !== 'teacher')) {
+    if (auth.user.role !== 'admin' && auth.user.role !== 'teacher') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -100,16 +95,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const auth = await requireAuthAPI('admin');
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const { id: sessionId } = await params;
@@ -125,7 +113,7 @@ export async function PUT(
         startTime,
         endTime,
         maxParticipants: parseInt(maxParticipants),
-        pricePerParticipant: parseFloat(pricePerParticipant),
+        pricePerParticipant: String(parseFloat(pricePerParticipant)),
         teacherId: teacherId || null,
         updatedAt: new Date(),
       })
@@ -151,16 +139,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await verifyToken(token);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const auth = await requireAuthAPI('admin');
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const { id: sessionId } = await params;

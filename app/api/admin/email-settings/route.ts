@@ -27,10 +27,11 @@ const DEFAULT_EMAIL_SETTINGS = {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     // Get all email settings
     const settings = await db
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Merge with defaults for any missing settings
     const emailSettings = { ...DEFAULT_EMAIL_SETTINGS, ...settingsMap };
 
-    logger.info('email', 'Email settings retrieved', { userId: user.id });
+    logger.info('email', 'Email settings retrieved', { userId: user.userId });
 
     return NextResponse.json({ 
       settings: emailSettings,
@@ -54,17 +55,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching email settings:', error);
-    logger.error('email', 'Failed to fetch email settings', { error: error.message });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    logger.error('email', 'Failed to fetch email settings', { error: message });
     return NextResponse.json({ error: 'Failed to fetch email settings' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     const body = await request.json();
     const { settings } = body;
@@ -108,7 +111,7 @@ export async function PUT(request: NextRequest) {
     EnhancedEmailService.clearConfigCache();
 
     logger.info('email', 'Email settings updated', { 
-      userId: user.id,
+      userId: user.userId,
       settingsCount: Object.keys(settings).length 
     });
 
@@ -117,17 +120,19 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error updating email settings:', error);
-    logger.error('email', 'Failed to update email settings', { error: error.message });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    logger.error('email', 'Failed to update email settings', { error: message });
     return NextResponse.json({ error: 'Failed to update email settings' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuthAPI('admin');
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authResult = await requireAuthAPI('admin');
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
+    const user = authResult.user;
 
     const body = await request.json();
     const { action, testEmail, templateId } = body;
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
         if (success) {
           logger.info('email', 'Test email sent successfully', { 
             to: testEmailAddress,
-            userId: user.id 
+            userId: user.userId 
           });
           return NextResponse.json({ 
             message: `Test email sent successfully to ${testEmailAddress}`,
@@ -164,7 +169,7 @@ export async function POST(request: NextRequest) {
         } else {
           logger.warn('email', 'Test email failed to send', { 
             to: testEmailAddress,
-            userId: user.id 
+            userId: user.userId 
           });
           return NextResponse.json({ 
             message: 'Test email failed to send. Check logs for details.',
@@ -172,13 +177,14 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (error) {
+        const message = (error as Error)?.message ?? 'Unknown error';
         logger.error('email', 'Test email error', { 
           to: testEmailAddress,
-          error: error.message,
-          userId: user.id 
+          error: message,
+          userId: user.userId 
         });
         return NextResponse.json({ 
-          message: `Test email failed: ${error.message}`,
+          message: `Test email failed: ${message}`,
           success: false 
         });
       }
@@ -195,7 +201,7 @@ export async function POST(request: NextRequest) {
           logger.info('email', 'Test template email sent successfully', { 
             templateId,
             to: testEmailAddress,
-            userId: user.id 
+            userId: user.userId 
           });
           return NextResponse.json({ 
             message: `Test template email sent successfully to ${testEmailAddress}`,
@@ -205,7 +211,7 @@ export async function POST(request: NextRequest) {
           logger.warn('email', 'Test template email failed to send', { 
             templateId,
             to: testEmailAddress,
-            userId: user.id 
+            userId: user.userId 
           });
           return NextResponse.json({ 
             message: 'Test template email failed to send. Check logs for details.',
@@ -213,14 +219,15 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (error) {
+        const message = (error as Error)?.message ?? 'Unknown error';
         logger.error('email', 'Test template email error', { 
           templateId,
           to: testEmailAddress,
-          error: error.message,
-          userId: user.id 
+          error: message,
+          userId: user.userId 
         });
         return NextResponse.json({ 
-          message: `Test template email failed: ${error.message}`,
+          message: `Test template email failed: ${message}`,
           success: false 
         });
       }
@@ -229,7 +236,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in email settings POST:', error);
-    logger.error('email', 'Email settings POST action failed', { error: error.message });
+    const message = (error as Error)?.message ?? 'Unknown error';
+    logger.error('email', 'Email settings POST action failed', { error: message });
     return NextResponse.json({ error: 'Action failed' }, { status: 500 });
   }
 }

@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
 
     const newLessonType = await db.insert(lessonTypes).values({
       name,
-      price: parseFloat(price),
-      duration: parseInt(duration),
-      active: active ?? true,
+      price: String(parseFloat(price)),
+      durationMinutes: parseInt(duration),
+      isActive: active ?? true,
     }).returning();
 
     return NextResponse.json(newLessonType[0]);
@@ -70,9 +70,9 @@ export async function PUT(request: NextRequest) {
 
     await db.update(lessonTypes).set({
       name,
-      price: parseFloat(price),
-      duration: parseInt(duration),
-      active,
+      price: String(parseFloat(price)),
+      durationMinutes: parseInt(duration),
+      isActive: active,
     }).where(eq(lessonTypes.id, id));
 
     return NextResponse.json({ success: true });
@@ -101,7 +101,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Lesson type ID required' }, { status: 400 });
     }
 
-    await db.delete(lessonTypes).where(eq(lessonTypes.id, parseInt(id)));
+    await db.delete(lessonTypes).where(eq(lessonTypes.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

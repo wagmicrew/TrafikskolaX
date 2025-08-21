@@ -17,7 +17,7 @@ Concise, AI-friendly docs and rules for TrafikskolaX.
 - site_api.md — Endpoints, purpose, auth, duplicates
 - suggestions_and_duplicates.md — Improvements + duplicate endpoints
 
-Source of truth remains the codebase and existing docs under `Documentation/`.
+Source of truth remains the codebase and existing docs under `documentation_new/`.
 
 ## Primary lookup and bootstrap (for every new chat)
 

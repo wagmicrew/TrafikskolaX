@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
     } else {
       // Create new feedback
       await db.insert(userFeedback).values({
-        bookingId,
-        userId: booking[0].userId,
+        bookingId: bookingId as string,
+        userId: booking[0].userId as string,
         stepIdentifier: finalStepIdentifier,
         feedbackText,
         valuation: valuation || null,

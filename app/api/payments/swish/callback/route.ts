@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { packagePurchases, userCredits, packageContents } from '@/lib/db/schema';
+import { packagePurchases, userCredits, packageContents, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
 
@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
           .values({
             userId: purchase[0].userId,
             lessonTypeId: content.lessonTypeId,
-            credits: content.credits,
-            source: 'package_purchase',
-            sourceId: paymentReference
+            creditsTotal: content.credits,
+            creditsRemaining: content.credits,
+            creditType: 'lesson',
+            packageId: purchase[0].id
           });
       }
     }

@@ -24,7 +24,7 @@ export async function GET(
       .limit(1);
 
     if (!bk) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
-    if (bk.teacherId !== (user.userId || user.id)) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    if (bk.teacherId !== ((user as any).userId || (user as any).id)) return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
     const steps = await db
       .select({ stepIdentifier: bookingPlanItems.stepIdentifier })

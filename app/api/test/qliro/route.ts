@@ -28,7 +28,9 @@ export async function GET(request: NextRequest) {
     
     const results = {
       enabled: isEnabled,
-      basicConnection: connectionTest
+      basicConnection: connectionTest,
+      extendedConnection: null as any,
+      orderCreation: null as any
     };
     
     // Test 3: Extended connection test with debug info

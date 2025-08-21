@@ -7,11 +7,11 @@ import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 
 export default function HandledarSessionManager() {
-  const [sessions, setSessions] = useState([]);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentSession, setCurrentSession] = useState(null);
+  const [currentSession, setCurrentSession] = useState<any>(null);
   const [isAddBookingOpen, setIsAddBookingOpen] = useState(false);
   const [bookingForm, setBookingForm] = useState({
     supervisorName: '',
@@ -60,7 +60,7 @@ export default function HandledarSessionManager() {
     }
   };
 
-  const handleOpenDialog = (session = null) => {
+  const handleOpenDialog = (session: any = null) => {
     if (session) {
       setIsEditing(true);
       setCurrentSession(session);
@@ -93,7 +93,7 @@ export default function HandledarSessionManager() {
     setIsDialogOpen(false);
   };
 
-  const openAddBooking = async (session) => {
+  const openAddBooking = async (session: any) => {
     setCurrentSession(session);
     setBookingForm({ supervisorName: '', supervisorEmail: '', supervisorPhone: '', studentId: '', sendPaymentEmail: true });
     try {
@@ -116,12 +116,12 @@ export default function HandledarSessionManager() {
     }
   };
 
-  const handleFormChange = (e) => {
+  const handleFormChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     const url = isEditing ? `/api/admin/handledar-sessions/${currentSession.id}` : '/api/admin/handledar-sessions';
     const method = isEditing ? 'PUT' : 'POST';
@@ -145,7 +145,7 @@ export default function HandledarSessionManager() {
   };
 
 
-  const handleDelete = async (sessionId) => {
+  const handleDelete = async (sessionId: string) => {
     if (window.confirm('Är du säker på att du vill ta bort denna session?')) {
       try {
         const response = await fetch(`/api/admin/handledar-sessions/${sessionId}`, {

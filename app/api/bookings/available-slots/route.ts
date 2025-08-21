@@ -54,10 +54,10 @@ export async function GET(request: NextRequest) {
     const availableSlots: Array<{ startTime: string; endTime: string }> = [];
 
     for (const setting of settings) {
-      if (setting.isBlocked) continue;
+      if (!setting.isActive) continue;
 
-      const startTime = setting.startTime;
-      const endTime = setting.endTime;
+      const startTime = setting.timeStart;
+      const endTime = setting.timeEnd;
 
       // Check if this time slot overlaps with any blocked slot
       const isBlocked = blocked.some(block => {

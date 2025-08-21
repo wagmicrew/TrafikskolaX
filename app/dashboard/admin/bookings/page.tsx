@@ -52,11 +52,11 @@ export default async function BookingsPage({
       isCompleted: bookings.isCompleted,
       isGuestBooking: bookings.isGuestBooking,
       createdAt: bookings.createdAt,
-      userName: sql`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${bookings.guestName})`,
-      userEmail: sql`COALESCE(${users.email}, ${bookings.guestEmail})`,
-      userPhone: sql`COALESCE(${users.phone}, ${bookings.guestPhone})`,
+      userName: sql<string>`COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${bookings.guestName})`,
+      userEmail: sql<string>`COALESCE(${users.email}, ${bookings.guestEmail})`,
+      userPhone: sql<string>`COALESCE(${users.phone}, ${bookings.guestPhone})`,
       userId: bookings.userId,
-      lessonTypeName: lessonTypes.name,
+      lessonTypeName: sql<string>`COALESCE(${lessonTypes.name}, 'Okänd lektionstyp')`,
       teacherId: bookings.teacherId,
     })
     .from(bookings)
@@ -78,7 +78,7 @@ export default async function BookingsPage({
   const usersList = await db
     .select({
       id: users.id,
-      name: sql`${users.firstName} || ' ' || ${users.lastName}`,
+      name: sql<string>`${users.firstName} || ' ' || ${users.lastName}`,
       email: users.email,
     })
     .from(users)

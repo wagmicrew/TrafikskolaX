@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         );
 
       if (creditType === 'lesson') {
-        const credits = await baseQuery
+        const credits = await (baseQuery as any)
           .leftJoin(lessonTypes, eq(userCredits.lessonTypeId, lessonTypes.id))
           .select({
             id: userCredits.id,
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
           });
         return NextResponse.json({ credits, total: credits.length });
       } else if (creditType === 'handledar') {
-        const credits = await baseQuery
+        const credits = await (baseQuery as any)
           .leftJoin(handledarSessions, eq(userCredits.handledarSessionId, handledarSessions.id))
           .select({
             id: userCredits.id,

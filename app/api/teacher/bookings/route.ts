@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
     const conditions = [];
 
     // Filter by teacher ID (only show bookings assigned to this teacher)
-    if (teacherId && teacherId === (user.userId || user.id)) {
+    if (teacherId && teacherId === ((user as any).userId || (user as any).id)) {
       conditions.push(eq(bookings.teacherId, teacherId));
     } else {
-      conditions.push(eq(bookings.teacherId, user.userId || user.id));
+      conditions.push(eq(bookings.teacherId, (user as any).userId || (user as any).id));
     }
 
     // Filter by specific date (for today's bookings)
@@ -81,14 +81,18 @@ export async function GET(request: NextRequest) {
     if (upcoming === 'true') {
       const today = new Date().toISOString().split('T')[0];
       conditions.push(gte(bookings.scheduledDate, today));
-      query = query.orderBy(asc(bookings.scheduledDate), asc(bookings.startTime));
-    } else {
-      query = query.orderBy(asc(bookings.startTime));
     }
 
     // Apply all conditions
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      query = query.where(and(...conditions)) as any;
+    }
+
+    // Apply ordering
+    if (upcoming === 'true') {
+      query = query.orderBy(asc(bookings.scheduledDate), asc(bookings.startTime)) as any;
+    } else {
+      query = query.orderBy(asc(bookings.startTime)) as any;
     }
 
     const results = await query;

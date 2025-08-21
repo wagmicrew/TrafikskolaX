@@ -61,7 +61,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
   const [isLoadingSteps, setIsLoadingSteps] = useState(false);
   const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingFeedback, setEditingFeedback] = useState(null);
+  const [editingFeedback, setEditingFeedback] = useState<any>(null);
   const [freetextFeedback, setFreetextFeedback] = useState({
     feedbackText: '',
     valuation: 5
@@ -160,7 +160,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     });
   };
 
-  const updateStepFeedback = (stepId, field, value) => {
+  const updateStepFeedback = (stepId: string, field: string, value: any) => {
     setSelectedSteps(prev => 
       prev.map(step => 
         step.stepId === stepId 
@@ -237,7 +237,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     }
   };
 
-  const startEditingFeedback = (feedbackItem) => {
+  const startEditingFeedback = (feedbackItem: any) => {
     setEditingFeedback({
       ...feedbackItem,
       originalValuation: feedbackItem.valuation,
@@ -245,9 +245,9 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     });
   };
 
-  const updateEditingFeedback = (field, value) => {
-    setEditingFeedback(prev => ({
-      ...prev,
+  const updateEditingFeedback = (field: string, value: any) => {
+    setEditingFeedback((prev: any) => ({
+      ...(prev || {}),
       [field]: value
     }));
   };
@@ -294,7 +294,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     setEditingFeedback(null);
   };
 
-  const deleteFeedback = async (feedbackId) => {
+  const deleteFeedback = async (feedbackId: string) => {
     if (!confirm('Är du säker på att du vill ta bort denna feedback?')) {
       return;
     }
@@ -546,7 +546,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     setIsSaving(false);
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     if (!status) return null;
     switch (status) {
       case 'confirmed':
@@ -574,7 +574,7 @@ const BookingDetailsClient: React.FC<BookingDetailsClientProps> = ({ booking }) 
     }
   };
 
-  const getPaymentBadge = (paymentStatus) => {
+  const getPaymentBadge = (paymentStatus: string) => {
     if (!paymentStatus) return null;
     return paymentStatus === 'paid' ? (
       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">

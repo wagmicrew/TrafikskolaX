@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(packages, eq(packagePurchases.packageId, packages.id))
       .where(
         and(
-          eq(packagePurchases.userId, payload.userId || payload.id),
+          eq(packagePurchases.userId, (payload as any).userId || (payload as any).id),
           eq(packagePurchases.paymentStatus, 'paid')
         )
       );

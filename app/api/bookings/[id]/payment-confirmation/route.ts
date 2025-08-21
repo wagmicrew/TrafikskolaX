@@ -43,7 +43,7 @@ export async function POST(
     
     const emailContext = {
       user: {
-        id: user[0].id,
+        id: userId,
         email: user[0].email,
         firstName: user[0].firstName,
         lastName: user[0].lastName,

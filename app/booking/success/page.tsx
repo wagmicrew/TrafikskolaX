@@ -29,7 +29,7 @@ export default function BookingSuccessPage() {
   
   useEffect(() => {
     // Try to get booking details from URL params or localStorage
-    const bookingId = searchParams.get('bookingId')
+    const bookingId = searchParams?.get('bookingId')
     
     if (bookingId) {
       fetchBookingDetails(bookingId)

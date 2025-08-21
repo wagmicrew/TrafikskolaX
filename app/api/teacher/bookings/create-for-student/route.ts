@@ -112,7 +112,14 @@ export async function POST(request: NextRequest) {
       .returning();
 
     // Send email notification to the student
-    await sendStudentNotification(student[0], booking, lessonType[0]);
+    const bookingForNotification = {
+      ...booking,
+      swishUUID: booking.swishUUID || undefined,
+      paymentStatus: booking.paymentStatus || undefined,
+      notes: booking.notes || undefined,
+      paymentMethod: booking.paymentMethod || undefined
+    };
+    await sendStudentNotification(student[0], bookingForNotification, lessonType[0]);
 
     return NextResponse.json({ 
       booking,

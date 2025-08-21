@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 export default function ModerateClient() {
   const params = useSearchParams();
-  const token = params.get('token') || '';
+  const token = params?.get('token') || '';
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<any>(null);
   const [suggested, setSuggested] = useState<string | null>(null);

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       : undefined;
 
     // Log the QR code generation request
-    logger.info('Generating Swish QR code', { 
+    logger.info('payment', 'Generating Swish QR code', { 
       payee: normalizedPayee, 
       amount, 
       message: message?.substring(0, 20) + '...', // Log only first part of message for privacy
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     if (!swishQrResponse.ok) {
       const errorText = await swishQrResponse.text();
-      logger.error('Swish QR API error', { 
+      logger.error('payment', 'Swish QR API error', { 
         status: swishQrResponse.status, 
         statusText: swishQrResponse.statusText,
         error: errorText,
@@ -123,14 +123,14 @@ export async function POST(request: NextRequest) {
       });
       
       // If Swish API fails, fall back to local QR generation
-      logger.info('Falling back to local QR generation');
+      logger.info('payment', 'Falling back to local QR generation');
       return await generateLocalQR(normalizedPayee, amount, message, format, size, transparent);
     }
 
     // Get the image buffer from Swish API
     const imageBuffer = await swishQrResponse.arrayBuffer();
     
-    logger.info('Swish QR code generated successfully', { 
+    logger.info('payment', 'Swish QR code generated successfully', { 
       format,
       size: imageBuffer.byteLength 
     });
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error generating Swish QR code', { 
+    logger.error('payment', 'Error generating Swish QR code', { 
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
     
@@ -248,7 +248,7 @@ async function generateLocalQR(
       });
     }
   } catch (error) {
-    logger.error('Local QR generation failed', { error });
+    logger.error('payment', 'Local QR generation failed', { error });
     throw error;
   }
 }

@@ -159,7 +159,7 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
       description: pkg?.name || `Paketköp ${purchaseId}`,
       returnUrl: `${baseUrl.replace(/\/$/, '')}/qliro/return?ref=package_${purchaseId}`,
       customerEmail: user?.email,
-      customerPhone: user?.phone,
+      customerPhone: user?.phone?.toString(),
       customerFirstName: user?.firstName,
       customerLastName: user?.lastName,
     });

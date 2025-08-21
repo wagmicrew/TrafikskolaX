@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('Student bookings API - User from token:', user);
-    console.log('Student bookings API - User ID:', user.id, 'or userId:', user.userId);
+    console.log('Student bookings API - User ID:', (user as any)?.id || (user as any)?.userId || 'Unknown');
 
     // Clean up any temporary bookings for this user first
     await db
       .delete(bookings)
       .where(and(
-        eq(bookings.userId, user.userId || user.id),
+        eq(bookings.userId, (user as any).userId || (user as any).id),
         eq(bookings.status, 'temp')
       ));
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
       .leftJoin(users, eq(bookings.teacherId, users.id))
       .where(and(
-        eq(bookings.userId, user.userId || user.id),
+        eq(bookings.userId, (user as any).userId || (user as any).id),
         isNull(bookings.deletedAt),
         ne(bookings.status, 'temp')
       ))

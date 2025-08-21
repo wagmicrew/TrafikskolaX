@@ -46,13 +46,13 @@ export async function GET(request: NextRequest) {
 
     // Filter sessions with available spots
     const availableSessions = sessions
-      .filter(session => session.currentParticipants < session.maxParticipants)
+      .filter(session => (session.currentParticipants ?? 0) < (session.maxParticipants ?? 0))
       .map(session => ({
         ...session,
         teacherName: session.teacherName && session.teacherLastName 
           ? `${session.teacherName} ${session.teacherLastName}` 
           : 'Lärare ej tilldelad',
-        spotsLeft: session.maxParticipants - session.currentParticipants,
+        spotsLeft: (session.maxParticipants ?? 0) - (session.currentParticipants ?? 0),
         formattedDateTime: formatSessionDateTime(session.date, session.startTime, session.endTime),
       }));
 

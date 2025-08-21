@@ -977,5 +977,115 @@ export class QliroService {
     logger.debug('payment', 'Built Qliro payment methods configuration', result);
     return result;
   }
+
+  public async adminPost(endpoint: string, payload: any): Promise<any> {
+    try {
+      const settings = await this.loadSettings();
+      const url = `${settings.apiUrl}${endpoint}`;
+
+      // Create HMAC signature for admin API
+      const timestamp = new Date().toISOString();
+      const body = JSON.stringify(payload);
+      const message = `${settings.apiKey}${timestamp}${body}`;
+      const signature = crypto.createHmac('sha256', settings.apiSecret).update(message).digest('base64');
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${settings.apiKey}:${signature}`,
+        'X-Qliro-Timestamp': timestamp
+      };
+
+      logger.debug('payment', 'Making Qliro admin API call', {
+        url,
+        method: 'POST',
+        hasPayload: !!payload
+      });
+
+      const response = await this.retryApiCall(async () => {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body
+        });
+
+        const text = await res.text();
+        if (!res.ok) {
+          throw new QliroApiError(`Admin API call failed: ${res.status} ${res.statusText}`, {
+            status: res.status,
+            statusText: res.statusText,
+            body: text
+          });
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch (parseError) {
+          logger.warn('payment', 'Failed to parse admin API response as JSON', { text, parseError });
+          return text;
+        }
+      });
+
+      logger.debug('payment', 'Qliro admin API call successful', { endpoint, hasResponse: !!response });
+      return response;
+    } catch (error) {
+      logger.error('payment', 'Qliro admin API call failed', {
+        endpoint,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
+
+  public async adminGet(endpoint: string): Promise<any> {
+    try {
+      const settings = await this.loadSettings();
+      const url = `${settings.apiUrl}${endpoint}`;
+
+      // Create HMAC signature for admin API
+      const timestamp = new Date().toISOString();
+      const message = `${settings.apiKey}${timestamp}`;
+      const signature = crypto.createHmac('sha256', settings.apiSecret).update(message).digest('base64');
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${settings.apiKey}:${signature}`,
+        'X-Qliro-Timestamp': timestamp
+      };
+
+      logger.debug('payment', 'Making Qliro admin API GET call', { url });
+
+      const response = await this.retryApiCall(async () => {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers
+        });
+
+        const text = await res.text();
+        if (!res.ok) {
+          throw new QliroApiError(`Admin API GET call failed: ${res.status} ${res.statusText}`, {
+            status: res.status,
+            statusText: res.statusText,
+            body: text
+          });
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch (parseError) {
+          logger.warn('payment', 'Failed to parse admin API GET response as JSON', { text, parseError });
+          return text;
+        }
+      });
+
+      logger.debug('payment', 'Qliro admin API GET call successful', { endpoint, hasResponse: !!response });
+      return response;
+    } catch (error) {
+      logger.error('payment', 'Qliro admin API GET call failed', {
+        endpoint,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  }
 }
 export const qliroService = QliroService.getInstance();

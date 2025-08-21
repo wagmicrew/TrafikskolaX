@@ -28,7 +28,7 @@ export async function GET(
     const user = await verifyToken(token);
     if (!user || user.role !== 'teacher') return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
-    const access = await ensurePlanAccess(bookingId, user.userId || user.id);
+    const access = await ensurePlanAccess(bookingId, (user as any).userId || (user as any).id);
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
     const plan = await db
@@ -57,7 +57,7 @@ export async function PUT(
     const user = await verifyToken(token);
     if (!user || user.role !== 'teacher') return NextResponse.json({ error: 'Access denied' }, { status: 403 });
 
-    const access = await ensurePlanAccess(bookingId, user.userId || user.id);
+    const access = await ensurePlanAccess(bookingId, (user as any).userId || (user as any).id);
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
     const { selectedStepIdentifiers }: { selectedStepIdentifiers: string[] } = await request.json();

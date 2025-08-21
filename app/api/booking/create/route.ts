@@ -1175,7 +1175,7 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
         
         // Filter out expired temporary bookings (older than 10 minutes)
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const activeConflictingBookings = conflictingBookings.filter(booking => {
+        const activeConflictingBookings = conflictingBookings.filter((booking: { status: string; createdAt: string | Date }) => {
           if (booking.status === 'temp' && new Date(booking.createdAt) < tenMinutesAgo) {
             return false; // Exclude expired temporary bookings
           }
@@ -1210,7 +1210,7 @@ async function findAvailableTeacher(trx: any, scheduledDate: string, startTime: 
         
         // Filter out expired temporary bookings (older than 10 minutes)
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const activeConflictingBookings = conflictingBookings.filter(booking => {
+        const activeConflictingBookings = conflictingBookings.filter((booking: { status: string; createdAt: string | Date }) => {
           if (booking.status === 'temp' && new Date(booking.createdAt) < tenMinutesAgo) {
             return false; // Exclude expired temporary bookings
           }

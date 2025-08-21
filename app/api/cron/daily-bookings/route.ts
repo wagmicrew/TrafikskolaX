@@ -53,8 +53,8 @@ export async function GET(request: Request) {
       .leftJoin(sql`lesson_types`, eq(bookings.lessonTypeId, sql`lesson_types.id`))
       .where(
         and(
-          gte(bookings.scheduledDate, todayStart),
-          lte(bookings.scheduledDate, todayEnd),
+          gte(bookings.scheduledDate, format(todayStart, 'yyyy-MM-dd')),
+          lte(bookings.scheduledDate, format(todayEnd, 'yyyy-MM-dd')),
           eq(bookings.status, 'confirmed')
         )
       )
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
       
       acc[teacherId].bookings.push(booking);
       return acc;
-    }, {} as Record<string, { teacher: typeof users.$inferSelect; bookings: typeof todaysBookings }>);
+    }, {} as Record<string, { teacher: { id: string; firstName: string; lastName: string; email: string; }; bookings: typeof todaysBookings }>);
 
     // Send email to each teacher with their schedule
     const results = await Promise.all(
@@ -97,10 +97,10 @@ export async function GET(request: Request) {
                   ${booking.lessonType?.name || 'Körlektion'}
                 </td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                  ${booking.student.firstName} ${booking.student.lastName}
+                  ${booking.student ? `${booking.student.firstName} ${booking.student.lastName}` : 'Okänd student'}
                 </td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;">
-                  <a href="tel:${booking.student.phone || ''}">${booking.student.phone || '-'}</a>
+                  <a href="tel:${booking.student?.phone || ''}">${booking.student?.phone || '-'}</a>
                 </td>
               </tr>
             `
@@ -147,7 +147,7 @@ export async function GET(request: Request) {
           return { success: true, teacherId: teacher.id, email: teacher.email };
         } catch (error) {
           console.error(`Failed to send daily summary to ${teacher.email}:`, error);
-          return { success: false, teacherId: teacher.id, email: teacher.email, error: error.message };
+          return { success: false, teacherId: teacher.id, email: teacher.email, error: error instanceof Error ? error.message : 'Unknown error' };
         }
       })
     );

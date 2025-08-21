@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Role scoping: students may only see teachers/admin regardless of filters
     if (user.role === 'student') {
-      baseConds.push(or(eq(users.role, 'teacher'), eq(users.role, 'admin')));
+      baseConds.push(or(eq(users.role, 'teacher'), eq(users.role, 'admin')) as any);
     } else if (roleFilter) {
       // Admin/teacher can filter by role explicitly
       if (roleFilter === 'student' || roleFilter === 'teacher' || roleFilter === 'admin') {

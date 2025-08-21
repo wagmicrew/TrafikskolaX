@@ -55,17 +55,19 @@ export async function POST(request: NextRequest) {
           .values({
             userId: purchase[0].userId,
             lessonTypeId: content.lessonTypeId,
-            credits: content.credits,
-            source: 'package_purchase',
-            sourceId: purchaseId
+            creditsTotal: content.credits,
+            creditsRemaining: content.credits,
+            creditType: 'lesson',
+            packageId: purchaseId
           });
       }
     }
 
 // Send confirmation email to user
     try {
-      await sendEmail({
-        to: purchase[0].userEmail,
+      if (purchase[0].userEmail) {
+        await sendEmail({
+          to: purchase[0].userEmail,
         subject: 'Bekräftelse på betalning',
         html: `
           <h1>Tack för ditt köp!</h1>
@@ -76,7 +78,8 @@ export async function POST(request: NextRequest) {
           <p>Du kan nu boka dina lektioner i din dashboard.</p>
         `,
         messageType: 'payment_confirmation',
-      });
+        });
+      }
     } catch (error) {
       console.error('Failed to send confirmation email:', error);
     }

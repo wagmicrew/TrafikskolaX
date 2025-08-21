@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       })
       .from(userFeedback)
       .innerJoin(bookings, eq(userFeedback.bookingId, bookings.id))
-      .where(eq(bookings.userId, user.userId || user.id))
+      .where(eq(bookings.userId, (user as any).userId || (user as any).id))
       .orderBy(desc(userFeedback.createdAt));
 
     // Transform feedback to individual items for dashboard display

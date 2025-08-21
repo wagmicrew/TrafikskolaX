@@ -104,13 +104,13 @@ export default function BookingsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Rensning misslyckades');
-      t.update({ title: 'Temporära bokningar rensade' });
+      t.update({ title: 'Temporära bokningar rensade', id: t.id });
       setTimeout(() => t.dismiss(), 1200);
       // Refresh current view
       router.refresh?.();
       window.location.reload();
     } catch (e: any) {
-      t.update({ title: 'Fel vid rensning', description: e.message || 'Misslyckades', variant: 'destructive' });
+      t.update({ title: 'Fel vid rensning', description: e.message || 'Misslyckades', variant: 'destructive', id: t.id });
       setTimeout(() => t.dismiss(), 2000);
     } finally {
       setIsProcessing(false);
@@ -128,12 +128,12 @@ export default function BookingsClient({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Arkivering misslyckades');
-      t.update({ title: 'Klart', description: `Arkiverade ${data.archived} avbrutna bokningar` });
+      t.update({ title: 'Klart', description: `Arkiverade ${data.archived} avbrutna bokningar`, id: t.id });
       setTimeout(() => t.dismiss(), 1200);
       router.refresh?.();
       window.location.reload();
     } catch (e: any) {
-      t.update({ title: 'Fel vid arkivering', description: e.message || 'Misslyckades', variant: 'destructive' });
+      t.update({ title: 'Fel vid arkivering', description: e.message || 'Misslyckades', variant: 'destructive', id: t.id });
       setTimeout(() => t.dismiss(), 2000);
     } finally {
       setIsProcessing(false);

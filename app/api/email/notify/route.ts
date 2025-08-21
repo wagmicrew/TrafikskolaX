@@ -92,9 +92,10 @@ export async function POST(request: Request) {
           paymentStatus: booking.paymentStatus,
           totalPrice: booking.totalPrice,
           lessonTypeName: booking.lessonType?.name || 'Körlektion',
-          teacherName: booking.teacher 
-            ? `${booking.teacher.firstName} ${booking.teacher.lastName}` 
+          teacherName: booking.teacher
+            ? `${booking.teacher.firstName} ${booking.teacher.lastName}`
             : 'Ingen lärare tilldelad',
+          teacherEmail: booking.teacher?.email || null,
         };
       }
     }
@@ -127,9 +128,9 @@ export async function POST(request: Request) {
       replacements['{{booking.endTime}}'] = bookingData.endTime;
       replacements['{{booking.lessonTypeName}}'] = bookingData.lessonTypeName;
       replacements['{{booking.totalPrice}}'] = bookingData.totalPrice.toString();
-      replacements['{{booking.status}}'] = bookingData.status;
-      replacements['{{booking.paymentStatus}}'] = bookingData.paymentStatus;
-      replacements['{{booking.teacherName}}'] = bookingData.teacherName;
+      replacements['{{booking.status}}'] = bookingData.status || 'Unknown';
+      replacements['{{booking.paymentStatus}}'] = bookingData.paymentStatus || 'Unknown';
+      replacements['{{booking.teacherName}}'] = bookingData.teacherName || 'Unknown';
     }
 
     // Apply all replacements
@@ -160,9 +161,15 @@ export async function POST(request: Request) {
           toEmail = process.env.ADMIN_EMAIL || 'admin@dintrafikskolahlm.se';
           break;
         case 'specific_user':
-          // For specific users, we'd need to look up the email
-          // This is a simplified example
-          toEmail = receiver.specificEmail || '';
+          // For specific users, look up the email using specificUserId
+          if (receiver.specificUserId) {
+            const specificUser = await db.query.users.findFirst({
+              where: (users, { eq }) => eq(users.id, receiver.specificUserId!),
+            });
+            toEmail = specificUser?.email || '';
+          } else {
+            toEmail = '';
+          }
           break;
       }
 

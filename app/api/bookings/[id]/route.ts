@@ -9,13 +9,17 @@ export async function POST(request: NextRequest) {
   try {
     const { bookingId, userId } = await request.json();
 
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
+    }
+
     // Find admin user to send notification to
     const adminUsers = await db
       .select({ id: users.id })
       .from(users)
       .where(eq(users.role, 'admin'))
       .limit(1);
-    
+
     // Create an internal message for the payment confirmation
     const message = {
       fromUserId: userId,
@@ -40,6 +44,10 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const bookingId = searchParams.get('bookingId');
 
+    if (!bookingId) {
+      return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
+    }
+
     const bookingDetails = await db
       .select({
         id: bookings.id,
@@ -54,7 +62,7 @@ export async function GET(req: NextRequest) {
       })
       .from(bookings)
       .where(and(
-        eq(bookings.id, bookingId),
+        eq(bookings.id, bookingId as string),
         isNull(bookings.deletedAt)
       ));
 
@@ -173,35 +181,39 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Send email notification to the student
     try {
       // Get student email
-      const studentData = await db
-        .select({ email: users.email, firstName: users.firstName })
-        .from(users)
-        .where(eq(users.id, existingBooking[0].userId))
-        .limit(1);
-      
-      if (studentData.length > 0) {
-        await sendCancellationNotification(studentData[0].email, {
-          lessonType: existingBooking[0].lessonTypeId || 'Lektion',
-          date: formattedDate,
-          time: `${existingBooking[0].startTime} - ${existingBooking[0].endTime}`,
-          reason: cancellationReason
-        });
-      }
-      
-      // Send notification to admin as well
-      const adminEmails = await db
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.role, 'admin'));
-      
-      // Send to all admins
-      for (const admin of adminEmails) {
-        await sendCancellationNotification(admin.email, {
-          lessonType: existingBooking[0].lessonTypeId || 'Lektion',
-          date: formattedDate,
-          time: `${existingBooking[0].startTime} - ${existingBooking[0].endTime}`,
-          reason: cancellationReason
-        });
+      if (!existingBooking[0].userId) {
+        console.warn('Booking has no userId, skipping email notification');
+      } else {
+        const studentData = await db
+          .select({ email: users.email, firstName: users.firstName })
+          .from(users)
+          .where(eq(users.id, existingBooking[0].userId))
+          .limit(1);
+
+        if (studentData.length > 0) {
+          await sendCancellationNotification(studentData[0].email, {
+            lessonType: existingBooking[0].lessonTypeId || 'Lektion',
+            date: formattedDate,
+            time: `${existingBooking[0].startTime} - ${existingBooking[0].endTime}`,
+            reason: cancellationReason
+          });
+        }
+
+        // Send notification to admin as well
+        const adminEmails = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(eq(users.role, 'admin'));
+
+        // Send to all admins
+        for (const admin of adminEmails) {
+          await sendCancellationNotification(admin.email, {
+            lessonType: existingBooking[0].lessonTypeId || 'Lektion',
+            date: formattedDate,
+            time: `${existingBooking[0].startTime} - ${existingBooking[0].endTime}`,
+            reason: cancellationReason
+          });
+        }
       }
     } catch (emailError) {
       const errorMessage = emailError instanceof Error ? emailError.message : 'Unknown error';

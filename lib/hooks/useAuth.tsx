@@ -56,50 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Get token from cookies or localStorage
+  // Get token from cookies only (secure approach)
   const getToken = useCallback((): string | null => {
-    // First check cookies (server-side compatible)
     if (typeof document !== 'undefined') {
       const cookies = document.cookie.split(';');
       const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
       if (authCookie) {
-        const token = authCookie.split('=')[1];
-        // Sync with localStorage for consistency
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('auth-token', token);
-        }
-        return token;
+        return authCookie.split('=')[1];
       }
     }
-
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth-token');
-    }
-
     return null;
   }, []);
 
-  // Set token in both cookies and localStorage
+  // Set token in localStorage for client-side access (token is already in cookie via server)
   const setToken = useCallback((token: string) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('auth-token', token);
     }
-    
-    if (typeof document !== 'undefined') {
-      // Set cookie with proper attributes
-      const cookieValue = `auth-token=${token}; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = cookieValue;
-    }
   }, []);
 
-  // Clear token from both cookies and localStorage
+  // Clear token from localStorage and cookies
   const clearToken = useCallback(() => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth-token');
     }
-    
+
     if (typeof document !== 'undefined') {
+      // Clear the cookie by setting it to expire
       document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax';
     }
   }, []);

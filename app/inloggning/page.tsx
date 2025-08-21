@@ -58,16 +58,21 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        // Use the auth context login method
-        if (data.token) {
-          login(data.token)
+        // Token is now handled via secure cookie by the server
+        // Decode token from localStorage if available for immediate state update
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+          login(token);
+        } else {
+          // Refresh auth state to check for cookie-based authentication
+          window.location.reload();
         }
 
         // Check for redirect parameter
-        const redirectUrl = searchParams?.get('redirect') || data.redirectUrl || '/dashboard'
-        router.push(redirectUrl)
+        const redirectUrl = searchParams?.get('redirect') || data.redirectUrl || '/dashboard';
+        router.push(redirectUrl);
       } else {
-        setError(data.error || 'Inloggning misslyckades')
+        setError(data.error || 'Inloggning misslyckades');
       }
     } catch (error) {
       setError('Ett fel uppstod vid inloggning')
@@ -104,18 +109,23 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        // Use the auth context login method
-        if (data.token) {
-          login(data.token)
+        // Token is now handled via secure cookie by the server
+        // Decode token from localStorage if available for immediate state update
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+          login(token);
+        } else {
+          // Refresh auth state to check for cookie-based authentication
+          window.location.reload();
         }
-        
+
         // Redirect to appropriate dashboard
-        const redirectUrl = userData.role === 'admin' ? '/dashboard/admin' : 
-                           userData.role === 'teacher' ? '/dashboard/teacher' : 
-                           '/dashboard/student'
-        router.push(redirectUrl)
+        const redirectUrl = data.redirectUrl || (userData.role === 'admin' ? '/dashboard/admin' :
+                           userData.role === 'teacher' ? '/dashboard/teacher' :
+                           '/dashboard/student');
+        router.push(redirectUrl);
       } else {
-        setError(data.error || 'Registrering misslyckades')
+        setError(data.error || 'Registrering misslyckades');
       }
     } catch (error) {
       setError('Ett fel uppstod vid registrering')

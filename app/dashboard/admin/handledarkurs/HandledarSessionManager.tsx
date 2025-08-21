@@ -208,7 +208,10 @@ export default function HandledarSessionManager() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent
+          className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none"
+          aria-describedby="session-description"
+        >
           {/* Glassmorphism style */}
           <div className="dialog-glassmorphism relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20 rounded-xl"></div>
@@ -218,6 +221,9 @@ export default function HandledarSessionManager() {
                   <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
                     {isEditing ? 'Redigera Session' : 'Skapa Ny Session'}
                   </DialogTitle>
+                  <p id="session-description" className="sr-only">
+                    {isEditing ? 'Redigera sessionens detaljer' : 'Skapa en ny handledarsession med formuläret nedan'}
+                  </p>
 
                 </div>
               </DialogHeader>
@@ -334,7 +340,10 @@ export default function HandledarSessionManager() {
 
       {/* Add Booking Dialog */}
       <Dialog open={isAddBookingOpen} onOpenChange={setIsAddBookingOpen}>
-        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        <DialogContent
+          className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none"
+          aria-describedby="booking-description"
+        >
           <div className="dialog-glassmorphism relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 via-transparent to-blue-500/20 rounded-xl"></div>
             <div className="relative z-10 p-6 sm:p-8">
@@ -343,6 +352,9 @@ export default function HandledarSessionManager() {
                   <DialogTitle className="text-xl font-bold text-white drop-shadow-lg">
                     Lägg till deltagare
                   </DialogTitle>
+                  <p id="booking-description" className="sr-only">
+                    Lägg till en bokning för handledarsessionen med formuläret nedan
+                  </p>
 
                 </div>
               </DialogHeader>

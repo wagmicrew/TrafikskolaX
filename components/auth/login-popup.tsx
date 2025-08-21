@@ -44,10 +44,17 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
 
       if (response.ok) {
         setSuccess("Inloggning lyckades! Omdirigerar...")
-        
+
+        // Token is now handled via secure HTTP-only cookie
         // Use the improved login function with automatic redirection
-        login(data.token)
-        
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+          login(token);
+        } else {
+          // Refresh auth state to check for cookie-based authentication
+          window.location.reload();
+        }
+
         // Close popup after a short delay
         setTimeout(() => {
           onClose()
@@ -92,10 +99,17 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
 
       if (response.ok) {
         setSuccess("Registrering lyckades! Omdirigerar...")
-        
+
+        // Token is now handled via secure HTTP-only cookie
         // Use the improved login function with automatic redirection
-        login(data.token)
-        
+        const token = localStorage.getItem('auth-token');
+        if (token) {
+          login(token);
+        } else {
+          // Refresh auth state to check for cookie-based authentication
+          window.location.reload();
+        }
+
         // Close popup after a short delay
         setTimeout(() => {
           onClose()
@@ -112,7 +126,10 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] xl:max-w-[750px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+      <DialogContent
+        className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[700px] xl:max-w-[750px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none"
+        aria-describedby="auth-description"
+      >
         <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full max-h-[95vh] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-red-500/20 via-transparent to-blue-500/20 rounded-xl sm:rounded-2xl"></div>
           <div className="relative z-10 h-full overflow-y-auto">
@@ -124,6 +141,12 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
                   </DialogTitle>
 
                 </div>
+                <p id="auth-description" className="sr-only">
+                  {activeTab === 'login'
+                    ? 'Logga in på ditt konto med e-post och lösenord'
+                    : 'Registrera ett nytt konto genom att fylla i formuläret nedan'
+                  }
+                </p>
                 <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-3 sm:mt-4"></div>
               </DialogHeader>
 

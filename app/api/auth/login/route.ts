@@ -6,7 +6,7 @@ import { EmailService } from '@/lib/email/email-service';
 import { rateLimit, getRequestIp } from '@/lib/utils/rate-limit';
 import { withApiHandler, jsonSuccess, jsonError } from '@/lib/api/middleware';
 import { createAuthResponse } from '@/lib/auth/cookies';
-import { type JWTPayload } from '@/lib/auth/jwt';
+import { signToken, type JWTPayload } from '@/lib/auth/jwt';
 import { loginSchema } from '@/lib/validation/schemas';
 import { createSuccessResponse, createErrorResponse, API_ERROR_CODES } from '@/lib/api/types';
 
@@ -94,7 +94,17 @@ async function handleLogin(request: NextRequest) {
       redirectUrl = '/dashboard';
   }
 
-  return createSuccessResponse({
+  // Create JWT payload
+  const jwtPayload: JWTPayload = {
+    userId: user.id as string,
+    email: user.email as string,
+    role: user.role as 'student' | 'teacher' | 'admin',
+    firstName: user.first_name as string,
+    lastName: user.last_name as string,
+  };
+
+  // Create auth response with JWT token in secure cookie
+  return createAuthResponse(jwtPayload, {
     redirectUrl,
     user: {
       userId: user.id as string,
@@ -103,7 +113,7 @@ async function handleLogin(request: NextRequest) {
       firstName: user.first_name as string,
       lastName: user.last_name as string,
     },
-  }, 'Login successful');
+  });
 }
 
 // Use the new API handler wrapper

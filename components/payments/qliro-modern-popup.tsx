@@ -240,7 +240,10 @@ export function QliroModernPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[1200px] lg:max-w-[1400px] xl:max-w-[1600px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+      <DialogContent
+        className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[1200px] lg:max-w-[1400px] xl:max-w-[1600px] max-h-[95vh] sm:max-h-[90vh] p-0 overflow-hidden border-0 bg-transparent shadow-none"
+        aria-describedby="payment-description"
+      >
         {/* Glassmorphism Container */}
         <div className="relative bg-white/95 backdrop-blur-xl border border-gray-200 rounded-xl sm:rounded-2xl shadow-2xl h-full max-h-[95vh] overflow-hidden">
           {/* Background gradient overlay */}
@@ -257,6 +260,9 @@ export function QliroModernPopup({
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Qliro Checkout</h2>
                   <p className="text-sm text-gray-600">{description} • {amount} kr</p>
+                  <p id="payment-description" className="sr-only">
+                    Slutför din betalning via Qliro Checkout. Fyll i dina betalningsuppgifter i formuläret till höger.
+                  </p>
                 </div>
               </div>
 

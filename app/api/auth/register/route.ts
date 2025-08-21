@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
-import { signToken } from '@/lib/auth/jwt';
+import { createAuthResponse } from '@/lib/auth/cookies';
+import { type JWTPayload } from '@/lib/auth/jwt';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { EmailService } from '@/lib/email/email-service';
@@ -79,24 +80,41 @@ export async function POST(request: NextRequest) {
       // Don't fail the registration if email fails
     }
 
-    // Generate JWT token
-    const token = signToken({
+    // Determine redirect URL based on role
+    let redirectUrl = '/dashboard';
+    switch (user.role) {
+      case 'admin':
+        redirectUrl = '/dashboard/admin';
+        break;
+      case 'teacher':
+        redirectUrl = '/dashboard/teacher';
+        break;
+      case 'student':
+        redirectUrl = '/dashboard/student';
+        break;
+      default:
+        redirectUrl = '/dashboard';
+    }
+
+    // Create JWT payload
+    const jwtPayload: JWTPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
-    });
+    };
 
-    return NextResponse.json({
-      success: true,
-      token,
+    // Create auth response with JWT token in secure cookie
+    return createAuthResponse(jwtPayload, {
+      redirectUrl,
       user: {
         userId: user.id,
         email: user.email,
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
+        customerNumber: user.customerNumber,
       },
     });
   } catch (error) {

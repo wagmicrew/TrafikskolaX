@@ -5,9 +5,7 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { AuthProvider } from "@/lib/hooks/useAuth"
-import { Toaster } from "react-hot-toast"
-import { CookieConsent } from "@/components/CookieConsent"
-import ImpersonationBanner from '@/components/ImpersonationBanner'
+import { ClientRoot } from "@/components/ClientRoot"
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { getOpeningHours, toJsonLd } from "@/lib/site-settings/opening-hours"
 
@@ -216,14 +214,12 @@ export default async function RootLayout({
       </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          <AuthProvider>
-            <ImpersonationBanner />
-            <Navigation />
-            <main>{children}</main>
-            <Toaster />
-            <CookieConsent />
-          </AuthProvider>
-          <Footer />
+          <ClientRoot>
+            {children}
+          </ClientRoot>
+          {/* Provide opening hours to Footer as fallback props for first render */}
+          {/* The client Footer will still hydrate/use hook if needed */}
+          
         </ErrorBoundary>
       </body>
     </html>

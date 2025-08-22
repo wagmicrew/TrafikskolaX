@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle, XCircle, X, CreditCard, AlertCircle, FileText, Shield } from "lucide-react";
 import { useQliroListener } from "@/hooks/use-qliro-listener";
@@ -260,9 +260,9 @@ export function QliroModernPopup({
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Qliro Checkout</h2>
                   <p className="text-sm text-gray-600">{description} • {amount} kr</p>
-                  <p id="payment-description" className="sr-only">
+                  <DialogDescription id="payment-description" className="sr-only">
                     Slutför din betalning via Qliro Checkout. Fyll i dina betalningsuppgifter i formuläret till höger.
-                  </p>
+                  </DialogDescription>
                 </div>
               </div>
 

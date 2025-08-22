@@ -18,8 +18,8 @@ async function main() {
   }
 
   const sql = neon(dbUrl);
-  const newPassword = 'Admin' + Math.random().toString(36).slice(-8) + '!';
-  const hash = await bcrypt.hash(newPassword, 10);
+  const newPassword = 'trafikskolahlm';
+  const hash = await bcrypt.hash(newPassword, 12);
 
   // Find user by email first using tagged template
   const found = await sql`SELECT id, email FROM users WHERE email = ${email}`;

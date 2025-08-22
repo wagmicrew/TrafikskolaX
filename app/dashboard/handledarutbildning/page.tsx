@@ -79,8 +79,9 @@ export default function HandledarkursBookingPage() {
       setTimeout(() => {
         router.push('/payment');
       }, 3000);
-    } catch (error) {
-      setBookingMessage(`Fel: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setBookingMessage(`Fel: ${errorMessage}`);
       console.error('Fel vid skapande av bokning:', error);
     }
   };

@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link"
 import Image from "next/image"
 import { Phone, Mail, Clock } from "lucide-react"
-import { getOpeningHours } from "@/lib/site-settings/opening-hours"
+import { useOpeningHours } from "@/hooks/useOpeningHours"
+import type { OpeningHoursConfig } from "@/lib/site-settings/opening-hours"
 
 type Day = "mo" | "tu" | "we" | "th" | "fr" | "sa" | "su"
 type TimeInterval = { start: string; end: string }
@@ -55,10 +58,16 @@ function formatIntervals(list: TimeInterval[]) {
   return list.map((iv) => `${iv.start} - ${iv.end}`).join(", ")
 }
 
-export async function Footer() {
-  const oh = await getOpeningHours()
-  const officeGroups = compressWeekly(oh.office.weekly)
-  const drivingGroups = compressWeekly(oh.driving.weekly)
+export function Footer({ opening }: { opening?: OpeningHoursConfig }) {
+  const { data: openingData, loading, error } = useOpeningHours()
+
+  // Guard against undefined shape
+  const source = opening || openingData || null
+  const officeWeekly = source?.office?.weekly as any
+  const drivingWeekly = source?.driving?.weekly as any
+
+  const officeGroups = officeWeekly ? compressWeekly(officeWeekly) : []
+  const drivingGroups = drivingWeekly ? compressWeekly(drivingWeekly) : []
 
   return (
     <footer className="bg-gray-100 border-t">

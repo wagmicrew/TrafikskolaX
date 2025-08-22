@@ -39,7 +39,7 @@ interface PaymentsResponse {
 export default function QliroPaymentsClient() {
   const { user } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [payments, setPayments] = useState<QliroPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -54,14 +54,14 @@ export default function QliroPaymentsClient() {
   // Initialize Qliro listener
   useQliroListener({
     onCompleted: () => {
-      toast({
+      addToast({
         title: "Betalning slutförd",
         description: "Qliro-betalningen har genomförts framgångsrikt"
       });
       fetchPayments(); // Refresh the list
     },
     onDeclined: () => {
-      toast({
+      addToast({
         title: "Betalning avbruten", 
         description: "Qliro-betalningen avbröts eller misslyckades",
         variant: "destructive"
@@ -103,7 +103,7 @@ export default function QliroPaymentsClient() {
       setTotal(data.total);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
-      toast({
+      addToast({
         title: "Fel",
         description: "Kunde inte hämta betalningar",
         variant: "destructive"
@@ -120,9 +120,9 @@ export default function QliroPaymentsClient() {
       const res = await fetch(`/api/admin/qliro/payments/${paymentId}/remind`, { method: 'POST', credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      toast({ title: 'Påminnelse skickad', description: 'E-postpåminnelse har skickats till kunden.' });
+      addToast({ title: 'Påminnelse skickad', description: 'E-postpåminnelse har skickats till kunden.' });
     } catch (e: any) {
-      toast({ title: 'Kunde inte skicka påminnelse', description: e?.message || 'Fel uppstod', variant: 'destructive' });
+      addToast({ title: 'Kunde inte skicka påminnelse', description: e?.message || 'Fel uppstod', variant: 'destructive' });
     }
   };
 
@@ -133,12 +133,12 @@ export default function QliroPaymentsClient() {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       if (data.checkoutUrl) {
         try { await navigator.clipboard.writeText(data.checkoutUrl); } catch {}
-        toast({ title: 'Betalningslänk skapad', description: 'Länken är kopierad till urklipp.' });
+        addToast({ title: 'Betalningslänk skapad', description: 'Länken är kopierad till urklipp.' });
       } else {
-        toast({ title: 'Betalningslänk skapad', description: 'Länk skapad, men ingen URL returnerades.' });
+        addToast({ title: 'Betalningslänk skapad', description: 'Länk skapad, men ingen URL returnerades.' });
       }
     } catch (e: any) {
-      toast({ title: 'Kunde inte skapa länk', description: e?.message || 'Fel uppstod', variant: 'destructive' });
+      addToast({ title: 'Kunde inte skapa länk', description: e?.message || 'Fel uppstod', variant: 'destructive' });
     }
   };
 

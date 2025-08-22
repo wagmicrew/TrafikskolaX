@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { 
   FaQuestionCircle, 
   FaUsers, 

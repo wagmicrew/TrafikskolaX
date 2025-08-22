@@ -153,11 +153,12 @@ async function handleQliroPayment(purchaseId: string, amount: number, _settings:
       return NextResponse.json({ error: 'Public https URL not configured' }, { status: 500 });
     }
 
-    const checkout = await qliroService.createCheckout({
+    const checkout = await qliroService.getOrCreateCheckout({
       amount,
-      reference: purchaseId,
+      reference: `package_${purchaseId}`,
       description: pkg?.name || `Paketköp ${purchaseId}`,
       returnUrl: `${baseUrl.replace(/\/$/, '')}/qliro/return?ref=package_${purchaseId}`,
+      packagePurchaseId: purchaseId,
       customerEmail: user?.email,
       customerPhone: user?.phone?.toString(),
       customerFirstName: user?.firstName,

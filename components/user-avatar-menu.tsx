@@ -66,12 +66,12 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
         .slice(0, 2)
     : user.email[0].toUpperCase()
 
-  const dashboardUrl = 
-    user.role === "admin"
+  const dashboardUrl =
+    user && user.role ? (user.role === "admin"
       ? "/dashboard/admin"
       : user.role === "teacher"
       ? "/dashboard/teacher"
-      : "/dashboard/student"
+      : "/dashboard/student") : "/dashboard"
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -162,9 +162,9 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
               </div>
             </div>
             <div className="flex items-center space-x-2 pt-1">
-              {getRoleIcon(user.role)}
-              <BadgeComponent variant="outline" className={getRoleColor(user.role)}>
-                {getRoleLabel(user.role)}
+              {user && user.role ? getRoleIcon(user.role) : <User className="h-4 w-4" />}
+              <BadgeComponent variant="outline" className={user && user.role ? getRoleColor(user.role) : 'bg-gray-100 text-gray-800 border-gray-200'}>
+                {user && user.role ? getRoleLabel(user.role) : 'Unknown'}
               </BadgeComponent>
             </div>
           </div>
@@ -215,7 +215,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
             </DropdownMenuItem>
           )}
           
-          {user.role === "student" && (
+          {user && user.role === "student" && (
             <>
               <DropdownMenuItem
                 onClick={() => router.push("/dashboard/student/feedback")} 
@@ -230,7 +230,7 @@ export const UserAvatarMenu = memo(function UserAvatarMenu() {
             </>
           )}
           
-          {user.role === "admin" && (
+          {user && user.role === "admin" && (
             <>
               <DropdownMenuItem
                 onClick={() => router.push("/dashboard/admin/users")} 

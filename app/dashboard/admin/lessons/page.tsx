@@ -59,19 +59,40 @@ export default async function LessonsPage() {
     .from(handledarSessions)
     .orderBy(desc(handledarSessions.isActive), handledarSessions.title);
 
+  // Transform data to handle nullable booleans and match expected types
+  const transformedLessons = lessons.map(lesson => ({
+    ...lesson,
+    isActive: lesson.isActive ?? false,
+    description: lesson.description ?? undefined,
+  }));
+
+  const transformedPackages = packagesList.map(pkg => ({
+    ...pkg,
+    isActive: pkg.isActive ?? false,
+    description: pkg.description ?? undefined,
+    priceStudent: pkg.priceStudent ?? null,
+    salePrice: pkg.salePrice ?? null,
+    contents: [], // Add missing contents property for Package interface
+  }));
+
+  const transformedSessions = handledarSessionsList.map(session => ({
+    ...session,
+    isActive: session.isActive ?? false,
+  }));
+
   // Get lesson type statistics
   const lessonStats = {
-    totalLessons: lessons.length,
-    activeLessons: lessons.filter(l => l.isActive).length,
-    totalPackages: packagesList.length,
-    activePackages: packagesList.filter(p => p.isActive).length,
+    totalLessons: transformedLessons.length,
+    activeLessons: transformedLessons.filter(l => l.isActive).length,
+    totalPackages: transformedPackages.length,
+    activePackages: transformedPackages.filter(p => p.isActive).length,
   };
 
   return (
     <LessonsClient
-      lessons={lessons}
-      packages={packagesList}
-      handledarSessions={handledarSessionsList}
+      lessons={transformedLessons}
+      packages={transformedPackages}
+      handledarSessions={transformedSessions}
       stats={lessonStats}
     />
   );

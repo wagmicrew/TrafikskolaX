@@ -195,7 +195,7 @@ export class EmailCronService {
         where: and(
           eq(bookings.isCompleted, true),
           eq(bookings.feedbackReady, false),
-          lte(bookings.completedAt, threeDaysAgo.toISOString())
+          lte(bookings.completedAt, threeDaysAgo)
         ),
         with: {
           user: true,

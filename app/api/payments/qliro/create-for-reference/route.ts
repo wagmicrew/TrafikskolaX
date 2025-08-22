@@ -34,11 +34,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const result = await qliroService.createCheckout({
+      const result = await qliroService.getOrCreateCheckout({
         amount: Number(bk.totalPrice || 0),
         reference: `booking_${bk.id}`,
         description: 'Körlektion',
         returnUrl: `${baseUrl}/dashboard/student/bokningar/${bk.id}`,
+        bookingId: bk.id,
         customerEmail,
         customerPhone,
         customerFirstName,
@@ -58,11 +59,12 @@ export async function POST(request: NextRequest) {
       // Resolve user
       const [usr] = await db.select().from(users).where(eq(users.id, purchase.userId)).limit(1);
 
-      const result = await qliroService.createCheckout({
+      const result = await qliroService.getOrCreateCheckout({
         amount: Number(purchase.pricePaid || 0),
         reference: `package_${purchase.id}`,
         description: pkg?.name || 'Paket',
         returnUrl: `${baseUrl}/dashboard/student`,
+        packagePurchaseId: purchase.id,
         customerEmail: usr?.email,
         customerPhone: usr?.phone || undefined,
         customerFirstName: usr?.firstName || undefined,

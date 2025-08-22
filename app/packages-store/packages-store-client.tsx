@@ -60,6 +60,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true);
   const [qliroStatusMessage, setQliroStatusMessage] = useState<string>('');
   const [qliroStatusLoading, setQliroStatusLoading] = useState<boolean>(true);
+  const [notifyingPaid, setNotifyingPaid] = useState(false);
+  const [paidNotified, setPaidNotified] = useState(false);
   const [swishPaymentData, setSwishPaymentData] = useState({
     amount: 0,
     message: '',
@@ -271,6 +273,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           try {
             await handleSwishConfirm(swishPaymentData.purchaseId);
             setPaidNotified(true);
+          } catch (error) {
+            console.error('Failed to confirm Swish payment:', error);
           } finally {
             setNotifyingPaid(false);
           }

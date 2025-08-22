@@ -10,7 +10,7 @@ import { UserAvatarMenu } from "@/components/user-avatar-menu"
 import { MapPin, Phone, Mail, Car, User, Calendar, LogIn, Building2, Home, Menu, X, HelpCircle } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useAuthActions } from "@/hooks/useAuthActions"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { LoginPopup } from "@/components/auth/login-popup"
 
 export const Navigation = memo(function Navigation() {
@@ -209,11 +209,11 @@ export const Navigation = memo(function Navigation() {
             {/* Mobile Login/Dashboard Button */}
             {user ? (
               <>
-                <Link
-                  href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
-                >
+                                  <Link
+                    href={user && user.role ? (user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student') : '/dashboard'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center space-x-4 px-6 py-4 text-base font-medium transition-all duration-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+                  >
                   <User className="w-5 h-5 text-gray-500" />
                   <span>Dashboard</span>
                 </Link>
@@ -297,7 +297,7 @@ export const Navigation = memo(function Navigation() {
             {/* Mobile Login/Dashboard Tab */}
             {user ? (
               <Link
-                href={user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student'}
+                href={user && user.role ? (user.role === 'admin' ? '/dashboard/admin' : user.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student') : '/dashboard'}
                 className="flex flex-col items-center justify-center space-y-1 transition-all duration-200 text-gray-500 active:text-red-600"
               >
                 <User className="w-5 h-5 text-gray-500" />
@@ -327,6 +327,9 @@ export const Navigation = memo(function Navigation() {
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
             <DialogTitle>Kontakta oss</DialogTitle>
+            <DialogDescription>
+              Fyll i formuläret nedan så kontaktar vi dig så snart som möjligt.
+            </DialogDescription>
           </DialogHeader>
           <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
         </DialogContent>

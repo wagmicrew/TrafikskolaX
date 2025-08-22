@@ -16,7 +16,7 @@ const UserManagement = memo(() => {
   const [loading, setLoading] = useState(true);
   
   const fetchUsers = useCallback(async () => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || !user.role || user.role !== 'admin') return;
     
     setLoading(true);
     try {

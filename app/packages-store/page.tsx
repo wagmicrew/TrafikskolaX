@@ -24,9 +24,18 @@ export default async function PackagesStorePage({ searchParams }: { searchParams
     .from(packages)
     .where(eq(packages.isActive, true));
 
+  // Transform packages data to handle nullable fields
+  const transformedPackagesData = packagesData.map(pkg => ({
+    ...pkg,
+    description: pkg.description ?? undefined,
+    priceStudent: pkg.priceStudent ?? undefined,
+    salePrice: pkg.salePrice ?? undefined,
+    isActive: pkg.isActive ?? false,
+  }));
+
   // Fetch package contents for each package
   const packagesWithContents = await Promise.all(
-    packagesData.map(async (pkg) => {
+    transformedPackagesData.map(async (pkg) => {
       const contents = await db
         .select({
           id: packageContents.id,

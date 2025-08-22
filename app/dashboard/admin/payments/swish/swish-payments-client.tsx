@@ -38,7 +38,7 @@ interface PaymentsResponse {
 export default function SwishPaymentsClient() {
   const { user } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
+  const { addToast } = useToast();
   const [payments, setPayments] = useState<SwishPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -86,7 +86,7 @@ export default function SwishPaymentsClient() {
       setTotal(data.total);
     } catch (error) {
       console.error('Failed to fetch Swish payments:', error);
-      toast({
+      addToast({
         title: "Fel",
         description: "Kunde inte hämta Swish-betalningar",
         variant: "destructive"

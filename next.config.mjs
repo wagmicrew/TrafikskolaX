@@ -1,115 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Build optimizations
-  eslint: {
-    ignoreDuringBuilds: true, // Ignore ESLint during builds to prevent warnings from breaking builds
-  },
-  typescript: {
-    ignoreBuildErrors: true, // Ignore and build!
-  },
-  
-  // Image optimization
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    domains: ['localhost'], // Add your image domains here
-  },
-  
-  // Performance optimizations
-  reactStrictMode: false,
-  productionBrowserSourceMaps: false,
-  poweredByHeader: false,
-  
-  // Bundle optimization
-  // External packages for server components
-  serverExternalPackages: ['bcryptjs', 'jsonwebtoken'],
-  
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-    optimizePackageImports: [
-      'lucide-react',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      'react-hot-toast'
+    remotePatterns: [
+      { protocol: 'http', hostname: 'localhost', port: '', pathname: '**' },
     ],
   },
-  
-  // Tree shaking optimizations
-  modularizeImports: {
-    'lucide-react': {
-      transform: 'lucide-react/icons/{{member}}',
-      preventFullImport: true,
-    },
-    'react-icons/fa': {
-      transform: 'react-icons/fa/{{member}}',
-      preventFullImport: true,
-    },
-    '@radix-ui/react-icons': {
-      transform: '@radix-ui/react-icons/dist/{{member}}',
-      preventFullImport: true,
-    },
-  },
-  webpack: (config, { isServer, dev }) => {
-    // Client-side optimizations
-    if (!isServer) {
-      config.resolve.fallback = {
-        fs: false,
-        path: false,
-        os: false,
-        crypto: false,
-      };
-      
-      // Split chunks for better caching
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-              priority: 10,
-            },
-            ui: {
-              test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
-              name: 'ui-components',
-              chunks: 'all',
-              priority: 20,
-            },
-          },
-        },
-      };
-    }
-    
-    // Production optimizations
-    if (!dev) {
-      config.optimization = {
-        ...config.optimization,
-        usedExports: true,
-        sideEffects: false,
-      };
-    }
-    
-    return config;
-  },
-  
-  // Compiler optimizations
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
-    styledComponents: false, // We're not using styled-components
-  },
-  
-
+  reactStrictMode: false,
+  productionBrowserSourceMaps: true,
+  poweredByHeader: false,
 };
 
 export default nextConfig;

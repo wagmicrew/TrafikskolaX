@@ -8,7 +8,7 @@ const BookingManagement: React.FC = memo(() => {
   const [loading, setLoading] = useState(true);
 
   const fetchBookings = useCallback(async () => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || !user.role || user.role !== 'admin') return;
     
     setLoading(true);
     try {

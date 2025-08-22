@@ -57,14 +57,14 @@ export function LoginForm({ isOpen, onClose }: LoginFormProps) {
         setSuccess("Inloggning lyckades! Omdirigerar...")
         setTimeout(() => {
           onClose()
-          // Redirect based on user role
-          if (data.user.role === 'admin') {
-            router.push('/dashboard/admin')
-          } else if (data.user.role === 'teacher') {
-            router.push('/dashboard/teacher')
-          } else {
-            router.push('/dashboard/student')
-          }
+                  // Redirect based on user role
+        if (data.user && data.user.role === 'admin') {
+          router.push('/dashboard/admin')
+        } else if (data.user && data.user.role === 'teacher') {
+          router.push('/dashboard/teacher')
+        } else {
+          router.push('/dashboard/student')
+        }
         }, 1500)
       } else {
         setError(data.error || "Inloggning misslyckades")

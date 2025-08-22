@@ -159,7 +159,7 @@ export default function CreditsClient({ userId }: CreditsClientProps) {
                 placeholder="Amount"
                 className="input"
               />
-              <Button onClick={handleAddCredit} variant="primary">
+              <Button onClick={handleAddCredit} variant="default">
                 Add Credit
               </Button>
             </div>
@@ -198,14 +198,14 @@ export default function CreditsClient({ userId }: CreditsClientProps) {
                     </>
                   ) : (
                     <>
-                      <span>Amount: {credit.amount}</span>
+                      <span>Amount: {credit.creditsRemaining}</span>
                       <Button onClick={() => {
                         setEditCreditId(credit.id)
                         setEditCreditAmount(credit.creditsRemaining)
-                      }} variant="warning">
+                      }} variant="secondary">
                         Edit
                       </Button>
-                      <Button onClick={() => handleDeleteCredit(credit.id)} variant="danger">
+                      <Button onClick={() => handleDeleteCredit(credit.id)} variant="destructive">
                         Delete
                       </Button>
                     </>

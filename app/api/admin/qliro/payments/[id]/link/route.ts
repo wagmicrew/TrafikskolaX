@@ -34,11 +34,12 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     if (!amount || amount <= 0) return NextResponse.json({ error: 'Invalid amount for purchase' }, { status: 400 });
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-    const checkout = await qliroService.createCheckout({
+    const checkout = await qliroService.getOrCreateCheckout({
       amount,
-      reference: purchase.id,
+      reference: `package_${purchase.id}`,
       description: (pkg?.name as string) || `Paketköp ${purchase.id}`,
       returnUrl: `${baseUrl}/packages-store?openPayment=${purchase.id}`,
+      packagePurchaseId: purchase.id,
       customerEmail: user?.email || undefined,
       customerPhone: user?.phone || undefined,
       customerFirstName: user?.firstName || undefined,

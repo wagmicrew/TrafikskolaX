@@ -67,7 +67,7 @@ export class NotificationService {
           endTime: booking.endTime,
           lessonTypeName: booking.lessonType?.name || 'Körlektion',
           totalPrice: booking.totalPrice.toString(),
-          paymentMethod: booking.paymentMethod
+          paymentMethod: booking.paymentMethod || undefined
         },
         customData: {
           needsPayment: booking.paymentStatus !== 'paid',
@@ -117,7 +117,7 @@ export class NotificationService {
           endTime: booking.endTime,
           lessonTypeName: booking.lessonType?.name || 'Körlektion',
           totalPrice: booking.totalPrice.toString(),
-          paymentMethod: booking.paymentMethod
+          paymentMethod: booking.paymentMethod || undefined
         },
         teacher: booking.teacher ? {
           id: booking.teacher.id,
@@ -294,8 +294,8 @@ export class NotificationService {
       // Get all bookings for today
       const todaysBookings = await db.query.bookings.findMany({
         where: and(
-          gte(bookings.scheduledDate, startOfToday),
-          lte(bookings.scheduledDate, endOfToday)
+          gte(bookings.scheduledDate, startOfToday.toISOString().split('T')[0]),
+          lte(bookings.scheduledDate, endOfToday.toISOString().split('T')[0])
         ),
         with: {
           user: true,
@@ -326,8 +326,8 @@ export class NotificationService {
           bookingCount: todaysBookings.length,
           bookingDetails: bookingDetails.map(b => ({
             ...b,
-            status: this.translateStatus(b.status),
-            paymentStatus: this.translatePaymentStatus(b.paymentStatus)
+            status: this.translateStatus(b.status || ''),
+            paymentStatus: this.translatePaymentStatus(b.paymentStatus || '')
           }))
         }
       };

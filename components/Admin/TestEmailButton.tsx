@@ -10,7 +10,7 @@ interface TestEmailButtonProps {
   userEmail?: string;
   userName?: string;
   variant?: 'default' | 'secondary' | 'outline';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'lg';
 }
 
 export default function TestEmailButton({ 

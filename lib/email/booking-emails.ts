@@ -59,9 +59,10 @@ export async function sendBookingConfirmationEmail(context: BookingEmailContext)
     }
 
     return success;
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('email', 'Error sending booking confirmation email', {
-      error: error.message,
+      error: errorMessage,
       userId: context.user.id,
       bookingId: context.booking.id
     });
@@ -112,9 +113,10 @@ export async function sendSwishPaymentConfirmationEmail(context: BookingEmailCon
     }
 
     return success;
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('email', 'Error sending Swish payment confirmation email', {
-      error: error.message,
+      error: errorMessage,
       bookingId: context.booking.id,
       swishRef: context.booking.swishUUID
     });

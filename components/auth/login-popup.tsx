@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { X, LogIn, UserPlus, Mail, Phone, User, Lock, Shield, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -60,7 +60,7 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
           onClose()
         }, 1000)
       } else {
-        setError(data.error || "Inloggning misslyckades")
+        setError(typeof data.error === 'object' ? data.error.message || "Inloggning misslyckades" : data.error || "Inloggning misslyckades")
       }
     } catch (error) {
       setError("Ett fel uppstod. Forsok igen.")
@@ -115,7 +115,7 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
           onClose()
         }, 1000)
       } else {
-        setError(data.error || "Registrering misslyckades")
+        setError(typeof data.error === 'object' ? data.error.message || "Registrering misslyckades" : data.error || "Registrering misslyckades")
       }
     } catch (error) {
       setError("Ett fel uppstod. Forsok igen.")
@@ -141,12 +141,12 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
                   </DialogTitle>
 
                 </div>
-                <p id="auth-description" className="sr-only">
+                <DialogDescription id="auth-description" className="sr-only">
                   {activeTab === 'login'
                     ? 'Logga in på ditt konto med e-post och lösenord'
                     : 'Registrera ett nytt konto genom att fylla i formuläret nedan'
                   }
-                </p>
+                </DialogDescription>
                 <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-3 sm:mt-4"></div>
               </DialogHeader>
 

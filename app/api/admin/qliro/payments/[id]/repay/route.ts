@@ -81,11 +81,12 @@ export async function POST(_request: NextRequest, context: { params: Promise<{ i
     // Create a new Qliro checkout for this purchase reference
     let checkout;
     try {
-      checkout = await qliroService.createCheckout({
+      checkout = await qliroService.getOrCreateCheckout({
         amount,
-        reference: purchase.id,
+        reference: `package_${purchase.id}`,
         description: (pkg?.name as string) || `Paketköp ${purchase.id}`,
         returnUrl: `${baseUrl}/dashboard/admin/settings/qliro?qliro_payment=${purchase.id}`,
+        packagePurchaseId: purchase.id,
         customerEmail: targetUser?.email || undefined,
         customerPhone: targetUser?.phone || undefined,
         customerFirstName: targetUser?.firstName || undefined,

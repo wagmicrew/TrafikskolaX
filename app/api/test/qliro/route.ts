@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     if (connectionTest.success) {
       console.log('4. Testing order creation with customer data...');
       try {
-        const testOrder = await qliroService.createCheckout({
-          amount: 50000, // 500 SEK
+        const testOrder = await qliroService.getOrCreateCheckout({
+          amount: 500, // 500 SEK
           reference: `TEST-API-${Date.now()}`,
           description: 'Test order via API endpoint',
           returnUrl: `${request.nextUrl.origin || process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se'}/test-return`,
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     if (testType === 'order') {
       const { amount = 10000, reference, customerData } = body;
       
-      const testOrder = await qliroService.createCheckout({
+      const testOrder = await qliroService.getOrCreateCheckout({
         amount,
         reference: reference || `TEST-POST-${Date.now()}`,
         description: 'Test order via POST',

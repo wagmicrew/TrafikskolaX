@@ -71,12 +71,13 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se';
 
-    // Create a Qliro checkout
-    const checkout = await qliroService.createCheckout({
+    // Create a Qliro checkout with ORDER_ALREADY_EXISTS precheck
+    const checkout = await qliroService.getOrCreateCheckout({
       amount,
-      reference: purchase.id,
+      reference: `package_${purchase.id}`,
       description: pkg?.name || `Paketköp ${purchase.id}`,
       returnUrl: `${baseUrl}/dashboard/admin/settings?qliro_payment=${purchase.id}`,
+      packagePurchaseId: purchase.id,
       customerEmail: targetUser.email || undefined,
       customerPhone: (targetUser as any)?.phone || undefined,
       customerFirstName: (targetUser as any)?.firstName || undefined,

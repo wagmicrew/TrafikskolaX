@@ -38,7 +38,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         const lessonResponse = await fetch('/api/lesson-types')
         if (lessonResponse.ok) {
           const lessonData = await lessonResponse.json()
-          const lessons = (lessonData.lessonTypes || []).map(lesson => ({
+          const lessons = (lessonData.lessonTypes || []).map((lesson: any) => ({
             ...lesson,
             type: 'lesson' as const
           }))
@@ -62,7 +62,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
           console.log("[LESSON SELECTION DEBUG] Sessions count:", handledarData.sessions?.length)
           
           if (handledarData.hasAvailableSessions && handledarData.sessions?.length > 0) {
-            const handledarSessions = handledarData.sessions.map(session => ({
+            const handledarSessions = handledarData.sessions.map((session: any) => ({
               ...session,
               type: 'handledar' as const,
               name: session.title,

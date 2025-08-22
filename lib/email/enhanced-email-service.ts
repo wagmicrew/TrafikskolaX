@@ -211,8 +211,9 @@ export class EnhancedEmailService {
       });
 
       return this.config;
-    } catch (error) {
-      logger.error('email', 'Failed to load email configuration', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('email', 'Failed to load email configuration', { error: errorMessage });
       
       // Return default configuration
       return {
@@ -262,13 +263,14 @@ export class EnhancedEmailService {
       }, options.userId);
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('email', 'SendGrid email failed', {
         to: options.to,
         subject: options.subject,
-        error: error.message
+        error: errorMessage
       }, options.userId);
-      
+
       return false;
     }
   }
@@ -319,12 +321,13 @@ logger.info('email', 'Email sent via SMTP', {
       }, options.userId);
 
       return true;
-    } catch (error) {
-      logger.error('email', 'SMTP email failed', {
-        to: options.to,
-        subject: options.subject,
-        error: error.message
-      }, options.userId);
+      } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('email', 'SMTP email failed', {
+      to: options.to,
+      subject: options.subject,
+      error: errorMessage
+    }, options.userId);
       
       return false;
     }
@@ -378,11 +381,12 @@ logger.info('email', 'Email sent via SMTP', {
       }, options.userId);
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('email', 'Failed to save as internal message', {
         to: options.to,
         subject: options.subject,
-        error: error.message
+        error: errorMessage
       }, options.userId);
       
       return false;
@@ -541,10 +545,11 @@ logger.info('email', 'Email sent via SMTP', {
       });
 
       return allSuccess;
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('email', `Email trigger ${triggerType} failed`, {
         triggerType,
-        error: error.message
+        error: errorMessage
       });
       return false;
     }
@@ -913,11 +918,12 @@ logger.info('email', 'Email sent via SMTP', {
         html: processedHtml,
         messageType: 'test'
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('email', 'Test email failed', {
         templateId,
         testEmail,
-        error: error.message
+        error: errorMessage
       });
       return false;
     }

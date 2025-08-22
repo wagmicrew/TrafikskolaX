@@ -28,12 +28,16 @@ async function getSendGridApiKey(): Promise<string> {
   }
 }
 
+/**
+ * Pay with credits endpoint
+ * @param context.params - Already resolved by middleware (not a Promise)
+ */
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id: bookingId } = await context.params;
+    const { id: bookingId } = context.params;
     const body = await request.json();
     const { userId, lessonTypeId } = body;
 

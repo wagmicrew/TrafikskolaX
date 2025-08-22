@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { users, bookings } from '@/lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import UserDetailClient from './user-detail-client';
 
@@ -10,12 +10,12 @@ export const dynamic = 'force-dynamic';
 export default async function UserDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
   // Ensure admin access
   await requireAuth('admin');
 
-  const { id } = await params;
+  const { id } = params;
 
   if (id === 'new') {
     // Render a creation dialog instead of fetching
@@ -33,16 +33,47 @@ export default async function UserDetailPage({
     }} />;
   }
 
-  // Fetch user details
-  const user = await db
+  // Fetch user details with booking count using a separate query
+  const userData = await db
     .select()
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
 
-  if (user.length === 0) {
+  const bookingCountResult = await db
+    .select({
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(bookings)
+    .where(eq(bookings.userId, id));
+
+  const bookingCount = Number(bookingCountResult[0]?.count || 0);
+
+  if (!userData.length) {
     notFound();
   }
 
-  return <UserDetailClient user={user[0]} />;
+  const userDataItem = userData[0];
+  const user = {
+    id: userDataItem.id,
+    firstName: userDataItem.firstName,
+    lastName: userDataItem.lastName,
+    email: userDataItem.email,
+    phone: userDataItem.phone || undefined,
+    role: userDataItem.role,
+    isActive: userDataItem.isActive,
+    inskriven: userDataItem.inskriven,
+    inskrivenDate: userDataItem.inskrivenDate?.toISOString() || null,
+    customPrice: userDataItem.customPrice?.toString() || null,
+    bookingCount,
+    profileImage: userDataItem.profileImage || undefined,
+    personalNumber: userDataItem.personalNumber || undefined,
+    riskEducation1: userDataItem.riskEducation1 || undefined,
+    riskEducation2: userDataItem.riskEducation2 || undefined,
+    knowledgeTest: userDataItem.knowledgeTest || undefined,
+    drivingTest: userDataItem.drivingTest || undefined,
+    teacherNotes: userDataItem.notes || undefined,
+  };
+
+  return <UserDetailClient user={user} />;
 }

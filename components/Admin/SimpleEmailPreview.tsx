@@ -19,7 +19,7 @@ export function SimpleEmailPreview({
 }) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-md">
+      <div className="flex items-center justify-center h-64 bg-white rounded-md">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         <span className="sr-only">Laddar förhandsvisning...</span>
       </div>
@@ -28,8 +28,8 @@ export function SimpleEmailPreview({
 
   if (!previewContent) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 bg-gray-50 rounded-md p-4 text-center">
-        <p className="text-gray-500 mb-4">Ingen förhandsvisning tillgänglig</p>
+      <div className="flex flex-col items-center justify-center h-64 bg-white rounded-md p-4 text-center">
+        <p className="text-gray-700 mb-4">Ingen förhandsvisning tillgänglig</p>
         <Button onClick={onRefresh} variant="outline">
           Uppdatera förhandsvisning
         </Button>
@@ -52,9 +52,9 @@ export function SimpleEmailPreview({
   };
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <div className="border-b p-2 bg-gray-50 flex justify-between items-center">
-        <h3 className="font-medium">{previewContent.subject || 'Förhandsgranska e-post'}</h3>
+    <div className="border rounded-md overflow-hidden bg-white text-gray-900">
+      <div className="border-b p-2 bg-white text-gray-900 flex justify-between items-center">
+        <h3 className="font-semibold text-gray-900">{previewContent.subject || 'Förhandsgranska e-post'}</h3>
         <div className="flex gap-2">
           {showResetButton && onReset && (
             <Button 
@@ -80,7 +80,7 @@ export function SimpleEmailPreview({
         </div>
       </div>
       
-      <div className="h-[500px] overflow-auto">
+      <div className="h-[500px] overflow-auto bg-white text-gray-900">
         <div 
           className="p-4"
           dangerouslySetInnerHTML={{ __html: previewContent.html }} 

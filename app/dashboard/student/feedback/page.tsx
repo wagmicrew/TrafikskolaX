@@ -61,13 +61,22 @@ export default function StudentFeedbackPage() {
     );
   }
 
+  // Transform JWTPayload to match StudentFeedbackClient's User interface
+  const transformedUser = {
+    id: user.userId,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
       <div className="px-6 pt-8">
         <StudentHeader title="Feedback" icon={<FaCommentDots className="text-sky-300" />} />
       </div>
-      <StudentFeedbackClient 
-        user={user}
+      <StudentFeedbackClient
+        user={transformedUser}
         feedback={feedbackData.feedback}
         total={feedbackData.total}
       />

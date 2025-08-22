@@ -63,15 +63,15 @@ export default async function LessonsPage() {
   const transformedLessons = lessons.map(lesson => ({
     ...lesson,
     isActive: lesson.isActive ?? false,
-    description: lesson.description ?? undefined,
+    description: lesson.description ?? null,
   }));
 
   const transformedPackages = packagesList.map(pkg => ({
     ...pkg,
     isActive: pkg.isActive ?? false,
     description: pkg.description ?? undefined,
-    priceStudent: pkg.priceStudent ?? null,
-    salePrice: pkg.salePrice ?? null,
+    priceStudent: pkg.priceStudent ?? undefined,
+    salePrice: pkg.salePrice ?? undefined,
     contents: [], // Add missing contents property for Package interface
   }));
 

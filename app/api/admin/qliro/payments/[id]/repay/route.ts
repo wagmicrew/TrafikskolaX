@@ -7,14 +7,18 @@ import { qliroService } from '@/lib/payment/qliro-service';
 
 export const runtime = 'nodejs';
 
-export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+/**
+ * Admin repay Qliro payment endpoint
+ * @param context.params - Already resolved by middleware (not a Promise)
+ */
+export async function POST(_request: NextRequest, context: { params: { id: string } }) {
   try {
     const auth = await requireAuthAPI('admin');
     if (!auth.success) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { id } = await context.params;
+    const { id } = context.params;
     
     if (!id) {
       return NextResponse.json({ error: 'Purchase ID is required' }, { status: 400 });

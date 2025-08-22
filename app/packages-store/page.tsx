@@ -62,6 +62,10 @@ export default async function PackagesStorePage({ searchParams }: { searchParams
 
       return {
         ...pkg,
+        description: pkg.description || 'Ingen beskrivning tillgänglig',
+        price: Number(pkg.price),
+        priceStudent: pkg.priceStudent ? Number(pkg.priceStudent) : undefined,
+        salePrice: pkg.salePrice ? Number(pkg.salePrice) : undefined,
         features: features.length > 0 ? features : ['Inga funktioner angivna'],
         credits: totalCredits,
         image: '', // Add a default image path if needed
@@ -80,9 +84,17 @@ export default async function PackagesStorePage({ searchParams }: { searchParams
 
   const hasActiveCredits = existingCredits.some((c) => (Number(c.creditsRemaining) || 0) > 0);
 
+  // Transform AuthUser to match PackagesStoreClient's User interface
+  const transformedUser = {
+    id: user.id,
+    email: user.email,
+    name: `${user.firstName} ${user.lastName}`,
+    role: user.role,
+  };
+
   return (
-    <PackagesStoreClient 
-      user={user}
+    <PackagesStoreClient
+      user={transformedUser}
       packages={packagesWithContents}
       hasActiveCredits={hasActiveCredits}
       // openPayment could be used by the client to auto-open purchase dialog

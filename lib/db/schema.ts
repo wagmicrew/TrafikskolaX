@@ -362,6 +362,67 @@ export const qliroOrders = pgTable('qliro_orders', {
 });
 
 
+// Teori lesson types table
+export const teoriLessonTypes = pgTable('teori_lesson_types', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  allowsSupervisors: boolean('allows_supervisors').default(false),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  pricePerSupervisor: decimal('price_per_supervisor', { precision: 10, scale: 2 }),
+  durationMinutes: integer('duration_minutes').default(60),
+  maxParticipants: integer('max_participants').default(1),
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Teori sessions table (similar to handledarSessions)
+export const teoriSessions = pgTable('teori_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  lessonTypeId: uuid('lesson_type_id').notNull().references(() => teoriLessonTypes.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  date: date('date').notNull(),
+  startTime: time('start_time').notNull(),
+  endTime: time('end_time').notNull(),
+  maxParticipants: integer('max_participants').default(1),
+  currentParticipants: integer('current_participants').default(0),
+  teacherId: uuid('teacher_id').references(() => users.id),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Teori bookings table (similar to handledarBookings but for students)
+export const teoriBookings = pgTable('teori_bookings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id').notNull().references(() => teoriSessions.id, { onDelete: 'cascade' }),
+  studentId: uuid('student_id').notNull().references(() => users.id),
+  status: varchar('status', { length: 50 }).default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  swishUuid: varchar('swish_uuid', { length: 255 }),
+  bookedBy: uuid('booked_by').references(() => users.id),
+  reminderSent: boolean('reminder_sent').default(false),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Teori supervisors table (for types that allow supervisors)
+export const teoriSupervisors = pgTable('teori_supervisors', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  teoriBookingId: uuid('teori_booking_id').notNull().references(() => teoriBookings.id, { onDelete: 'cascade' }),
+  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
+  supervisorEmail: varchar('supervisor_email', { length: 255 }),
+  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 20 }),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Handledar sessions table
 export const handledarSessions = pgTable('handledar_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -452,6 +513,49 @@ export const handledarSessionsRelations = relations(handledarSessions, ({ one, m
   bookings: many(handledarBookings),
 }));
 
+// Teori lesson types relations
+export const teoriLessonTypesRelations = relations(teoriLessonTypes, ({ many }) => ({
+  sessions: many(teoriSessions),
+}));
+
+// Teori sessions relations
+export const teoriSessionsRelations = relations(teoriSessions, ({ one, many }) => ({
+  lessonType: one(teoriLessonTypes, {
+    fields: [teoriSessions.lessonTypeId],
+    references: [teoriLessonTypes.id],
+  }),
+  teacher: one(users, {
+    fields: [teoriSessions.teacherId],
+    references: [users.id],
+  }),
+  bookings: many(teoriBookings),
+}));
+
+// Teori bookings relations
+export const teoriBookingsRelations = relations(teoriBookings, ({ one, many }) => ({
+  session: one(teoriSessions, {
+    fields: [teoriBookings.sessionId],
+    references: [teoriSessions.id],
+  }),
+  student: one(users, {
+    fields: [teoriBookings.studentId],
+    references: [users.id],
+  }),
+  bookedBy: one(users, {
+    fields: [teoriBookings.bookedBy],
+    references: [users.id],
+  }),
+  supervisors: many(teoriSupervisors),
+}));
+
+// Teori supervisors relations
+export const teoriSupervisorsRelations = relations(teoriSupervisors, ({ one }) => ({
+  booking: one(teoriBookings, {
+    fields: [teoriSupervisors.teoriBookingId],
+    references: [teoriBookings.id],
+  }),
+}));
+
 // Handledar bookings relations
 export const handledarBookingsRelations = relations(handledarBookings, ({ one }) => ({
   session: one(handledarSessions, {
@@ -529,6 +633,24 @@ export const notifications = pgTable('notifications', {
   message: text('message').notNull(),
   type: varchar('type', { length: 50 }).default('info'), // info, warning, error, success
   isRead: boolean('is_read').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// User PDF reports metadata table
+export const userReports = pgTable('user_reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Original user this report belonged to (may be null if user removed)
+  userId: uuid('user_id').references(() => users.id),
+  // Who generated the report (admin)
+  createdBy: uuid('created_by').references(() => users.id),
+  // File information (stored on server, non-public)
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  filePath: text('file_path').notNull(),
+  fileSize: integer('file_size'),
+  mimeType: varchar('mime_type', { length: 100 }).default('application/pdf'),
+  // Redundant info for display even if user row is deleted
+  deletedUserEmail: varchar('deleted_user_email', { length: 255 }),
+  deletedUserName: varchar('deleted_user_name', { length: 255 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

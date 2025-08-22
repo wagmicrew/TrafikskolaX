@@ -9,8 +9,8 @@ import { ApiResponse, createErrorResponse, createSuccessResponse, CommonErrors }
 
 export type ApiHandler<T = unknown> = (
   req: NextRequest,
-  context?: { params?: Promise<any> }
-) => Promise<ApiResponse<T>>;
+  context?: { params?: Record<string, string | string[]> }
+) => Promise<ApiResponse<T> | NextResponse>;
 
 export interface RouteOptions {
   requireAuth?: boolean;
@@ -29,7 +29,7 @@ export function withApiHandler<T>(
   handler: ApiHandler<T>,
   options: RouteOptions = {}
 ) {
-  return async (req: NextRequest, context: { params: Promise<Record<string, string | string[]>> }) => {
+  return async (req: NextRequest, context: { params: Record<string, string | string[]> }) => {
     try {
       // Authentication check
       if (options.requireAuth) {
@@ -49,7 +49,7 @@ export function withApiHandler<T>(
 
       // Request validation
       if (options.validate) {
-        const resolvedParams = await context.params;
+        const resolvedParams = context.params;
         const validationResult = await validateRequest(req, resolvedParams, options.validate);
         if (!validationResult.success) {
           return NextResponse.json(validationResult.error, { status: 400 });
@@ -57,10 +57,15 @@ export function withApiHandler<T>(
       }
 
       // Execute handler
-      const resolvedParams = await context.params;
-      const result = await handler(req, { ...context, params: resolvedParams });
+      const resolvedParams = context.params;
+      const result = await handler(req, { params: resolvedParams });
 
-      // Return standardized response
+      // If the handler returned a NextResponse (e.g. to set cookies), passthrough
+      if (result instanceof NextResponse) {
+        return result;
+      }
+
+      // Otherwise, standardize ApiResponse<T>
       if (result.success) {
         return NextResponse.json(result, { status: 200 });
       } else {

@@ -242,17 +242,29 @@ export class EnhancedEmailService {
 
       sgMail.setApiKey(config.sendgridApiKey);
 
-      const msg = {
+      // Use the simpler SendGrid format that works with their API
+      const msg: any = {
         to: options.to,
         from: {
           email: config.fromEmail,
           name: options.fromName || config.fromName
         },
         replyTo: options.replyTo || config.replyTo,
-        subject: options.subject,
-        text: options.text,
-        html: options.html || options.text
+        subject: options.subject
       };
+
+      // Add content based on what's available
+      if (options.html) {
+        msg.html = options.html;
+      }
+      if (options.text) {
+        msg.text = options.text;
+      }
+
+      // Ensure at least one content type is provided
+      if (!options.html && !options.text) {
+        msg.text = 'No content provided';
+      }
 
       await sgMail.send(msg);
       
@@ -282,6 +294,18 @@ export class EnhancedEmailService {
     try {
       if (!config.smtpHost || !config.smtpUsername || !config.smtpPassword) {
         throw new Error('SMTP configuration incomplete');
+      }
+
+      // Warn if credentials/host contain accidental whitespace which can cause 535 errors
+      const hasHostWhitespace = config.smtpHost.trim() !== config.smtpHost;
+      const hasUserWhitespace = config.smtpUsername.trim() !== config.smtpUsername;
+      const hasPassWhitespace = config.smtpPassword.trim() !== config.smtpPassword;
+      if (hasHostWhitespace || hasUserWhitespace || hasPassWhitespace) {
+        logger.warn('email', 'SMTP settings contain leading/trailing whitespace which may cause auth failures', {
+          hostHasWhitespace: hasHostWhitespace,
+          userHasWhitespace: hasUserWhitespace,
+          passHasWhitespace: hasPassWhitespace
+        }, options.userId);
       }
 
       const transporter = nodemailer.createTransport({
@@ -322,11 +346,16 @@ logger.info('email', 'Email sent via SMTP', {
 
       return true;
       } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const err: any = error;
+    const errorMessage = err instanceof Error ? err.message : String(err);
     logger.error('email', 'SMTP email failed', {
       to: options.to,
       subject: options.subject,
-      error: errorMessage
+      error: errorMessage,
+      code: err?.code,
+      response: err?.response,
+      responseCode: err?.responseCode,
+      command: err?.command
     }, options.userId);
       
       return false;
@@ -856,6 +885,11 @@ logger.info('email', 'Email sent via SMTP', {
       swish_payment_verification: 'payment_confirmation',
       handledar_booking_confirmed: 'booking_related',
       handledar_payment_reminder: 'payment_confirmation',
+      handledar_booking_cancelled: 'booking_related',
+      handledar_booking_moved: 'booking_related',
+      handledar_student_confirmation: 'booking_related',
+      handledar_supervisor_confirmation: 'booking_related',
+      handledar_supervisor_payment_request: 'payment_confirmation',
       booking_payment_reminder: 'payment_confirmation',
       package_payment_reminder: 'payment_confirmation'
     };

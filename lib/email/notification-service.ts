@@ -235,10 +235,10 @@ export class NotificationService {
             }
           });
 
-          if (!handledarBooking || !handledarBooking.userId) return false;
+          if (!handledarBooking || !handledarBooking.studentId) return false;
 
           const userData = await db.query.users.findFirst({
-            where: eq(users.id, handledarBooking.userId)
+            where: eq(users.id, handledarBooking.studentId)
           });
 
           if (!userData) return false;

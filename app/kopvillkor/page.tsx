@@ -1,4 +1,38 @@
+"use client"
+
+import { useEffect, useState } from "react"
+
 export default function TermsOfService() {
+  const [contact, setContact] = useState<{
+    email: string
+    phone: string
+    website: string
+    name: string
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/public/site-settings', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to load site settings')
+        const json = await res.json()
+        if (mounted) setContact(json?.contact || null)
+      } catch {
+        // keep silent to avoid altering design; show placeholders below
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
+
+  const websiteLabel = contact?.website
+    ? contact.website.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    : '—'
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Köpvillkor</h1>
@@ -38,6 +72,14 @@ export default function TermsOfService() {
         
         <p className="mt-8 text-sm text-gray-600">
           Senast uppdaterad: {new Date().toLocaleDateString('sv-SE')}
+        </p>
+
+        <hr className="my-6" />
+        <h3>Kontakt</h3>
+        <p className="text-sm">
+          <strong>E-post:</strong> {loading ? 'Laddar…' : (contact?.email || '—')}<br />
+          <strong>Telefon:</strong> {loading ? 'Laddar…' : (contact?.phone || '—')}<br />
+          <strong>Hemsida:</strong> {loading ? 'Laddar…' : websiteLabel}
         </p>
       </div>
     </div>

@@ -69,7 +69,7 @@ export function TriggerFlowPopup({ open, onClose, onSelectTrigger }: TriggerFlow
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-white rounded-xl shadow-2xl border z-[60]">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />

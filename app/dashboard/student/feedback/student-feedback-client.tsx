@@ -3,10 +3,40 @@
 import React, { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaSadTear, FaSmileBeam, FaComments } from 'react-icons/fa';
 
+// TypeScript interfaces
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
+interface FeedbackItem {
+  id: string;
+  stepIdentifier: string;
+  valuation: number;
+  feedbackText: string;
+}
+
+interface FeedbackEntry {
+  id: string;
+  bookingId: string;
+  lessonTypeName: string;
+  scheduledDate: string;
+  feedback: FeedbackItem[];
+}
+
+interface StudentFeedbackClientProps {
+  user: User;
+  feedback: FeedbackEntry[];
+  total: number;
+}
+
 // Glassmorphism styled student feedback page
 
-const StudentFeedbackClient = ({ user, feedback, total }) => {
-  const [expandedBooking, setExpandedBooking] = useState(null);
+const StudentFeedbackClient: React.FC<StudentFeedbackClientProps> = ({ user, feedback, total }) => {
+  const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
 
   if (!feedback) {
     return (
@@ -16,17 +46,17 @@ const StudentFeedbackClient = ({ user, feedback, total }) => {
     );
   }
 
-  const toggleExpand = (bookingId) => {
+  const toggleExpand = (bookingId: string): void => {
     setExpandedBooking(expandedBooking === bookingId ? null : bookingId);
   };
 
-  const getValuationColor = (valuation) => {
+  const getValuationColor = (valuation: number): string => {
     if (valuation <= 3) return 'text-red-500';
     if (valuation <= 7) return 'text-yellow-500';
     return 'text-green-500';
   };
 
-  const getValuationText = (valuation) => {
+  const getValuationText = (valuation: number): string => {
     if (valuation <= 3) return 'Behöver övning';
     if (valuation <= 7) return 'Godkänd';
     return 'Utmärkt';
@@ -75,7 +105,7 @@ const StudentFeedbackClient = ({ user, feedback, total }) => {
       <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white shadow-2xl">
         <h2 className="text-xl font-extrabold mb-4">Feedback per lektion</h2>
         <div className="space-y-4">
-          {feedback.map((fb: any) => (
+          {feedback.map((fb: FeedbackEntry) => (
             <div key={fb.id} className="rounded-xl border border-white/10 bg-white/5">
               <div 
                 className="p-4 flex justify-between items-center cursor-pointer hover:bg-white/10 rounded-xl"
@@ -93,7 +123,7 @@ const StudentFeedbackClient = ({ user, feedback, total }) => {
               {expandedBooking === fb.bookingId && (
                 <div className="p-4 border-t border-white/10">
                   <div className="space-y-3">
-                    {fb.feedback?.map((item: any) => (
+                    {fb.feedback?.map((item: FeedbackItem) => (
                       <div key={item.id} className="p-3 rounded-lg bg-white/5 border border-white/10">
                         <div className="flex items-center justify-between">
                           <p className="font-semibold text-white">{item.stepIdentifier}</p>

@@ -1,14 +1,50 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { StaticNavigation } from "@/components/static-navigation"
-import { Footer } from "@/components/footer"
 import { Shield, CreditCard, RefreshCw, Scale, AlertTriangle, Clock } from "lucide-react"
+import { useEffect, useState } from "react"
+import OpeningHoursDynamic from "@/components/site/opening-hours-dynamic"
 
 export default function TermsPage() {
+  const [contact, setContact] = useState<{
+    email: string
+    phone: string
+    website: string
+    name: string
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/public/site-settings", { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to load site settings")
+        const json = await res.json()
+        if (mounted) setContact(json?.contact || null)
+      } catch (e: any) {
+        if (mounted) setError(e?.message || "Fel vid hämtning av kontaktuppgifter")
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const displayWebsite = (url?: string) => {
+    if (!url) return ""
+    try {
+      return url.replace(/^https?:\/\//, "").replace(/\/$/, "")
+    } catch {
+      return url
+    }
+  }
   return (
     <div className="min-h-screen bg-gray-50">
-      <StaticNavigation />
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -208,8 +244,8 @@ export default function TermsPage() {
                     <ul className="space-y-2 text-sm">
                       <li>• <strong>Reklamationstid:</strong> 3 år från köpdatum</li>
                       <li>• <strong>Anmälan:</strong> Inom skälig tid efter upptäckt</li>
-                      <li>• <strong>Kontakt:</strong> info@dintrafikskolax.se</li>
-                      <li>• <strong>Telefon:</strong> 0451-123 45</li>
+                      <li>• <strong>Kontakt:</strong> {loading ? 'Laddar…' : (contact?.email || '—')}</li>
+                      <li>• <strong>Telefon:</strong> {loading ? 'Laddar…' : (contact?.phone || '—')}</li>
                     </ul>
                   </div>
                   <div>
@@ -293,12 +329,17 @@ export default function TermsPage() {
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Kontaktuppgifter</h4>
-                    <p className="text-sm space-y-1">
-                      <strong>E-post:</strong> info@dintrafikskolax.se<br />
-                      <strong>Telefon:</strong> 0451-123 45<br />
-                      <strong>Hemsida:</strong> dintrafikskolax.se<br />
-                      <strong>Öppettider:</strong> Mån-Fre 08:00-17:00
-                    </p>
+                    <div className="text-sm space-y-1">
+                      <div><strong>E-post:</strong> {loading ? 'Laddar…' : (contact?.email || '—')}</div>
+                      <div><strong>Telefon:</strong> {loading ? 'Laddar…' : (contact?.phone || '—')}</div>
+                      <div><strong>Hemsida:</strong> {loading ? 'Laddar…' : (displayWebsite(contact?.website) || '—')}</div>
+                      <div>
+                        <strong>Öppettider:</strong>
+                        <div className="mt-1">
+                          <OpeningHoursDynamic scope="office" showSectionTitles={false} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -306,8 +347,7 @@ export default function TermsPage() {
           </div>
         </div>
       </main>
-      
-      <Footer />
     </div>
   )
 }
+

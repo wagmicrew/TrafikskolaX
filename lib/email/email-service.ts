@@ -25,7 +25,13 @@ export type EmailTriggerType =
   | 'pending_school_confirmation'
   | 'new_password'
   | 'swish_payment_verification'
+  | 'handledar_booking_confirmed'
   | 'handledar_payment_reminder'
+  | 'handledar_booking_cancelled'
+  | 'handledar_booking_moved'
+  | 'handledar_student_confirmation'
+  | 'handledar_supervisor_confirmation'
+  | 'handledar_supervisor_payment_request'
   | 'booking_payment_reminder'
   | 'package_payment_reminder';
 
@@ -376,6 +382,15 @@ const allSuccess = results.every(result => result === true);
       pending_school_confirmation: 'booking_related',
       new_password: 'general',
       swish_payment_verification: 'payment_confirmation',
+      handledar_booking_confirmed: 'booking_related',
+      handledar_payment_reminder: 'payment_confirmation',
+      handledar_booking_cancelled: 'booking_related',
+      handledar_booking_moved: 'booking_related',
+      handledar_student_confirmation: 'booking_related',
+      handledar_supervisor_confirmation: 'booking_related',
+      handledar_supervisor_payment_request: 'payment_confirmation',
+      booking_payment_reminder: 'payment_confirmation',
+      package_payment_reminder: 'payment_confirmation',
     };
 
     return mappings[triggerType] || 'general';

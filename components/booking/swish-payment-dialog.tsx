@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { X, Smartphone, Copy, CheckCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import QRCode from "qrcode"
+import { getErrorMessage } from "@/utils/getErrorMessage"
 
 interface SwishPaymentDialogProps {
   isOpen: boolean
@@ -49,10 +50,8 @@ export function SwishPaymentDialog({
 
   const swishNumber = process.env.NEXT_PUBLIC_SWISH_NUMBER || "1234567890"
   const amount = booking.totalPrice
-  const message = customMessage || (mode === 'package' ? 
-    `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` : 
-    booking.sessionType === 'handledar' || booking.sessionType === 'teorilektion' ?
-    `Teori ${booking.id ? booking.id.slice(0, 8) : 'temp'}` :
+  const message = customMessage || (mode === 'package' ?
+    `Paket ${booking.id ? booking.id.slice(0, 8) : 'temp'}` :
     `Körlektion ${booking.id ? booking.id.slice(0, 8) : 'temp'}`
   )
 
@@ -190,7 +189,7 @@ export function SwishPaymentDialog({
         } catch(error) {
           toast({
             title: "Fel",
-            description: error instanceof Error ? error.message : "Något gick fel. Försök igen.",
+            description: getErrorMessage(error),
             variant: "destructive",
           })
         }
@@ -199,7 +198,7 @@ export function SwishPaymentDialog({
       console.error('Payment confirmation error:', error)
       toast({
         title: "Fel",
-        description: error instanceof Error ? error.message : "Något gick fel. Försök igen.",
+        description: getErrorMessage(error),
         variant: "destructive",
       })
     } finally {

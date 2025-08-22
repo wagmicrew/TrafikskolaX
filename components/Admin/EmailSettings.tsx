@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminEmailSettings = () => {
-  const [settings, setSettings] = useState(null);
+  const [settings, setSettings] = useState<Record<string, string | number | boolean> | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -24,8 +24,8 @@ const AdminEmailSettings = () => {
     fetchEmailSettings();
   }, [fetchEmailSettings]);
 
-  const handleSettingChange = (key, value) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+  const handleSettingChange = (key: string, value: string | number | boolean) => {
+    setSettings((prev) => ({ ...(prev || {}), [key]: value }));
   };
 
   const handleSave = useCallback(async () => {
@@ -73,7 +73,7 @@ const AdminEmailSettings = () => {
             <label className="block text-sm font-medium text-gray-700">{key.replace(/_/g, ' ')}</label>
             <input
               type="text"
-              value={value}
+              value={typeof value === 'string' ? value : String(value)}
               onChange={(e) => handleSettingChange(key, e.target.value)}
               className="mt-1 block w-full border border-gray-300 rounded-md p-2"
             />

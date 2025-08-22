@@ -44,16 +44,21 @@ async function testDailySummary() {
       scheduledDate: today.toISOString().split('T')[0], // Today's date
       startTime: '10:00',
       endTime: '11:00',
-      status: 'confirmed',
-      paymentStatus: 'paid',
-      totalPrice: '500',
+      status: 'confirmed' as const,
+      paymentStatus: 'paid' as const,
+      totalPrice: 500,
       transmissionType: 'manual' as const,
       isCompleted: false,
       feedbackReady: false,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      // Add missing required fields
+      durationMinutes: 60,
+      paymentMethod: 'swish' as const,
+      swishUUID: null,
+      notes: null,
     };
-    
+
     console.log('Creating test booking...');
     const [newBooking] = await db.insert(bookings).values(bookingData).returning();
     console.log(`Created test booking with ID: ${newBooking.id}`);

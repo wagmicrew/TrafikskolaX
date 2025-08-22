@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
@@ -12,9 +14,20 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+type LessonType = {
+  id: string;
+  name: string;
+  description?: string | null;
+  durationMinutes: number;
+  price: string; // stored as string in API/DB
+  priceStudent?: string | null;
+  salePrice?: string | null;
+  isActive: boolean;
+};
+
 const LessonManagement = () => {
-  const { user, token } = useAuth();
-  const [lessonTypes, setLessonTypes] = useState([]);
+  const { user } = useAuth();
+  const [lessonTypes, setLessonTypes] = useState<LessonType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,11 +35,10 @@ const LessonManagement = () => {
       setLoading(true);
       try {
         const response = await fetcher('/api/admin/lesson-types', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          // Cookies carry auth (HTTP-only). Include credentials for safety.
+          credentials: 'include',
         });
-        setLessonTypes(response || []);
+        setLessonTypes((response as LessonType[]) || []);
       } catch (error) {
         console.error('Failed to fetch lesson types', error);
       } finally {
@@ -36,20 +48,21 @@ const LessonManagement = () => {
     if (user && user.role === 'admin') {
       fetchLessonTypes();
     }
-  }, [user, token]);
+  }, [user]);
 
-  const handleDeleteLesson = async (lessonId) => {
+  const handleDeleteLesson = async (lessonId: string) => {
     try {
       await fetcher(`/api/admin/lesson-types/${lessonId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      setLessonTypes(prev => prev.filter(lt => lt.id !== lessonId));
+      setLessonTypes(prev => prev.filter((lt) => lt.id !== lessonId));
     } catch (error) {
       console.error('Error deleting lesson type', error);
     }
   };
 
-  const handleEditLesson = lesson => {
+  const handleEditLesson = (lesson: LessonType) => {
     // Logic to populate form with existing lesson data
   };
 
@@ -101,12 +114,12 @@ const LessonManagement = () => {
           </tr>
         </thead>
         <tbody>
-          {lessonTypes.map((lesson) => (
+          {lessonTypes.map((lesson: LessonType) => (
             <tr key={lesson.id}>
               <td>{lesson.name}</td>
               <td>{lesson.price}</td>
-              <td>{lesson.duration} min</td>
-              <td>{lesson.active ? 'Yes' : 'No'}</td>
+              <td>{lesson.durationMinutes} min</td>
+              <td>{lesson.isActive ? 'Yes' : 'No'}</td>
               <td>
                 <button onClick={() => handleDeleteLesson(lesson.id)}>
                   Delete

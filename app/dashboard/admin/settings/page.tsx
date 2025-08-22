@@ -33,6 +33,12 @@ export default function SettingsPage() {
             >
               Databasuppdateringar
             </Link>
+            <Link
+              href="/dashboard/admin/settings/sideditor"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300 hover:bg-red-500/20"
+            >
+              📝 Sideditor
+            </Link>
           </div>
         </div>
         <Suspense fallback={

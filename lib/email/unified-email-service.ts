@@ -5,11 +5,10 @@
 
 import { db } from '@/lib/db';
 import { emailTemplates, emailReceivers, emailTriggers, siteSettings, users } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import sgMail from '@sendgrid/mail';
 import nodemailer from 'nodemailer';
 import { logger } from '@/lib/logging/logger';
-import { createSuccessResponse, createErrorResponse, API_ERROR_CODES } from '@/lib/api/types';
 
 // Email trigger types
 export type EmailTriggerType = 
@@ -117,26 +116,26 @@ class UnifiedEmailService {
       if (settings.sendgrid_api_key) {
         sgMail.setApiKey(settings.sendgrid_api_key);
         this.sendgridClient = sgMail;
-        logger.info('SendGrid client initialized');
+        logger.info('email', 'SendGrid client initialized');
       }
 
       // Initialize SMTP if credentials are available
       if (settings.smtp_host && settings.smtp_user && settings.smtp_pass) {
-        this.nodemailerTransporter = nodemailer.createTransporter({
+        this.nodemailerTransporter = nodemailer.createTransport({
           host: settings.smtp_host,
-          port: parseInt(settings.smtp_port) || 587,
+          port: parseInt(settings.smtp_port, 10) || 587,
           secure: false,
           auth: {
             user: settings.smtp_user,
             pass: settings.smtp_pass,
           },
         });
-        logger.info('SMTP transporter initialized');
+        logger.info('email', 'SMTP transporter initialized');
       }
 
       this.settings = settings;
     } catch (error) {
-      logger.error('Failed to initialize email providers:', error);
+      logger.error('email', 'Failed to initialize email providers:', error);
     }
   }
 
@@ -151,7 +150,7 @@ class UnifiedEmailService {
         return acc;
       }, {} as Record<string, any>);
     } catch (error) {
-      logger.error('Failed to get email settings:', error);
+      logger.error('email', 'Failed to get email settings:', error);
       return {};
     }
   }
@@ -177,16 +176,16 @@ class UnifiedEmailService {
       throw new Error('SendGrid not initialized');
     }
 
-    const msg = {
+    const msg: Parameters<typeof sgMail.send>[0] = {
       to: Array.isArray(options.to) ? options.to : [options.to],
       from: options.from || this.settings.contact_email || 'noreply@trafikskolax.se',
       subject: options.subject,
       html: options.html,
-      text: options.text,
+      text: options.text || '',
       replyTo: options.replyTo,
       attachments: options.attachments?.map(att => ({
         filename: att.filename,
-        content: att.content,
+        content: typeof att.content === 'string' ? att.content : (att.content as Buffer).toString('base64'),
         type: att.contentType,
       })),
     };
@@ -238,14 +237,14 @@ class UnifiedEmailService {
           throw new Error('No email provider available');
       }
 
-      logger.info(`Email sent successfully via ${provider}`, {
+      logger.info('email', `Email sent successfully via ${provider}`, {
         to: options.to,
         subject: options.subject,
       });
 
       return { success: true };
     } catch (error) {
-      logger.error('Failed to send email:', error);
+      logger.error('email', 'Failed to send email:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
@@ -284,7 +283,7 @@ class UnifiedEmailService {
       }
 
       // Get receivers
-      const receivers = await this.getEmailReceivers(trigger[0].id, context, overrideReceiver);
+      const receivers = await this.getEmailReceivers(trigger[0].templateId, context, overrideReceiver);
       
       if (receivers.length === 0) {
         return { success: false, error: 'No email receivers found' };
@@ -307,7 +306,7 @@ class UnifiedEmailService {
       const failures = results.filter(r => r.status === 'rejected');
 
       if (failures.length > 0) {
-        logger.error('Some emails failed to send:', failures);
+        logger.error('email', 'Some emails failed to send:', failures);
         return { 
           success: false, 
           error: `${failures.length} of ${receivers.length} emails failed to send` 
@@ -320,7 +319,7 @@ class UnifiedEmailService {
       };
 
     } catch (error) {
-      logger.error('Failed to send triggered email:', error);
+      logger.error('email', 'Failed to send triggered email:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -332,7 +331,7 @@ class UnifiedEmailService {
    * Get email receivers based on trigger configuration
    */
   private async getEmailReceivers(
-    triggerId: string,
+    templateId: string,
     context: EmailContext,
     overrideReceiver?: string
   ): Promise<string[]> {
@@ -342,7 +341,7 @@ class UnifiedEmailService {
 
     const receivers = await db.select()
       .from(emailReceivers)
-      .where(eq(emailReceivers.triggerId, triggerId));
+      .where(eq(emailReceivers.templateId, templateId));
 
     const emailAddresses: string[] = [];
 

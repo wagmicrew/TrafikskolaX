@@ -1,5 +1,5 @@
-import { db } from '../lib/db/index.js';
-import { emailTemplates, emailReceivers } from '../lib/db/schema/index.js';
+import { db } from '../lib/db';
+import { emailTemplates, emailReceivers } from '../lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 /**

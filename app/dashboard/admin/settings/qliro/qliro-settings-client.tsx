@@ -281,16 +281,27 @@ export default function QliroSettingsClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load settings');
       
-      const settings = data.settings || [];
-      const paymentSettings: any = {};
-      
-      settings.forEach((setting: any) => {
-        if (setting.key && setting.key.startsWith('qliro_payment_')) {
-          paymentSettings[setting.key] = setting.value === 'true';
+      // API returns { settings: Record<string, any> }
+      const raw = data?.settings ?? {};
+      const settingsMap: Record<string, any> = Array.isArray(raw)
+        ? (raw as any[]).reduce((acc, s) => {
+            const key = s?.key ?? s?.name;
+            const value = s?.value;
+            if (key != null) acc[String(key)] = value;
+            return acc;
+          }, {} as Record<string, any>)
+        : (raw as Record<string, any>);
+
+      // Start from current defaults and override with fetched values
+      const next: any = { ...paymentMethods };
+      Object.keys(next).forEach((key) => {
+        if (key.startsWith('qliro_payment_')) {
+          const v = settingsMap[key];
+          next[key] = typeof v === 'boolean' ? v : (typeof v === 'string' ? v === 'true' : !!v);
         }
       });
-      
-      setPaymentMethods(paymentSettings);
+
+      setPaymentMethods(next);
       setHasUnsavedChanges(false);
     } catch (err: any) {
       console.error('Failed to load payment method settings', err);
@@ -303,20 +314,19 @@ export default function QliroSettingsClient() {
     const t = toast.loading('Sparar inställningar...', { position: 'top-right' });
     
     try {
-      const settingsToUpdate = Object.entries(paymentMethods).map(([key, value]) => ({
-        key,
-        value: value.toString(),
-        category: 'payment'
-      }));
-      
+      // API expects a PUT with a key-value map
+      const updates = Object.fromEntries(
+        Object.entries(paymentMethods).map(([key, value]) => [key, value])
+      );
+
       const res = await fetch('/api/admin/settings', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings: settingsToUpdate })
+        body: JSON.stringify(updates)
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save settings');
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || data.message || 'Failed to save settings');
       
       toast.success('Inställningar sparade', { id: t, position: 'top-right' });
       setHasUnsavedChanges(false);

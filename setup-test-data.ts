@@ -15,7 +15,10 @@ async function setupTestData() {
         price: 500,
         priceStudent: 450,
         durationMinutes: 40,
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+
       }).returning();
       
       console.log('Created test lesson type:', newType);

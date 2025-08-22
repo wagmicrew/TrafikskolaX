@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, bookings, userCredits, userFeedback, internalMessages, teacherAvailability, handledarBookings, packagePurchases } from '@/lib/db/schema';
+import { users, bookings, userCredits, userFeedback, internalMessages, teacherAvailability, handledarBookings, packagePurchases, userReports } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import bcrypt from 'bcryptjs';
-import { generateUserDataPdf } from '@/utils/pdfExport';
+import { generateUserReportBuffer } from '@/lib/pdf/generateUserReport';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 // GET - Get single user
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -105,10 +108,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 // DELETE - Delete user and all associated data
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authUser = await requireAuthAPI('admin');
-    if (!authUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authRes = await requireAuthAPI('admin');
+    if (!('success' in authRes) || !authRes.success) {
+      return NextResponse.json({ error: authRes.error }, { status: authRes.status });
     }
+    const adminUser = authRes.user;
     const { id } = await params;
     
     // Get user data before deletion for PDF export
@@ -143,23 +147,63 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       .from(handledarBookings)
       .where(eq(handledarBookings.studentId, id));
 
-    // Create PDF export with all user data
+    // Read body for export flag (optional)
+    let exportPdf = true;
+    try {
+      const body = await request.json().catch(() => null);
+      if (body && typeof body.exportPdf === 'boolean') exportPdf = body.exportPdf;
+    } catch {}
+
+    // Prepare PDF data
     const pdfData = {
       user: user[0],
       bookings: userBookings,
       credits: userCreditsData,
       feedback: userFeedbackData,
-      handledarBookings: handledarBookingsData
+      handledarBookings: handledarBookingsData,
     };
 
-    // Try to generate PDF, but don't fail if it doesn't work
+    // Generate and persist PDF securely (non-public folder)
     let pdfGenerated = false;
-    try {
-      await generateUserDataPdf(pdfData, `${user[0].firstName}_${user[0].lastName}_${user[0].id}`);
-      pdfGenerated = true;
-    } catch (pdfError) {
-      console.error('Error generating PDF:', pdfError);
-      // Continue with deletion even if PDF generation fails
+    let reportId: string | null = null;
+    let pdfFileName: string | null = null;
+    if (exportPdf) {
+      try {
+        const buffer = await generateUserReportBuffer(
+          pdfData,
+          `${user[0].firstName}_${user[0].lastName}_${user[0].id}`
+        );
+        const reportsDir = path.join(process.cwd(), 'storage', 'reports');
+        await fs.promises.mkdir(reportsDir, { recursive: true });
+        const timestamp = new Date()
+          .toISOString()
+          .replace(/[:.]/g, '-')
+          .replace('T', '_')
+          .replace('Z', '');
+        pdfFileName = `${timestamp}_${user[0].firstName}_${user[0].lastName}_${user[0].id}.pdf`;
+        const filePath = path.join(reportsDir, pdfFileName);
+        await fs.promises.writeFile(filePath, buffer);
+
+        // Store metadata in DB
+        const [report] = await db
+          .insert(userReports)
+          .values({
+            userId: user[0].id,
+            createdBy: adminUser.id,
+            fileName: pdfFileName,
+            filePath,
+            fileSize: buffer.length,
+            mimeType: 'application/pdf',
+            deletedUserEmail: user[0].email,
+            deletedUserName: `${user[0].firstName} ${user[0].lastName}`,
+          })
+          .returning({ id: userReports.id });
+        reportId = report?.id || null;
+        pdfGenerated = true;
+      } catch (pdfError) {
+        console.error('Error generating/saving PDF:', pdfError);
+        // Continue with deletion even if PDF generation fails
+      }
     }
 
     // Delete all associated data in the correct order (respecting foreign key constraints)
@@ -215,8 +259,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ 
       message: 'User and all associated data deleted successfully.',
-      pdfGenerated: pdfGenerated,
-      pdfFileName: pdfGenerated ? `${user[0].firstName}_${user[0].lastName}_${user[0].id}.pdf` : null
+      pdfGenerated,
+      pdfFileName,
+      reportId,
     });
   } catch (error) {
     console.error('Error deleting user:', error);

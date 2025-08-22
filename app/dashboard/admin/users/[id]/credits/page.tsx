@@ -34,7 +34,7 @@ export default async function UserCreditsPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <BackButton />
-      <CreditsManagementClient user={user[0]} />
+      <CreditsManagementClient userId={user[0]?.id || ''} />
     </div>
   );
 }

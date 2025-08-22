@@ -30,11 +30,11 @@ async function fixSmtpSecure() {
       .where(eq(siteSettings.category, 'email'));
     
     const smtpConfig = smtpSettings
-      .filter(s => s.key.includes('smtp') || s.key === 'use_smtp')
-      .reduce((acc, setting) => {
+      .filter((s: any) => s.key.includes('smtp') || s.key === 'use_smtp')
+      .reduce((acc: Record<string, string>, setting: any) => {
         acc[setting.key] = setting.value;
         return acc;
-      }, {} as Record<string, string>);
+      }, {});
     
     console.log('\nCurrent SMTP configuration:');
     console.log(`  Host: ${smtpConfig.smtp_host}`);

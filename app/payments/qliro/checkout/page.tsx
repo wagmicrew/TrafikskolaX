@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 function QliroCheckoutContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
+  const orderId = searchParams?.get('orderId');
   const [htmlSnippet, setHtmlSnippet] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');

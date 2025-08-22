@@ -1,19 +1,17 @@
 import React from "react"
 import type { Metadata } from "next"
-import { Inter, Playfair_Display } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import { Navigation } from "@/components/navigation"
-import { Footer } from "@/components/footer"
-import { AuthProvider } from "@/lib/hooks/useAuth"
 import { ClientRoot } from "@/components/ClientRoot"
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { getOpeningHours, toJsonLd } from "@/lib/site-settings/opening-hours"
 
 const inter = Inter({ subsets: ["latin"] })
-const playfair = Playfair_Display({ subsets: ["latin"] })
+// Server-safe base URL for metadata. Avoids referencing window in server code.
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.dintrafikskolahlm.se'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://www.dintrafikskolahlm.se')),
+  metadataBase: new URL(baseUrl),
   title: "Din Trafikskola Hässleholm - Körkort & Körkortsutbildning | B-körkort, Taxiförarlegitimation",
   description:
     "Hässleholms nyaste trafikskola. Professionell körkortsutbildning för B-körkort, A-körkort och taxiförarlegitimation. Bedömningslektion 500 kr. Boka idag! ☎️ 0760-389192",

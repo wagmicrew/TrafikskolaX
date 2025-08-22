@@ -75,10 +75,12 @@ async function migrateTemplates() {
       console.log(`Creating new template for ${triggerType}...`);
       
       await db.insert(emailTemplates).values({
-        triggerType,
+        triggerType: triggerType as any,
         subject: defaultTemplate.subject,
         htmlContent: defaultTemplate.htmlContent.trim(),
-        isActive: true
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
       
       createdCount++;

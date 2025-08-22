@@ -1,14 +1,38 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { StaticNavigation } from "@/components/static-navigation"
-import { Footer } from "@/components/footer"
 import { Shield, Database, Eye, UserCheck, Lock, Mail } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function IntegritetspolicyPage() {
+  const [contact, setContact] = useState<{
+    email: string
+    phone: string
+    website: string
+    name: string
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/public/site-settings', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to load site settings')
+        const json = await res.json()
+        if (mounted) setContact(json?.contact || null)
+      } catch (e: any) {
+        if (mounted) setError(e?.message || 'Fel vid hämtning av kontaktuppgifter')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
   return (
     <div className="min-h-screen bg-gray-50">
-      <StaticNavigation />
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -49,8 +73,8 @@ export default function IntegritetspolicyPage() {
                     <p><strong>Företag:</strong> Din Trafikskola Hässleholm</p>
                     <p><strong>Organisationsnummer:</strong> 559123-4567</p>
                     <p><strong>Adress:</strong> Östergatan 3a, 281 43 Hässleholm</p>
-                    <p><strong>E-post:</strong> info@dintrafikskolax.se</p>
-                    <p><strong>Telefon:</strong> 0451-123 45</p>
+                    <p><strong>E-post:</strong> {loading ? 'Laddar…' : (contact?.email || '—')}</p>
+                    <p><strong>Telefon:</strong> {loading ? 'Laddar…' : (contact?.phone || '—')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -257,7 +281,7 @@ export default function IntegritetspolicyPage() {
                 <div className="bg-indigo-50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-2">Så utövar du dina rättigheter</h4>
                   <p className="text-sm mb-2">
-                    Kontakta oss på info@dintrafikskolax.se eller ring 0451-123 45. 
+                    Kontakta oss på {loading ? 'Laddar…' : (contact?.email || '—')} eller ring {loading ? 'Laddar…' : (contact?.phone || '—')}. 
                     Vi svarar på din förfrågan inom 30 dagar.
                   </p>
                   <p className="text-sm">
@@ -307,8 +331,8 @@ export default function IntegritetspolicyPage() {
                   <div>
                     <h4 className="font-semibold mb-2">Kontakta oss</h4>
                     <p className="text-sm space-y-1">
-                      <strong>E-post:</strong> info@dintrafikskolax.se<br />
-                      <strong>Telefon:</strong> 0451-123 45<br />
+                      <strong>E-post:</strong> {loading ? 'Laddar…' : (contact?.email || '—')}<br />
+                      <strong>Telefon:</strong> {loading ? 'Laddar…' : (contact?.phone || '—')}<br />
                       <strong>Adress:</strong> Östergatan 3a, 281 43 Hässleholm<br />
                       <strong>Svarstid:</strong> Inom 30 dagar
                     </p>
@@ -328,8 +352,6 @@ export default function IntegritetspolicyPage() {
           </div>
         </div>
       </main>
-      
-      <Footer />
     </div>
   )
 }

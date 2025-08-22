@@ -151,7 +151,7 @@ function MessagesPage() {
 
   const handleMessageClick = (message: Message) => {
     setSelectedMessage(message);
-    if (!message.isRead && user && message.toUserId === (user.userId || user.id)) {
+    if (!message.isRead && user && message.toUserId === user.userId) {
       markAsRead(message.id);
     }
   };
@@ -228,7 +228,7 @@ function MessagesPage() {
                   }`}
                 >
                   <FaInbox className="inline mr-2" />
-                  Inkorg ({messages.filter(m => !m.isRead && user && m.toUserId === (user.userId || user.id)).length})
+                  Inkorg ({messages.filter(m => !m.isRead && user && m.toUserId === user.userId).length})
                 </button>
                 <button
                   onClick={() => setActiveTab('compose')}
@@ -268,7 +268,7 @@ function MessagesPage() {
                               className={`relative p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
                                 selectedMessage?.id === msg.id ? 'bg-blue-50' : ''
                               } ${
-                                !msg.isRead && user && msg.toUserId === (user.userId || user.id) 
+                                !msg.isRead && user && msg.toUserId === (user.userId) 
                                   ? 'border-l-4 border-l-green-500 bg-green-50' 
                                   : 'border-l-4 border-l-gray-200'
                               }`}
@@ -276,15 +276,15 @@ function MessagesPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <p className={`text-sm truncate ${
-                                  !msg.isRead && user && msg.toUserId === (user.userId || user.id) ? 'font-bold text-gray-900' : 'font-medium text-gray-600'
+                                  !msg.isRead && user && msg.toUserId === (user.userId) ? 'font-bold text-gray-900' : 'font-medium text-gray-600'
                                 }`}>
                                   {msg.subject}
                                 </p>
                                 <div className="ml-2 flex-shrink-0 flex items-center gap-2">
-                                  {!msg.isRead && user && msg.toUserId === (user.userId || user.id) && (
+                                  {!msg.isRead && user && msg.toUserId === (user.userId) && (
                                     <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
                                   )}
-                                  {msg.isRead && user && msg.toUserId === (user.userId || user.id) && (
+                                  {msg.isRead && user && msg.toUserId === (user.userId) && (
                                     <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
                                   )}
                                 </div>

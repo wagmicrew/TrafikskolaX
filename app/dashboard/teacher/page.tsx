@@ -27,5 +27,15 @@ export default function TeacherDashboard() {
     return null;
   }
 
-  return <TeacherDashboardClient user={user} />;
+  // Transform JWTPayload to match TeacherDashboardClient's User interface
+  const transformedUser = {
+    id: user.userId,
+    userId: user.userId,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role,
+  };
+
+  return <TeacherDashboardClient user={transformedUser} />;
 }

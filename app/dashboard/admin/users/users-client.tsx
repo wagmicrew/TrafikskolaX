@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   User,
   Mail,
@@ -61,6 +63,29 @@ export default function UsersClient({
   const [exportPdf, setExportPdf] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'users' | 'reports'>('users');
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  const fetchReports = async () => {
+    try {
+      setReportsLoading(true);
+      const res = await fetch('/api/admin/reports');
+      if (!res.ok) throw new Error('Kunde inte hämta rapporter');
+      const data = await res.json();
+      setReports(Array.isArray(data) ? data : data.reports || []);
+    } catch (e: any) {
+      toast.error(e?.message || 'Fel vid hämtning av rapporter');
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'reports' && reports.length === 0 && !reportsLoading) {
+      fetchReports();
+    }
+  }, [tab]);
 
   const handleSkrivIn = async (userId: string) => {
     setLoadingSkriv(userId);
@@ -74,13 +99,15 @@ export default function UsersClient({
       });
 
       if (response.ok) {
+        toast.success('Användaren skrevs in');
         // Refresh the page to show updated data
         window.location.reload();
       } else {
-        alert('Ett fel uppstod vid inskrivning');
+        const err = await response.json().catch(() => ({}));
+        toast.error(err?.error || 'Ett fel uppstod vid inskrivning');
       }
     } catch (error) {
-      alert('Ett fel uppstod vid inskrivning');
+      toast.error('Ett fel uppstod vid inskrivning');
     }
     setLoadingSkriv(null);
   };
@@ -105,17 +132,28 @@ export default function UsersClient({
 
       if (response.ok) {
         const result = await response.json();
-        const message = result.pdfGenerated 
-          ? `Användare raderad framgångsrikt. PDF export skapad: ${result.pdfFileName}`
-          : 'Användare raderad framgångsrikt. PDF export misslyckades men användaren raderades.';
-        alert(message);
+        if (result?.pdfGenerated) {
+          toast.success(`Användare raderad. PDF skapad: ${result.pdfFileName || 'rapport.pdf'}`);
+          if (exportPdf && result?.reportId) {
+            // Trigger download
+            const url = `/api/admin/reports/${result.reportId}`;
+            const a = document.createElement('a');
+            a.href = url;
+            if (result?.pdfFileName) a.download = result.pdfFileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+        } else {
+          toast.success('Användare raderad. PDF skapades inte.');
+        }
         window.location.reload();
       } else {
         const error = await response.json();
-        alert(`Fel vid radering: ${error.error}`);
+        toast.error(`Fel vid radering: ${error?.error || 'Okänt fel'}`);
       }
     } catch (error) {
-      alert('Ett fel uppstod vid radering av användare');
+      toast.error('Ett fel uppstod vid radering av användare');
     }
     setDeleting(false);
     setDeleteDialogOpen(false);
@@ -137,7 +175,7 @@ export default function UsersClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({} as any));
-        alert(data?.error || 'Kunde inte hämta användarsession');
+        toast.error(data?.error || 'Kunde inte hämta användarsession');
         return;
       }
       const data = await res.json().catch(() => ({} as any));
@@ -165,7 +203,7 @@ export default function UsersClient({
         window.location.href = href;
       }
     } catch (e) {
-      alert('Misslyckades att hämta användarsession');
+      toast.error('Misslyckades att hämta användarsession');
     } finally {
       setImpersonatingId(null);
     }
@@ -203,119 +241,167 @@ export default function UsersClient({
         </Link>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <select
-          value={roleFilter}
-          onChange={handleRoleChange}
-          className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-        >
-          <option value="">Alla roller</option>
-          <option value="student">Student</option>
-          <option value="teacher">Lärare</option>
-          <option value="admin">Admin</option>
-        </select>
-        <form onSubmit={handleSearchSubmit} className="flex items-center">
-          <input
-            type="text"
-            value={search}
-            onChange={handleSearchChange}
-            placeholder="Sök användare..."
-            className="px-4 py-2 rounded-l-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-r-lg bg-white/10 hover:bg白/20 border border-white/20 text-white transition-colors"
-          >
-            Sök
-          </button>
-        </form>
-      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 mb-4">
+          <TabsTrigger value="users" className="data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">Användare</TabsTrigger>
+          <TabsTrigger value="reports" className="data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">Rapporter</TabsTrigger>
+        </TabsList>
 
-      <div className="overflow-x-auto rounded-2xl bg白/10 backdrop-blur-md border border-white/20">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="text-left">
-              <th className="px-4 py-3 text-slate-300">Namn</th>
-              <th className="px-4 py-3 text-slate-300">Email</th>
-              <th className="px-4 py-3 text-slate-300">Roll</th>
-              <th className="px-4 py-3 text-slate-300">Inskriven</th>
-              <th className="px-4 py-3 text-slate-300">Bokningar</th>
-              <th className="px-4 py-3 text-slate-300">Åtgärder</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-t border-white/10 hover:bg-white/5">
-                <td className="px-4 py-3 text-slate-100">
-                  {user.firstName} {user.lastName}
-                </td>
-                <td className="px-4 py-3 text-slate-200">{user.email}</td>
-                <td className="px-4 py-3 text-slate-200">
-                  {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Lärare' : 'Student'}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {user.inskriven ? (
-                      <Check className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <X className="w-5 h-5 text-rose-400" />
-                    )}
-                    {user.role === 'student' && !user.inskriven && (
-                      <button
-                        onClick={() => handleSkrivIn(user.id)}
-                        disabled={loadingSkriv === user.id}
-                        className="px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs rounded transition-colors disabled:opacity-50"
-                      >
-                        {loadingSkriv === user.id ? (
-                          'Skriver in...'
+        <TabsContent value="users">
+          <div className="flex gap-4 mb-4">
+            <select
+              value={roleFilter}
+              onChange={handleRoleChange}
+              className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="">Alla roller</option>
+              <option value="student">Student</option>
+              <option value="teacher">Lärare</option>
+              <option value="admin">Admin</option>
+            </select>
+            <form onSubmit={handleSearchSubmit} className="flex items-center">
+              <input
+                type="text"
+                value={search}
+                onChange={handleSearchChange}
+                placeholder="Sök användare..."
+                className="px-4 py-2 rounded-l-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-r-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
+              >
+                Sök
+              </button>
+            </form>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left">
+                  <th className="px-4 py-3 text-slate-300">Namn</th>
+                  <th className="px-4 py-3 text-slate-300">Email</th>
+                  <th className="px-4 py-3 text-slate-300">Roll</th>
+                  <th className="px-4 py-3 text-slate-300">Inskriven</th>
+                  <th className="px-4 py-3 text-slate-300">Bokningar</th>
+                  <th className="px-4 py-3 text-slate-300">Åtgärder</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-t border-white/10 hover:bg-white/5">
+                    <td className="px-4 py-3 text-slate-100">
+                      {user.firstName} {user.lastName}
+                    </td>
+                    <td className="px-4 py-3 text-slate-200">{user.email}</td>
+                    <td className="px-4 py-3 text-slate-200">
+                      {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Lärare' : 'Student'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {user.inskriven ? (
+                          <Check className="w-5 h-5 text-green-400" />
                         ) : (
-                          <div className="flex items-center gap-1">
-                            <UserCheck className="w-3 h-3" /> Skriv In
-                          </div>
+                          <X className="w-5 h-5 text-rose-400" />
                         )}
-                      </button>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {user.bookingCount > 0 ? (
-                    <Link
-                      href={`/dashboard/admin/bookings?user=${user.id}`}
-                      className="text-sky-300 hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      {user.bookingCount}
-                    </Link>
+                        {user.role === 'student' && !user.inskriven && (
+                          <button
+                            onClick={() => handleSkrivIn(user.id)}
+                            disabled={loadingSkriv === user.id}
+                            className="px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs rounded transition-colors disabled:opacity-50"
+                          >
+                            {loadingSkriv === user.id ? (
+                              'Skriver in...'
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <UserCheck className="w-3 h-3" /> Skriv In
+                              </div>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.bookingCount > 0 ? (
+                        <Link
+                          href={`/dashboard/admin/bookings?user=${user.id}`}
+                          className="text-sky-300 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          {user.bookingCount}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400">{user.bookingCount}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/dashboard/admin/users/${user.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white">
+                          Hantera
+                        </Link>
+                        <button
+                          onClick={() => handleImpersonate(user)}
+                          disabled={impersonatingId === user.id}
+                          className="px-3 py-1 rounded bg-amber-500/90 hover:bg-amber-500 text-black disabled:opacity-50"
+                        >
+                          <Shield className="w-4 h-4 inline mr-1" /> {impersonatingId === user.id ? 'Hämtar...' : 'Gå till användarsession'}
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleDeleteClick(user)}
+                          className="px-3 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
+                        >
+                          <Trash className="w-4 h-4 inline mr-1" /> Radera
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <div className="overflow-x-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4">
+            {reportsLoading ? (
+              <div className="text-slate-300">Hämtar rapporter...</div>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left">
+                    <th className="px-4 py-3 text-slate-300">Filnamn</th>
+                    <th className="px-4 py-3 text-slate-300">Skapad</th>
+                    <th className="px-4 py-3 text-slate-300">Användare</th>
+                    <th className="px-4 py-3 text-slate-300">Ladda ner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reports.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-3 text-slate-400" colSpan={4}>Inga rapporter hittades.</td>
+                    </tr>
                   ) : (
-                    <span className="text-slate-400">{user.bookingCount}</span>
+                    reports.map((r: any) => (
+                      <tr key={r.id} className="border-t border-white/10 hover:bg-white/5">
+                        <td className="px-4 py-3 text-slate-100">{r.filename || r.fileName || `rapport-${r.id}.pdf`}</td>
+                        <td className="px-4 py-3 text-slate-200">{r.createdAt ? new Date(r.createdAt).toLocaleString('sv-SE') : '-'}</td>
+                        <td className="px-4 py-3 text-slate-200">{r.deletedUserName || r.userName || r.deletedUserEmail || '-'}</td>
+                        <td className="px-4 py-3">
+                          <Link href={`/api/admin/reports/${r.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white inline-flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Ladda ner
+                          </Link>
+                        </td>
+                      </tr>
+                    ))
                   )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/dashboard/admin/users/${user.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white">
-                      Hantera
-                    </Link>
-                    <button
-                      onClick={() => handleImpersonate(user)}
-                      disabled={impersonatingId === user.id}
-                      className="px-3 py-1 rounded bg-amber-500/90 hover:bg-amber-500 text-black disabled:opacity-50"
-                    >
-                      <Shield className="w-4 h-4 inline mr-1" /> {impersonatingId === user.id ? 'Hämtar...' : 'Gå till användarsession'}
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleDeleteClick(user)}
-                      className="px-3 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                    >
-                      <Trash className="w-4 h-4 inline mr-1" /> Radera
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </tbody>
+              </table>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Delete Confirmation Dialog with Glassmorphism */}
       {deleteDialogOpen && userToDelete && (
@@ -425,4 +511,3 @@ export default function UsersClient({
     </div>
   );
 }
-

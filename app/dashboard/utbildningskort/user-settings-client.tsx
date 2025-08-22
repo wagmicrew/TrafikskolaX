@@ -5,18 +5,39 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { LoadingSpinner } from '@/components/loading-spinner';
 import { Button } from '@/components/ui/button';
 
+// TypeScript interfaces
+interface UserFormData {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface UserFeedback {
+  [key: string]: {
+    valuation: number;
+    comment?: string;
+  };
+}
+
+interface EducationStep {
+  id: string;
+  category: string;
+  subcategory: string;
+  description: string;
+}
+
 const UserSettingsClient = () => {
   const { user } = useAuth();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<UserFormData>({
     email: user?.email || '',
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
   });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [avatar, setAvatar] = useState(null);
-  const [feedback, setFeedback] = useState({});
-  const [steps, setSteps] = useState([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>('');
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [feedback, setFeedback] = useState<UserFeedback>({});
+  const [steps, setSteps] = useState<EducationStep[]>([]);
 
   useEffect(() => {
     // Fetch user feedback when component mounts
@@ -61,18 +82,18 @@ const UserSettingsClient = () => {
     }
   }, [user]);
 
-  const handleInputChange = (event) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setForm({ ...form, [name]: value });
   };
 
-  const handleAvatarChange = (event) => {
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setAvatar(event.target.files[0]);
     }
   };
 
-  const handleFormSubmit = async (event) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
 
@@ -200,7 +221,7 @@ const UserSettingsClient = () => {
             <LoadingSpinner />
           </div>
         )}
-        {!loading && steps.map((step) => (
+        {!loading && steps.map((step: EducationStep) => (
           <div
             className="flex items-center justify-between p-4 mb-2 border rounded"
             key={step.id}
@@ -233,7 +254,7 @@ const UserSettingsClient = () => {
         {/* General Actions */}
         <div className="flex items-center justify-end">
           <Button
-            onClick={handleFormSubmit}
+            onClick={() => handleFormSubmit({} as React.FormEvent<HTMLFormElement>)}
             disabled={loading}
             className="bg-blue-500 text-white py-2 px-4 rounded"
           >

@@ -14,15 +14,17 @@ interface LoginPopupProps {
   isOpen: boolean
   onClose: () => void
   defaultTab?: 'login' | 'register'
+  onForgotPassword?: (email?: string) => void
 }
 
-export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopupProps) {
+export function LoginPopup({ isOpen, onClose, defaultTab = 'login', onForgotPassword }: LoginPopupProps) {
   const [activeTab, setActiveTab] = useState(defaultTab)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [loginEmail, setLoginEmail] = useState("")
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, refreshUser } = useAuth()
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -45,20 +47,15 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
       if (response.ok) {
         setSuccess("Inloggning lyckades! Omdirigerar...")
 
-        // Token is now handled via secure HTTP-only cookie
-        // Use the improved login function with automatic redirection
-        const token = localStorage.getItem('auth-token');
-        if (token) {
-          login(token);
-        } else {
-          // Refresh auth state to check for cookie-based authentication
-          window.location.reload();
-        }
+        // Use cookie-based auth: refresh user and redirect to server-provided path
+        const redirectUrl = data?.data?.redirectUrl || '/dashboard'
+        await refreshUser()
+        router.push(redirectUrl)
 
         // Close popup after a short delay
         setTimeout(() => {
           onClose()
-        }, 1000)
+        }, 500)
       } else {
         setError(typeof data.error === 'object' ? data.error.message || "Inloggning misslyckades" : data.error || "Inloggning misslyckades")
       }
@@ -100,20 +97,15 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
       if (response.ok) {
         setSuccess("Registrering lyckades! Omdirigerar...")
 
-        // Token is now handled via secure HTTP-only cookie
-        // Use the improved login function with automatic redirection
-        const token = localStorage.getItem('auth-token');
-        if (token) {
-          login(token);
-        } else {
-          // Refresh auth state to check for cookie-based authentication
-          window.location.reload();
-        }
+        // Cookie-based auth: refresh user and redirect to server-provided path
+        const redirectUrl = data?.data?.redirectUrl || '/dashboard'
+        await refreshUser()
+        router.push(redirectUrl)
 
         // Close popup after a short delay
         setTimeout(() => {
           onClose()
-        }, 1000)
+        }, 500)
       } else {
         setError(typeof data.error === 'object' ? data.error.message || "Registrering misslyckades" : data.error || "Registrering misslyckades")
       }
@@ -190,6 +182,8 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
                           type="email"
                           placeholder="din.email@exempel.se"
                           required
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
                           className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                         />
                       </div>
@@ -210,6 +204,19 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login' }: LoginPopup
                           className="pl-10 bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                         />
                       </div>
+                    </div>
+
+                    <div className="flex justify-end -mt-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          onForgotPassword?.(loginEmail)
+                        }}
+                        className="text-sm text-white/90 hover:text-white underline underline-offset-2 decoration-white/30"
+                      >
+                        Glömt lösenord?
+                      </button>
                     </div>
 
                     <Button

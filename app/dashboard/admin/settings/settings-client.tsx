@@ -61,6 +61,9 @@ interface Settings {
   schoolname: string;
   school_phonenumber: string;
     internal_messages_enabled: boolean;
+
+  // Editor settings
+  tinymce_api_key?: string;
   
 // Qliro API URLs
   qliro_dev_api_url: string;
@@ -1206,6 +1209,89 @@ export default function SettingsClient() {
                   <Input value={settings.social_tiktok || ''} onChange={(e) => updateSetting('social_tiktok', e.target.value)} placeholder="https://tiktok.com/@dinskola" />
                 </div>
               </div>
+
+              {/* TinyMCE API Key */}
+              <div className="space-y-2 pt-4 border-t border-white/10">
+                <Label htmlFor="tinymce-api-key">
+                  <Edit className="w-4 h-4 inline mr-2" />
+                  TinyMCE API-nyckel
+                </Label>
+                <Input
+                  id="tinymce-api-key"
+                  type="password"
+                  placeholder="ctrftbh9mzgkawsuuql8861wbce1ubk5ptt4q775x8l4m4k6"
+                  value={settings.tinymce_api_key || ''}
+                  onChange={(e) => updateSetting('tinymce_api_key', e.target.value)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  API-nyckel för TinyMCE WYSIWYG-editorer. Om tom används Community Edition (gratis).
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      updateSetting('tinymce_api_key', 'ctrftbh9mzgkawsuuql8861wbce1ubk5ptt4q775x8l4m4k6');
+                      toast.success('TinyMCE API-nyckel tillagd');
+                    }}
+                  >
+                    Använd standardnyckel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const t = toast.loading('Initierar TinyMCE API-nyckel...');
+                      try {
+                        const res = await fetch('/api/admin/settings/add-tinymce-api-key', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera TinyMCE API-nyckel');
+                        toast.success(data.message, { id: t });
+                        // Reload settings to show the new API key
+                        fetchSettings();
+                      } catch (error: any) {
+                        toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
+                      }
+                    }}
+                  >
+                    Initiera API-nyckel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(settings.tinymce_api_key || '', 'TinyMCE API-nyckel')}
+                  >
+                    Kopiera nyckel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const t = toast.loading('Kontrollerar API-nyckel...');
+                      try {
+                        const res = await fetch('/test-tinymce-api');
+                        const data = await res.json();
+                        if (res.ok) {
+                          toast.success(`API-nyckel status: ${data.apiKeyPreview}`, { id: t });
+                        } else {
+                          throw new Error(data.error);
+                        }
+                      } catch (error: any) {
+                        toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
+                      }
+                    }}
+                  >
+                    Testa API-nyckel
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1718,6 +1804,27 @@ export default function SettingsClient() {
                 <Button onClick={testExportFunctions} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
                   <DollarSign className="w-4 h-4 mr-2" /> Testa Export-funktioner
                 </Button>
+                <Button
+                  onClick={async () => {
+                    const t = toast.loading('Initierar TinyMCE API-nyckel...');
+                    try {
+                      const res = await fetch('/api/admin/settings/add-tinymce-api-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera TinyMCE API-nyckel');
+                      toast.success(data.message, { id: t });
+                      // Reload settings
+                      fetchSettings();
+                    } catch (error: any) {
+                      toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
+                    }
+                  }}
+                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                >
+                  <Edit className="w-4 h-4 mr-2" /> Initiera TinyMCE API-nyckel
+                </Button>
               </div>
               <div className="text-sm text-slate-200 p-4 rounded-xl bg-white/5 border border-white/10">
                 <p className="font-semibold">Observera:</p>
@@ -1787,3 +1894,5 @@ export default function SettingsClient() {
     </div>
   );
 }
+
+

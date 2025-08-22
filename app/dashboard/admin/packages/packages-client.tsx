@@ -25,24 +25,84 @@ interface PackageStats {
   activePackages: number;
 }
 
-interface PackagesClientProps {
-  packages: Package[];
-  lessonTypes: any[];
-  handledarSessions: any[];
-  stats: PackageStats;
+interface LessonType {
+  id: string;
+  name: string;
+  isActive: boolean;
 }
 
-export default function PackagesClient({ packages: initialPackages, lessonTypes, handledarSessions, stats }: PackagesClientProps) {
+interface HandledarSession {
+  id: string;
+  title: string;
+  isActive: boolean;
+}
+
+interface PackageContent {
+  lessonTypeId?: string;
+  handledarSessionId?: string;
+  credits: number;
+}
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+interface PackagesClientProps {
+  user: User;
+  packages: Package[];
+  hasActiveCredits?: boolean;
+}
+
+export default function PackagesClient({ user, packages: initialPackages, hasActiveCredits }: PackagesClientProps) {
   const router = useRouter();
   const [packages, setPackages] = useState<Package[]>(initialPackages);
+  const [lessonTypes, setLessonTypes] = useState<LessonType[]>([]);
+  const [handledarSessions, setHandledarSessions] = useState<HandledarSession[]>([]);
   const [showInactive, setShowInactive] = useState<boolean>(false);
   const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
   const [currentPackage, setCurrentPackage] = useState<Package | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const filteredPackages = showInactive 
+  // Fetch lesson types and handledar sessions
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [lessonTypesRes, handledarRes] = await Promise.all([
+          fetch('/api/lesson-types'),
+          fetch('/api/handledar-sessions')
+        ]);
+
+        if (lessonTypesRes.ok) {
+          const lessonTypesData = await lessonTypesRes.json();
+          setLessonTypes(lessonTypesData);
+        }
+
+        if (handledarRes.ok) {
+          const handledarData = await handledarRes.json();
+          setHandledarSessions(handledarData);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+    const filteredPackages = showInactive
     ? packages.filter(pkg => !pkg.isActive)
     : packages.filter(pkg => pkg.isActive);
+
+  const stats = {
+    totalPackages: packages.length,
+    activePackages: packages.filter(pkg => pkg.isActive).length,
+  };
 
   const handleSavePackage = async (packageData: any) => {
     try {
@@ -242,9 +302,18 @@ export default function PackagesClient({ packages: initialPackages, lessonTypes,
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <PackageBuilderPopover
-              lessonTypes={lessonTypes.filter(lt => lt.isActive || (currentPackage?.contents || []).some(c => c.lessonTypeId === lt.id))}
-              handledarSessions={handledarSessions.filter(hs => hs.isActive || (currentPackage?.contents || []).some(c => c.handledarSessionId === hs.id))}
-              initialPackage={currentPackage}
+              lessonTypes={lessonTypes.filter((lt: LessonType) => lt.isActive || (currentPackage?.contents || []).some((c: any) => c.lessonTypeId === lt.id))}
+              handledarSessions={handledarSessions.filter((hs: HandledarSession) => hs.isActive || (currentPackage?.contents || []).some((c: any) => c.handledarSessionId === hs.id))}
+              initialPackage={currentPackage ? {
+                id: currentPackage.id,
+                name: currentPackage.name,
+                description: currentPackage.description ?? undefined,
+                price: currentPackage.price,
+                priceStudent: currentPackage.priceStudent ?? undefined,
+                salePrice: currentPackage.salePrice ?? undefined,
+                isActive: currentPackage.isActive,
+                contents: (currentPackage.contents || []) as PackageContent[]
+              } : undefined}
               onSave={handleSavePackage}
               onUpdate={handleUpdatePackage}
               onClose={() => setIsPopoverOpen(false)}

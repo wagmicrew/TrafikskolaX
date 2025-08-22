@@ -96,7 +96,7 @@ export async function sendSwishPaymentConfirmationEmail(context: BookingEmailCon
           totalPrice: context.booking.totalPrice,
           paymentMethod: 'swish',
           swishUUID: context.booking.swishUUID,
-          paymentTime: context.booking.paymentTime || new Date().toISOString()
+
         },
         // Override recipient to admin
         admin: {

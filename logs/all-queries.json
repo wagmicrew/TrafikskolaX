@@ -1,0 +1,3181 @@
+{
+  "drizzleQueries": [
+    {
+      "file": "test-qliro-connectivity.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "test-credits-db.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "setup-test-data.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "setup-email-templates.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "middleware.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE"
+      ]
+    },
+    {
+      "file": "get-lesson-type.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "debug-booking-dates.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "check-admin-user.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\update-slot-settings.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\update-slot-settings-fixed.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\update-booking-slots.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\test-reset-functionality.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-flows.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-flow.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-connectivity.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-complete-flow.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\test-email-system.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\test-daily-summary.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "scripts\\setup-smtp-settings.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\setup-smtp-settings.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\setup-database.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\run-qliro-migration.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT",
+        "INSERT",
+        "INSERT",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\remove-test-users.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\migrate-email-templates.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\migrate-email-templates-design.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\migrate-email-templates-design.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\initialize-email-settings.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\import-slot-settings.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\fix-smtp-secure.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\fix-smtp-categories.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\check-email-templates.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\check-email-settings.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\analyze-n1-queries.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\analyze-email-templates.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\analyze-email-templates.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "scripts\\add-swish-payment-email-template.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\add-schoolname-setting.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\add-school-email-setting.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "scripts\\add-qliro-flow-setting.js",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "lib\\seed-users.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "hooks\\use-toast.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE"
+      ]
+    },
+    {
+      "file": "lib\\site-settings\\opening-hours.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\settings\\payment-settings.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\utils\\customer-number.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\payment\\qliro-service.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "lib\\payment\\qliro-service-broken.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\redis\\client.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "lib\\mailer\\universal-mailer.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\email\\unified-email-service.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\email\\enhanced-email-service.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\email\\email-template-utils.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "lib\\email\\email-service.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "lib\\email\\email-cron-service.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "components\\Admin\\EditableTemplateName.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\packages-store\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\qliro\\return\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\teacher\\teacher-dashboard-client.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\users\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\teachers\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\packages\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\messages\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\handledar-sessions\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\lesson-types\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\contact\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking-steps\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "pages\\api\\admin\\unbook\\[id].ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\handledar\\payment\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\users\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\swish-approvals\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\lessons\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\lesson-content\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\handledarkurs\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\bookings-client.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\booking\\payment\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\users\\check-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\unpaid-bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\packages\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\messages\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\feedback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\profile\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\avatar\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\user\\credits\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\lesson-types\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\feedback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\student\\feedback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\student\\bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\public\\site-settings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\packages\\purchase\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\packages\\with-contents\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\packages\\notify-admin\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\packages\\confirm-payment\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\messages\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\messages\\unread-count\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\handledar-sessions\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "DELETE",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\email\\notify\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\cron\\daily-bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\bookings\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\bookings\\available-slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\visible-slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\update-student\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\update-guest\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\create\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\confirm-swish-payment\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\confirm-swish\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\confirm\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\cleanup-expired\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\cleanup\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "SELECT",
+        "DELETE",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\admin-confirm\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\available-slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\verify\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\register\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\logout\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\login\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\impersonate\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\test-school-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\test-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\test-db\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\test-contact-email-design\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\test-contact-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "SELECT",
+        "INSERT",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\students\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\site-settings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\site-db-status\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\reset-site\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "INSERT",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\packages\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-types\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lessons\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\extra-slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-test\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "INSERT",
+        "INSERT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-settings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-debug\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\dashboard-stats\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\cleanup-supervisor-data\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\booking-steps\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\blocked-slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\student\\learning\\[category]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\student\\bokningar\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\users\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\lessons\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\[id]\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\[id]\\BookingDetailsClient.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\unbook\\[bookingId]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\bookings\\create-for-student\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\webhook\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\create-unified\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\create-order\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\create-for-reference\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\create-checkout\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\checkout-push\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\swish\\callback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "INSERT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\handledar-sessions\\[id]\\book-with-supervisors\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "INSERT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\handledar-sessions\\[id]\\book\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\handledar\\payments\\notify-admin\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\bookings\\[id]\\payment-confirmation\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\bookings\\[id]\\pay-with-credits\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\forgot\\start\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\auth\\forgot\\reset\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\skriv-in\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\generate-password\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\delete-with-bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "DELETE",
+        "UPDATE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\create-student\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\teachers\\remove\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\swish\\email-action\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\slots\\reset\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "DELETE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\slots\\copy\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\initialize-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\update-swish-template-receiver\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "DELETE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\init-qliro-flow\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\add-swish-payment-template\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\add-school-email\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\add-school-phonenumber\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\settings\\init-qliro-payment-methods\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\unpaid-bookings\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\test-order\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\prereq\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\auth-test\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\payment\\confirmation\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\maintenance\\release-stale\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-types\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-content\\groups\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lessons\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "SELECT",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\future\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-bookings\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "DELETE",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\update-name\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "DELETE",
+        "INSERT",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\seed-reminders\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\preview\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\diagnostics\\slots\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\clear-all\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\bulk-unbook\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\bulk-delete-with-credits\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "DELETE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\bulk-delete\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\approve-swish\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\booking\\confirmation\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\users\\[id]\\credits\\page.tsx",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\bookings\\[id]\\plan\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\teacher\\bookings\\[id]\\live\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\student\\bookings\\[id]\\feedback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\[id]\\education-summary\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\[id]\\credits\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "UPDATE",
+        "SELECT",
+        "DELETE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\[id]\\book\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\users\\[id]\\avatar\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\export\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\create\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\orders\\status\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\orders\\refresh-stale\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\payments\\swish\\list\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\payments\\swish\\remind\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\payments\\swish\\decline\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\payments\\swish\\confirm\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "UPDATE",
+        "UPDATE",
+        "SELECT",
+        "SELECT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "UPDATE",
+        "INSERT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\packages\\[id]\\contents\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-content\\items\\[id]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\[id]\\participants\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\[id]\\add-booking\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\move\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "UPDATE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\feedback\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\[id]\\repay\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\[id]\\remind\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\[id]\\refund\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\[id]\\link\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "SELECT",
+        "SELECT",
+        "SELECT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\packages\\[id]\\contents\\[contentId]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "DELETE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-content\\groups\\[id]\\items\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "INSERT"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\feedback\\[feedbackId]\\route.ts",
+      "type": "Drizzle ORM",
+      "operations": [
+        "UPDATE",
+        "DELETE"
+      ]
+    }
+  ],
+  "rawSQLQueries": [
+    {
+      "file": "setup-db.js",
+      "type": "Raw SQL",
+      "queries": [
+        "CREATE TABLE IF NOT EXISTS users (\r\n        id SERIAL PRIMARY KEY,\r\n        email VARCHAR(255) UNIQUE NOT NULL,\r\n        password VARCHAR(255) NOT NULL,\r\n        first_name VARCHAR(100),\r\n        last_name VARCHAR(100),\r\n        phone VARCHAR(20),\r\n        personal_number VARCHAR(20),\r\n        address TEXT,\r\n        postal_code VARCHAR(10),\r\n        city VARCHAR(100),\r\n        role VARCHAR(20) DEFAULT 'student',\r\n        is_active BOOLEAN DEFAULT true,\r\n        profile_image TEXT,\r\n        date_of_birth DATE,\r\n        license_number VARCHAR(50),\r\n        specializations TEXT[],\r\n        inskriven VARCHAR(255),\r\n        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n      )",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n          VALUES (${user.email}, ${user.password}, ${user.firstName}, ${user.lastName}, ${user.phone}, ${user.role}, true)\r\n          ON CONFLICT (email) DO NOTHING",
+        "SELECT email, role FROM users"
+      ]
+    },
+    {
+      "file": "seed-users-simple.js",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES (${'admin@test.se'}, ${hashedPassword}, ${'Admin'}, ${'Administratör'}, ${'070-123-45-67'}, ${'admin'}, ${true})\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active, license_number, specializations)\r\n      VALUES (${'teacher@test.se'}, ${hashedPassword}, ${'Lärare'}, ${'Instruktör'}, ${'070-234-56-78'}, ${'teacher'}, ${true}, ${'T123456'}, ${JSON.stringify(['b_license', 'assessment', 'taxi_license'])})\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES (${'student@test.se'}, ${hashedPassword}, ${'Elev'}, ${'Körskola'}, ${'070-345-67-89'}, ${'student'}, ${true})\r\n      ON CONFLICT (email) DO NOTHING"
+      ]
+    },
+    {
+      "file": "run-qliro-migrations.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT table_name FROM information_schema.tables WHERE table_name = 'qliro_orders'"
+      ]
+    },
+    {
+      "file": "reset-admin-password.js",
+      "type": "Raw SQL",
+      "queries": [
+        "UPDATE users \r\n      SET password = ${hashedPassword}\r\n      WHERE email = 'admin@test.se' AND role = 'admin'\r\n      RETURNING id, email, first_name, last_name"
+      ]
+    },
+    {
+      "file": "reset-admin-password-ubuntu.js",
+      "type": "Raw SQL",
+      "queries": [
+        "UPDATE users \n      SET password = ${hashedPassword}\n      WHERE email = 'admin@dintrafikskolahlm.se' AND role = 'admin'\n      RETURNING id, email, first_name, last_name"
+      ]
+    },
+    {
+      "file": "migrate-add-columns.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT column_name \r\n      FROM information_schema.columns \r\n      WHERE table_name = 'bookings' AND column_name = 'is_completed'",
+        "ALTER TABLE bookings\r\n        ADD COLUMN is_completed BOOLEAN DEFAULT FALSE"
+      ]
+    },
+    {
+      "file": "list-tables.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT table_name, table_type\r\n      FROM information_schema.tables \r\n      WHERE table_schema = 'public'\r\n      ORDER BY table_name;",
+        "SELECT column_name, data_type, is_nullable, column_default\r\n        FROM information_schema.columns \r\n        WHERE table_schema = 'public' AND table_name = ${table.table_name}\r\n        ORDER BY ordinal_position;"
+      ]
+    },
+    {
+      "file": "find-admin-users.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT id, email, first_name, last_name, role, is_active\r\n      FROM users \r\n      WHERE role = 'admin'\r\n      ORDER BY email",
+        "SELECT id, email, first_name, last_name, role\r\n      FROM users \r\n      WHERE id = 'd601c43a-599c-4715-8b9a-65fe092c6c11'"
+      ]
+    },
+    {
+      "file": "cleanup-duplicate-credits.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT * FROM user_credits \r\n      WHERE user_id = ${USER_ID} \r\n      AND credit_type = 'handledar'\r\n      AND handledar_session_id IS NULL\r\n      ORDER BY created_at ASC",
+        "UPDATE user_credits \r\n        SET credits_remaining = ${totalCreditsRemaining},\r\n            credits_total = ${totalCreditsTotal},\r\n            updated_at = NOW()\r\n        WHERE id = ${firstCredit.id}",
+        "DELETE FROM user_credits \r\n          WHERE id = ANY(${idsToDelete})",
+        "SELECT * FROM user_credits \r\n      WHERE user_id = ${USER_ID}\r\n      ORDER BY created_at DESC"
+      ]
+    },
+    {
+      "file": "check-users-schema.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT column_name, data_type, is_nullable, column_default\n      FROM information_schema.columns \n      WHERE table_name = 'users' \n      ORDER BY ordinal_position",
+        "SELECT id, email, first_name, last_name, role FROM users LIMIT 1"
+      ]
+    },
+    {
+      "file": "check-qliro-table.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT \n        column_name, \n        data_type,\n        numeric_precision,\n        numeric_scale,\n        is_nullable,\n        column_default\n      FROM information_schema.columns \n      WHERE table_name = 'qliro_orders'\n      ORDER BY ordinal_position",
+        "SELECT constraint_name, constraint_type\n        FROM information_schema.table_constraints \n        WHERE table_name = 'qliro_orders' AND constraint_type IN ('UNIQUE', 'PRIMARY KEY')"
+      ]
+    },
+    {
+      "file": "check-db.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT table_name \r\n      FROM information_schema.tables \r\n      WHERE table_schema = 'public'\r\n      ORDER BY table_name;",
+        "SELECT column_name, data_type \r\n      FROM information_schema.columns \r\n      WHERE table_name = 'users' AND table_schema = 'public'\r\n      ORDER BY column_name;",
+        "SELECT column_name, data_type \r\n      FROM information_schema.columns \r\n      WHERE table_name = 'bookings' AND table_schema = 'public'\r\n      ORDER BY column_name;"
+      ]
+    },
+    {
+      "file": "check-and-seed-users.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT email, role, first_name, last_name FROM users ORDER BY role, email",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\n        VALUES ('admin@test.se', ${hashedPassword}, 'Admin', 'Administratör', '070-123-45-67', 'admin', true)\n        ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\n        VALUES ('teacher@test.se', ${hashedPassword}, 'Lärare', 'Instruktör', '070-234-56-78', 'teacher', true)\n        ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\n        VALUES ('student@test.se', ${hashedPassword}, 'Elev', 'Körskola', '070-345-67-89', 'student', true)\n        ON CONFLICT (email) DO NOTHING"
+      ]
+    },
+    {
+      "file": "check-admin-status.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT id, email, role, is_active FROM users WHERE role = 'admin'",
+        "SELECT id, email, role, is_active FROM users WHERE email = 'admin@dintrafikskolahlm.se'"
+      ]
+    },
+    {
+      "file": "apply-migration.js",
+      "type": "Raw SQL",
+      "queries": [
+        "${stmt}"
+      ]
+    },
+    {
+      "file": "add-inskriven-column.js",
+      "type": "Raw SQL",
+      "queries": [
+        "ALTER TABLE users \r\n      ADD COLUMN IF NOT EXISTS inskriven BOOLEAN DEFAULT false",
+        "SELECT column_name \r\n      FROM information_schema.columns \r\n      WHERE table_name = 'users' \r\n      AND column_name = 'inskriven'"
+      ]
+    },
+    {
+      "file": "add-columns.js",
+      "type": "Raw SQL",
+      "queries": [
+        "${query}"
+      ]
+    },
+    {
+      "file": "scripts\\verify-qliro-table.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT EXISTS (\n        SELECT FROM information_schema.tables \n        WHERE table_schema = 'public' \n        AND table_name = 'qliro_orders'\n      );",
+        "SELECT column_name, data_type \n        FROM information_schema.columns \n        WHERE table_name = 'qliro_orders' \n        ORDER BY ordinal_position;",
+        "CREATE TABLE \"qliro_orders\" (\n        \"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n        \"booking_id\" uuid,\n        \"handledar_booking_id\" uuid,\n        \"package_purchase_id\" uuid,\n        \"qliro_order_id\" varchar(255) NOT NULL,\n        \"merchant_reference\" varchar(255) NOT NULL,\n        \"amount\" numeric(10, 2) NOT NULL,\n        \"currency\" varchar(3) DEFAULT 'SEK',\n        \"status\" varchar(50) DEFAULT 'created',\n        \"payment_link\" text,\n        \"last_status_check\" timestamp,\n        \"environment\" varchar(20) DEFAULT 'sandbox',\n        \"created_at\" timestamp DEFAULT now() NOT NULL,\n        \"updated_at\" timestamp DEFAULT now() NOT NULL,\n        CONSTRAINT \"qliro_orders_qliro_order_id_unique\" UNIQUE(\"qliro_order_id\")\n      )",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_booking_id_bookings_id_fk\" \n      FOREIGN KEY (\"booking_id\") REFERENCES \"bookings\"(\"id\") ON DELETE cascade",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_handledar_booking_id_handledar_bookings_id_fk\" \n      FOREIGN KEY (\"handledar_booking_id\") REFERENCES \"handledar_bookings\"(\"id\") ON DELETE cascade",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_package_purchase_id_package_purchases_id_fk\" \n      FOREIGN KEY (\"package_purchase_id\") REFERENCES \"package_purchases\"(\"id\") ON DELETE cascade",
+        "CREATE INDEX \"qliro_orders_booking_id_idx\" ON \"qliro_orders\" (\"booking_id\")",
+        "CREATE INDEX \"qliro_orders_handledar_booking_id_idx\" ON \"qliro_orders\" (\"handledar_booking_id\")",
+        "CREATE INDEX \"qliro_orders_package_purchase_id_idx\" ON \"qliro_orders\" (\"package_purchase_id\")",
+        "CREATE INDEX \"qliro_orders_status_idx\" ON \"qliro_orders\" (\"status\")",
+        "CREATE INDEX \"qliro_orders_environment_idx\" ON \"qliro_orders\" (\"environment\")"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-integration.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT COUNT(*) FROM qliro_orders LIMIT 1",
+        "CREATE TABLE \"qliro_orders\" (\n            \"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n            \"booking_id\" uuid,\n            \"handledar_booking_id\" uuid,\n            \"package_purchase_id\" uuid,\n            \"qliro_order_id\" varchar(255) NOT NULL UNIQUE,\n            \"merchant_reference\" varchar(255) NOT NULL,\n            \"amount\" numeric(10, 2) NOT NULL,\n            \"currency\" varchar(3) DEFAULT 'SEK',\n            \"status\" varchar(50) DEFAULT 'created',\n            \"payment_link\" text,\n            \"last_status_check\" timestamp,\n            \"environment\" varchar(20) DEFAULT 'sandbox',\n            \"created_at\" timestamp DEFAULT now() NOT NULL,\n            \"updated_at\" timestamp DEFAULT now() NOT NULL\n          )",
+        "INSERT INTO qliro_orders (qliro_order_id, merchant_reference, amount, status)\n      VALUES (${testOrderId}, ${testMerchantRef}, 100.00, 'test')",
+        "SELECT * FROM qliro_orders WHERE qliro_order_id = ${testOrderId}",
+        "DELETE FROM qliro_orders WHERE qliro_order_id = ${testOrderId}"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-flow.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT key, value FROM site_settings"
+      ]
+    },
+    {
+      "file": "scripts\\test-qliro-connectivity.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT key, value, category \n      FROM site_settings \n      WHERE category = 'payment' AND key LIKE 'qliro%'\n      ORDER BY key"
+      ]
+    },
+    {
+      "file": "scripts\\setup-qliro-table-stepwise.js",
+      "type": "Raw SQL",
+      "queries": [
+        "DROP TABLE IF EXISTS \"qliro_orders\" CASCADE",
+        "CREATE TABLE \"qliro_orders\" (\n        \"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n        \"booking_id\" uuid,\n        \"handledar_booking_id\" uuid,\n        \"package_purchase_id\" uuid,\n        \"qliro_order_id\" varchar(255) NOT NULL UNIQUE,\n        \"merchant_reference\" varchar(255) NOT NULL,\n        \"amount\" numeric(10, 2) NOT NULL,\n        \"currency\" varchar(3) DEFAULT 'SEK',\n        \"status\" varchar(50) DEFAULT 'created',\n        \"payment_link\" text,\n        \"last_status_check\" timestamp,\n        \"environment\" varchar(20) DEFAULT 'sandbox',\n        \"created_at\" timestamp DEFAULT now() NOT NULL,\n        \"updated_at\" timestamp DEFAULT now() NOT NULL\n      )",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_booking_id_fk\" \n        FOREIGN KEY (\"booking_id\") REFERENCES \"bookings\"(\"id\") ON DELETE CASCADE",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_handledar_booking_id_fk\" \n        FOREIGN KEY (\"handledar_booking_id\") REFERENCES \"handledar_bookings\"(\"id\") ON DELETE CASCADE",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_package_purchase_id_fk\" \n        FOREIGN KEY (\"package_purchase_id\") REFERENCES \"package_purchases\"(\"id\") ON DELETE CASCADE",
+        "CREATE INDEX ${sql(index.name)} ON \"qliro_orders\" (${sql(index.column)})",
+        "SELECT column_name, data_type, is_nullable \n      FROM information_schema.columns \n      WHERE table_name = 'qliro_orders' \n      ORDER BY ordinal_position"
+      ]
+    },
+    {
+      "file": "scripts\\setup-database.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT current_database(), current_user, version()",
+        "SELECT EXISTS (\r\n        SELECT FROM information_schema.tables \r\n        WHERE table_schema = 'public' \r\n        AND table_name = 'users'\r\n      );",
+        "email = ${user.email}"
+      ]
+    },
+    {
+      "file": "scripts\\run-migration-plan-items.js",
+      "type": "Raw SQL",
+      "queries": [
+        ");\r\n    for (let i = 0; i < statements.length; i++) {\r\n      const stmt = statements[i];\r\n      try {\r\n        await client.query(stmt + ';');\r\n        console.log("
+      ]
+    },
+    {
+      "file": "scripts\\reset-admin-password.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT id, email FROM users WHERE email = ${email}",
+        "UPDATE users SET password = ${hash} WHERE id = ${id} RETURNING id, email"
+      ]
+    },
+    {
+      "file": "scripts\\init-qliro-payment-methods.js",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO site_settings (key, value, category, description, created_at, updated_at)\r\n        VALUES (${setting.key}, ${setting.value}, ${setting.category}, ${setting.description}, NOW(), NOW())\r\n        ON CONFLICT (key) DO NOTHING\r\n        RETURNING key"
+      ]
+    },
+    {
+      "file": "scripts\\fix-qliro-orders-table.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "DROP TABLE IF EXISTS \"qliro_orders\"",
+        "CREATE TABLE \"qliro_orders\" (\r\n        \"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\r\n        \"booking_id\" uuid,\r\n        \"handledar_booking_id\" uuid,\r\n        \"package_purchase_id\" uuid,\r\n        \"qliro_order_id\" varchar(255) NOT NULL,\r\n        \"merchant_reference\" varchar(255) NOT NULL,\r\n        \"amount\" numeric(10, 2) NOT NULL,\r\n        \"currency\" varchar(3) DEFAULT 'SEK',\r\n        \"status\" varchar(50) DEFAULT 'created',\r\n        \"payment_link\" text,\r\n        \"last_status_check\" timestamp,\r\n        \"environment\" varchar(20) DEFAULT 'sandbox',\r\n        \"created_at\" timestamp DEFAULT now() NOT NULL,\r\n        \"updated_at\" timestamp DEFAULT now() NOT NULL,\r\n        CONSTRAINT \"qliro_orders_qliro_order_id_unique\" UNIQUE(\"qliro_order_id\")\r\n      )",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_booking_id_bookings_id_fk\" \r\n      FOREIGN KEY (\"booking_id\") REFERENCES \"bookings\"(\"id\") ON DELETE cascade ON UPDATE no action",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_handledar_booking_id_handledar_bookings_id_fk\" \r\n      FOREIGN KEY (\"handledar_booking_id\") REFERENCES \"handledar_bookings\"(\"id\") ON DELETE cascade ON UPDATE no action",
+        "ALTER TABLE \"qliro_orders\" ADD CONSTRAINT \"qliro_orders_package_purchase_id_package_purchases_id_fk\" \r\n      FOREIGN KEY (\"package_purchase_id\") REFERENCES \"package_purchases\"(\"id\") ON DELETE cascade ON UPDATE no action",
+        "CREATE INDEX \"qliro_orders_booking_id_idx\" ON \"qliro_orders\" (\"booking_id\")",
+        "CREATE INDEX \"qliro_orders_handledar_booking_id_idx\" ON \"qliro_orders\" (\"handledar_booking_id\")",
+        "CREATE INDEX \"qliro_orders_package_purchase_id_idx\" ON \"qliro_orders\" (\"package_purchase_id\")",
+        "CREATE INDEX \"qliro_orders_status_idx\" ON \"qliro_orders\" (\"status\")",
+        "CREATE INDEX \"qliro_orders_environment_idx\" ON \"qliro_orders\" (\"environment\")"
+      ]
+    },
+    {
+      "file": "scripts\\cleanup-supervisor-data.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT \r\n        hb.id as booking_id,\r\n        hs.date as session_date,\r\n        hs.start_time as session_time,\r\n        sd.supervisor_name,\r\n        CASE WHEN sd.supervisor_personal_number IS NOT NULL THEN true ELSE false END as has_personal_number\r\n      FROM handledar_bookings hb\r\n      INNER JOIN handledar_sessions hs ON hb.session_id = hs.id\r\n      LEFT JOIN supervisor_details sd ON hb.id = sd.handledar_booking_id\r\n      WHERE hs.date < ${todayStr}\r\n        AND sd.supervisor_personal_number IS NOT NULL\r\n      ORDER BY hs.date DESC, hs.start_time DESC",
+        "UPDATE supervisor_details \r\n        SET supervisor_personal_number = NULL \r\n        WHERE handledar_booking_id = ${bookingId}\r\n          AND supervisor_personal_number IS NOT NULL",
+        "INSERT INTO site_settings (key, value, description, category)\r\n      VALUES (\r\n        'last_supervisor_cleanup',\r\n        ${new Date().toISOString()},\r\n        'Last supervisor personal number cleanup timestamp',\r\n        'maintenance'\r\n      )\r\n      ON CONFLICT (key) \r\n      DO UPDATE SET \r\n        value = EXCLUDED.value,\r\n        updated_at = CURRENT_TIMESTAMP"
+      ]
+    },
+    {
+      "file": "scripts\\check-qliro-table.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT EXISTS (\n        SELECT FROM information_schema.tables \n        WHERE table_schema = 'public' \n        AND table_name = 'qliro_orders'\n      );",
+        "CREATE TABLE \"qliro_orders\" (\n          \"id\" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,\n          \"booking_id\" uuid,\n          \"handledar_booking_id\" uuid,\n          \"package_purchase_id\" uuid,\n          \"qliro_order_id\" varchar(255) NOT NULL UNIQUE,\n          \"merchant_reference\" varchar(255) NOT NULL,\n          \"amount\" numeric(10, 2) NOT NULL,\n          \"currency\" varchar(3) DEFAULT 'SEK',\n          \"status\" varchar(50) DEFAULT 'created',\n          \"payment_link\" text,\n          \"last_status_check\" timestamp,\n          \"environment\" varchar(20) DEFAULT 'sandbox',\n          \"created_at\" timestamp DEFAULT now() NOT NULL,\n          \"updated_at\" timestamp DEFAULT now() NOT NULL\n        )",
+        "SELECT column_name, data_type, is_nullable \n      FROM information_schema.columns \n      WHERE table_name = 'qliro_orders' \n      ORDER BY ordinal_position"
+      ]
+    },
+    {
+      "file": "scripts\\analyze-n1-queries.js",
+      "type": "Raw SQL",
+      "queries": [
+        "|\\.execute|fetch\\()/,\r\n    severity: 'high',\r\n    description: 'Async map with database query - classic N+1 pattern'\r\n  },\r\n  {\r\n    pattern: /for\\s*\\([^)]*\\)\\s*\\{[^}]*(?:db\\.|",
+        "|\\.execute|fetch\\()/,\r\n    severity: 'high',\r\n    description: 'forEach with async database query'\r\n  },\r\n  \r\n  // Sequential query patterns\r\n  {\r\n    pattern: /await\\s+[^;]*\\.map\\s*\\(\\s*async/,\r\n    severity: 'medium',\r\n    description: 'Sequential async operations that could be parallelized'\r\n  },\r\n  {\r\n    pattern: /for\\s*\\([^)]*\\)\\s*\\{[^}]*await/,\r\n    severity: 'medium',\r\n    description: 'Sequential awaits in loop'\r\n  },\r\n  \r\n  // Missing JOIN patterns\r\n  {\r\n    pattern: /SELECT.*FROM\\s+\\w+.*WHERE.*=.*\\$\\{.*\\}/,\r\n    severity: 'medium',\r\n    description: 'Parameterized query that might benefit from JOIN'\r\n  },\r\n  \r\n  // React component patterns\r\n  {\r\n    pattern: /useEffect\\s*\\([^}]*\\.map\\s*\\([^}]*fetch/,\r\n    severity: 'medium',\r\n    description: 'useEffect with mapped fetch calls'\r\n  }\r\n];\r\n\r\n// Database performance anti-patterns\r\nconst performancePatterns = [\r\n  {\r\n    pattern: /SELECT\\s+\\*/,\r\n    severity: 'low',\r\n    description: 'SELECT * - consider selecting specific columns'\r\n  },\r\n  {\r\n    pattern: /db\\.execute\\s*\\(\\s*"
+      ]
+    },
+    {
+      "file": "lib\\working-seed.js",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES ('admin@test.se', ${hashedPassword}, 'Admin', 'Administratör', '070-123-45-67', 'admin', true)\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active, license_number, specializations)\r\n      VALUES ('teacher@test.se', ${hashedPassword}, 'Lärare', 'Instruktör', '070-234-56-78', 'teacher', true, 'T123456', '[\"b_license\", \"assessment\", \"taxi_license\"]')\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES ('student@test.se', ${hashedPassword}, 'Elev', 'Körskola', '070-345-67-89', 'student', true)\r\n      ON CONFLICT (email) DO NOTHING"
+      ]
+    },
+    {
+      "file": "lib\\seed-users.js",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES ('admin@test.se', ${hashedPassword}, 'Admin', 'Administratör', '070-123-45-67', 'admin', true)\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active, license_number, specializations)\r\n      VALUES ('teacher@test.se', ${hashedPassword}, 'Lärare', 'Instruktör', '070-234-56-78', 'teacher', true, 'T123456', '[\"b_license\", \"assessment\", \"taxi_license\"]')\r\n      ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n      VALUES ('student@test.se', ${hashedPassword}, 'Elev', 'Körskola', '070-345-67-89', 'student', true)\r\n      ON CONFLICT (email) DO NOTHING"
+      ]
+    },
+    {
+      "file": "lib\\check-users.js",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT email, role, first_name, last_name FROM users ORDER BY created_at DESC LIMIT 10"
+      ]
+    },
+    {
+      "file": "lib\\email\\email-cron-service.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "sum(${userCredits.creditsRemaining}) > 0"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\users\\page.tsx",
+      "type": "Raw SQL",
+      "queries": [
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+      "type": "Raw SQL",
+      "queries": [
+        "lower(${bookingsOld.invoiceId} || ' ' || ${bookingsOld.notes})",
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\page.tsx",
+      "type": "Raw SQL",
+      "queries": [
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\api\\cron\\daily-bookings\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "lesson_types",
+        "lesson_types.id"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\visible-slots\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "UPDATE qliro_orders qo\r\n        SET status = 'expired', updated_at = NOW()\r\n        FROM bookings b\r\n        WHERE qo.booking_id = b.id\r\n          AND (qo.status = 'created' OR qo.status = 'pending')\r\n          AND b.scheduled_date < CURRENT_DATE",
+        "DELETE FROM bookings \r\n        WHERE (status = 'temp' OR status = 'on_hold')\r\n          AND (payment_status IS NULL OR payment_status = 'unpaid')\r\n          AND scheduled_date < CURRENT_DATE",
+        "SELECT id FROM bookings WHERE status = 'cancelled' AND updated_at < ${fifteenMinutesAgo}",
+        "INSERT INTO bookings_old (\r\n          id, student_id, teacher_id, car_id, invoice_id,\r\n          booking_date, duration, lesson_type, price, payment_status,\r\n          notes, is_completed, is_cancelled, cancel_reason,\r\n          created_at, updated_at\r\n        )\r\n        SELECT b.id, b.user_id, b.teacher_id, b.car_id, b.invoice_number,\r\n               (b.scheduled_date::timestamp + b.start_time), b.duration_minutes,\r\n               (CASE\r\n                  WHEN lower(coalesce(lt.name, 'b')) LIKE '%b%' THEN 'b_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%a%' THEN 'a_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%taxi%' THEN 'taxi_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%theory%' THEN 'theory'\r\n                  ELSE 'assessment'\r\n                END)::lesson_type,\r\n               b.total_price::numeric,\r\n               (CASE\r\n                  WHEN b.payment_status = 'paid' THEN 'paid'\r\n                  WHEN b.payment_status = 'failed' THEN 'failed'\r\n                  WHEN b.payment_status = 'refunded' THEN 'refunded'\r\n                  ELSE 'pending'\r\n                END)::payment_status,\r\n               b.notes,\r\n               coalesce(b.is_completed, false),\r\n               true,\r\n               'auto-archived (stale cancelled)',\r\n               b.created_at, b.updated_at\r\n        FROM bookings b\r\n        LEFT JOIN lesson_types lt ON lt.id = b.lesson_type_id\r\n        WHERE b.id = ANY(${ids}::uuid[])\r\n        ON CONFLICT (id) DO NOTHING",
+        "UPDATE internal_messages SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])",
+        "UPDATE payment_history SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM booking_plan_items WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM user_feedback WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM bookings WHERE id = ANY(${ids}::uuid[])",
+        "DELETE FROM bookings \r\n            WHERE (status = 'temp' OR status = 'on_hold') \r\n              AND (payment_status IS NULL OR payment_status = 'unpaid')\r\n              AND created_at < ${fifteenMinutesAgo}",
+        "DELETE FROM bookings \r\n            WHERE status = 'cancelled' \r\n              AND updated_at < ${fifteenMinutesAgo}"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\create\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "${handledarSessions.currentParticipants} + 1",
+        "${handledarSessions.currentParticipants} + 1",
+        "${handledarSessions.currentParticipants} + 1",
+        "${bookings.startTime} < ${endTime}",
+        "${bookings.endTime} > ${startTime}",
+        "${bookings.startTime} < ${endTime}",
+        "${bookings.endTime} > ${startTime}",
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\cleanup-expired\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "DELETE FROM bookings\r\n      WHERE (status = 'temp' AND created_at < ${fifteenMinutesAgo})\r\n         OR (status = 'cancelled' AND updated_at < ${fifteenMinutesAgo})\r\n      RETURNING id",
+        "GREATEST(${handledarSessions.currentParticipants} - 1, 0)",
+        "count(*)",
+        "count(*)",
+        "count(*)",
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\cleanup\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "GREATEST(${handledarSessions.currentParticipants} - 1, 0)",
+        "${bookings.createdAt} < ${fifteenMinutesAgo}",
+        "${handledarBookings.createdAt} < ${fifteenMinutesAgo}",
+        "GREATEST(${handledarSessions.currentParticipants} - 1, 0)"
+      ]
+    },
+    {
+      "file": "app\\api\\booking\\available-slots\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT id FROM bookings WHERE status = 'cancelled' AND updated_at < ${fifteenMinutesAgo}",
+        "INSERT INTO bookings_old (\r\n          id, student_id, teacher_id, car_id, invoice_id,\r\n          booking_date, duration, lesson_type, price, payment_status,\r\n          notes, is_completed, is_cancelled, cancel_reason,\r\n          created_at, updated_at\r\n        )\r\n        SELECT b.id, b.user_id, b.teacher_id, b.car_id, b.invoice_number,\r\n               (b.scheduled_date::timestamp + b.start_time), b.duration_minutes,\r\n               (CASE\r\n                  WHEN lower(coalesce(lt.name, 'b')) LIKE '%b%' THEN 'b_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%a%' THEN 'a_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%taxi%' THEN 'taxi_license'\r\n                  WHEN lower(coalesce(lt.name, '')) LIKE '%theory%' THEN 'theory'\r\n                  ELSE 'assessment'\r\n                END)::lesson_type,\r\n               b.total_price::numeric,\r\n               (CASE\r\n                  WHEN b.payment_status = 'paid' THEN 'paid'\r\n                  WHEN b.payment_status = 'failed' THEN 'failed'\r\n                  WHEN b.payment_status = 'refunded' THEN 'refunded'\r\n                  ELSE 'pending'\r\n                END)::payment_status,\r\n               b.notes,\r\n               coalesce(b.is_completed, false),\r\n               true,\r\n               'auto-archived (stale cancelled)',\r\n               b.created_at, b.updated_at\r\n        FROM bookings b\r\n        LEFT JOIN lesson_types lt ON lt.id = b.lesson_type_id\r\n        WHERE b.id = ANY(${ids}::uuid[])\r\n        ON CONFLICT (id) DO NOTHING",
+        "UPDATE internal_messages SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])",
+        "UPDATE payment_history SET booking_id = NULL WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM booking_plan_items WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM user_feedback WHERE booking_id = ANY(${ids}::uuid[])",
+        "DELETE FROM bookings WHERE id = ANY(${ids}::uuid[])",
+        "DELETE FROM bookings \r\n            WHERE (status = 'temp' OR status = 'on_hold') \r\n              AND (payment_status IS NULL OR payment_status = 'unpaid')\r\n              AND created_at < ${fifteenMinutesAgo}",
+        "DELETE FROM bookings \r\n            WHERE status = 'cancelled' \r\n              AND updated_at < ${fifteenMinutesAgo}"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\migrate\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS inskriven BOOLEAN DEFAULT false",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_price DECIMAL(10, 2)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS inskriven_date TIMESTAMP",
+        "CREATE TABLE IF NOT EXISTS site_settings (\r\n          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\r\n          key VARCHAR(255) NOT NULL UNIQUE,\r\n          value TEXT,\r\n          description TEXT,\r\n          category VARCHAR(100),\r\n          is_env BOOLEAN DEFAULT false,\r\n          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r\n          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\r\n        )",
+        "CREATE TABLE IF NOT EXISTS handledar_sessions (\r\n          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\r\n          date DATE NOT NULL,\r\n          start_time TIME NOT NULL,\r\n          end_time TIME NOT NULL,\r\n          max_participants INTEGER DEFAULT 2,\r\n          current_participants INTEGER DEFAULT 0,\r\n          teacher_id UUID REFERENCES users(id),\r\n          is_active BOOLEAN DEFAULT true,\r\n          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r\n          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\r\n        )",
+        "CREATE TABLE IF NOT EXISTS handledar_bookings (\r\n          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\r\n          session_id UUID REFERENCES handledar_sessions(id) ON DELETE CASCADE,\r\n          student_id UUID REFERENCES users(id),\r\n          supervisor_name VARCHAR(255),\r\n          supervisor_email VARCHAR(255),\r\n          supervisor_phone VARCHAR(50),\r\n          status VARCHAR(50) DEFAULT 'pending',\r\n          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\r\n        )",
+        "CREATE TABLE IF NOT EXISTS slot_overrides (\r\n          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\r\n          date DATE NOT NULL,\r\n          time_start TIME NOT NULL,\r\n          time_end TIME NOT NULL,\r\n          reason TEXT,\r\n          is_available BOOLEAN DEFAULT true,\r\n          created_by UUID REFERENCES users(id),\r\n          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r\n          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r\n          UNIQUE(date, time_start, time_end)\r\n        )",
+        "ALTER TABLE slot_settings ADD COLUMN IF NOT EXISTS admin_minutes INTEGER DEFAULT 0",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS car_id UUID REFERENCES cars(id)",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT false",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS feedback_ready BOOLEAN DEFAULT false",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS invoice_number VARCHAR(100)",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS invoice_date TIMESTAMP",
+        "CREATE TABLE IF NOT EXISTS package_purchases (\r\n          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\r\n          user_id UUID REFERENCES users(id) NOT NULL,\r\n          package_id UUID REFERENCES packages(id) NOT NULL,\r\n          purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\r\n          price_paid DECIMAL(10, 2) NOT NULL,\r\n          payment_method VARCHAR(50),\r\n          payment_status VARCHAR(50) DEFAULT 'pending',\r\n          invoice_number VARCHAR(100),\r\n          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL\r\n        )",
+        "ALTER TABLE lesson_types \r\n        ADD CONSTRAINT lesson_types_name_key UNIQUE (name)",
+        "UPDATE lesson_types \r\n        SET is_active = false \r\n        WHERE name NOT IN ('B-körkort', 'Taxiförarlegitimation', 'Handledarutbildning', 'Introduktion')",
+        "INSERT INTO site_settings (key, value, description, category)\r\n            VALUES (${setting.key}, ${setting.value}, ${setting.description}, ${setting.category})\r\n            ON CONFLICT (key) DO NOTHING",
+        "INSERT INTO lesson_types (name, description, duration_minutes, price, price_student, is_active)\r\n            VALUES (${lessonType.name}, ${lessonType.description}, ${lessonType.duration}, ${lessonType.price}, ${lessonType.studentPrice}, true)\r\n            ON CONFLICT (name) DO UPDATE SET\r\n              description = EXCLUDED.description,\r\n              duration_minutes = EXCLUDED.duration_minutes,\r\n              price = EXCLUDED.price,\r\n              price_student = EXCLUDED.price_student,\r\n              is_active = true",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON bookings(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_teacher_id ON bookings(teacher_id)",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_scheduled_date ON bookings(scheduled_date)",
+        "CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)",
+        "CREATE INDEX IF NOT EXISTS idx_slot_overrides_date ON slot_overrides(date)",
+        "CREATE INDEX IF NOT EXISTS idx_handledar_sessions_date ON handledar_sessions(date)"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT e.enumlabel\r\n        FROM pg_enum e\r\n        JOIN pg_type t ON t.oid = e.enumtypid\r\n        WHERE t.typname = 'email_trigger_type'"
+      ]
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\webhook\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1",
+        "${userCredits.lessonTypeId} IS NULL"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\unpaid-bookings\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "count(*)"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1",
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'user_email' LIMIT 1",
+        "NULL"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\migrate\\test-data\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO users (email, password, first_name, last_name, phone, role, is_active)\r\n        VALUES \r\n          ('student@test.se', ${hashedPassword}, 'Test', 'Student', '+46701234567', 'student', true),\r\n          ('teacher@test.se', ${hashedPassword}, 'Test', 'Teacher', '+46701234568', 'teacher', true),\r\n          ('student2@test.se', ${hashedPassword}, 'Anna', 'Andersson', '+46701234569', 'student', true),\r\n          ('student3@test.se', ${hashedPassword}, 'Erik', 'Eriksson', '+46701234570', 'student', true)\r\n        ON CONFLICT (email) DO NOTHING",
+        "INSERT INTO cars (name, brand, model, year, color, transmission, license_plate, is_active)\r\n        VALUES \r\n          ('BMW 1', 'BMW', '118i', 2020, 'Vit', 'manual', 'ABC123', true),\r\n          ('BMW 2', 'BMW', '120i', 2021, 'Svart', 'automatic', 'DEF456', true),\r\n          ('Volvo 1', 'Volvo', 'V40', 2019, 'Blå', 'manual', 'GHI789', true),\r\n          ('Audi 1', 'Audi', 'A3', 2022, 'Grå', 'automatic', 'JKL012', true)\r\n        ON CONFLICT (license_plate) DO NOTHING",
+        "INSERT INTO slot_settings (day_of_week, time_start, time_end, is_active, admin_minutes)\r\n        VALUES \r\n          (1, '08:00', '17:00', true, 10),\r\n          (2, '08:00', '17:00', true, 10),\r\n          (3, '08:00', '17:00', true, 10),\r\n          (4, '08:00', '17:00', true, 10),\r\n          (5, '08:00', '17:00', true, 10)\r\n        ON CONFLICT DO NOTHING",
+        "SELECT id FROM lesson_types WHERE is_active = true LIMIT 1",
+        "SELECT id FROM users WHERE role = 'student' LIMIT 2",
+        "SELECT id FROM cars WHERE is_active = true LIMIT 1",
+        "SELECT id FROM users WHERE role = 'teacher' LIMIT 1",
+        "INSERT INTO bookings (\r\n            user_id, lesson_type_id, scheduled_date, start_time, end_time, \r\n            duration_minutes, transmission_type, teacher_id, car_id, \r\n            status, payment_status, total_price, notes\r\n          )\r\n          VALUES \r\n            (${users[0].id}, ${lessonTypeId}, '2025-08-01', '09:00', '09:45', 45, 'manual', ${teacherId}, ${carId}, 'confirmed', 'paid', 750, 'Test booking 1'),\r\n            (${users[0].id}, ${lessonTypeId}, '2025-08-03', '10:00', '10:45', 45, 'manual', ${teacherId}, ${carId}, 'pending', 'unpaid', 750, 'Test booking 2')",
+        "INSERT INTO bookings (\r\n              user_id, lesson_type_id, scheduled_date, start_time, end_time, \r\n              duration_minutes, transmission_type, teacher_id, car_id, \r\n              status, payment_status, total_price, notes\r\n            )\r\n            VALUES \r\n              (${users[1].id}, ${lessonTypeId}, '2025-08-02', '14:00', '14:45', 45, 'automatic', ${teacherId}, ${carId}, 'confirmed', 'paid', 750, 'Test booking for second user')",
+        "SELECT id FROM lesson_types WHERE is_active = true LIMIT 1",
+        "SELECT id FROM cars WHERE is_active = true LIMIT 1",
+        "INSERT INTO bookings (\r\n            lesson_type_id, scheduled_date, start_time, end_time, \r\n            duration_minutes, transmission_type, car_id, \r\n            status, payment_status, total_price, notes,\r\n            is_guest_booking, guest_name, guest_email, guest_phone\r\n          )\r\n          VALUES \r\n            (${lessonTypeId}, '2025-08-05', '11:00', '11:45', 45, 'manual', ${carId}, 'pending', 'unpaid', 750, 'Guest booking test', true, 'Johan Gäst', 'guest@example.com', '+46701111111')",
+        "SELECT id FROM lesson_types WHERE is_active = true LIMIT 1",
+        "SELECT id FROM users WHERE role = 'student' LIMIT 1",
+        "INSERT INTO user_credits (user_id, lesson_type_id, credits_remaining, credits_total)\r\n          VALUES (${students[0].id}, ${lessonTypes3[0].id}, 5, 10)\r\n          ON CONFLICT DO NOTHING"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\migrate\\status\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT COUNT(*) as count FROM users",
+        "SELECT COUNT(*) as count FROM users WHERE role = 'admin'",
+        "SELECT COUNT(*) as count FROM users WHERE role = 'student'",
+        "SELECT COUNT(*) as count FROM users WHERE role = 'teacher'",
+        "SELECT COUNT(*) as count FROM bookings",
+        "SELECT COUNT(*) as count FROM bookings WHERE status = 'confirmed'",
+        "SELECT COUNT(*) as count FROM bookings WHERE status = 'pending'",
+        "SELECT COUNT(*) as count FROM bookings WHERE is_guest_booking = true",
+        "SELECT COUNT(*) as count FROM lesson_types",
+        "SELECT COUNT(*) as count FROM lesson_types WHERE is_active = true",
+        "SELECT COUNT(*) as count FROM cars",
+        "SELECT COUNT(*) as count FROM cars WHERE is_active = true",
+        "SELECT COUNT(*) as count FROM user_credits",
+        "SELECT COUNT(*) as count FROM user_credits WHERE credits_remaining > 0",
+        "SELECT COUNT(*) as count FROM slot_settings",
+        "SELECT COUNT(*) as count FROM slot_settings WHERE is_active = true",
+        "SELECT COUNT(*) as count FROM packages",
+        "SELECT COUNT(*) as count FROM packages WHERE is_active = true",
+        "SELECT COUNT(*) as count FROM handledar_sessions",
+        "SELECT COUNT(*) as count FROM handledar_sessions WHERE is_active = true",
+        "SELECT COUNT(*) as count FROM site_settings",
+        "SELECT 1",
+        "SELECT COUNT(*) as count \r\n        FROM bookings \r\n        WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days'"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\migrate\\lesson-content\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "CREATE TABLE IF NOT EXISTS lesson_content_groups (\r\n        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\r\n        name varchar(255) NOT NULL,\r\n        sort_order integer DEFAULT 0,\r\n        is_active boolean DEFAULT true,\r\n        created_at timestamp DEFAULT now() NOT NULL,\r\n        updated_at timestamp DEFAULT now() NOT NULL\r\n      );",
+        "CREATE TABLE IF NOT EXISTS lesson_content_items (\r\n        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\r\n        group_id uuid NOT NULL REFERENCES lesson_content_groups(id) ON DELETE CASCADE,\r\n        title varchar(255) NOT NULL,\r\n        description text,\r\n        duration_minutes integer,\r\n        sort_order integer DEFAULT 0,\r\n        is_active boolean DEFAULT true,\r\n        created_at timestamp DEFAULT now() NOT NULL,\r\n        updated_at timestamp DEFAULT now() NOT NULL\r\n      );"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\migrate\\cleanup\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "DELETE FROM bookings \r\n        WHERE user_id IN (\r\n          SELECT id FROM users \r\n          WHERE email LIKE '%@test.se' OR email LIKE '%@example.com'\r\n        ) OR guest_email LIKE '%@test.se' OR guest_email LIKE '%@example.com'",
+        "DELETE FROM user_credits \r\n        WHERE user_id IN (\r\n          SELECT id FROM users \r\n          WHERE email LIKE '%@test.se'\r\n        )",
+        "DELETE FROM user_feedback \r\n        WHERE user_id IN (\r\n          SELECT id FROM users \r\n          WHERE email LIKE '%@test.se'\r\n        )",
+        "DELETE FROM users \r\n        WHERE email LIKE '%@test.se' \r\n        AND role != 'admin'",
+        "DELETE FROM cars \r\n        WHERE license_plate IN ('ABC123', 'DEF456', 'GHI789', 'JKL012')",
+        "DELETE FROM bookings \r\n        WHERE scheduled_date < CURRENT_DATE - INTERVAL '6 months'",
+        "DELETE FROM slot_overrides \r\n        WHERE date < CURRENT_DATE - INTERVAL '1 month'",
+        "DELETE FROM internal_messages \r\n        WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days'",
+        "DELETE FROM handledar_sessions \r\n        WHERE date < CURRENT_DATE - INTERVAL '1 month'",
+        "DELETE FROM package_purchases \r\n        WHERE user_id IN (\r\n          SELECT id FROM users \r\n          WHERE email LIKE '%@test.se'\r\n        )",
+        "VACUUM ANALYZE"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\maintenance\\release-stale\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "COALESCE(${bookings.notes}, '') || ${'\\n[auto] Hold expired; released by cron'}"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-content\\groups\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT COALESCE(MAX(step_number), 0) as max FROM booking_steps WHERE category = ${name}"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\handledar-bookings\\[id]\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "current_participants - 1",
+        "current_participants - 1",
+        "current_participants + 1"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\update-name\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "INSERT INTO site_settings (key, value, description, category)\r\n      VALUES (${"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "COALESCE(${users.firstName} || ' ' || ${users.lastName}, ${bookings.guestName})",
+        "COALESCE(${users.email}, ${bookings.guestEmail})",
+        "COALESCE(${users.phone}, ${bookings.guestPhone})",
+        "${users.firstName} || ' ' || ${users.lastName}"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "${handledarSessions.currentParticipants} + 1"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\archive-cancelled\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT id FROM bookings WHERE status = 'cancelled' AND updated_at < ${cutoff}",
+        "INSERT INTO bookings_old (\r\n            id, student_id, teacher_id, car_id, invoice_id,\r\n            booking_date, duration, lesson_type, price, payment_status,\r\n            notes, is_completed, is_cancelled, cancel_reason,\r\n            created_at, updated_at\r\n          )\r\n          SELECT b.id, b.user_id, b.teacher_id, b.car_id, b.invoice_number,\r\n                 (b.scheduled_date::timestamp + b.start_time), b.duration_minutes,\r\n                 (CASE\r\n                    WHEN lower(coalesce(lt.name, 'b')) LIKE '%b%' THEN 'b_license'\r\n                    WHEN lower(coalesce(lt.name, '')) LIKE '%a%' THEN 'a_license'\r\n                    WHEN lower(coalesce(lt.name, '')) LIKE '%taxi%' THEN 'taxi_license'\r\n                    WHEN lower(coalesce(lt.name, '')) LIKE '%theory%' THEN 'theory'\r\n                    ELSE 'assessment'\r\n                  END)::lesson_type,\r\n                 b.total_price::numeric,\r\n                 (CASE\r\n                    WHEN b.payment_status = 'paid' THEN 'paid'\r\n                    WHEN b.payment_status = 'failed' THEN 'failed'\r\n                    WHEN b.payment_status = 'refunded' THEN 'refunded'\r\n                    ELSE 'pending'\r\n                  END)::payment_status,\r\n                 b.notes,\r\n                 coalesce(b.is_completed, false),\r\n                 true,\r\n                 'manual archive (stale cancelled)',\r\n                 b.created_at, b.updated_at\r\n          FROM bookings b\r\n          LEFT JOIN lesson_types lt ON lt.id = b.lesson_type_id\r\n          WHERE b.id = ${id}\r\n          ON CONFLICT (id) DO NOTHING",
+        "UPDATE internal_messages SET booking_id = NULL WHERE booking_id = ${id}",
+        "UPDATE payment_history SET booking_id = NULL WHERE booking_id = ${id}",
+        "DELETE FROM booking_plan_items WHERE booking_id = ${id}",
+        "DELETE FROM user_feedback WHERE booking_id = ${id}",
+        "DELETE FROM bookings WHERE id = ${id} RETURNING id"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\export\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'paid_at' LIMIT 1",
+        "SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'package_purchases' AND column_name = 'user_email' LIMIT 1",
+        "NULL"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "CREATE TABLE IF NOT EXISTS booking_plan_items (\r\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\r\n    booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,\r\n    step_identifier VARCHAR(50) NOT NULL,\r\n    added_by UUID REFERENCES users(id),\r\n    is_selected BOOLEAN NOT NULL DEFAULT TRUE,\r\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_booking_plan_items_unique ON booking_plan_items(booking_id, step_identifier)"
+      ]
+    },
+    {
+      "file": "app\\api\\admin\\lesson-content\\groups\\[id]\\items\\route.ts",
+      "type": "Raw SQL",
+      "queries": [
+        "SELECT COALESCE(MAX(step_number), 0) as max FROM booking_steps WHERE category = ${groupId}"
+      ]
+    }
+  ],
+  "problematicQueries": [
+    {
+      "file": "setup-db.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "seed-users-simple.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "check-and-seed-users.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "apply-migration.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "add-columns.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "scripts\\test-qliro-flow.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "scripts\\setup-database.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "scripts\\run-migration-plan-items.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "scripts\\init-qliro-payment-methods.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "scripts\\analyze-n1-queries.js",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "lib\\working-seed.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "lib\\seed-users.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "lib\\check-users.js",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "lib\\email\\email-cron-service.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "lib\\email\\email-cron-service.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\dashboard\\admin\\users\\page.tsx",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\page.tsx",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\dashboard\\admin\\bookings\\page.tsx",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\cron\\daily-bookings\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\cron\\daily-bookings\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\booking\\visible-slots\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\booking\\create\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\booking\\create\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\booking\\cleanup-expired\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\booking\\cleanup\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\booking\\cleanup\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\booking\\available-slots\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\payments\\qliro\\webhook\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\unpaid-bookings\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\maintenance\\release-stale\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\admin\\handledar-bookings\\[id]\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\email-templates\\update-name\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+      "issue": "Raw SQL query with variables but no WHERE clause",
+      "severity": "High"
+    },
+    {
+      "file": "app\\api\\admin\\qliro\\payments\\export\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    },
+    {
+      "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+      "issue": "Mixed usage of raw SQL and Drizzle ORM",
+      "severity": "Medium"
+    }
+  ]
+}

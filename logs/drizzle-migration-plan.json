@@ -1,0 +1,3172 @@
+{
+  "generated": "2025-08-22T07:33:11.744Z",
+  "summary": {
+    "critical": 0,
+    "high": 162,
+    "medium": 51,
+    "low": 34,
+    "total": 247
+  },
+  "plan": {
+    "critical": [],
+    "high": [
+      {
+        "file": "scripts\\test-qliro-flow.js",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "UPDATE",
+            "count": 1,
+            "pattern": "\\.update\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "scripts\\test-qliro-connectivity.js",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "UPDATE",
+            "count": 1,
+            "pattern": "\\.update\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "scripts\\setup-database.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 1,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 1,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 1,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 1,
+            "pattern": "\\.insert\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "scripts\\cleanup-supervisor-data.js",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "FROM",
+            "count": 1,
+            "pattern": "\\.from\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "scripts\\analyze-n1-queries.js",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 5,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 2,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 2,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 4,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "lib\\email\\email-cron-service.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 1,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 1,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 1,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 15,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\dashboard\\admin\\users\\page.tsx",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 3,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 11,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 2,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 2,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 1,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\dashboard\\admin\\bookings\\page.tsx",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 3,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 6,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\cron\\daily-bookings\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 1,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 1,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 1,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 6,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\booking\\visible-slots\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 6,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 5,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 7,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 11,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 11,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\booking\\create\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 23,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 23,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 29,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 8,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 6,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 43,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 8,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\booking\\cleanup-expired\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 5,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 7,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 1,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "DELETE",
+            "count": 1,
+            "pattern": "\\.delete\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 10,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 6,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\booking\\available-slots\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 3,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 8,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 9,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 9,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\booking\\cleanup\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 3,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 9,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 3,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "DELETE",
+            "count": 3,
+            "pattern": "\\.delete\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 9,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 4,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\test-db\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 4,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 4,
+            "pattern": "\\.from\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "STRING_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 3,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 3,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 6,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 1,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "DELETE",
+            "count": 1,
+            "pattern": "\\.delete\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 15,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 5,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 8,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 4,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 2,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "DELETE",
+            "count": 2,
+            "pattern": "\\.delete\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 8,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\payments\\qliro\\webhook\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 10,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 10,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 15,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 2,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 5,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 22,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\unpaid-bookings\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 2,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 2,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 2,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 4,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\payments\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 2,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 2,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 2,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 15,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\maintenance\\release-stale\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 3,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 7,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-content\\groups\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "INSERT",
+            "count": 1,
+            "pattern": "\\.insert\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-bookings\\[id]\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 5,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 11,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 5,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "DELETE",
+            "count": 1,
+            "pattern": "\\.delete\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 11,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\update-name\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "WHERE",
+            "count": 1,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 1,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 1,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 1,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 1,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 2,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 6,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 4,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 5,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 5,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 7,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 2,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 2,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 9,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\payments\\export\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 1,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 2,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 1,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 13,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "SELECT",
+            "count": 2,
+            "pattern": "\\.select\\("
+          },
+          {
+            "type": "FROM",
+            "count": 2,
+            "pattern": "\\.from\\("
+          },
+          {
+            "type": "WHERE",
+            "count": 3,
+            "pattern": "\\.where\\("
+          },
+          {
+            "type": "INSERT",
+            "count": 1,
+            "pattern": "\\.insert\\("
+          },
+          {
+            "type": "UPDATE",
+            "count": 1,
+            "pattern": "\\.update\\("
+          },
+          {
+            "type": "CONDITIONS",
+            "count": 4,
+            "pattern": "eq\\(|ne\\(|gt\\(|lt\\(|gte\\(|lte\\(|like\\(|ilike\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-content\\groups\\[id]\\items\\route.ts",
+        "type": "Mixed Usage",
+        "drizzleOps": [
+          {
+            "type": "INSERT",
+            "count": 1,
+            "pattern": "\\.insert\\("
+          }
+        ],
+        "rawSQLOps": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 1,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "HIGH",
+        "reason": "Inconsistent ORM usage"
+      },
+      {
+        "file": "test-qliro-connectivity.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "test-credits-db.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "setup-test-data.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "setup-email-templates.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "middleware.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\update-slot-settings.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\update-slot-settings-fixed.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\update-booking-slots.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\test-qliro-flow.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\test-qliro-connectivity.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\test-daily-summary.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\setup-smtp-settings.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\setup-smtp-settings.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\setup-database.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\run-qliro-migration.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\remove-test-users.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\migrate-email-templates.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\migrate-email-templates-design.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\migrate-email-templates-design.js",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\initialize-email-settings.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\import-slot-settings.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\fix-smtp-secure.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\fix-smtp-categories.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\add-swish-payment-email-template.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\add-schoolname-setting.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\add-school-email-setting.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "scripts\\add-qliro-flow-setting.js",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\seed-users.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "hooks\\use-toast.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\redis\\client.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\payment\\qliro-service.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\payment\\qliro-service-broken.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\mailer\\universal-mailer.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\email\\enhanced-email-service.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "lib\\email\\email-template-utils.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\qliro\\return\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\dashboard\\teacher\\teacher-dashboard-client.tsx",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\messages\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "pages\\api\\admin\\unbook\\[id].ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\dashboard\\admin\\bookings\\bookings-client.tsx",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\user\\profile\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\user\\messages\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\user\\avatar\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\teacher\\feedback\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\student\\bookings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\packages\\purchase\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\packages\\confirm-payment\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\messages\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\handledar-sessions\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\bookings\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\update-student\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\update-guest\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\create\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\confirm-swish-payment\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\confirm-swish\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\confirm\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\cleanup-expired\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\cleanup\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\booking\\admin-confirm\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\auth\\logout\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\auth\\register\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\slots\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\site-settings\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\packages\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lessons\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-types\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\extra-slots\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\email-settings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\cleanup-supervisor-data\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\blocked-slots\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\dashboard\\admin\\bookings\\[id]\\BookingDetailsClient.tsx",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\teacher\\bookings\\create-for-student\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\payments\\swish\\callback\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\payments\\qliro\\webhook\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\payments\\qliro\\checkout-push\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\handledar-sessions\\[id]\\book-with-supervisors\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\handledar-sessions\\[id]\\book\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\bookings\\[id]\\payment-confirmation\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\bookings\\[id]\\pay-with-credits\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\auth\\forgot\\reset\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\skriv-in\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\generate-password\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\create-student\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\swish\\email-action\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\slots\\reset\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\slots\\copy\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\update-swish-template-receiver\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\initialize-email\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\init-qliro-payment-methods\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\init-qliro-flow\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\add-swish-payment-template\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\add-school-phonenumber\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\settings\\add-school-email\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\auth-test\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\payment\\confirmation\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\maintenance\\release-stale\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lessons\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-types\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-content\\groups\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\[id]\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-bookings\\[id]\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\[id]\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\update-name\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\seed-reminders\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\create-for-student\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\clear-all\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\bulk-delete\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\approve-swish\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\booking\\confirmation\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\teacher\\bookings\\[id]\\plan\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\[id]\\credits\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\[id]\\book\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\users\\[id]\\avatar\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\payments\\create\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\payments\\swish\\decline\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\packages\\[id]\\contents\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\payments\\swish\\confirm\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-content\\items\\[id]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\[id]\\add-booking\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\move\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\feedback\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\packages\\[id]\\contents\\[contentId]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\lesson-content\\groups\\[id]\\items\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\feedback\\[feedbackId]\\route.ts",
+        "issues": [
+          "Multiple write operations without transaction"
+        ],
+        "priority": "HIGH",
+        "reason": "Data integrity risk"
+      }
+    ],
+    "medium": [
+      {
+        "file": "scripts\\test-reset-functionality.js",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\test-email-system.js",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\migrate-email-templates-design.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\migrate-email-templates-design.js",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\check-email-templates.js",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\analyze-n1-queries.js",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\analyze-email-templates.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "scripts\\analyze-email-templates.js",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "lib\\site-settings\\opening-hours.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "lib\\email\\unified-email-service.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "lib\\email\\enhanced-email-service.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "lib\\email\\email-service.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "lib\\email\\email-cron-service.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\packages-store\\page.tsx",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\messages\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\handledar-sessions\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\dashboard\\admin\\swish-approvals\\page.tsx",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\dashboard\\admin\\lessons\\page.tsx",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\dashboard\\admin\\bookings-old\\page.tsx",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\teacher\\bookings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\student\\feedback\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\student\\bookings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\packages\\with-contents\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\email\\notify\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\cron\\daily-bookings\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\booking\\visible-slots\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\booking\\slots\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\booking\\create\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\booking\\available-slots\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\slots\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\email-settings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\cleanup-supervisor-data\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\dashboard\\student\\learning\\[category]\\page.tsx",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\bookings\\[id]\\payment-confirmation\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\slots\\copy\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\run\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\handledar-sessions\\[id]\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\[id]\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\email-templates\\seed-reminders\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\diagnostics\\slots\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\bulk-delete-with-credits\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\archive-cancelled\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\teacher\\bookings\\[id]\\plan\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\teacher\\bookings\\[id]\\live\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\users\\[id]\\credits\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\qliro\\payments\\export\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\payments\\swish\\list\\route.ts",
+        "issues": [
+          "Potential N+1 query pattern detected"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\[id]\\plan\\route.ts",
+        "issues": [
+          "Mixed usage of raw SQL and Drizzle ORM in same file",
+          "Using both raw execute and Drizzle ORM queries",
+          "Potential N+1 query pattern detected",
+          "Multiple write operations without transaction"
+        ],
+        "priority": "MEDIUM",
+        "reason": "Performance optimization"
+      }
+    ],
+    "low": [
+      {
+        "file": "setup-db.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "seed-users-simple.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "run-qliro-migrations.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "reset-admin-password.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "reset-admin-password-ubuntu.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "migrate-add-columns.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "list-tables.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "find-admin-users.js",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "cleanup-duplicate-credits.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 4,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "check-users-schema.js",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "check-qliro-table.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "check-db.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "check-and-seed-users.js",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 4,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 4,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "check-admin-status.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "apply-migration.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "add-inskriven-column.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "add-columns.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\verify-qliro-table.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 11,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\test-qliro-integration.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 5,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\setup-qliro-table-stepwise.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 7,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\run-migration-plan-items.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\reset-admin-password.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\init-qliro-payment-methods.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\fix-qliro-orders-table.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 10,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 10,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "scripts\\check-qliro-table.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "lib\\working-seed.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "lib\\seed-users.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 3,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "lib\\check-users.js",
+        "rawSQL": [
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 1,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 25,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 25,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\status\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 23,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 23,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\test-data\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 15,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 15,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\lesson-content\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 2,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 2,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\migrate\\cleanup\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 11,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 11,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      },
+      {
+        "file": "app\\api\\admin\\bookings\\archive-cancelled\\route.ts",
+        "rawSQL": [
+          {
+            "type": "RAW_EXECUTE",
+            "count": 7,
+            "pattern": "db\\.execute\\s*\\(\\s*sql`"
+          },
+          {
+            "type": "SQL_TEMPLATE",
+            "count": 7,
+            "pattern": "sql`"
+          }
+        ],
+        "priority": "LOW",
+        "reason": "Gradual migration"
+      }
+    ],
+    "strategy": {
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Critical Security Fixes",
+          "duration": "1-2 days",
+          "tasks": 0,
+          "description": "Fix security vulnerabilities and data integrity issues"
+        },
+        {
+          "phase": 2,
+          "name": "High Priority Consistency",
+          "duration": "3-5 days",
+          "tasks": 162,
+          "description": "Standardize ORM usage and add transaction support"
+        },
+        {
+          "phase": 3,
+          "name": "Medium Priority Optimization",
+          "duration": "2-3 days",
+          "tasks": 51,
+          "description": "Optimize query patterns and performance"
+        },
+        {
+          "phase": 4,
+          "name": "Low Priority Migration",
+          "duration": "1-2 weeks",
+          "tasks": 34,
+          "description": "Gradual migration of remaining raw SQL"
+        }
+      ],
+      "tools": [
+        "Drizzle ORM migration utilities",
+        "Database transaction wrappers",
+        "Query performance monitoring",
+        "Automated testing for each fix"
+      ],
+      "validation": [
+        "Unit tests for each migrated query",
+        "Performance benchmarks",
+        "Security audit of parameterized queries",
+        "Data integrity checks"
+      ]
+    }
+  }
+}

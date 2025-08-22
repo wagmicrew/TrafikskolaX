@@ -56,15 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Get token from cookies only (secure approach)
+  // Token is HTTP-only cookie now; avoid reading from document.cookie (not accessible)
   const getToken = useCallback((): string | null => {
-    if (typeof document !== 'undefined') {
-      const cookies = document.cookie.split(';');
-      const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
-      if (authCookie) {
-        return authCookie.split('=')[1];
-      }
-    }
     return null;
   }, []);
 
@@ -112,30 +105,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mountedRef.current) return;
 
       try {
-        const token = getToken();
-
-        if (!token || !validateToken(token)) {
-          if (mountedRef.current) {
-            clearToken();
-            setUser(null);
-          }
-          return;
-        }
-
-        // Verify token with server
+        // Verify via HTTP-only cookie (no Authorization header)
         const response = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
         });
 
         const data = await response.json();
 
         if (response.ok && data.user && mountedRef.current) {
           setUser(data.user);
-          
+
           // Auto-redirect if user is on login/register pages
           if (pathname === '/login' || pathname === '/register' || pathname === '/inloggning') {
             const redirectPath = getDashboardPath(data.user.role);
@@ -200,24 +183,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [clearToken]);
 
-  const login = useCallback((token: string, redirectTo?: string) => {
-    if (!validateToken(token)) {
-      console.error('Invalid token provided to login');
+  const login = useCallback(async (token?: string, redirectTo?: string) => {
+    // If a token is provided (legacy/localStorage), accept it; otherwise rely on cookie
+    if (token) {
+      if (!validateToken(token)) {
+        console.error('Invalid token provided to login');
+        return;
+      }
+      setToken(token);
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (mountedRef.current) {
+          setUser(payload);
+          const redirectPath = redirectTo || getDashboardPath(payload.role);
+          if (redirectPath && redirectPath !== pathname) {
+            setTimeout(() => {
+              if (mountedRef.current) {
+                router.push(redirectPath);
+              }
+            }, 100);
+          }
+        }
+      } catch (error) {
+        console.error('Invalid token format:', error);
+        clearAuthData();
+      }
       return;
     }
 
-    setToken(token);
-
-    // Decode token to get user info
+    // Cookie-only flow: refresh from server and redirect
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (mountedRef.current) {
-        setUser(payload);
-        
-        // Redirect to appropriate dashboard or specified path
-        const redirectPath = redirectTo || getDashboardPath(payload.role);
+      await checkAuth();
+      if (mountedRef.current && user) {
+        const redirectPath = redirectTo || getDashboardPath(user.role);
         if (redirectPath && redirectPath !== pathname) {
-          // Use setTimeout to avoid React Error #310 during navigation
           setTimeout(() => {
             if (mountedRef.current) {
               router.push(redirectPath);
@@ -225,11 +224,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }, 100);
         }
       }
-    } catch (error) {
-      console.error('Invalid token format:', error);
-      clearAuthData();
+    } catch (e) {
+      console.error('Login (cookie) failed to refresh user:', e);
     }
-  }, [validateToken, setToken, getDashboardPath, pathname, router, clearAuthData]);
+  }, [validateToken, setToken, getDashboardPath, pathname, router, clearAuthData, checkAuth, user]);
 
   const logout = useCallback(() => {
     clearAuthData();

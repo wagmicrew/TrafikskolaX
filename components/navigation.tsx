@@ -12,11 +12,14 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { useAuthActions } from "@/hooks/useAuthActions"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { LoginPopup } from "@/components/auth/login-popup"
+import { PasswordResetPopup } from "@/components/auth/password-reset-popup"
 
 export const Navigation = memo(function Navigation() {
   const [showContactForm, setShowContactForm] = useState(false)
   const [showLoginPopup, setShowLoginPopup] = useState(false)
   const [loginPopupTab, setLoginPopupTab] = useState<'login' | 'register'>('login')
+  const [showResetPopup, setShowResetPopup] = useState(false)
+  const [resetInitialEmail, setResetInitialEmail] = useState<string>("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -339,6 +342,21 @@ export const Navigation = memo(function Navigation() {
         isOpen={showLoginPopup} 
         onClose={() => setShowLoginPopup(false)} 
         defaultTab={loginPopupTab}
+        onForgotPassword={(email) => {
+          setResetInitialEmail(email || "")
+          setShowLoginPopup(false)
+          setShowResetPopup(true)
+        }}
+      />
+
+      <PasswordResetPopup
+        isOpen={showResetPopup}
+        onClose={() => setShowResetPopup(false)}
+        onBackToLogin={() => {
+          setShowResetPopup(false)
+          setShowLoginPopup(true)
+        }}
+        initialEmail={resetInitialEmail}
       />
     </>
   )

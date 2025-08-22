@@ -3,11 +3,10 @@ import { redirect } from 'next/navigation';
 import LogsClient from './logs-client';
 
 export default async function AdminLogsPage() {
-  const authResult = await requireAuth('admin');
-  
-  if (!authResult.success || !authResult.user) {
-    redirect('/');
-  }
+  const user = await requireAuth('admin');
+
+  // requireAuth will redirect if not authenticated or not authorized
+  // So if we reach here, user is authenticated and authorized
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">

@@ -63,12 +63,11 @@ export default function SupervisorCleanupPage() {
 
   const loadLastCleanup = async () => {
     try {
-      const response = await fetch('/api/admin/site-settings?key=last_supervisor_cleanup');
+      const response = await fetch('/api/admin/settings');
       if (response.ok) {
         const data = await response.json();
-        if (data.value) {
-          setLastCleanup(data.value);
-        }
+        const value = data?.settings?.last_supervisor_cleanup as string | undefined;
+        if (value) setLastCleanup(value);
       }
     } catch (error) {
       console.error('Error loading last cleanup:', error);
@@ -124,13 +123,13 @@ export default function SupervisorCleanupPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expired Bookings</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {loading ? '...' : (stats?.totalExpiredBookings ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Bookings with passed session dates
             </p>
           </CardContent>
@@ -139,13 +138,13 @@ export default function SupervisorCleanupPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Personal Numbers</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+            <Shield className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {loading ? '...' : (stats?.totalPersonalNumbersToClean ?? 0)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Personal numbers to be cleaned
             </p>
           </CardContent>
@@ -154,13 +153,13 @@ export default function SupervisorCleanupPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Last Cleanup</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle className="h-4 w-4 text-gray-500" />
           </CardHeader>
           <CardContent>
             <div className="text-sm font-medium">
               {lastCleanup ? formatDate(lastCleanup) : 'Never'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-gray-600">
               Last automatic cleanup
             </p>
           </CardContent>
@@ -209,7 +208,7 @@ export default function SupervisorCleanupPage() {
               {stats.expiredBookings.map((booking) => (
                 <div
                   key={booking.bookingId}
-                  className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                  className="border border-gray-200 rounded-lg p-4 bg-white"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">

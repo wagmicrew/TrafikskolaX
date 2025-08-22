@@ -56,7 +56,12 @@ export async function GET(request: NextRequest) {
       
       // Test results
       smtpConnectionTest: null as any,
-      errors: [] as string[]
+      errors: [] as string[],
+      whitespaceWarnings: {
+        host: false,
+        username: false,
+        password: false
+      } as { host: boolean; username: boolean; password: boolean }
     };
 
     // Determine email method priority
@@ -85,26 +90,44 @@ export async function GET(request: NextRequest) {
     // Test SMTP connection if configured
     if (debugInfo.smtpConfigComplete && settingsMap['use_smtp'] === 'true') {
       try {
+        const host = (settingsMap['smtp_host'] || '') as string;
+        const port = settingsMap['smtp_port'] ? parseInt(settingsMap['smtp_port'] as string) : 587;
+        const secure = settingsMap['smtp_secure'] === 'true';
+        const user = (settingsMap['smtp_username'] || '') as string;
+        const pass = (settingsMap['smtp_password'] || '') as string;
+
+        // Whitespace diagnostics
+        const hostWs = host.trim() !== host;
+        const userWs = user.trim() !== user;
+        const passWs = pass.trim() !== pass;
+        debugInfo.whitespaceWarnings = { host: hostWs, username: userWs, password: passWs };
+        if (hostWs || userWs || passWs) {
+          debugInfo.errors.push('SMTP values contain leading/trailing whitespace (host/user/pass). This can cause 535 auth errors.');
+        }
+
         const transporter = nodemailer.createTransport({
-          host: settingsMap['smtp_host']!,
-          port: settingsMap['smtp_port'] ? parseInt(settingsMap['smtp_port']) : 587,
-          secure: settingsMap['smtp_secure'] === 'true',
-          auth: {
-            user: settingsMap['smtp_username']!,
-            pass: settingsMap['smtp_password']!
-          },
-          tls: {
-            rejectUnauthorized: false
-          }
+          host,
+          port,
+          secure,
+          requireTLS: !secure,
+          auth: { user, pass },
+          tls: { rejectUnauthorized: false }
         });
 
         await transporter.verify();
-        debugInfo.smtpConnectionTest = { success: true, message: 'SMTP connection successful' };
+        debugInfo.smtpConnectionTest = { 
+          success: true, 
+          message: 'SMTP connection successful',
+          options: { host, port, secure, requireTLS: !secure }
+        };
       } catch (error: any) {
         debugInfo.smtpConnectionTest = { 
           success: false, 
           error: error.message,
-          code: error.code 
+          code: error.code,
+          response: error?.response,
+          responseCode: error?.responseCode,
+          command: error?.command
         };
         debugInfo.errors.push(`SMTP connection failed: ${error.message}`);
       }

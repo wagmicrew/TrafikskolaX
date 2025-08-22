@@ -55,16 +55,15 @@ export default function QliroPaymentsClient() {
   useQliroListener({
     onCompleted: () => {
       addToast({
-        title: "Betalning slutförd",
-        description: "Qliro-betalningen har genomförts framgångsrikt"
+        type: "success",
+        message: "Betalning slutförd - Qliro-betalningen har genomförts framgångsrikt"
       });
       fetchPayments(); // Refresh the list
     },
     onDeclined: () => {
       addToast({
-        title: "Betalning avbruten", 
-        description: "Qliro-betalningen avbröts eller misslyckades",
-        variant: "destructive"
+        type: "error",
+        message: "Betalning avbruten - Qliro-betalningen avbröts eller misslyckades"
       });
     }
   });
@@ -104,9 +103,8 @@ export default function QliroPaymentsClient() {
     } catch (error) {
       console.error('Failed to fetch payments:', error);
       addToast({
-        title: "Fel",
-        description: "Kunde inte hämta betalningar",
-        variant: "destructive"
+        type: "error",
+        message: "Fel - Kunde inte hämta betalningar"
       });
     } finally {
       setLoading(false);
@@ -120,9 +118,9 @@ export default function QliroPaymentsClient() {
       const res = await fetch(`/api/admin/qliro/payments/${paymentId}/remind`, { method: 'POST', credentials: 'include' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      addToast({ title: 'Påminnelse skickad', description: 'E-postpåminnelse har skickats till kunden.' });
+      addToast({ type: 'success', message: 'Påminnelse skickad - E-postpåminnelse har skickats till kunden.' });
     } catch (e: any) {
-      addToast({ title: 'Kunde inte skicka påminnelse', description: e?.message || 'Fel uppstod', variant: 'destructive' });
+      addToast({ type: 'error', message: `Kunde inte skicka påminnelse - ${e?.message || 'Fel uppstod'}` });
     }
   };
 
@@ -133,12 +131,12 @@ export default function QliroPaymentsClient() {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       if (data.checkoutUrl) {
         try { await navigator.clipboard.writeText(data.checkoutUrl); } catch {}
-        addToast({ title: 'Betalningslänk skapad', description: 'Länken är kopierad till urklipp.' });
+        addToast({ type: 'success', message: 'Betalningslänk skapad - Länken är kopierad till urklipp.' });
       } else {
-        addToast({ title: 'Betalningslänk skapad', description: 'Länk skapad, men ingen URL returnerades.' });
+        addToast({ type: 'success', message: 'Betalningslänk skapad - Länk skapad, men ingen URL returnerades.' });
       }
     } catch (e: any) {
-      addToast({ title: 'Kunde inte skapa länk', description: e?.message || 'Fel uppstod', variant: 'destructive' });
+      addToast({ type: 'error', message: `Kunde inte skapa länk - ${e?.message || 'Fel uppstod'}` });
     }
   };
 

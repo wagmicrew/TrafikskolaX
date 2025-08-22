@@ -8,13 +8,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
+// TypeScript interfaces
+interface HandledarSession {
+  id: string;
+  title: string;
+  formattedDateTime: string;
+  spotsLeft: number;
+  pricePerParticipant: number;
+  teacherName: string;
+}
+
+interface SupervisorParticipant {
+  supervisorName: string;
+  supervisorEmail: string;
+  supervisorPhone: string;
+}
+
+interface BookingData {
+  participants: SupervisorParticipant[];
+}
+
 export default function HandledarkursBookingPage() {
   const { user, isLoading } = useAuth();
-  const [sessions, setSessions] = useState([]);
-  const [selectedSession, setSelectedSession] = useState(null);
-  const [participants, setParticipants] = useState([{ supervisorName: '', supervisorEmail: '', supervisorPhone: '' }]);
-  const [loading, setLoading] = useState(true);
-  const [bookingMessage, setBookingMessage] = useState('');
+  const [sessions, setSessions] = useState<HandledarSession[]>([]);
+  const [selectedSession, setSelectedSession] = useState<HandledarSession | null>(null);
+  const [participants, setParticipants] = useState<SupervisorParticipant[]>([{ supervisorName: '', supervisorEmail: '', supervisorPhone: '' }]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [bookingMessage, setBookingMessage] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
@@ -36,22 +56,22 @@ export default function HandledarkursBookingPage() {
     }
   };
 
-  const handleSessionSelect = (session) => setSelectedSession(session);
+  const handleSessionSelect = (session: HandledarSession): void => setSelectedSession(session);
 
-  const handleParticipantChange = (index, field, value) => {
+  const handleParticipantChange = (index: number, field: keyof SupervisorParticipant, value: string): void => {
     const updatedParticipants = [...participants];
     updatedParticipants[index][field] = value;
     setParticipants(updatedParticipants);
   };
 
-  const addParticipant = () => setParticipants([...participants, { supervisorName: '', supervisorEmail: '', supervisorPhone: '' }]);
+  const addParticipant = (): void => setParticipants([...participants, { supervisorName: '', supervisorEmail: '', supervisorPhone: '' }]);
 
-  const removeParticipant = (index) => {
+  const removeParticipant = (index: number): void => {
     const updatedParticipants = participants.filter((_, i) => i !== index);
     setParticipants(updatedParticipants);
   };
 
-  const handleBooking = async () => {
+  const handleBooking = async (): Promise<void> => {
     if (!selectedSession) {
       setBookingMessage('Vänligen välj en session att boka.');
       return;
@@ -64,7 +84,7 @@ export default function HandledarkursBookingPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
         },
-        body: JSON.stringify({ participants }),
+        body: JSON.stringify({ participants } as BookingData),
       });
 
       const data = await response.json();

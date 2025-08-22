@@ -26,10 +26,25 @@ interface BookingStep {
   isCleared: boolean // Assuming this field is available
 }
 
+interface ApiError {
+  message: string
+  status: number
+}
+
+interface UserApiResponse {
+  user: UserData
+  success: boolean
+}
+
+interface BookingStepsApiResponse {
+  steps: BookingStep[]
+  success: boolean
+}
+
 function UtbildningskortClient() {
   const { user } = useAuth()
   const params = useParams()
-  const userId = params.id || user?.userId
+  const userId = (params?.id as string) || user?.userId
 
   const [userData, setUserData] = useState<UserData | null>(null)
   const [bookingSteps, setBookingSteps] = useState<BookingStep[]>([])
@@ -42,23 +57,39 @@ function UtbildningskortClient() {
     }
   }, [userId])
 
-  const fetchUserData = async () => {
+  const fetchUserData = async (): Promise<void> => {
     try {
       const response = await fetch(`/api/admin/users/${userId}`)
-      const data = await response.json()
-      setUserData(data.user)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data: UserApiResponse = await response.json()
+      if (data.success && data.user) {
+        setUserData(data.user)
+      } else {
+        throw new Error('Invalid API response structure')
+      }
     } catch (error) {
       console.error('Error fetching user data:', error)
+      // Could set an error state here
     }
   }
 
-  const fetchBookingSteps = async () => {
+  const fetchBookingSteps = async (): Promise<void> => {
     try {
       const response = await fetch(`/api/booking-steps?userId=${userId}`) // Need to implement this API
-      const data = await response.json()
-      setBookingSteps(data.steps)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data: BookingStepsApiResponse = await response.json()
+      if (data.success && data.steps) {
+        setBookingSteps(data.steps)
+      } else {
+        throw new Error('Invalid API response structure for booking steps')
+      }
     } catch (error) {
       console.error('Error fetching booking steps:', error)
+      // Could set an error state here
     } finally {
       setLoading(false)
     }
@@ -79,8 +110,10 @@ function UtbildningskortClient() {
       {/* Header */}
       <div className="flex items-start space-x-6 mb-8 border-b pb-6">
         <Avatar className="h-32 w-32 border-4 border-gray-200">
-          <AvatarImage src={userData.profileImage} />
-          <AvatarFallback className="text-4xl">{userData.firstName?.[0]}{userData.lastName?.[0]}</AvatarFallback>
+          <AvatarImage src={userData.profileImage} alt={`${userData.firstName} ${userData.lastName}`} />
+          <AvatarFallback className="text-4xl">
+            {userData.firstName?.[0] || '?'}{userData.lastName?.[0] || '?'}
+          </AvatarFallback>
         </Avatar>
         <div>
           <h1 className="text-4xl font-bold text-gray-800">{userData.firstName} {userData.lastName}</h1>

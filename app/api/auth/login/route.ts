@@ -1,71 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import { sql } from 'drizzle-orm';
-import { EmailService } from '@/lib/email/email-service';
+import { sql, eq } from 'drizzle-orm';
 import { rateLimit, getRequestIp } from '@/lib/utils/rate-limit';
-import { withApiHandler, jsonSuccess, jsonError } from '@/lib/api/middleware';
 import { createAuthResponse } from '@/lib/auth/cookies';
 import { signToken, type JWTPayload } from '@/lib/auth/jwt';
 import { loginSchema } from '@/lib/validation/schemas';
 import { createSuccessResponse, createErrorResponse, API_ERROR_CODES } from '@/lib/api/types';
 
-async function handleLogin(request: NextRequest) {
+async function handleLogin(request: NextRequest): Promise<NextResponse> {
   // Rate limiting
   const ip = getRequestIp(request.headers as any);
   const rl = rateLimit({ key: `login:${ip}`, limit: 5, windowMs: 60_000 });
   if (!rl.allowed) {
-    return createErrorResponse(
-      API_ERROR_CODES.RATE_LIMIT_EXCEEDED,
-      'Too many login attempts, try again shortly.'
+    return NextResponse.json(
+      createErrorResponse(
+        API_ERROR_CODES.RATE_LIMIT_EXCEEDED,
+        'Too many login attempts, try again shortly.'
+      ),
+      { status: 429 }
     );
   }
 
   // Parse and validate request body
   const body = await request.json();
   const validation = loginSchema.safeParse(body);
-  
+
   if (!validation.success) {
     const firstError = validation.error.errors[0];
-    return createErrorResponse(
-      API_ERROR_CODES.VALIDATION_ERROR,
-      `${firstError.path.join('.')}: ${firstError.message}`
+    return NextResponse.json(
+      createErrorResponse(
+        API_ERROR_CODES.VALIDATION_ERROR,
+        `${firstError.path.join('.')}: ${firstError.message}`
+      ),
+      { status: 400 }
     );
   }
-  
+
   const { email, password } = validation.data;
 
-  // Find user by email
-  const result = await db.execute(sql`
-    SELECT id, email, password, first_name, last_name, role, is_active
-    FROM users
-    WHERE email = ${email}
-    LIMIT 1
-  `);
+  // Find user by email using Drizzle ORM
+  const { users } = await import('@/lib/db/schema');
 
-  if (result.rows.length === 0) {
-    return createErrorResponse(
-      API_ERROR_CODES.UNAUTHORIZED,
-      'Ogiltiga inloggningsuppgifter'
-    );
-  }
+  let user: any;
 
-  const user = result.rows[0] as any;
+  try {
+    const userResult = await db.select({
+      id: users.id,
+      email: users.email,
+      password: users.password,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      role: users.role,
+      isActive: users.isActive
+    })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
 
-  // Check if user is active
-  if (!user.is_active) {
-    return createErrorResponse(
-      API_ERROR_CODES.FORBIDDEN,
-      'Kontot är inaktiverat'
-    );
-  }
+    if (userResult.length === 0) {
+      return NextResponse.json(
+        createErrorResponse(
+          API_ERROR_CODES.UNAUTHORIZED,
+          'Ogiltiga inloggningsuppgifter'
+        ),
+        { status: 401 }
+      );
+    }
 
-  // Verify password
-  const isValidPassword = await bcrypt.compare(password, user.password as string);
-  if (!isValidPassword) {
-    return createErrorResponse(
-      API_ERROR_CODES.UNAUTHORIZED,
-      'Ogiltiga inloggningsuppgifter'
+    user = userResult[0];
+
+    // Check if user is active
+    if (!user.isActive) {
+      return NextResponse.json(
+        createErrorResponse(
+          API_ERROR_CODES.FORBIDDEN,
+          'Kontot är inaktiverat'
+        ),
+        { status: 403 }
+      );
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password as string);
+    if (!isValidPassword) {
+      return NextResponse.json(
+        createErrorResponse(
+          API_ERROR_CODES.UNAUTHORIZED,
+          'Ogiltiga inloggningsuppgifter'
+        ),
+        { status: 401 }
+      );
+    }
+  } catch (dbError) {
+    console.error('Database error:', dbError);
+    return NextResponse.json(
+      createErrorResponse(
+        API_ERROR_CODES.INTERNAL_ERROR,
+        'Database error occurred'
+      ),
+      { status: 500 }
     );
   }
 
@@ -74,8 +108,8 @@ async function handleLogin(request: NextRequest) {
     userId: user.id as string,
     email: user.email as string,
     role: user.role as 'student' | 'teacher' | 'admin',
-    firstName: user.first_name as string,
-    lastName: user.last_name as string,
+    firstName: user.firstName as string,
+    lastName: user.lastName as string,
   };
 
   // Determine redirect URL based on role
@@ -99,26 +133,24 @@ async function handleLogin(request: NextRequest) {
     userId: user.id as string,
     email: user.email as string,
     role: user.role as 'student' | 'teacher' | 'admin',
-    firstName: user.first_name as string,
-    lastName: user.last_name as string,
+    firstName: user.firstName as string,
+    lastName: user.lastName as string,
   };
 
   // Create auth response with JWT token in secure cookie
-  return createAuthResponse(jwtPayload, {
+  const authResponse = createAuthResponse(jwtPayload, {
     redirectUrl,
     user: {
       userId: user.id as string,
       email: user.email as string,
       role: user.role as string,
-      firstName: user.first_name as string,
-      lastName: user.last_name as string,
+      firstName: user.firstName as string,
+      lastName: user.lastName as string,
     },
   });
+
+  return authResponse;
 }
 
-// Use the new API handler wrapper
-export const POST = withApiHandler(handleLogin, {
-  validate: {
-    body: loginSchema
-  }
-});
+// Export the handler directly
+export const POST = handleLogin;

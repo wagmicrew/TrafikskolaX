@@ -20,6 +20,7 @@ import { QliroPaymentDialog } from './qliro-payment-dialog'
 import { useQliroListener } from '@/hooks/use-qliro-listener'
 import { EmailConflictDialog } from './email-conflict-dialog'
 import { AddStudentPopup } from './add-student-popup'
+import { getErrorMessage } from '@/utils/getErrorMessage'
 
 interface LessonType {
   id: string
@@ -29,6 +30,8 @@ interface LessonType {
   price: number
   priceStudent?: number
   salePrice?: number
+  allowsSupervisors?: boolean
+  pricePerSupervisor?: number
 }
 
 interface Instructor {
@@ -92,6 +95,10 @@ export function BookingConfirmation({
   const [supervisorPhone, setSupervisorPhone] = useState('')
   const [participantCount, setParticipantCount] = useState(1)
   const [maxParticipants, setMaxParticipants] = useState(1)
+  const [supervisorCount, setSupervisorCount] = useState(0)
+  const [supervisorDetails, setSupervisorDetails] = useState<Array<{ name: string; phone: string }>>([])
+  const [capacityError, setCapacityError] = useState<string | null>(null)
+  const [showAddSupervisor, setShowAddSupervisor] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
@@ -353,6 +360,23 @@ export function BookingConfirmation({
   }
 
   const handleSubmit = async () => {
+    // Check capacity error first
+    if (capacityError) {
+      showNotification('Fel', 'Kan inte boka - otillräcklig kapacitet', 'error')
+      return
+    }
+
+    // Validate handledare information if supervisors are added
+    if (allowsSupervisors && supervisorCount > 0) {
+      const incompleteDetails = supervisorDetails.slice(0, supervisorCount).some(
+        (detail, index) => !detail?.name?.trim() || !detail?.phone?.trim()
+      )
+      if (incompleteDetails) {
+        showNotification('Fel', 'Vänligen fyll i namn och telefonnummer för alla handledare', 'error')
+        return
+      }
+    }
+
     // Admin/Teacher validation first
     if (isAdminOrTeacher && !selectedStudent) {
       showNotification('Fel', 'Välj en elev för bokningen', 'error')
@@ -377,7 +401,7 @@ export function BookingConfirmation({
                     String(parseInt(bookingData.selectedTime.split(':')[1]) + bookingData.lessonType.durationMinutes).padStart(2, '0'),
             durationMinutes: bookingData.lessonType.durationMinutes,
             transmissionType: bookingData.transmissionType || 'manual',
-            totalPrice: bookingData.totalPrice,
+            totalPrice: finalTotalPrice,
             paymentMethod: 'admin_created',
             paymentStatus: 'paid',
             status: 'confirmed',
@@ -387,7 +411,10 @@ export function BookingConfirmation({
             supervisorName: isHandledarutbildning ? supervisorName : undefined,
             supervisorEmail: isHandledarutbildning ? supervisorEmail : undefined,
             supervisorPhone: isHandledarutbildning ? supervisorPhone : undefined,
-            useHandledarCredit: isHandledarutbildning ? (alreadyPaid === true) : false
+            useHandledarCredit: isHandledarutbildning ? (alreadyPaid === true) : false,
+            // Handledare support for regular lessons
+            supervisorCount: allowsSupervisors ? supervisorCount : undefined,
+            supervisorDetails: allowsSupervisors && supervisorCount > 0 ? supervisorDetails.slice(0, supervisorCount) : undefined
           })
         })
 
@@ -471,13 +498,16 @@ export function BookingConfirmation({
     // Prepare the base booking data
     const bookingPayload = {
       paymentMethod: selectedPaymentMethod,
-      totalPrice: bookingData.totalPrice,
+      totalPrice: finalTotalPrice,
       lessonType: bookingData.lessonType,
       guestName: isHandledarutbildning ? supervisorName : guestName,
       guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
       guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false
+      alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false,
+      // Handledare support for regular lessons
+      supervisorCount: allowsSupervisors ? supervisorCount : undefined,
+      supervisorDetails: allowsSupervisors && supervisorCount > 0 ? supervisorDetails.slice(0, supervisorCount) : undefined
     }
 
   // Log selected payment method and booking data for troubleshooting (behind site debug flag)
@@ -538,7 +568,7 @@ export function BookingConfirmation({
           },
           onError: (error) => {
             console.error('[BOOKING DEBUG] Payment error:', error);
-            showNotification('Betalningsfel', `Ett fel uppstod: ${error.message || 'Okänt fel'}`, 'error');
+            showNotification('Betalningsfel', `Ett fel uppstod: ${getErrorMessage(error, 'Okänt fel')}` , 'error');
           }
         });
         
@@ -613,9 +643,8 @@ export function BookingConfirmation({
     }
   }
 
-  const handleUseExistingAccount = (e: React.MouseEvent) => {
-    e.preventDefault()
-    handleLogin(e, window.location.href)
+  const handleUseExistingAccount = () => {
+    handleLogin()
   }
 
   const handleLoginSuccess = () => {
@@ -653,7 +682,7 @@ export function BookingConfirmation({
       showNotification('Student tillagd', `${newStudent.firstName} ${newStudent.lastName} har lagts till och valts för bokningen`, 'success')
       
       // Reload students list to ensure we have the latest data
-      await loadStudents()
+      await fetchStudents()
     } catch (error) {
       console.error('Error handling student addition:', error)
       showNotification('Fel', 'Kunde inte lägga till studenten', 'error')
@@ -661,10 +690,57 @@ export function BookingConfirmation({
   }
 
   const isHandledarSession = bookingData.lessonType.type === 'handledar'
-  const hasHandledarCredits = isStudent && userCredits > 0 && isHandledarutbildning
-  const canUseCredits = isStudent && userCredits > 0 && (bookingData.lessonType.type !== 'handledar' || isHandledarutbildning)
-  const canPayAtLocation = isStudent && unpaidBookings < 2 && bookingData.lessonType.type !== 'handledar'
+  const allowsSupervisors = bookingData.lessonType.allowsSupervisors || false
+  const pricePerSupervisor = bookingData.lessonType.pricePerSupervisor || 0
+  
+  // Calculate final price including handledare
+  const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor);
 
+  // Validate capacity when supervisor count changes
+  useEffect(() => {
+    if (allowsSupervisors && supervisorCount > 0) {
+      validateSessionCapacity();
+    } else {
+      setCapacityError(null);
+    }
+  }, [supervisorCount, allowsSupervisors]);
+
+  const validateSessionCapacity = async () => {
+    if (!bookingData.selectedDate || !bookingData.selectedTime || !bookingData.lessonType) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/booking/check-capacity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lessonTypeId: bookingData.lessonType.id,
+          date: bookingData.selectedDate,
+          time: bookingData.selectedTime,
+          requestedSpots: 1 + supervisorCount, // 1 student + supervisors
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.available) {
+          setCapacityError(
+            `Det finns inte tillräckligt med platser för det valda antalet handledare. ` +
+            `Tillgängliga platser: ${data.availableSpots}. ` +
+            `Försök med färre handledare eller kontakta trafikskolan för alternativa tider.`
+          );
+        } else {
+          setCapacityError(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check capacity:', error);
+      setCapacityError('Kunde inte kontrollera tillgängliga platser. Försök igen eller kontakta trafikskolan.');
+    }
+  };
   // Create Swish logo SVG component
   const SwishLogo = () => (
     <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -786,11 +862,115 @@ export function BookingConfirmation({
                   <span>{bookingData.transmissionType === 'manual' ? 'Manuell' : 'Automat'}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between font-semibold">
+              <div className="flex items-center justify-between">
                 <span>Kurspris:</span>
                 <span>{bookingData.totalPrice} kr</span>
               </div>
+              {allowsSupervisors && supervisorCount > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Handledare ({supervisorCount} st):</span>
+                  <span>{supervisorCount * pricePerSupervisor} kr</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between font-semibold border-t pt-2">
+                <span>Totalt:</span>
+                <span>{finalTotalPrice} kr</span>
+              </div>
             </div>
+
+            {/* Handledare Section */}
+            {allowsSupervisors && !isHandledarSession && (
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Lägg till handledare</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Du kan lägga till handledare för {pricePerSupervisor} kr per person.
+                </p>
+                
+                <div className="flex items-center gap-4 mb-4">
+                  <label className="text-sm font-medium text-gray-700">
+                    Antal handledare:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSupervisorCount(Math.max(0, supervisorCount - 1))}
+                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600"
+                      disabled={supervisorCount <= 0}
+                    >
+                      -
+                    </button>
+                    <span className="w-8 text-center font-medium">{supervisorCount}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSupervisorCount(supervisorCount + 1)}
+                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {supervisorCount > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-gray-700">Handledare information:</p>
+                    {Array.from({ length: supervisorCount }, (_, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white rounded border">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Handledare {index + 1} - Namn
+                          </label>
+                          <input
+                            type="text"
+                            value={supervisorDetails[index]?.name || ''}
+                            onChange={(e) => {
+                              const newDetails = [...supervisorDetails];
+                              newDetails[index] = { ...newDetails[index], name: e.target.value };
+                              setSupervisorDetails(newDetails);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ange namn"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Telefonnummer
+                          </label>
+                          <input
+                            type="tel"
+                            value={supervisorDetails[index]?.phone || ''}
+                            onChange={(e) => {
+                              const newDetails = [...supervisorDetails];
+                              newDetails[index] = { ...newDetails[index], phone: e.target.value };
+                              setSupervisorDetails(newDetails);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ange telefonnummer"
+                            required
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Capacity Error Display */}
+                {capacityError && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-red-700">{capacityError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Guest Information for non-logged-in users */}
             {!authUser && !isAdminOrTeacher && !isHandledarSession && (

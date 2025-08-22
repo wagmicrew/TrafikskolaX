@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { getErrorMessage } from "@/utils/getErrorMessage";
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Booking {
@@ -101,7 +103,7 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
       onRefresh?.();
     } catch (error) {
       console.error("Error deleting booking:", error);
-      toast.error(error instanceof Error ? error.message : "Kunde inte avboka bokningen");
+      toast.error(getErrorMessage(error, "Kunde inte avboka bokningen"));
     } finally {
       setIsProcessing(false);
       setShowDeleteDialog(false);
@@ -135,7 +137,7 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
       onRefresh?.();
     } catch (error) {
       console.error("Error moving booking:", error);
-      toast.error(error.message || "Kunde inte flytta bokningen");
+      toast.error(getErrorMessage(error, "Kunde inte flytta bokningen"));
     } finally {
       setIsProcessing(false);
       setShowMoveDialog(false);

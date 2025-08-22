@@ -4,15 +4,18 @@ import { db } from '@/lib/db';
 import { packagePurchases } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+/**
+ * Admin refund Qliro payment endpoint
+ * @param context.params - Already resolved by middleware (not a Promise)
+ */
+export async function POST(_request: NextRequest, context: { params: { id: string } }) {
   try {
     const auth = await requireAuthAPI('admin');
     if (!auth.success) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const resolvedParams = await context.params;
-    const { id } = resolvedParams;
+    const { id } = context.params;
 
     // Ensure purchase exists and is a Qliro payment
     const rows = await db

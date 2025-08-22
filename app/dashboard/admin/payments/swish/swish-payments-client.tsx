@@ -87,9 +87,8 @@ export default function SwishPaymentsClient() {
     } catch (error) {
       console.error('Failed to fetch Swish payments:', error);
       addToast({
-        title: "Fel",
-        description: "Kunde inte hämta Swish-betalningar",
-        variant: "destructive"
+        type: "error",
+        message: "Fel - Kunde inte hämta Swish-betalningar"
       });
     } finally {
       setLoading(false);

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -24,20 +25,41 @@ import {
   Eye,
   EyeOff,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  MoveRight,
+  User as UserIcon,
+  Search,
+  RotateCcw,
+  Download,
+  Link as LinkIcon,
+  RefreshCw,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  CreditCard,
+  MailCheck,
+  ShieldAlert
 } from 'lucide-react';
 
-interface TeoriLessonType {
+interface SessionType {
   id: string;
   name: string;
-  allowsSupervisors: boolean;
-  price: string;
+  description: string | null;
+  type: 'handledarutbildning' | 'riskettan' | 'teorilektion' | 'handledarkurs';
+  creditType: string;
+  basePrice: string;
   pricePerSupervisor: string | null;
   durationMinutes: number;
+  maxParticipants: number;
+  allowsSupervisors: boolean;
+  requiresPersonalId: boolean;
+  isActive: boolean;
+  sortOrder: number;
 }
 
-interface TeoriSession {
+interface Session {
   id: string;
+  sessionTypeId: string;
   title: string;
   description: string | null;
   date: string;
@@ -45,14 +67,15 @@ interface TeoriSession {
   endTime: string;
   maxParticipants: number;
   currentParticipants: number;
+  teacherId: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  lessonType: TeoriLessonType;
+  sessionType: SessionType;
 }
 
 interface SessionFormData {
-  lessonTypeId: string;
+  sessionTypeId: string;
   title: string;
   description: string;
   date: string;
@@ -62,53 +85,124 @@ interface SessionFormData {
   isActive: boolean;
 }
 
-export default function TeoriSessionsPage() {
-  const [sessions, setSessions] = useState<TeoriSession[]>([]);
-  const [lessonTypes, setLessonTypes] = useState<TeoriLessonType[]>([]);
+interface BookingFormData {
+  supervisorName: string;
+  supervisorEmail: string;
+  supervisorPhone: string;
+  personalId: string;
+  supervisorCount: string;
+  studentId: string;
+  sendPaymentEmail: boolean;
+}
+
+export default function UnifiedSessionsPage() {
+  const [tab, setTab] = useState<'future' | 'past'>('future');
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<TeoriSession | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [pastPage, setPastPage] = useState(1);
+  const [pastTotalPages, setPastTotalPages] = useState(1);
+  const [listLoading, setListLoading] = useState(false);
 
   const [formData, setFormData] = useState<SessionFormData>({
-    lessonTypeId: '',
+    sessionTypeId: '',
     title: '',
     description: '',
     date: '',
-    startTime: '',
-    endTime: '',
-    maxParticipants: '1',
+    startTime: '09:00',
+    endTime: '11:00',
+    maxParticipants: '10',
     isActive: true
   });
 
-  // Load sessions and lesson types
+  // Add participant dialog state
+  const [addOpenFor, setAddOpenFor] = useState<string | null>(null);
+  const [addForm, setAddForm] = useState<BookingFormData>({
+    supervisorName: '',
+    supervisorEmail: '',
+    supervisorPhone: '',
+    personalId: '',
+    supervisorCount: '1',
+    studentId: '',
+    sendPaymentEmail: true,
+  });
+  const [studentOptions, setStudentOptions] = useState<any[]>([]);
+  const [moving, setMoving] = useState<{ bookingId: string, open: boolean, sessions: any[], targetId: string } | null>(null);
+  const [unbookingId, setUnbookingId] = useState<string | null>(null);
+  const [userPopup, setUserPopup] = useState<{ open: boolean, userId: string | null, user: any | null }>({ open: false, userId: null, user: null });
+  const [participantsDialog, setParticipantsDialog] = useState<{ open: boolean, sessionId: string | null, title: string }>({ open: false, sessionId: null, title: '' });
+  const [participants, setParticipants] = useState<Record<string, any[]>>({});
+  const [participantLoadingId, setParticipantLoadingId] = useState<string | null>(null);
+
+  // Load data
   const loadData = async () => {
     try {
-      const [sessionsResponse, lessonTypesResponse] = await Promise.all([
-        fetch('/api/admin/teori-sessions'),
-        fetch('/api/admin/teori-lesson-types')
+      setLoading(true);
+      const [sessionsResponse, typesResponse, usersResponse] = await Promise.all([
+        fetch(`/api/admin/sessions?scope=${tab === 'future' ? 'future' : 'past'}&page=${tab === 'past' ? pastPage : 1}`),
+        fetch('/api/admin/session-types'),
+        fetch('/api/admin/users')
       ]);
 
       if (sessionsResponse.ok) {
         const sessionsData = await sessionsResponse.json();
-        setSessions(sessionsData.sessions);
+        setSessions(sessionsData.sessions || []);
+        if (tab === 'past') {
+          setPastPage(sessionsData.page || 1);
+          setPastTotalPages(sessionsData.totalPages || 1);
+        }
       }
 
-      if (lessonTypesResponse.ok) {
-        const lessonTypesData = await lessonTypesResponse.json();
-        setLessonTypes(lessonTypesData.lessonTypes);
+      if (typesResponse.ok) {
+        const typesData = await typesResponse.json();
+        setSessionTypes(typesData.sessionTypes || []);
+      }
+
+      if (usersResponse.ok) {
+        const all = await usersResponse.json();
+        const students = (all?.users || [])
+          .filter((u: any) => String(u.role).toLowerCase() === 'student' && (u.firstName !== 'Temporary'))
+          .map((u: any) => ({
+            id: u.id,
+            label: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email
+          }));
+        setStudentOptions(students);
       }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Kunde inte ladda data');
     } finally {
       setLoading(false);
+      setListLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [tab, pastPage]);
+
+  // Load user when popup opens
+  useEffect(() => {
+    const run = async () => {
+      if (userPopup.open && userPopup.userId) {
+        try {
+          const res = await fetch(`/api/admin/users/${userPopup.userId}`);
+          if (res.ok) {
+            const d = await res.json();
+            setUserPopup(prev => ({ ...prev, user: d.user }));
+          } else {
+            setUserPopup(prev => ({ ...prev, user: { firstName: 'Okänd', lastName: '', email: '' } }));
+          }
+        } catch {
+          setUserPopup(prev => ({ ...prev, user: { firstName: 'Okänd', lastName: '', email: '' } }));
+        }
+      }
+    };
+    run();
+  }, [userPopup.open, userPopup.userId]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,14 +212,14 @@ export default function TeoriSessionsPage() {
     try {
       const method = editingSession ? 'PUT' : 'POST';
       const url = editingSession
-        ? `/api/admin/teori-sessions/${editingSession.id}`
-        : '/api/admin/teori-sessions';
+        ? `/api/admin/sessions/${editingSession.id}`
+        : '/api/admin/sessions';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lessonTypeId: formData.lessonTypeId,
+          sessionTypeId: formData.sessionTypeId,
           title: formData.title,
           description: formData.description,
           date: formData.date,
@@ -139,7 +233,7 @@ export default function TeoriSessionsPage() {
       if (response.ok) {
         const data = await response.json();
         toast.success(data.message);
-        setDialogOpen(false);
+        setCreateOpen(false);
         resetForm();
         loadData();
       } else {
@@ -148,20 +242,51 @@ export default function TeoriSessionsPage() {
       }
     } catch (error) {
       console.error('Error saving session:', error);
-      toast.error('Kunde inte spara teorisession');
+      toast.error('Kunde inte spara session');
     } finally {
       setSaving(false);
     }
   };
 
+  // Reset form
+  const resetForm = () => {
+    setEditingSession(null);
+    setFormData({
+      sessionTypeId: '',
+      title: '',
+      description: '',
+      date: '',
+      startTime: '09:00',
+      endTime: '11:00',
+      maxParticipants: '10',
+      isActive: true
+    });
+  };
+
+  // Handle edit
+  const handleEdit = (session: Session) => {
+    setEditingSession(session);
+    setFormData({
+      sessionTypeId: session.sessionTypeId,
+      title: session.title,
+      description: session.description || '',
+      date: session.date,
+      startTime: session.startTime?.slice(0, 5) || '09:00',
+      endTime: session.endTime?.slice(0, 5) || '11:00',
+      maxParticipants: session.maxParticipants.toString(),
+      isActive: session.isActive
+    });
+    setCreateOpen(true);
+  };
+
   // Handle delete
   const handleDelete = async (id: string) => {
-    if (!confirm('Är du säker på att du vill ta bort denna teorisession?')) {
+    if (!confirm('Är du säker på att du vill ta bort denna session?')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/teori-sessions/${id}`, {
+      const response = await fetch(`/api/admin/sessions/${id}`, {
         method: 'DELETE'
       });
 
@@ -171,289 +296,150 @@ export default function TeoriSessionsPage() {
         loadData();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Kunde inte radera teorisession');
+        toast.error(error.error || 'Kunde inte radera session');
       }
     } catch (error) {
       console.error('Error deleting session:', error);
-      toast.error('Kunde inte radera teorisession');
+      toast.error('Kunde inte radera session');
     }
   };
 
-  // Handle edit
-  const handleEdit = (session: TeoriSession) => {
-    setEditingSession(session);
-    setFormData({
-      lessonTypeId: session.lessonType.id,
-      title: session.title,
-      description: session.description || '',
-      date: session.date,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      maxParticipants: session.maxParticipants.toString(),
-      isActive: session.isActive
-    });
-    setDialogOpen(true);
+  // Load participants
+  const loadParticipants = async (sessionId: string) => {
+    try {
+      setParticipantLoadingId(sessionId);
+      const res = await fetch(`/api/admin/sessions/${sessionId}/participants`);
+      if (!res.ok) throw new Error('Kunde inte hämta deltagare');
+      const data = await res.json();
+      setParticipants(prev => ({ ...prev, [sessionId]: data.participants || [] }));
+      setParticipantLoadingId(null);
+    } catch (e: any) {
+      toast.error(e.message || 'Fel vid hämtning av deltagare');
+      setParticipantLoadingId(null);
+    }
   };
 
-  // Reset form
-  const resetForm = () => {
-    setEditingSession(null);
-    setFormData({
-      lessonTypeId: '',
-      title: '',
-      description: '',
-      date: '',
-      startTime: '',
-      endTime: '',
-      maxParticipants: '1',
-      isActive: true
-    });
+  const openParticipants = async (session: Session) => {
+    setParticipantsDialog({ open: true, sessionId: session.id, title: session.title });
+    await loadParticipants(session.id);
   };
 
-  // Handle dialog close
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setEditingSession(null);
-    resetForm();
-  };
-
-  // Format date for display
+  // Format date and time
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('sv-SE');
   };
 
-  // Format time for display
   const formatTime = (timeString: string) => {
-    return timeString.substring(0, 5); // Remove seconds
+    return timeString?.slice(0, 5) || '';
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar teorisessioner...</p>
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-slate-300" />
+          <p className="text-slate-300">Laddar sessioner...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Teori Sessioner</h1>
-          <p className="text-gray-600 mt-2">Hantera teorisessioner för olika lektionstyper</p>
+        <h1 className="text-2xl font-extrabold text-white">Sessionshantering</h1>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg overflow-hidden border border-white/20">
+            <button onClick={() => setTab('future')} className={`px-3 py-1.5 ${tab === 'future' ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-200'}`}>Kommande</button>
+            <button onClick={() => { setTab('past'); setPastPage(1); }} className={`px-3 py-1.5 ${tab === 'past' ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-200'}`}>Tidigare</button>
+          </div>
+          {tab === 'past' && (
+            <div className="flex items-center gap-2 text-slate-200">
+              <button disabled={pastPage <= 1} onClick={async () => { const p = Math.max(1, pastPage - 1); setPastPage(p); await loadData(); }} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 disabled:opacity-50">Föregående</button>
+              <span>Sida {pastPage} / {pastTotalPages}</span>
+              <button disabled={pastPage >= pastTotalPages} onClick={async () => { const p = Math.min(pastTotalPages, pastPage + 1); setPastPage(p); await loadData(); }} className="px-3 py-1 rounded-lg bg-white/10 border border-white/20 disabled:opacity-50">Nästa</button>
+            </div>
+          )}
+          <Button onClick={() => setCreateOpen(true)} className="rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">
+            <Plus className="w-4 h-4 mr-1" /> Ny session
+          </Button>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-5 h-5 mr-2" />
-              Skapa Teorisession
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingSession ? 'Redigera Teorisession' : 'Skapa Ny Teorisession'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="lessonTypeId">Lektionstyp *</Label>
-                <Select
-                  value={formData.lessonTypeId}
-                  onValueChange={(value) => setFormData({ ...formData, lessonTypeId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj lektionstyp" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lessonTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {type.name} - {type.price} SEK
-                        {type.allowsSupervisors && ' (med handledare)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="title">Titel *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="t.ex. Riskettan Teori - Grundkurs"
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Beskrivning</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Beskrivning av denna teorisession..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date">Datum *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor="startTime">Starttid *</Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      value={formData.startTime}
-                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="endTime">Sluttid *</Label>
-                    <Input
-                      id="endTime"
-                      type="time"
-                      value={formData.endTime}
-                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="maxParticipants">Max Deltagare</Label>
-                  <Input
-                    id="maxParticipants"
-                    type="number"
-                    value={formData.maxParticipants}
-                    onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
-                    placeholder="1"
-                  />
-                </div>
-                <div className="flex items-center space-x-2 pt-8">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="rounded border-gray-300"
-                  />
-                  <Label htmlFor="isActive">Aktiv</Label>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={handleDialogClose}>
-                  Avbryt
-                </Button>
-                <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                  {saving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Sparar...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      {editingSession ? 'Uppdatera' : 'Skapa'}
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* Sessions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sessions.map((session) => (
-          <Card key={session.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                    {session.title}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant={session.isActive ? 'default' : 'secondary'}>
-                      {session.isActive ? 'Aktiv' : 'Inaktiv'}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        {listLoading && (
+          <div className="col-span-full flex items-center justify-center text-slate-200 gap-2 py-6">
+            <Loader2 className="w-5 h-5 animate-spin" /> Laddar innehåll…
+          </div>
+        )}
+        {!listLoading && sessions.map(s => (
+          <Card key={s.id} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl">
+            <CardHeader className="flex items-center justify-between">
+              <CardTitle className="text-white font-extrabold">{s.title}</CardTitle>
+              <Button size="sm" onClick={() => handleEdit(s)} className="bg-emerald-600 hover:bg-emerald-500">
+                <Save className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-slate-300">Datum</label>
+                    <div className="text-white font-semibold">{formatDate(s.date)}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm text-slate-300">Start</label>
+                      <div className="text-white font-semibold">{formatTime(s.startTime)}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-300">Slut</label>
+                      <div className="text-white font-semibold">{formatTime(s.endTime)}</div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-slate-300">Typ</label>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {s.sessionType.name}
                     </Badge>
-                    {session.lessonType.allowsSupervisors && (
-                      <Badge variant="outline" className="border-blue-300 text-blue-700">
-                        Med Handledare
-                      </Badge>
+                    <Badge variant={s.sessionType.allowsSupervisors ? "default" : "secondary"} className="text-xs">
+                      {s.sessionType.allowsSupervisors ? "Med handledare" : "Utan handledare"}
+                    </Badge>
+                  </div>
+                </div>
+                {s.description && (
+                  <div>
+                    <label className="text-sm text-slate-300">Beskrivning</label>
+                    <p className="text-slate-200 text-sm">{s.description}</p>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-2 border-t border-white/10">
+                  <div className="flex items-center gap-2 text-slate-200 text-sm">
+                    <Users className="w-4 h-4" /> Bokade: <span className="font-bold text-white">{s.currentParticipants}/{s.maxParticipants}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => openParticipants(s)} className="border-white/20 text-white">
+                      <Eye className="w-4 h-4 mr-1" /> Deltagare
+                    </Button>
+                    {tab === 'future' && (
+                      <Button onClick={() => {
+                        setAddOpenFor(s.id);
+                        setAddForm({
+                          supervisorName: '',
+                          supervisorEmail: '',
+                          supervisorPhone: '',
+                          personalId: '',
+                          supervisorCount: '1',
+                          studentId: '',
+                          sendPaymentEmail: true
+                        });
+                      }} className="bg-green-600 hover:bg-green-500 text-white">
+                        Lägg till
+            </Button>
                     )}
                   </div>
-                  <CardDescription className="text-sm text-gray-600">
-                    {session.lessonType.name}
-                  </CardDescription>
-                  {session.description && (
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                      {session.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-green-600" />
-                  <span>{formatDate(session.date)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                  <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span>{session.currentParticipants}/{session.maxParticipants}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  <span>{session.lessonType.price} SEK</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(session)}
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-1" />
-                    Redigera
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(session.id)}
-                    className="border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Radera
-                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -461,18 +447,298 @@ export default function TeoriSessionsPage() {
         ))}
       </div>
 
-      {sessions.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <Calendar className="w-16 h-16 mx-auto mb-4" />
+      {/* Create/Edit Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
+            <DialogHeader>
+            <DialogTitle className="text-white">{editingSession ? 'Redigera Session' : 'Ny Session'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+              <Label className="text-slate-200">Sessionstyp *</Label>
+              <Select value={formData.sessionTypeId} onValueChange={(v) => setFormData(prev => ({ ...prev, sessionTypeId: v }))}>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                  <SelectValue placeholder="Välj sessionstyp" />
+                  </SelectTrigger>
+                <SelectContent className="bg-slate-900/90 text-white border-white/10">
+                  {sessionTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id} className="text-white">
+                      {type.name} - {type.basePrice} SEK
+                        {type.allowsSupervisors && ' (med handledare)'}
+                      {type.requiresPersonalId && ' (kräver personnummer)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            <div>
+              <Label className="text-slate-200">Titel *</Label>
+              <Input value={formData.title} onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} className="bg-white/10 border-white/20 text-white" required />
+            </div>
+              <div>
+              <Label className="text-slate-200">Beskrivning</Label>
+              <Textarea value={formData.description} onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} className="bg-white/10 border-white/20 text-white" rows={3} />
+              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-200">Datum *</Label>
+                <Input type="date" value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} className="bg-white/10 border-white/20 text-white" required />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-slate-200">Start</Label>
+                  <Input type="time" value={formData.startTime} onChange={e => setFormData(prev => ({ ...prev, startTime: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                </div>
+                  <div>
+                  <Label className="text-slate-200">Slut</Label>
+                  <Input type="time" value={formData.endTime} onChange={e => setFormData(prev => ({ ...prev, endTime: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                <Label className="text-slate-200">Max platser</Label>
+                <Input type="number" value={formData.maxParticipants} onChange={e => setFormData(prev => ({ ...prev, maxParticipants: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                </div>
+              <div className="flex items-center pt-8">
+                <Switch checked={formData.isActive} onCheckedChange={checked => setFormData(prev => ({ ...prev, isActive: checked }))} />
+                <Label className="ml-2 text-slate-200">Aktiv</Label>
+              </div>
+            </div>
+              <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateOpen(false)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+              <Button type="submit" disabled={saving} className="bg-emerald-600 hover:bg-emerald-500">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      {editingSession ? 'Uppdatera' : 'Skapa'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+      {/* Add participant dialog */}
+      <Dialog open={!!addOpenFor} onOpenChange={(o) => { if (!o) setAddOpenFor(null); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Lägg till deltagare</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-200">Handledarens namn</Label>
+              <Input value={addForm.supervisorName} onChange={e => setAddForm(f => ({ ...f, supervisorName: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-200">E-post</Label>
+                <Input type="email" value={addForm.supervisorEmail} onChange={e => setAddForm(f => ({ ...f, supervisorEmail: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                </div>
+              <div>
+                <Label className="text-slate-200">Telefon</Label>
+                <Input value={addForm.supervisorPhone} onChange={e => setAddForm(f => ({ ...f, supervisorPhone: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+              </div>
+                </div>
+            <div>
+              <Label className="text-slate-200">Personnummer (krävs för handledare)</Label>
+              <Input
+                type="password"
+                value={addForm.personalId}
+                onChange={e => setAddForm(f => ({ ...f, personalId: e.target.value }))}
+                className="bg-white/10 border-white/20 text-white"
+                placeholder="ÅÅMMDD-XXXX"
+              />
+              <p className="text-xs text-slate-400 mt-1">Endast de 4 sista siffrorna visas, resten krypteras</p>
+                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-slate-200">Antal handledare</Label>
+                <Input type="number" value={addForm.supervisorCount} onChange={e => setAddForm(f => ({ ...f, supervisorCount: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                </div>
+              <div className="flex items-center pt-8">
+                <input id="sendPay" type="checkbox" checked={addForm.sendPaymentEmail} onChange={e => setAddForm(f => ({ ...f, sendPaymentEmail: e.target.checked }))} className="mr-2" />
+                <Label htmlFor="sendPay" className="text-slate-200">Skicka betalningsinformation</Label>
+              </div>
+            </div>
+            <div className="relative z-[60]">
+              <Label className="text-slate-200">Koppla till användare (valfritt)</Label>
+              <select value={addForm.studentId} onChange={e => setAddForm(f => ({ ...f, studentId: e.target.value }))} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
+                <option value="">Ingen</option>
+                {studentOptions.map(s => (
+                  <option key={s.id} value={s.id} className="bg-slate-900 text-white">{s.label}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+            </div>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Inga teorisessioner än</h3>
-          <p className="text-gray-600 mb-4">Skapa din första teorisession för att komma igång</p>
-          <Button onClick={() => setDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-5 h-5 mr-2" />
-            Skapa Första Teorisession
-          </Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpenFor(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+            <Button onClick={async () => {
+              if (!addOpenFor) return;
+              const t = toast.loading('Lägger till deltagare...');
+              try {
+                const res = await fetch(`/api/admin/sessions/${addOpenFor}/add-booking`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addForm) });
+                if (res.ok) {
+                  toast.success('Deltagare tillagd', { id: t });
+                  setAddOpenFor(null);
+                  loadData();
+                } else {
+                  const e = await res.json().catch(() => ({}));
+                  toast.error(e.error || 'Kunde inte lägga till', { id: t });
+                }
+              } catch {
+                toast.error('Ett fel uppstod', { id: t });
+              }
+            }} className="bg-emerald-600 hover:bg-emerald-500">Lägg till</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Participants dialog */}
+      <Dialog open={participantsDialog.open} onOpenChange={(o) => { if (!o) setParticipantsDialog({ open: false, sessionId: null, title: '' }); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Deltagare – {participantsDialog.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {participantLoadingId === participantsDialog.sessionId && (
+              <div className="flex items-center gap-2 text-slate-200 py-2"><Loader2 className="w-4 h-4 animate-spin" /> Hämtar deltagare…</div>
+            )}
+            {participantsDialog.sessionId && (participants[participantsDialog.sessionId] || []).map((p: any) => (
+              <div key={p.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white/90">
+                <div className="flex flex-wrap items-center gap-2">
+                  {p.studentId ? (
+                    <button className="text-white hover:underline inline-flex items-center gap-1" onClick={() => setUserPopup({ open: true, userId: p.studentId, user: null })}>
+                      <UserIcon className="w-4 h-4" /> {p.supervisorName}
+                    </button>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-white/80">
+                      <UserIcon className="w-4 h-4" /> {p.supervisorName}
+                    </span>
+                  )}
+                  {p.paymentStatus === 'paid' ? (
+                    <Badge className="bg-emerald-500/20 border-emerald-500/30 text-emerald-300">Betald</Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/20 border-amber-500/30 text-amber-300">Ej betald</Badge>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" className="border-white/20 text-white" onClick={async () => {
+                    try {
+                      const res = await fetch('/api/admin/sessions/future');
+                      const data = await res.json();
+                      setMoving({ bookingId: p.id, open: true, sessions: (data.sessions || []), targetId: '' });
+                    } catch { toast.error('Kunde inte hämta framtida sessioner'); }
+                  }}>
+                    <MoveRight className="w-4 h-4 mr-1" /> Flytta
+                  </Button>
+                  <Button size="sm" variant="destructive" className="bg-red-600 hover:bg-red-500" onClick={() => setUnbookingId(p.id)}>
+                    <Trash2 className="w-4 h-4 mr-1" /> Avboka
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {participantsDialog.sessionId && (participants[participantsDialog.sessionId] || []).length === 0 && participantLoadingId !== participantsDialog.sessionId && (
+              <div className="text-slate-300">Inga deltagare</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move dialog */}
+      {moving?.open && (
+        <Dialog open={moving.open} onOpenChange={(o) => { if (!o) setMoving(null); }}>
+          <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-white">Flytta deltagare</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Label className="text-slate-200">Mål-session</Label>
+              <div className="relative z-[70]">
+                <select value={moving.targetId} onChange={e => setMoving(m => m ? { ...m, targetId: e.target.value } : m)} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
+                  <option value="">Välj framtida session</option>
+                  {moving.sessions.map((fs: any) => (
+                    <option key={fs.id} value={fs.id} className="bg-slate-900 text-white">{fs.title} — {fs.date} {String(fs.startTime || '').slice(0, 5)}-{String(fs.endTime || '').slice(0, 5)}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setMoving(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+              <Button disabled={!moving.targetId} onClick={async () => {
+                if (!moving?.targetId) return;
+                const t = toast.loading('Flyttar deltagare...');
+                try {
+                  const res = await fetch(`/api/admin/session-bookings/${moving.bookingId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'move', targetSessionId: moving.targetId }) });
+                  if (res.ok) {
+                    toast.success('Deltagare flyttad', { id: t });
+                    setMoving(null);
+                    loadData();
+                  } else {
+                    const e = await res.json().catch(() => ({}));
+                    toast.error(e.error || 'Kunde inte flytta', { id: t });
+                  }
+                } catch {
+                  toast.error('Ett fel uppstod', { id: t });
+                }
+              }} className="bg-emerald-600 hover:bg-emerald-500">Flytta</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Unbook confirm */}
+      <Dialog open={!!unbookingId} onOpenChange={(o) => { if (!o) setUnbookingId(null); }}>
+        <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Avboka deltagare</DialogTitle>
+          </DialogHeader>
+          <p className="text-slate-200">Är du säker på att du vill avboka deltagaren? Denna åtgärd kan inte ångras.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnbookingId(null)} className="text-white border-white/20 hover:bg-white/10">Avbryt</Button>
+            <Button variant="destructive" onClick={async () => {
+              if (!unbookingId) return;
+              const t = toast.loading('Avbokar...');
+              try {
+                const res = await fetch(`/api/admin/session-bookings/${unbookingId}`, { method: 'DELETE' });
+                if (res.ok) {
+                  toast.success('Avbokad', { id: t });
+                  setUnbookingId(null);
+                  loadData();
+                } else {
+                  const e = await res.json().catch(() => ({}));
+                  toast.error(e.error || 'Kunde inte avboka', { id: t });
+                }
+              } catch {
+                toast.error('Ett fel uppstod', { id: t });
+              }
+            }}>Avboka</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User popup */}
+      {userPopup.open && (
+        <Dialog open={userPopup.open} onOpenChange={(o) => { if (!o) setUserPopup({ open: false, user: null, userId: null }); }}>
+          <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2"><UserIcon className="w-5 h-5" /> Användare</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {!userPopup.user && <div className="flex items-center gap-2 text-slate-200"><Loader2 className="w-4 h-4 animate-spin" /> Hämtar användare…</div>}
+              {userPopup.user && (
+                <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                  <div className="text-lg font-bold">{userPopup.user.firstName} {userPopup.user.lastName}</div>
+                  <div className="text-slate-200">{userPopup.user.email}</div>
+                  {userPopup.user.phone && <div className="text-slate-300">{userPopup.user.phone}</div>}
+                  <div className="mt-3 flex items-center gap-2 text-slate-200"><span className="px-2 py-0.5 rounded bg-white/10 border border-white/20">{userPopup.user.role}</span>{userPopup.user.inskriven && <span className="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-300">Inskriven</span>}</div>
+                  <div className="mt-4">
+                    <a href={`/dashboard/admin/users/${userPopup.user.id}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white">Öppna profilsida</a>
+                  </div>
+                </div>
+              )}
         </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

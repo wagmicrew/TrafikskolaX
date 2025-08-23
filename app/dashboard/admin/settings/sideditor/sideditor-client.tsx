@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Editor } from '@tinymce/tinymce-react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import toast from 'react-hot-toast';
+import { createSideEditorConfig } from '@/lib/tinymce-config';
 import {
   Save,
   Eye,
@@ -24,6 +25,8 @@ import {
   Copy,
   Settings
 } from 'lucide-react';
+
+const Editor = dynamic(() => import('@tinymce/tinymce-react').then(m => m.Editor), { ssr: false }) as any;
 
 // Page configurations
 const PAGE_CONFIGS = {
@@ -44,235 +47,28 @@ const PAGE_CONFIGS = {
   }
 };
 
-// TinyMCE configuration
-const TINYMCE_CONFIG = {
-  height: 700,
-  plugins: [
-    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-    'insertdatetime', 'media', 'table', 'help', 'wordcount', 'codesample',
-    'emoticons', 'template', 'pagebreak', 'nonbreaking', 'visualchars',
-    'quickbars', 'directionality', 'paste'
-  ],
-  toolbar: 'undo redo | formatselect | ' +
-    'bold italic underline strikethrough | forecolor backcolor | ' +
-    'alignleft aligncenter alignright alignjustify | ' +
-    'bullist numlist outdent indent | blockquote | ' +
-    'link image media table | code codesample | ' +
-    'removeformat | help | preview fullscreen',
-  toolbar_mode: 'sliding',
-  toolbar_sticky: true,
-  toolbar_sticky_offset: 0,
-  menubar: 'edit view insert format tools table help',
-  statusbar: true,
-  elementpath: true,
-  resize: true,
+// Create side editor configuration with UTF-8 support
+const getSideEditorConfig = (apiKey: string) => createSideEditorConfig(apiKey, async (blobInfo: any) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', blobInfo.blob(), blobInfo.filename());
 
-  // Improved content styling for markdown-like readability
-  content_style: `
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      font-size: 16px;
-      line-height: 1.7;
-      color: #2c3e50;
-      background-color: #ffffff;
-      margin: 2rem;
-      max-width: 800px;
-      margin-left: auto;
-      margin-right: auto;
+    const response = await fetch('/api/admin/sideditor/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Bilduppladdning misslyckades');
     }
 
-    /* Headings with clear hierarchy */
-    h1 { font-size: 2.5rem; font-weight: 700; color: #1a202c; margin: 2rem 0 1rem 0; border-bottom: 3px solid #e2e8f0; padding-bottom: 0.5rem; }
-    h2 { font-size: 2rem; font-weight: 600; color: #2d3748; margin: 1.8rem 0 1rem 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
-    h3 { font-size: 1.5rem; font-weight: 600; color: #4a5568; margin: 1.6rem 0 0.8rem 0; }
-    h4 { font-size: 1.25rem; font-weight: 600; color: #718096; margin: 1.4rem 0 0.6rem 0; }
-    h5 { font-size: 1.1rem; font-weight: 600; color: #a0aec0; margin: 1.2rem 0 0.5rem 0; }
-    h6 { font-size: 1rem; font-weight: 600; color: #cbd5e0; margin: 1rem 0 0.4rem 0; }
-
-    /* Paragraphs and text */
-    p { margin: 0 0 1.2rem 0; text-align: justify; }
-
-    /* Lists */
-    ul, ol { margin: 1rem 0; padding-left: 2rem; }
-    li { margin: 0.5rem 0; }
-    ul li::marker { color: #e53e3e; font-weight: bold; }
-    ol li::marker { color: #3182ce; font-weight: bold; }
-
-    /* Links */
-    a { color: #3182ce; text-decoration: none; border-bottom: 2px solid transparent; transition: border-color 0.2s ease; }
-    a:hover { border-bottom-color: #3182ce; }
-
-    /* Code blocks */
-    pre { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; overflow-x: auto; }
-    code { background: #f7fafc; color: #d53f8c; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace; font-size: 0.9em; }
-
-    /* Blockquotes */
-    blockquote { border-left: 4px solid #e53e3e; background: #fff5f5; padding: 1rem 1.5rem; margin: 1.5rem 0; font-style: italic; color: #742a2a; }
-
-    /* Tables */
-    table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
-    th, td { border: 1px solid #e2e8f0; padding: 0.75rem; text-align: left; }
-    th { background: #f7fafc; font-weight: 600; color: #2d3748; }
-    tr:nth-child(even) { background: #f8fafc; }
-
-    /* Images */
-    img { max-width: 100%; height: auto; border-radius: 8px; margin: 1rem 0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-
-    /* Focus and selection */
-    *:focus { outline: 2px solid #3182ce; outline-offset: 2px; }
-
-    /* Print styles */
-    @media print {
-      body { background: white; color: black; margin: 0; }
-      a { color: black; text-decoration: underline; }
-    }
-  `,
-
-  // Enhanced image handling
-  image_title: true,
-  automatic_uploads: true,
-  file_picker_types: 'image',
-  images_upload_handler: async (blobInfo: any) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', blobInfo.blob(), blobInfo.filename());
-
-      const response = await fetch('/api/admin/sideditor/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const data = await response.json();
-      return data.location;
-    } catch (error) {
-      toast.error('Bilduppladdning misslyckades');
-      throw error;
-    }
-  },
-
-  // Improved paste handling
-  paste_as_text: false,
-  paste_data_images: true,
-  paste_retain_style_properties: 'all',
-  paste_merge_formats: true,
-  paste_auto_cleanup_on_paste: true,
-  paste_remove_styles: false,
-  paste_remove_styles_if_webkit: false,
-  paste_strip_class_attributes: 'none',
-
-  // Better mobile experience
-  mobile: {
-    theme: 'mobile',
-    toolbar: ['undo', 'redo', 'bold', 'italic', 'link', 'image'],
-    menubar: false
-  },
-
-  // Enhanced accessibility
-  accessibility: {
-    advtab: true,
-    focus_skip: true
-  },
-
-  // Improved table handling
-  table_default_attributes: {
-    'border': '1',
-    'cellpadding': '5',
-    'cellspacing': '0'
-  },
-  table_default_styles: {
-    'border-collapse': 'collapse',
-    'width': '100%'
-  },
-  table_responsive_width: true,
-  table_advtab: true,
-  table_cell_advtab: true,
-  table_row_advtab: true,
-  table_resize_bars: true,
-  table_style_by_css: false,
-
-  // Enhanced code sample support
-  codesample_global_prismjs: true,
-  codesample_languages: [
-    { text: 'HTML/XML', value: 'markup' },
-    { text: 'CSS', value: 'css' },
-    { text: 'JavaScript', value: 'javascript' },
-    { text: 'TypeScript', value: 'typescript' },
-    { text: 'Python', value: 'python' },
-    { text: 'PHP', value: 'php' },
-    { text: 'SQL', value: 'sql' },
-    { text: 'JSON', value: 'json' },
-    { text: 'Bash', value: 'bash' },
-    { text: 'Markdown', value: 'markdown' }
-  ],
-
-  // Clean UI
-  skin: 'oxide',
-  content_css: '',
-  branding: false,
-  promotion: false,
-
-  // Better UX
-  contextmenu: 'link image table configurepermanentpen',
-  quickbars_insert_toolbar: 'quickimage quicktable media codesample | blockquote hr',
-  quickbars_selection_toolbar: 'bold italic underline strikethrough | h2 h3 blockquote quicklink',
-
-  // Enhanced spell checking
-  spellchecker_active: true,
-  spellchecker_language: 'sv',
-  spellchecker_languages: 'Swedish=sv,English=en',
-
-  // Content editing restrictions - only allow content elements
-  valid_elements: 'p[style],br,span[style],strong,b,em,i,u,strike,s,blockquote[style],ul,ol,li[style],h1[style],h2[style],h3[style],h4[style],h5[style],h6[style],a[href|target|title|style],img[src|alt|title|width|height|style],table[style],thead,tbody,tfoot,tr[style],th[style],td[style],caption[style],div[style|class],section[style|class],article[style|class],header[style|class],footer[style|class],aside[style|class],nav[style|class],main[style|class]',
-  invalid_elements: 'script,style,meta,link,base,title,noscript,object,embed,applet,param,iframe,frame,frameset,noframes,area,map,form,input,button,select,textarea,fieldset,legend,label,optgroup,option,datalist,keygen,output,progress,meter,details,summary,command,menu,menuitem,dialog,video,audio,source,track,canvas,svg,math,template,slot',
-
-  // Protect specific patterns and elements
-  protect: [
-    /<\?[\s\S]*?\?>/g,  // PHP code
-    /<script[\s\S]*?<\/script>/gi,  // Script tags
-    /<style[\s\S]*?<\/style>/gi,  // Style tags
-    /<!--[\s\S]*?-->/g,  // HTML comments
-    /\{\{[\s\S]*?\}\}/g,  // Template variables
-    /<meta[\s\S]*?\/?>/gi,  // Meta tags
-    /<link[\s\S]*?\/?>/gi,  // Link tags
-    /<base[\s\S]*?\/?>/gi,  // Base tags
-  ],
-
-  // Extended valid elements for specific use cases
-  extended_valid_elements: 'span[class|style],div[class|style],section[class|style],article[class|style],header[class|style],footer[class|style],aside[class|style],nav[class|style],main[class|style],figure[style],figcaption[style]',
-
-  // Valid children - restrict nesting
-  valid_children: '+body[p|div|section|article|h1|h2|h3|h4|h5|h6|ul|ol|blockquote|table|figure],+div[p|div|section|article|h1|h2|h3|h4|h5|h6|ul|ol|blockquote|table|figure],+section[p|div|section|article|h1|h2|h3|h4|h5|h6|ul|ol|blockquote|table|figure],+article[p|div|section|article|h1|h2|h3|h4|h5|h6|ul|ol|blockquote|table|figure]',
-
-  // Improved performance
-  cache_suffix: '?v=1.0.0',
-  object_resizing: true,
-  element_format: 'html',
-  schema: 'html5',
-
-  // Additional security and content restrictions
-  allow_conditional_comments: false,
-  allow_html_in_named_anchor: false,
-  convert_fonts_to_spans: true,
-  convert_urls: false,
-  custom_elements: false,
-  doctype: '<!DOCTYPE html>',
-  element_format: 'html',
-  encoding: 'utf-8',
-  entities: '160,nbsp,161,iexcl,162,cent,163,pound,164,curren,165,yen,166,brvbar,167,sect,168,uml,169,copy,170,ordf,171,laquo,172,not,173,shy,174,reg,175,macr,176,deg,177,plusmn,178,sup2,179,sup3,180,acute,181,micro,182,para,183,middot,184,cedil,185,sup1,186,ordm,187,raquo,188,frac14,189,frac12,190,frac34,191,iquest,192,Agrave,193,Aacute,194,Acirc,195,Atilde,196,Auml,197,Aring,198,AElig,199,Ccedil,200,Egrave,201,Eacute,202,Ecirc,203,Euml,204,Igrave,205,Iacute,206,Icirc,207,Iuml,208,ETH,209,Ntilde,210,Ograve,211,Oacute,212,Ocirc,213,Otilde,214,Ouml,215,times,216,Oslash,217,Ugrave,218,Uacute,219,Ucirc,220,Uuml,221,Yacute,222,THORN,223,szlig,224,agrave,225,aacute,226,acirc,227,atilde,228,auml,229,aring,230,aelig,231,ccedil,232,egrave,233,eacute,234,ecirc,235,euml,236,igrave,237,iacute,238,icirc,239,iuml,240,eth,241,ntilde,242,ograve,243,oacute,244,ocirc,245,otilde,246,ouml,247,divide,248,oslash,249,ugrave,250,uacute,251,ucirc,252,uuml,253,yacute,254,thorn,255,yuml',
-
-  // Force content to be cleaned and validated
-  fix_list_elements: true,
-  fix_table_elements: true,
-  forced_root_block: 'p',
-  forced_root_block_attrs: { 'class': 'content-paragraph' },
-  remove_trailing_brs: true,
-  verify_html: true
-};
+    const data = await response.json();
+    return data.location;
+  } catch (error) {
+    toast.error('Bilduppladdning misslyckades');
+    throw error;
+  }
+});
 
 interface PageContent {
   title: string;
@@ -539,7 +335,7 @@ export default function SideditorClient() {
                     apiKey={tinymceApiKey}
                     value={editorContent}
                     onEditorChange={handleEditorChange}
-                    init={TINYMCE_CONFIG}
+                    init={getSideEditorConfig(tinymceApiKey)}
                   />
                 </div>
               )}

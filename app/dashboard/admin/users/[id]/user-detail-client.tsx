@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Mail, Calendar, CreditCard, Key, Edit3, Save, ShieldAlert } from "lucide-react";
+import { User, Mail, Calendar, CreditCard, Key, Edit3, Save, ShieldAlert, Download } from "lucide-react";
 import { AvatarImage } from "@/components/ui/AvatarImage";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -290,6 +290,34 @@ const handlePasswordChange = async () => {
     }
   };
 
+  const handleExportUserData = async () => {
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/export`);
+      if (response.ok) {
+        // Create a blob from the response
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${user.firstName}_${user.lastName}_${user.id}_export.pdf`;
+        document.body.appendChild(link);
+        link.click();
+
+        // Clean up
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        toast({ title: 'Klart', description: 'Användardata exporterad', variant: 'default' });
+      } else {
+        toast({ title: 'Fel', description: 'Kunde inte exportera användardata', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Fel', description: 'Ett fel uppstod vid export', variant: 'destructive' });
+    }
+  };
+
 return (
     <>
       {showCreateDialog && (
@@ -357,6 +385,14 @@ return (
                 <Edit3 className="w-4 h-4" />
               </Button>
             )}
+            <Button
+              onClick={handleExportUserData}
+              variant="outline"
+              className="bg-white/5 hover:bg-white/10 border-white/20 text-white"
+              title="Exportera användardata"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
       </div>
         </CardHeader>
         <CardContent className="space-y-4">

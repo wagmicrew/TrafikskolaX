@@ -113,7 +113,6 @@ export default function PremisesPage() {
                   src="/images/conference-room.jpg"
                   alt="Professionellt konferensrum för teoriundervisning och möten"
                   className="w-full h-64 object-cover"
-                  loading="lazy"
                 />
                 <CardContent className="p-6">
                   <h3 className="text-xl font-bold text-red-600 mb-3">Konferensrum för teoriundervisning</h3>

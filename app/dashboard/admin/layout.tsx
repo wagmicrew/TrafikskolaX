@@ -52,15 +52,14 @@ export default async function AdminLayout({
                 href="/dashboard/admin/lessons"
                 className="px-4 py-2 rounded-xl hover:bg-white/20 transition-colors text-sm md:text-base border border-white/10 inline-flex items-center gap-2"
               >
-                <BookOpen className="w-4 h-4" /> Lektioner <ChevronDown className="w-3 h-3 opacity-70" />
+                <BookOpen className="w-4 h-4" /> Kurser & Sessioner <ChevronDown className="w-3 h-3 opacity-70" />
               </Link>
             <div className="invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-150 absolute z-30 mt-2 min-w-[220px] bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-xl shadow-2xl">
                 <div className="py-2">
                   <Link href="/dashboard/admin/lessons" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Lektioner & Paket</Link>
                   <Link href="/dashboard/admin/lesson-content" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Lektionsinnehåll</Link>
                   <Link href="/dashboard/admin/teori-lesson-types" className="block px-4 py-2 hover:bg-white/10 rounded-lg text-blue-300">Teori Lektionstyper</Link>
-                  <Link href="/dashboard/admin/teori-sessions" className="block px-4 py-2 hover:bg-white/10 rounded-lg text-green-300">Teori Sessioner</Link>
-                  <Link href="/dashboard/admin/handledarkurs" className="block px-4 py-2 hover:bg-white/10 rounded-lg">Teorihantering</Link>
+                  <Link href="/dashboard/admin/teori-sessions" className="block px-4 py-2 hover:bg-white/10 rounded-lg text-emerald-300 font-semibold">Sessionshantering</Link>
                 </div>
               </div>
             </div>

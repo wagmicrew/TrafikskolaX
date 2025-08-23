@@ -4,6 +4,11 @@ import { relations } from 'drizzle-orm';
 // Export email template schema
 export * from './schema/email-templates';
 
+// Export session management schema
+export * from './schema/session-types';
+export * from './schema/sessions';
+export * from './schema/session-bookings';
+
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'admin']);
 export const transmissionEnum = pgEnum('transmission', ['manual', 'automatic']);

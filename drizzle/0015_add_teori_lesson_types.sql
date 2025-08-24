@@ -2,8 +2,9 @@
 -- This migration adds support for Teori lesson types with supervisor management
 
 -- Create teori_lesson_types table
+-- Using gen_random_uuid() which is available in PostgreSQL 13+ and Neon
 CREATE TABLE IF NOT EXISTS teori_lesson_types (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT (md5(random()::text || clock_timestamp()::text))::uuid,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   allows_supervisors BOOLEAN DEFAULT FALSE,
@@ -19,7 +20,7 @@ CREATE TABLE IF NOT EXISTS teori_lesson_types (
 
 -- Create teori_sessions table
 CREATE TABLE IF NOT EXISTS teori_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT (md5(random()::text || clock_timestamp()::text))::uuid,
   lesson_type_id UUID NOT NULL REFERENCES teori_lesson_types(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   description TEXT,
@@ -36,7 +37,7 @@ CREATE TABLE IF NOT EXISTS teori_sessions (
 
 -- Create teori_bookings table
 CREATE TABLE IF NOT EXISTS teori_bookings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT (md5(random()::text || clock_timestamp()::text))::uuid,
   session_id UUID NOT NULL REFERENCES teori_sessions(id) ON DELETE CASCADE,
   student_id UUID NOT NULL REFERENCES users(id),
   status VARCHAR(50) DEFAULT 'pending',
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS teori_bookings (
 
 -- Create teori_supervisors table
 CREATE TABLE IF NOT EXISTS teori_supervisors (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT (md5(random()::text || clock_timestamp()::text))::uuid,
   teori_booking_id UUID NOT NULL REFERENCES teori_bookings(id) ON DELETE CASCADE,
   supervisor_name VARCHAR(255) NOT NULL,
   supervisor_email VARCHAR(255),
@@ -90,7 +91,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS update_teori_lesson_types_updated_at
+DROP TRIGGER IF EXISTS update_teori_lesson_types_updated_at ON teori_lesson_types;
+CREATE TRIGGER update_teori_lesson_types_updated_at
   BEFORE UPDATE ON teori_lesson_types
   FOR EACH ROW
   EXECUTE FUNCTION update_teori_lesson_types_updated_at();
@@ -104,7 +106,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS update_teori_sessions_updated_at
+DROP TRIGGER IF EXISTS update_teori_sessions_updated_at ON teori_sessions;
+CREATE TRIGGER update_teori_sessions_updated_at
   BEFORE UPDATE ON teori_sessions
   FOR EACH ROW
   EXECUTE FUNCTION update_teori_sessions_updated_at();
@@ -118,7 +121,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS update_teori_bookings_updated_at
+DROP TRIGGER IF EXISTS update_teori_bookings_updated_at ON teori_bookings;
+CREATE TRIGGER update_teori_bookings_updated_at
   BEFORE UPDATE ON teori_bookings
   FOR EACH ROW
   EXECUTE FUNCTION update_teori_bookings_updated_at();

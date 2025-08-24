@@ -31,7 +31,10 @@ import {
   AlertTriangle,
   Edit,
   Copy,
-  Clock
+  Clock,
+  Plus,
+  Trash2,
+  Download
 } from 'lucide-react';
 import { ResetSiteButton } from '@/components/Admin/ResetSiteButton';
 import OpeningHoursEditor from '@/components/Admin/OpeningHoursEditor';
@@ -698,7 +701,11 @@ export default function SettingsClient() {
         </Link>
       </div>
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
+        <TabsList className="grid w-full grid-cols-8 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
+          <TabsTrigger value="setup" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+            <SettingsIcon className="w-4 h-4" />
+            Inställningar
+          </TabsTrigger>
           <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
             <Mail className="w-4 h-4" />
             E-postinställningar
@@ -728,6 +735,408 @@ export default function SettingsClient() {
             <span className="hidden sm:inline">Felsökning</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* Setup Tab */}
+        <TabsContent value="setup">
+          <div className="space-y-6">
+            {/* Invoice System Setup */}
+            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Faktura system
+                  </CardTitle>
+                  <CardDescription className="text-slate-300">
+                    Konfigurera och initiera faktura systemet för alla betalningar
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">📊 System status</h4>
+                    <p className="text-sm text-slate-300 mb-4">
+                      Kontrollera om faktura systemet är korrekt installerat och konfigurerat
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Kontrollerar faktura system...');
+                          try {
+                            const response = await fetch('/api/admin/invoices');
+                            if (response.ok) {
+                              const data = await response.json();
+                              toast.success(`Faktura system OK! ${data.stats.total_invoices} fakturor`, { id: t });
+                            } else {
+                              toast.error('Faktura system ej tillgängligt', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid kontroll av faktura system', { id: t });
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Kontrollera status
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Skapar test faktura...');
+                          try {
+                            const response = await fetch('/api/admin/invoices', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                type: 'custom',
+                                customerName: 'Test Kund',
+                                customerEmail: 'test@example.com',
+                                description: 'Test faktura',
+                                amount: 100,
+                                items: [{
+                                  description: 'Test tjänst',
+                                  quantity: 1,
+                                  unitPrice: 100
+                                }]
+                              })
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              toast.success(`Test faktura skapad: ${data.invoice.invoice_number}`, { id: t });
+                            } else {
+                              toast.error('Kunde inte skapa test faktura', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid skapande av test faktura', { id: t });
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Skapa test faktura
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">⚙️ Databas setup</h4>
+                    <p className="text-sm text-slate-300 mb-4">
+                      Initiera faktura tabeller och funktioner i databasen
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Initierar faktura system...');
+                          try {
+                            const response = await fetch('/api/admin/settings/init-invoice-system', {
+                              method: 'POST'
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              toast.success(data.message, { id: t });
+                            } else {
+                              const error = await response.json();
+                              toast.error(error.error || 'Misslyckades att initiera faktura system', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid initiering av faktura system', { id: t });
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                      >
+                        <SettingsIcon className="w-4 h-4 mr-2" />
+                        Initiera system
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Återställer faktura system...');
+                          try {
+                            const response = await fetch('/api/admin/settings/reset-invoice-system', {
+                              method: 'POST'
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              toast.success(data.message, { id: t });
+                            } else {
+                              const error = await response.json();
+                              toast.error(error.error || 'Misslyckades att återställa faktura system', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid återställning av faktura system', { id: t });
+                          }
+                        }}
+                        className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Återställ system
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <h4 className="font-semibold text-white mb-2">📋 Integration med bokningssystem</h4>
+                  <p className="text-sm text-slate-300 mb-4">
+                    Konfigurera hur fakturor automatiskt skapas från bokningar
+                  </p>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-white">Automatisk fakturering</Label>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={settings.invoice_auto_create || false}
+                          onCheckedChange={(checked) => updateSetting('invoice_auto_create', checked)}
+                        />
+                        <span className="text-sm text-slate-300">
+                          {settings.invoice_auto_create ? 'Aktiverad' : 'Inaktiverad'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">Förfallodatum (dagar)</Label>
+                      <Input
+                        type="number"
+                        value={settings.invoice_due_days || 30}
+                        onChange={(e) => updateSetting('invoice_due_days', parseInt(e.target.value) || 30)}
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">Påminnelse (dagar)</Label>
+                      <Input
+                        type="number"
+                        value={settings.invoice_reminder_days || 7}
+                        onChange={(e) => updateSetting('invoice_reminder_days', parseInt(e.target.value) || 7)}
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* PDF Configuration */}
+            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
+                  <Download className="w-5 h-5" />
+                  PDF-konfiguration
+                </CardTitle>
+                <CardDescription className="text-slate-300">
+                  Konfigurera utseende och innehåll för faktura-PDF:er
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-white">Företagsnamn</Label>
+                    <Input
+                      value={settings.invoice_company_name || settings.schoolname || ''}
+                      onChange={(e) => updateSetting('invoice_company_name', e.target.value)}
+                      className="bg-white/10 border-white/20 text-white"
+                      placeholder="Din Trafikskola Hässleholm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Företagsadress</Label>
+                    <Input
+                      value={settings.invoice_company_address || ''}
+                      onChange={(e) => updateSetting('invoice_company_address', e.target.value)}
+                      className="bg-white/10 border-white/20 text-white"
+                      placeholder="Storgatan 1, 281 31 Hässleholm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Företags telefon</Label>
+                    <Input
+                      value={settings.invoice_company_phone || settings.school_phonenumber || ''}
+                      onChange={(e) => updateSetting('invoice_company_phone', e.target.value)}
+                      className="bg-white/10 border-white/20 text-white"
+                      placeholder="040-123 45 67"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Företags e-post</Label>
+                    <Input
+                      value={settings.invoice_company_email || settings.school_email || ''}
+                      onChange={(e) => updateSetting('invoice_company_email', e.target.value)}
+                      className="bg-white/10 border-white/20 text-white"
+                      placeholder="info@dintrafikskolahlm.se"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      const t = toast.loading('Genererar test PDF...');
+                      try {
+                        const response = await fetch('/api/admin/invoices/test-pdf', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            companyName: settings.invoice_company_name || settings.schoolname,
+                            companyAddress: settings.invoice_company_address,
+                            companyPhone: settings.invoice_company_phone || settings.school_phonenumber,
+                            companyEmail: settings.invoice_company_email || settings.school_email
+                          })
+                        });
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.style.display = 'none';
+                          a.href = url;
+                          a.download = 'test-faktura.pdf';
+                          document.body.appendChild(a);
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          toast.success('Test PDF genererad och nedladdad!', { id: t });
+                        } else {
+                          toast.error('Kunde inte generera test PDF', { id: t });
+                        }
+                      } catch (error) {
+                        toast.error('Fel vid generering av test PDF', { id: t });
+                      }
+                    }}
+                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Generera test PDF
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      updateSetting('invoice_company_name', settings.schoolname || '');
+                      updateSetting('invoice_company_address', '');
+                      updateSetting('invoice_company_phone', settings.school_phonenumber || '');
+                      updateSetting('invoice_company_email', settings.school_email || '');
+                      toast.success('Företagsinformation kopierad från skolinformation');
+                    }}
+                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Kopiera från skola
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Payment Integration Setup */}
+            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
+                  <CreditCard className="w-5 h-5" />
+                  Betalningsintegration
+                </CardTitle>
+                <CardDescription className="text-slate-300">
+                  Konfigurera betalningsmetoder och integrationer
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">💳 Swish integration</h4>
+                    <p className="text-sm text-slate-300 mb-4">
+                      Konfigurera Swish för fakturabetalningar
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Testar Swish integration...');
+                          try {
+                            const response = await fetch('/api/payments/swish/test', {
+                              method: 'POST'
+                            });
+                            if (response.ok) {
+                              toast.success('Swish integration fungerar!', { id: t });
+                            } else {
+                              toast.error('Swish integration fungerar inte', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid test av Swish integration', { id: t });
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Testa Swish
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <h4 className="font-semibold text-white mb-2">🛒 Qliro integration</h4>
+                    <p className="text-sm text-slate-300 mb-4">
+                      Konfigurera Qliro för fakturabetalningar
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={async () => {
+                          const t = toast.loading('Testar Qliro integration...');
+                          try {
+                            const response = await fetch('/api/payments/qliro/test', {
+                              method: 'POST'
+                            });
+                            if (response.ok) {
+                              toast.success('Qliro integration fungerar!', { id: t });
+                            } else {
+                              toast.error('Qliro integration fungerar inte', { id: t });
+                            }
+                          } catch (error) {
+                            toast.error('Fel vid test av Qliro integration', { id: t });
+                          }
+                        }}
+                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Testa Qliro
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <h4 className="font-semibold text-white mb-2">🔄 Betalningsflöde</h4>
+                  <p className="text-sm text-slate-300 mb-4">
+                    Konfigurera hur betalningar hanteras i faktura systemet
+                  </p>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-white">Automatisk bekräftelse</Label>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={settings.payment_auto_confirm || false}
+                          onCheckedChange={(checked) => updateSetting('payment_auto_confirm', checked)}
+                        />
+                        <span className="text-sm text-slate-300">
+                          {settings.payment_auto_confirm ? 'Aktiverad' : 'Inaktiverad'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">Callback URL</Label>
+                      <Input
+                        value={settings.payment_callback_url || ''}
+                        onChange={(e) => updateSetting('payment_callback_url', e.target.value)}
+                        className="bg-white/10 border-white/20 text-white"
+                        placeholder="https://dintrafikskolahlm.se/api/payments/callback"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white">Timeout (minuter)</Label>
+                      <Input
+                        type="number"
+                        value={settings.payment_timeout_minutes || 30}
+                        onChange={(e) => updateSetting('payment_timeout_minutes', parseInt(e.target.value) || 30)}
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Email Settings Tab */}
         <TabsContent value="email">

@@ -18,6 +18,7 @@ export default function StudentHeader({ title, icon, rightSlot }: { title: strin
         <Link href="/dashboard/student/feedback" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Feedback</Link>
         {/* Meddelanden link disabled per request */}
         <Link href="/dashboard/settings" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Inställningar</Link>
+        <Link href="/dashboard/invoices" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Fakturor</Link>
       </div>
     </div>
   )

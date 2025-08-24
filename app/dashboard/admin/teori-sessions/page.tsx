@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -96,6 +98,9 @@ interface BookingFormData {
 }
 
 export default function UnifiedSessionsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+
   const [tab, setTab] = useState<'future' | 'past'>('future');
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>([]);
@@ -106,6 +111,13 @@ export default function UnifiedSessionsPage() {
   const [pastPage, setPastPage] = useState(1);
   const [pastTotalPages, setPastTotalPages] = useState(1);
   const [listLoading, setListLoading] = useState(false);
+
+  // Authentication check
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== 'admin')) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
 
   const [formData, setFormData] = useState<SessionFormData>({
     sessionTypeId: '',
@@ -141,10 +153,25 @@ export default function UnifiedSessionsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // Get auth token for admin API calls
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+      const headers = token ? {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : undefined;
+
       const [sessionsResponse, typesResponse, usersResponse] = await Promise.all([
-        fetch(`/api/admin/sessions?scope=${tab === 'future' ? 'future' : 'past'}&page=${tab === 'past' ? pastPage : 1}`),
-        fetch('/api/admin/session-types'),
-        fetch('/api/admin/users')
+        fetch(`/api/admin/sessions?scope=${tab === 'future' ? 'future' : 'past'}&page=${tab === 'past' ? pastPage : 1}`, {
+          headers
+        }),
+        fetch('/api/admin/session-types', {
+          headers
+        }),
+        fetch('/api/admin/users', {
+          headers
+        })
       ]);
 
       if (sessionsResponse.ok) {
@@ -181,15 +208,25 @@ export default function UnifiedSessionsPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, [tab, pastPage]);
+    if (user && user.role === 'admin') {
+      loadData();
+    }
+  }, [tab, pastPage, user]);
 
   // Load user when popup opens
   useEffect(() => {
     const run = async () => {
       if (userPopup.open && userPopup.userId) {
         try {
-          const res = await fetch(`/api/admin/users/${userPopup.userId}`);
+          // Get auth token for admin API calls
+          const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+          const headers = token ? {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } : undefined;
+
+          const res = await fetch(`/api/admin/users/${userPopup.userId}`, { headers });
           if (res.ok) {
             const d = await res.json();
             setUserPopup(prev => ({ ...prev, user: d.user }));
@@ -215,9 +252,17 @@ export default function UnifiedSessionsPage() {
         ? `/api/admin/sessions/${editingSession.id}`
         : '/api/admin/sessions';
 
+      // Get auth token for admin API calls
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      };
+
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           sessionTypeId: formData.sessionTypeId,
           title: formData.title,
@@ -286,8 +331,17 @@ export default function UnifiedSessionsPage() {
     }
 
     try {
+      // Get auth token for admin API calls
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+      const headers = token ? {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : undefined;
+
       const response = await fetch(`/api/admin/sessions/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
 
       if (response.ok) {
@@ -308,7 +362,15 @@ export default function UnifiedSessionsPage() {
   const loadParticipants = async (sessionId: string) => {
     try {
       setParticipantLoadingId(sessionId);
-      const res = await fetch(`/api/admin/sessions/${sessionId}/participants`);
+      // Get auth token for admin API calls
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+      const headers = token ? {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : undefined;
+
+      const res = await fetch(`/api/admin/sessions/${sessionId}/participants`, { headers });
       if (!res.ok) throw new Error('Kunde inte hämta deltagare');
       const data = await res.json();
       setParticipants(prev => ({ ...prev, [sessionId]: data.participants || [] }));
@@ -575,7 +637,19 @@ export default function UnifiedSessionsPage() {
               if (!addOpenFor) return;
               const t = toast.loading('Lägger till deltagare...');
               try {
-                const res = await fetch(`/api/admin/sessions/${addOpenFor}/add-booking`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addForm) });
+                // Get auth token for admin API calls
+                const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+                const headers = {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` })
+                };
+
+                const res = await fetch(`/api/admin/sessions/${addOpenFor}/add-booking`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify(addForm)
+                });
                 if (res.ok) {
                   toast.success('Deltagare tillagd', { id: t });
                   setAddOpenFor(null);
@@ -623,7 +697,15 @@ export default function UnifiedSessionsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" className="border-white/20 text-white" onClick={async () => {
                     try {
-                      const res = await fetch('/api/admin/sessions/future');
+                      // Get auth token for admin API calls
+                      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+                      const headers = token ? {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                      } : undefined;
+
+                      const res = await fetch('/api/admin/sessions/future', { headers });
                       const data = await res.json();
                       setMoving({ bookingId: p.id, open: true, sessions: (data.sessions || []), targetId: '' });
                     } catch { toast.error('Kunde inte hämta framtida sessioner'); }
@@ -668,7 +750,19 @@ export default function UnifiedSessionsPage() {
                 if (!moving?.targetId) return;
                 const t = toast.loading('Flyttar deltagare...');
                 try {
-                  const res = await fetch(`/api/admin/session-bookings/${moving.bookingId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'move', targetSessionId: moving.targetId }) });
+                  // Get auth token for admin API calls
+                  const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+                  const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token && { 'Authorization': `Bearer ${token}` })
+                  };
+
+                  const res = await fetch(`/api/admin/session-bookings/${moving.bookingId}`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ action: 'move', targetSessionId: moving.targetId })
+                  });
                   if (res.ok) {
                     toast.success('Deltagare flyttad', { id: t });
                     setMoving(null);
@@ -699,7 +793,18 @@ export default function UnifiedSessionsPage() {
               if (!unbookingId) return;
               const t = toast.loading('Avbokar...');
               try {
-                const res = await fetch(`/api/admin/session-bookings/${unbookingId}`, { method: 'DELETE' });
+                // Get auth token for admin API calls
+                const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1];
+
+                const headers = token ? {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                } : undefined;
+
+                const res = await fetch(`/api/admin/session-bookings/${unbookingId}`, {
+                  method: 'DELETE',
+                  headers
+                });
                 if (res.ok) {
                   toast.success('Avbokad', { id: t });
                   setUnbookingId(null);

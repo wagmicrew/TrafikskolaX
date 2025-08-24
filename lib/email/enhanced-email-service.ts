@@ -98,6 +98,16 @@ export interface EmailContext {
   school?: {
     email: string;
   };
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+    currency: string;
+    dueDate?: string;
+    issuedDate: string;
+    description?: string;
+    status: string;
+  };
   customData?: Record<string, any>;
 }
 

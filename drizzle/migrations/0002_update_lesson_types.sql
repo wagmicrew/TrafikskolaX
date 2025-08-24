@@ -24,7 +24,7 @@ WHERE session_type IS NULL OR session_type = '';
 
 -- Add supervisor_details table for multiple supervisors per booking
 CREATE TABLE IF NOT EXISTS supervisor_details (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  id UUID DEFAULT (md5(random()::text || clock_timestamp()::text))::uuid PRIMARY KEY,
   handledar_booking_id UUID NOT NULL REFERENCES handledar_bookings(id) ON DELETE CASCADE,
   supervisor_name VARCHAR(255) NOT NULL,
   supervisor_email VARCHAR(255),

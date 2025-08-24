@@ -9,6 +9,12 @@ export * from './schema/session-types';
 export * from './schema/sessions';
 export * from './schema/session-bookings';
 
+// Export invoice schema
+export * from './schema/invoice';
+
+// Export CMS schema
+export * from './schema/cms';
+
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'admin']);
 export const transmissionEnum = pgEnum('transmission', ['manual', 'automatic']);
@@ -351,6 +357,8 @@ export const qliroOrders = pgTable('qliro_orders', {
   bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
   handledarBookingId: uuid('handledar_booking_id').references(() => handledarBookings.id, { onDelete: 'cascade' }),
   packagePurchaseId: uuid('package_purchase_id').references(() => packagePurchases.id, { onDelete: 'cascade' }),
+  // Optional link to Teori booking (kept without FK here to avoid declaration order issues)
+  teoriBookingId: uuid('teori_booking_id'),
   qliroOrderId: varchar('qliro_order_id', { length: 255 }).notNull().unique(),
   merchantReference: varchar('merchant_reference', { length: 255 }).notNull(),
   amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
@@ -383,7 +391,10 @@ export const teoriLessonTypes = pgTable('teori_lesson_types', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Teori sessions table (similar to handledarSessions)
+// Session type enum for unified Teori/Handledar sessions
+export const sessionTypeEnum = pgEnum('session_type_enum', ['teori', 'handledar']);
+
+// Teori sessions table (unified for both teori and handledar sessions)
 export const teoriSessions = pgTable('teori_sessions', {
   id: uuid('id').defaultRandom().primaryKey(),
   lessonTypeId: uuid('lesson_type_id').notNull().references(() => teoriLessonTypes.id, { onDelete: 'cascade' }),
@@ -395,12 +406,15 @@ export const teoriSessions = pgTable('teori_sessions', {
   maxParticipants: integer('max_participants').default(1),
   currentParticipants: integer('current_participants').default(0),
   teacherId: uuid('teacher_id').references(() => users.id),
+  sessionType: sessionTypeEnum('session_type').default('teori'),
+  price: decimal('price', { precision: 10, scale: 2 }),
+  referenceId: uuid('reference_id'), // For linking to original handledar_sessions if needed
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Teori bookings table (similar to handledarBookings but for students)
+// Teori bookings table (unified for both teori and handledar bookings)
 export const teoriBookings = pgTable('teori_bookings', {
   id: uuid('id').defaultRandom().primaryKey(),
   sessionId: uuid('session_id').notNull().references(() => teoriSessions.id, { onDelete: 'cascade' }),
@@ -413,6 +427,11 @@ export const teoriBookings = pgTable('teori_bookings', {
   swishUuid: varchar('swish_uuid', { length: 255 }),
   bookedBy: uuid('booked_by').references(() => users.id),
   reminderSent: boolean('reminder_sent').default(false),
+  // Handledar-specific fields for unified handling
+  participantName: varchar('participant_name', { length: 255 }),
+  participantEmail: varchar('participant_email', { length: 255 }),
+  participantPhone: varchar('participant_phone', { length: 50 }),
+  participantPersonalNumber: varchar('participant_personal_number', { length: 20 }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
@@ -476,6 +495,17 @@ export const supervisorDetails = pgTable('supervisor_details', {
   supervisorEmail: varchar('supervisor_email', { length: 255 }),
   supervisorPhone: varchar('supervisor_phone', { length: 50 }),
   supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 20 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Regular booking supervisor details table
+export const bookingSupervisorDetails = pgTable('booking_supervisor_details', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  bookingId: uuid('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
+  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
+  supervisorEmail: varchar('supervisor_email', { length: 255 }),
+  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
+  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 255 }), // Encrypted, so longer field
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -6,7 +6,7 @@ import { Clock } from "lucide-react"
 
 interface SessionType {
   id: string
-  type: 'lesson' | 'handledar';
+  type: 'lesson' | 'handledar' | 'teori';
   name: string
   description: string | null
   durationMinutes: number
@@ -33,52 +33,76 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     try {
       const allSessions = [];
       
-      // Fetch regular lessons
+      // Fetch regular lessons (legacy lesson types)
       try {
         const lessonResponse = await fetch('/api/lesson-types')
         if (lessonResponse.ok) {
           const lessonData = await lessonResponse.json()
           const lessons = (lessonData.lessonTypes || []).map((lesson: any) => ({
             ...lesson,
-            type: 'lesson' as const
+            type: 'lesson' as const,
+            basePrice: lesson.price, // Map to basePrice for consistency
           }))
           allSessions.push(...lessons);
         }
       } catch (lessonError) {
-        console.error("Error fetching lessons:", lessonError)
+        console.error("Error fetching legacy lessons:", lessonError)
       }
 
-      // Fetch handledar sessions (grouped view)
+      // Fetch new session types (including handledar sessions)
       try {
-        console.log("[LESSON SELECTION DEBUG] Fetching handledar sessions...")
-        const handledarResponse = await fetch('/api/handledar-sessions?grouped=true')
-        console.log("[LESSON SELECTION DEBUG] Handledar response status:", handledarResponse.status)
-        console.log("[LESSON SELECTION DEBUG] Handledar response ok:", handledarResponse.ok)
-        
-        if (handledarResponse.ok) {
-          const handledarData = await handledarResponse.json()
-          console.log("[LESSON SELECTION DEBUG] Handledar data:", handledarData)
-          console.log("[LESSON SELECTION DEBUG] Has available sessions:", handledarData.hasAvailableSessions)
-          console.log("[LESSON SELECTION DEBUG] Sessions count:", handledarData.sessions?.length)
-          
-          if (handledarData.hasAvailableSessions && handledarData.sessions?.length > 0) {
-            const handledarSessions = handledarData.sessions.map((session: any) => ({
-              ...session,
-              type: 'handledar' as const,
-              name: session.title,
-              price: session.pricePerParticipant,
-              durationMinutes: session.durationMinutes || 120
+        const sessionTypesResponse = await fetch('/api/session-types')
+        if (sessionTypesResponse.ok) {
+          const sessionTypesData = await sessionTypesResponse.json()
+          const newSessions = (sessionTypesData.sessionTypes || []).map((sessionType: any) => ({
+            ...sessionType,
+            type: sessionType.type === 'handledarutbildning' ? 'handledar' : sessionType.type,
+            price: sessionType.basePrice,
+            basePrice: sessionType.basePrice,
+            allowsSupervisors: sessionType.allowsSupervisors,
+            pricePerSupervisor: sessionType.pricePerSupervisor,
+            requiresPersonalId: sessionType.requiresPersonalId
+          }))
+          allSessions.push(...newSessions);
+        }
+      } catch (sessionTypesError) {
+        console.error("Error fetching new session types:", sessionTypesError)
+      }
+
+      // Fetch Teori sessions
+      try {
+        console.log("[LESSON SELECTION DEBUG] Fetching Teori sessions...")
+        const teoriResponse = await fetch('/api/teori-sessions?scope=future')
+        console.log("[LESSON SELECTION DEBUG] Teori response status:", teoriResponse.status)
+        console.log("[LESSON SELECTION DEBUG] Teori response ok:", teoriResponse.ok)
+
+        if (teoriResponse.ok) {
+          const teoriData = await teoriResponse.json()
+          console.log("[LESSON SELECTION DEBUG] Teori data:", teoriData)
+          console.log("[LESSON SELECTION DEBUG] Total available sessions:", teoriData.totalAvailable)
+
+          // Group Teori sessions by lesson type
+          if (teoriData.sessionsByType && teoriData.sessionsByType.length > 0) {
+            const teoriSessions = teoriData.sessionsByType.map((group: any) => ({
+              ...group.lessonType,
+              type: 'teori' as const,
+              name: group.lessonType.name,
+              description: group.lessonType.description,
+              price: group.lessonType.price,
+              durationMinutes: group.lessonType.duration_minutes || 60,
+              availableSessions: group.sessions.length,
+              sessions: group.sessions
             }))
-            console.log("[LESSON SELECTION DEBUG] Processed handledar sessions:", handledarSessions)
-            allSessions.push(...handledarSessions);
+            console.log("[LESSON SELECTION DEBUG] Processed Teori sessions:", teoriSessions)
+            allSessions.push(...teoriSessions);
           } else {
-            console.log("[LESSON SELECTION DEBUG] No available handledar sessions found")
+            console.log("[LESSON SELECTION DEBUG] No available Teori sessions found")
           }
         } else {
-          console.error("[LESSON SELECTION DEBUG] Handledar API error:", await handledarResponse.text())
+          console.error("[LESSON SELECTION DEBUG] Teori API error:", await teoriResponse.text())
         }
-      } catch (handledarError) {
-        console.error("Error fetching handledar sessions:", handledarError)
+      } catch (teoriError) {
+        console.error("Error fetching Teori sessions:", teoriError)
       }
 
       setSessionTypesList(allSessions)
@@ -131,7 +155,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj session</h2>
-        <p className="text-gray-600">Välj mellan körlektioner och handledarkurser</p>
+        <p className="text-gray-600">Välj mellan körlektioner och teoripass</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
@@ -140,12 +164,13 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
             key={`${session.type}-${session.id}`}
             className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative ${
               selectedSession?.id === session.id ? "ring-2 ring-red-600 border-red-600 bg-red-50" : "hover:border-red-300"
-            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}`}
+            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}
+            ${session.type === 'teori' ? 'border-blue-200 bg-blue-50' : ''}`}
             onClick={() => handleSessionSelect(session)}
           >
-            {session.type === 'handledar' && (
-              <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-                Handledarkurs
+            {session.type === 'teori' && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                Teori
               </div>
             )}
             <CardContent className="p-4">
@@ -169,6 +194,9 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                   )}
                   {session.type === 'handledar' && (
                     <div className="text-xs text-orange-600 font-medium">Per deltagare</div>
+                  )}
+                  {session.type === 'teori' && session.availableSessions && (
+                    <div className="text-xs text-blue-600 font-medium">{session.availableSessions} sessioner tillgängliga</div>
                   )}
                 </div>
                 {session.description && (

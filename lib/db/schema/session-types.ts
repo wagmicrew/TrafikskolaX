@@ -1,7 +1,7 @@
 import { pgTable, uuid, varchar, text, timestamp, integer, decimal, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
-export const sessionTypeEnum = pgEnum('session_type', ['handledarutbildning', 'riskettan', 'teorilektion', 'handledarkurs']);
-export const creditTypeEnum = pgEnum('credit_type', ['handledarutbildning', 'riskettan', 'teorilektion', 'handledarkurs']);
+export const sessionTypeEnum = pgEnum('session_type', ['handledarutbildning', 'riskettan', 'teorilektion', 'handledarkurs', 'teori']);
+export const creditTypeEnum = pgEnum('credit_type', ['handledarutbildning', 'riskettan', 'teorilektion', 'handledarkurs', 'teori']);
 
 export const sessionTypes = pgTable('session_types', {
   id: uuid('id').primaryKey().defaultRandom(),

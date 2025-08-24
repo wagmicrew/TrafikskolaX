@@ -96,7 +96,8 @@ export function BookingConfirmation({
   const [participantCount, setParticipantCount] = useState(1)
   const [maxParticipants, setMaxParticipants] = useState(1)
   const [supervisorCount, setSupervisorCount] = useState(0)
-  const [supervisorDetails, setSupervisorDetails] = useState<Array<{ name: string; phone: string }>>([])
+  const [supervisorDetails, setSupervisorDetails] = useState<Array<{ name: string; email: string; phone: string; personnummer: string }>>([])
+  const [supervisorSSN, setSupervisorSSN] = useState('')
   const [capacityError, setCapacityError] = useState<string | null>(null)
   const [showAddSupervisor, setShowAddSupervisor] = useState(false)
   const [guestName, setGuestName] = useState('')
@@ -250,8 +251,9 @@ export function BookingConfirmation({
   const isAdminOrTeacher = authUser?.role === 'admin' || authUser?.role === 'teacher'
   const isStudent = authUser?.role === 'student'
   const isGuest = !authUser
-  const isHandledarutbildning = bookingData && (bookingData.lessonType.name === 'Handledarutbildning' || 
+  const isHandledarutbildning = bookingData && (bookingData.lessonType.name === 'Handledarutbildning' ||
                               bookingData.lessonType.name.toLowerCase().includes('handledarutbildning'))
+  const isTeoriSession = bookingData && bookingData.lessonType.type === 'teori'
 
   // Check Qliro availability on component mount
   useEffect(() => {
@@ -369,10 +371,22 @@ export function BookingConfirmation({
     // Validate handledare information if supervisors are added
     if (allowsSupervisors && supervisorCount > 0) {
       const incompleteDetails = supervisorDetails.slice(0, supervisorCount).some(
-        (detail, index) => !detail?.name?.trim() || !detail?.phone?.trim()
+        (detail, index) => !detail?.name?.trim() || !detail?.email?.trim() || !detail?.phone?.trim() || !detail?.personnummer?.trim()
       )
       if (incompleteDetails) {
-        showNotification('Fel', 'Vänligen fyll i namn och telefonnummer för alla handledare', 'error')
+        showNotification('Fel', 'Vänligen fyll i personnummer, namn, e-post och telefonnummer för alla handledare', 'error')
+        return
+      }
+
+      // Validate personnummer format (should be 12 digits)
+      const invalidPersonnummer = supervisorDetails.slice(0, supervisorCount).some(
+        (detail) => {
+          const cleanNumber = detail?.personnummer?.replace(/-/g, '') || '';
+          return cleanNumber.length !== 12;
+        }
+      )
+      if (invalidPersonnummer) {
+        showNotification('Fel', 'Personnummer måste vara 12 siffror (ÅÅÅÅMMDDXXXX)', 'error')
         return
       }
     }
@@ -496,7 +510,7 @@ export function BookingConfirmation({
     }
 
     // Prepare the base booking data
-    const bookingPayload = {
+    const bookingPayload: any = {
       paymentMethod: selectedPaymentMethod,
       totalPrice: finalTotalPrice,
       lessonType: bookingData.lessonType,
@@ -508,6 +522,11 @@ export function BookingConfirmation({
       // Handledare support for regular lessons
       supervisorCount: allowsSupervisors ? supervisorCount : undefined,
       supervisorDetails: allowsSupervisors && supervisorCount > 0 ? supervisorDetails.slice(0, supervisorCount) : undefined
+    }
+
+    // Add personal number for sessions that require it
+    if (requiresPersonalId && supervisorSSN.trim()) {
+      bookingPayload.personalId = supervisorSSN.trim()
     }
 
   // Log selected payment method and booking data for troubleshooting (behind site debug flag)
@@ -689,9 +708,30 @@ export function BookingConfirmation({
     }
   }
 
-  const isHandledarSession = bookingData.lessonType.type === 'handledar'
+  const isHandledarSession = bookingData.lessonType.type === 'handledar' || bookingData.lessonType.type === 'teori'
+
+  // Function to mask personnummer
+  const maskPersonnummer = (personnummer: string) => {
+    if (!personnummer || personnummer.length < 8) return personnummer;
+
+    // Remove any existing hyphens and get clean number
+    const cleanNumber = personnummer.replace(/-/g, '');
+
+    if (cleanNumber.length >= 8) {
+      const firstPart = cleanNumber.slice(0, 8);
+      const lastPart = cleanNumber.slice(8);
+      const maskedLastPart = lastPart ? '••••' : '';
+      return `${firstPart}${lastPart ? '-' : ''}${maskedLastPart}`;
+    }
+
+    return personnummer;
+  };
   const allowsSupervisors = bookingData.lessonType.allowsSupervisors || false
   const pricePerSupervisor = bookingData.lessonType.pricePerSupervisor || 0
+  const hasHandledarCredits = isHandledarutbildning && userCredits > 0
+  const canUseCredits = (isStudent && userCredits > 0) || hasHandledarCredits
+  const canPayAtLocation = isStudent && unpaidBookings < 2
+  const requiresPersonalId = Boolean((bookingData as any)?.lessonType?.requiresPersonalId) || isHandledarSession
   
   // Calculate final price including handledare
   const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor);
@@ -879,13 +919,18 @@ export function BookingConfirmation({
             </div>
 
             {/* Handledare Section */}
-            {allowsSupervisors && !isHandledarSession && (
+            {allowsSupervisors && (
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Lägg till handledare</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  Handledare information
+                </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Du kan lägga till handledare för {pricePerSupervisor} kr per person.
+                  {isHandledarSession
+                    ? `Du kan lägga till ytterligare handledare för ${pricePerSupervisor} kr per person utöver grundpriset.`
+                    : `Du kan lägga till handledare för ${pricePerSupervisor} kr per person.`
+                  }
                 </p>
-                
+
                 <div className="flex items-center gap-4 mb-4">
                   <label className="text-sm font-medium text-gray-700">
                     Antal handledare:
@@ -911,43 +956,113 @@ export function BookingConfirmation({
                 </div>
 
                 {supervisorCount > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-700">Handledare information:</p>
+                  <div className="space-y-4">
                     {Array.from({ length: supervisorCount }, (_, index) => (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white rounded border">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Handledare {index + 1} - Namn
-                          </label>
-                          <input
-                            type="text"
-                            value={supervisorDetails[index]?.name || ''}
-                            onChange={(e) => {
-                              const newDetails = [...supervisorDetails];
-                              newDetails[index] = { ...newDetails[index], name: e.target.value };
-                              setSupervisorDetails(newDetails);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ange namn"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Telefonnummer
-                          </label>
-                          <input
-                            type="tel"
-                            value={supervisorDetails[index]?.phone || ''}
-                            onChange={(e) => {
-                              const newDetails = [...supervisorDetails];
-                              newDetails[index] = { ...newDetails[index], phone: e.target.value };
-                              setSupervisorDetails(newDetails);
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ange telefonnummer"
-                            required
-                          />
+                      <div key={index} className="p-4 bg-white rounded-lg border border-gray-200">
+                        <h4 className="text-md font-medium text-gray-800 mb-3">
+                          Handledare {index + 1}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Personnummer */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Personnummer (ÅÅÅÅMMDD-XXXX) *
+                            </label>
+                            <input
+                              type="text"
+                              value={supervisorDetails[index]?.personnummer || ''}
+                              onChange={(e) => {
+                                let value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                                if (value.length > 12) value = value.slice(0, 12); // Max 12 digits
+
+                                // Format as ÅÅÅÅMMDD-XXXX
+                                if (value.length >= 8) {
+                                  value = value.slice(0, 8) + '-' + value.slice(8);
+                                }
+
+                                const newDetails = [...supervisorDetails];
+                                newDetails[index] = {
+                                  ...newDetails[index],
+                                  personnummer: value
+                                };
+                                setSupervisorDetails(newDetails);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="ÅÅÅÅMMDD-XXXX"
+                              required
+                            />
+                            {supervisorDetails[index]?.personnummer && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Visas som: {maskPersonnummer(supervisorDetails[index].personnummer)}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Namn */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Namn *
+                            </label>
+                            <input
+                              type="text"
+                              value={supervisorDetails[index]?.name || ''}
+                              onChange={(e) => {
+                                const newDetails = [...supervisorDetails];
+                                newDetails[index] = {
+                                  ...newDetails[index],
+                                  name: e.target.value
+                                };
+                                setSupervisorDetails(newDetails);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Ange namn"
+                              required
+                            />
+                          </div>
+
+                          {/* E-post */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              E-post *
+                            </label>
+                            <input
+                              type="email"
+                              value={supervisorDetails[index]?.email || ''}
+                              onChange={(e) => {
+                                const newDetails = [...supervisorDetails];
+                                newDetails[index] = {
+                                  ...newDetails[index],
+                                  email: e.target.value
+                                };
+                                setSupervisorDetails(newDetails);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="johaswe@gmail.com"
+                              required
+                            />
+                          </div>
+
+                          {/* Telefon */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Telefon *
+                            </label>
+                            <input
+                              type="tel"
+                              value={supervisorDetails[index]?.phone || ''}
+                              onChange={(e) => {
+                                const newDetails = [...supervisorDetails];
+                                newDetails[index] = {
+                                  ...newDetails[index],
+                                  phone: e.target.value
+                                };
+                                setSupervisorDetails(newDetails);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="0707123123"
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -975,7 +1090,13 @@ export function BookingConfirmation({
             {/* Guest Information for non-logged-in users */}
             {!authUser && !isAdminOrTeacher && !isHandledarSession && (
               <div className="bg-yellow-50 p-4 rounded-lg mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Dina kontaktuppgifter</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Dina kontaktuppgifter</h3>
+                  <div className="flex gap-2 text-sm">
+                    <button onClick={() => window.location.href = '/registrering'} className="px-3 py-1 rounded border border-purple-300 text-purple-700 bg-white hover:bg-purple-50">Skapa elev</button>
+                    <button onClick={() => window.location.href = '/login'} className="px-3 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">Logga in</button>
+                  </div>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Vi behöver dina kontaktuppgifter för att skapa ett konto och skicka bokningsbekräftelse.
                 </p>
@@ -1087,10 +1208,38 @@ export function BookingConfirmation({
             )}
 
             {/* Supervisor Information for Handledar Sessions */}
-            {isHandledarSession && (
+            {(requiresPersonalId) && (
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Handledare information</h3>
                 <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="supervisor-ssn" className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX)</Label>
+                    <Input
+                      id="supervisor-ssn"
+                      type="text"
+                      inputMode="numeric"
+                      value={supervisorSSN}
+                      onChange={(e) => {
+                        const raw = String(e.target.value || '')
+                        const digits = raw.replace(/[^0-9]/g, '').slice(0, 12)
+                        const formatted = digits.length <= 8 ? digits : `${digits.slice(0,8)}-${digits.slice(8,12)}`
+                        setSupervisorSSN(formatted)
+                      }}
+                      placeholder="ÅÅÅÅMMDD-XXXX"
+                      className="mt-1 font-mono"
+                    />
+                    <p className="text-xs text-gray-600 mt-1 font-mono">
+                      Visas som: {(() => {
+                        const digits = supervisorSSN.replace(/[^0-9]/g, '')
+                        const head = digits.slice(0,8)
+                        const tail = digits.slice(8,12)
+                        const sep = digits.length > 8 ? '-' : ''
+                        const masked = tail ? '••••' : ''
+                        return `${head}${sep}${masked}`
+                      })()}
+                    </p>
+                    <p className="text-xs text-gray-500">Sista fyra maskeras (••••). Lagring sker krypterat.</p>
+                  </div>
                   <div>
                     <Label htmlFor="supervisor-name" className="text-sm font-medium text-gray-700">Namn *</Label>
                     <Input

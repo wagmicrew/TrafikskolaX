@@ -5,6 +5,7 @@ import { eq, and, or, sql } from 'drizzle-orm'
 import { sendEmail } from '@/lib/mailer/universal-mailer'
 import { qliroService } from '@/lib/payment/qliro-service'
 import { logger } from '@/lib/logging/logger'
+import { bookingInvoiceService } from '@/lib/services/booking-invoice-service'
 
 export const runtime = 'nodejs'
 
@@ -446,6 +447,45 @@ export async function POST(request: NextRequest) {
       } catch(error) {
         console.error('Error notifying admin:', error);
       }
+    } else if (localRef.startsWith('INV-')) {
+      // Handle invoice payment
+      try {
+        const invoiceNumber = localRef;
+        const paymentAmount = parseFloat(event.Amount);
+
+        // Find and update the invoice
+        const result = await bookingInvoiceService.handlePaymentConfirmation(
+          invoiceNumber,
+          'qliro',
+          paymentAmount
+        );
+
+        logger.info('payment', 'Invoice payment processed via Qliro webhook', {
+          invoiceNumber,
+          orderId,
+          amount: paymentAmount
+        });
+
+        return NextResponse.json({
+          status: 'success',
+          message: 'Invoice payment processed successfully',
+          invoiceNumber
+        });
+
+      } catch (error) {
+        logger.error('payment', 'Error processing invoice payment via Qliro webhook', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          orderId,
+          merchantReference,
+          localRef
+        });
+
+        return NextResponse.json({
+          status: 'error',
+          message: 'Failed to process invoice payment'
+        }, { status: 500 });
+      }
+
     } else {
       // Unknown reference format; acknowledge without changes
       logger.debug('payment', 'Qliro webhook - unrecognized reference format', { orderId, merchantReference });

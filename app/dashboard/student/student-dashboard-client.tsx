@@ -336,12 +336,56 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                 <FlowbiteTabs.Item active={activeTab === 'upcoming'} title="Kommande">
                   {upcomingBookings.length > 0 ? (
                     <div className="mt-4">
-                      <BookingsTable
-                        bookings={upcomingBookings}
-                        userRole={user.role}
-                        onRefresh={refreshBookings}
-                        compact={true}
-                      />
+                      {/* Flowbite Table Demo */}
+                      <div className="overflow-x-auto">
+                        <FlowbiteTable hoverable className="shadow-sm">
+                          <FlowbiteTable.Head>
+                            <FlowbiteTable.HeadCell>Datum</FlowbiteTable.HeadCell>
+                            <FlowbiteTable.HeadCell>Tid</FlowbiteTable.HeadCell>
+                            <FlowbiteTable.HeadCell>Typ</FlowbiteTable.HeadCell>
+                            <FlowbiteTable.HeadCell>Status</FlowbiteTable.HeadCell>
+                            <FlowbiteTable.HeadCell>Pris</FlowbiteTable.HeadCell>
+                            <FlowbiteTable.HeadCell>Åtgärder</FlowbiteTable.HeadCell>
+                          </FlowbiteTable.Head>
+                          <FlowbiteTable.Body className="divide-y">
+                            {upcomingBookings.slice(0, 5).map((booking) => (
+                              <FlowbiteTable.Row key={booking.id} className="bg-white dark:border-gray-700 dark:bg-gray-800">
+                                <FlowbiteTable.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
+                                  {format(new Date(booking.date), 'yyyy-MM-dd', { locale: sv })}
+                                </FlowbiteTable.Cell>
+                                <FlowbiteTable.Cell>{booking.time}</FlowbiteTable.Cell>
+                                <FlowbiteTable.Cell>{booking.type}</FlowbiteTable.Cell>
+                                <FlowbiteTable.Cell>
+                                  <FlowbiteBadge
+                                    color={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'failure'}
+                                  >
+                                    {booking.status === 'confirmed' ? 'Bekräftad' :
+                                     booking.status === 'pending' ? 'Väntar' : 'Avbokad'}
+                                  </FlowbiteBadge>
+                                </FlowbiteTable.Cell>
+                                <FlowbiteTable.Cell>{booking.price} kr</FlowbiteTable.Cell>
+                                <FlowbiteTable.Cell>
+                                  <FlowbiteButton size="sm" color="light" onClick={() => router.push(`/bokningar/${booking.id}`)}>
+                                    Visa
+                                  </FlowbiteButton>
+                                </FlowbiteTable.Cell>
+                              </FlowbiteTable.Row>
+                            ))}
+                          </FlowbiteTable.Body>
+                        </FlowbiteTable>
+                      </div>
+
+                      {/* Show full BookingsTable if more than 5 bookings */}
+                      {upcomingBookings.length > 5 && (
+                        <div className="mt-4">
+                          <BookingsTable
+                            bookings={upcomingBookings}
+                            userRole={user.role}
+                            onRefresh={refreshBookings}
+                            compact={true}
+                          />
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">

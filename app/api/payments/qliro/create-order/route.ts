@@ -259,14 +259,47 @@ export async function POST(req: NextRequest) {
       stack: e?.stack?.split('\n').slice(0, 5)
     });
     
+    // Enhanced error handling with Qliro service diagnostics
+    if (e?.message?.includes('Qliro payment service is not enabled')) {
+      return NextResponse.json({
+        error: 'Qliro payment service is not enabled. Please check Qliro settings in the admin panel.',
+        debug: {
+          errorType: 'QliroServiceDisabled',
+          suggestion: 'Go to Admin > Settings > Payment Settings and enable Qliro'
+        }
+      }, { status: 400 });
+    }
+
+    if (e?.message?.includes('Qliro requires HTTPS public URL')) {
+      return NextResponse.json({
+        error: 'Qliro requires a valid HTTPS public URL configuration.',
+        debug: {
+          errorType: 'QliroHttpsRequired',
+          suggestion: 'Set NEXT_PUBLIC_APP_URL environment variable to a valid HTTPS URL'
+        }
+      }, { status: 400 });
+    }
+
+    if (e?.message?.includes('Network connectivity issue')) {
+      return NextResponse.json({
+        error: 'Cannot reach Qliro API. Please check network connectivity.',
+        debug: {
+          errorType: 'NetworkError',
+          suggestion: 'Check Qliro API URL configuration and internet connectivity'
+        }
+      }, { status: 500 });
+    }
+
     return NextResponse.json({
-      error: `QLIRO DEBUG: ${e?.message || 'Failed to create order'}`,
-      debug: { 
-        errorType: e?.constructor?.name, 
+      error: `Kunde inte skapa Qliro-checkout: ${e?.message || 'Okänt fel'}`,
+      debug: {
+        errorType: e?.constructor?.name,
         status: e?.status,
         statusText: e?.statusText,
-        body: e?.body,
-        stack: e?.stack?.split('\n').slice(0, 3) 
+        body: e?.body?.slice(0, 200), // Limit body size for readability
+        suggestion: e?.message?.includes('ORDER_ALREADY_EXISTS') ?
+          'Order already exists, please try again' :
+          'Check Qliro settings and try again'
       }
     }, { status: 500 });
   }

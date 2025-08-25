@@ -109,6 +109,7 @@ interface TeoriSession {
   pricePerSupervisor?: number;
   availableSpots: number;
   formattedDateTime: string;
+  sessionType: 'teori' | 'handledar';
 }
 
 interface SupervisorInfo {
@@ -277,9 +278,42 @@ export function UnifiedTeoriBooking() {
 
   const handlePayment = async () => {
     try {
-      toast.success('Bokning genomförd! (Demo)');
-      // Implement actual payment logic here
+      if (!bookingData.selectedSession || !bookingData.customerInfo.firstName) {
+        toast.error('Vänligen fyll i all nödvändig information');
+        return;
+      }
+
+      const bookingRequest = {
+        sessionId: bookingData.selectedSession.id,
+        customerInfo: bookingData.customerInfo,
+        supervisors: bookingData.supervisors,
+        participantInfo: bookingData.selectedSession.sessionType === 'handledar' ? {
+          name: `${bookingData.customerInfo.firstName} ${bookingData.customerInfo.lastName}`,
+          email: bookingData.customerInfo.email,
+          phone: bookingData.customerInfo.phone
+        } : undefined
+      };
+
+      const response = await fetch('/api/teori/create-booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingRequest)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        if (result.checkout?.checkoutUrl) {
+          // Redirect to payment
+          window.location.href = result.checkout.checkoutUrl;
+        } else {
+          toast.success('Bokning skapad! Kontakta oss för betalning.');
+        }
+      } else {
+        toast.error(result.error || 'Kunde inte skapa bokning');
+      }
     } catch (error) {
+      console.error('Payment error:', error);
       toast.error('Fel vid betalning');
     }
   };

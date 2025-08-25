@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/db';
+import { db } from '@/lib/db';
 import { teoriLessonTypes, teoriSessions, handledarSessions } from '@/lib/db/schema';
 import { eq, and, gte, desc } from 'drizzle-orm';
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         endTime: handledarSessions.endTime,
         maxParticipants: handledarSessions.maxParticipants,
         currentParticipants: handledarSessions.currentParticipants,
-        price: handledarSessions.price,
+        pricePerParticipant: handledarSessions.pricePerParticipant,
         isActive: handledarSessions.isActive
       })
       .from(handledarSessions)
@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
             endTime: session.endTime,
             maxParticipants: session.maxParticipants,
             currentParticipants: session.currentParticipants,
-            price: parseFloat(session.price),
+            price: parseFloat(session.price || type.price),
             allowsSupervisors: type.allowsSupervisors,
             pricePerSupervisor: type.pricePerSupervisor ? parseFloat(type.pricePerSupervisor) : undefined,
-            availableSpots: session.maxParticipants - session.currentParticipants,
+            availableSpots: (session.maxParticipants || 0) - (session.currentParticipants || 0),
             formattedDateTime: formatDateTime(session.date, session.startTime, session.endTime),
             sessionType: 'teori' as const
           }))
@@ -113,12 +113,12 @@ export async function GET(request: NextRequest) {
           date: session.date,
           startTime: session.startTime,
           endTime: session.endTime,
-          maxParticipants: session.maxParticipants,
-          currentParticipants: session.currentParticipants,
-          price: parseFloat(session.price),
+          maxParticipants: session.maxParticipants || 0,
+          currentParticipants: session.currentParticipants || 0,
+          price: parseFloat(session.pricePerParticipant),
           allowsSupervisors: true,
           pricePerSupervisor: 500,
-          availableSpots: session.maxParticipants - session.currentParticipants,
+          availableSpots: (session.maxParticipants || 0) - (session.currentParticipants || 0),
           formattedDateTime: formatDateTime(session.date, session.startTime, session.endTime),
           sessionType: 'handledar' as const
         }))

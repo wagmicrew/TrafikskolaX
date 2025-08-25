@@ -15,7 +15,9 @@ import {
   Menu,
   Settings,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  BookOpen,
+  Calendar
 } from 'lucide-react';
 
 interface SetupStatus {
@@ -23,6 +25,8 @@ interface SetupStatus {
   defaultPages: boolean;
   defaultMenu: boolean;
   uploadDirectory: boolean;
+  teoriTables: boolean;
+  teoriSampleData: boolean;
 }
 
 export default function SetupPage() {
@@ -33,7 +37,9 @@ export default function SetupPage() {
     cmsTables: false,
     defaultPages: false,
     defaultMenu: false,
-    uploadDirectory: false
+    uploadDirectory: false,
+    teoriTables: false,
+    teoriSampleData: false
   });
   const [loading, setLoading] = useState(true);
   const [checkingStatus, setCheckingStatus] = useState(false);
@@ -158,6 +164,52 @@ export default function SetupPage() {
     } catch (error) {
       console.error('Error creating upload directory:', error);
       toast.error('Kunde inte skapa uppladdningskatalog');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runTeoriMigration = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/setup/run-teori-migration', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message);
+        checkSetupStatus();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Kunde inte köra Teori-migrering');
+      }
+    } catch (error) {
+      console.error('Error running Teori migration:', error);
+      toast.error('Kunde inte köra Teori-migrering');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createTeoriSampleData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/setup/create-teori-sample-data', {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message);
+        checkSetupStatus();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Kunde inte skapa Teori-exempeldata');
+      }
+    } catch (error) {
+      console.error('Error creating Teori sample data:', error);
+      toast.error('Kunde inte skapa Teori-exempeldata');
     } finally {
       setLoading(false);
     }
@@ -325,6 +377,70 @@ export default function SetupPage() {
                 size="sm"
               >
                 {loading ? 'Skapar...' : 'Skapa katalog'}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Teori Tables */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              Teori-tabeller
+            </CardTitle>
+            {getStatusBadge(status.teoriTables)}
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="text-xs">
+              Databastabeller för teorilektioner och bokningar
+            </CardDescription>
+            <div className="mt-4 flex items-center gap-2">
+              {getStatusIcon(status.teoriTables)}
+              <span className="text-sm">
+                {status.teoriTables ? 'Tabeller finns' : 'Tabeller saknas'}
+              </span>
+            </div>
+            {!status.teoriTables && (
+              <Button
+                onClick={runTeoriMigration}
+                disabled={loading}
+                className="w-full mt-3"
+                size="sm"
+              >
+                {loading ? 'Kör migrering...' : 'Kör Teori-migrering'}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Teori Sample Data */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Teori-exempeldata
+            </CardTitle>
+            {getStatusBadge(status.teoriSampleData)}
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="text-xs">
+              Exempellektionstyper och sessioner för testning
+            </CardDescription>
+            <div className="mt-4 flex items-center gap-2">
+              {getStatusIcon(status.teoriSampleData)}
+              <span className="text-sm">
+                {status.teoriSampleData ? 'Data finns' : 'Data saknas'}
+              </span>
+            </div>
+            {!status.teoriSampleData && status.teoriTables && (
+              <Button
+                onClick={createTeoriSampleData}
+                disabled={loading}
+                className="w-full mt-3"
+                size="sm"
+              >
+                {loading ? 'Skapar...' : 'Skapa exempeldata'}
               </Button>
             )}
           </CardContent>

@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  FaCheckCircle, 
-  FaClock, 
+import {
+  FaCheckCircle,
+  FaClock,
   FaCoins,
   FaStar,
   FaBookOpen,
@@ -12,6 +12,18 @@ import {
 } from 'react-icons/fa';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Button as FlowbiteButton } from 'flowbite-react';
+import { Card as FlowbiteCard } from 'flowbite-react';
+import { Tabs as FlowbiteTabs } from 'flowbite-react';
+import { Table as FlowbiteTable } from 'flowbite-react';
+import { Badge as FlowbiteBadge } from 'flowbite-react';
+import { Modal as FlowbiteModal } from 'flowbite-react';
+import { Toast as FlowbiteToast } from 'flowbite-react';
+import { Navbar as FlowbiteNavbar } from 'flowbite-react';
+import { Breadcrumb as FlowbiteBreadcrumb } from 'flowbite-react';
+import { Alert as FlowbiteAlert } from 'flowbite-react';
+import { Dropdown as FlowbiteDropdown } from 'flowbite-react';
+import { Avatar as FlowbiteAvatar } from 'flowbite-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -192,173 +204,270 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
-      <div className="px-6 pt-8">
-        <StudentHeader title="Studentsidan" icon={<FaGraduationCap className="text-yellow-300" />} />
-      </div>
-
-      <div className="container mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300">Totalt lektioner</p>
-                <p className="text-3xl font-extrabold">{stats.totalBookings}</p>
-              </div>
-              <FaBookOpen className="text-3xl text-sky-300" />
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300">Genomförda</p>
-                <p className="text-3xl font-extrabold">{stats.completedBookings}</p>
-              </div>
-              <FaCheckCircle className="text-3xl text-emerald-300" />
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300">Kommande</p>
-                <p className="text-3xl font-extrabold">{stats.upcomingBookings}</p>
-              </div>
-              <FaClock className="text-3xl text-yellow-300" />
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-5 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-300">Tillgängliga krediter</p>
-                <p className="text-3xl font-extrabold">{stats.totalCredits}</p>
-              </div>
-              <FaCoins className="text-3xl text-purple-300" />
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Enhanced Flowbite Navbar Header */}
+      <FlowbiteNavbar fluid className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center">
+          <FaGraduationCap className="text-blue-600 text-2xl mr-3" />
+          <span className="text-xl font-bold text-gray-900 dark:text-white">Studentsidan</span>
         </div>
 
-        <div className="space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-extrabold text-white">Mina bokningar</h2>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={refreshBookings} disabled={isRefreshing} className="border-white/20 text-white hover:bg-white/10">
-                {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
-              </Button>
+        <div className="flex items-center gap-3">
+          <FlowbiteButton color="light" size="sm" as={Link} href="/dashboard/student">
+            Bokningar
+          </FlowbiteButton>
+          <FlowbiteButton color="light" size="sm" as={Link} href="/dashboard/student/feedback">
+            Feedback
+          </FlowbiteButton>
+          <FlowbiteButton color="light" size="sm" as={Link} href="/dashboard/settings">
+            Inställningar
+          </FlowbiteButton>
+
+          {/* User Dropdown Menu */}
+          <FlowbiteDropdown
+            arrowIcon={false}
+            inline
+            label={
+              <FlowbiteAvatar
+                alt={`${user.firstName} ${user.lastName}`}
+                img={user.avatar || `https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=3b82f6&color=fff`}
+                rounded
+                size="sm"
+              />
+            }
+          >
+            <FlowbiteDropdown.Header>
+              <span className="block text-sm font-medium text-gray-900 dark:text-white">
+                {user.firstName} {user.lastName}
+              </span>
+              <span className="block truncate text-sm text-gray-500 dark:text-gray-400">
+                {user.email}
+              </span>
+            </FlowbiteDropdown.Header>
+            <FlowbiteDropdown.Item as={Link} href="/dashboard/settings">
+              Inställningar
+            </FlowbiteDropdown.Item>
+            <FlowbiteDropdown.Item as={Link} href="/dashboard/student/feedback">
+              Feedback
+            </FlowbiteDropdown.Item>
+            <FlowbiteDropdown.Divider />
+            <FlowbiteDropdown.Item as={Link} href="/inloggning">
+              Logga ut
+            </FlowbiteDropdown.Item>
+          </FlowbiteDropdown>
+        </div>
+      </FlowbiteNavbar>
+
+      <div className="container mx-auto px-6 py-8 space-y-8">
+        {/* Statistics Cards with Flowbite */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <FlowbiteCard className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Totalt lektioner</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalBookings}</p>
+              </div>
+              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                <FaBookOpen className="text-2xl text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
+          </FlowbiteCard>
+
+          <FlowbiteCard className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Genomförda</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completedBookings}</p>
+              </div>
+              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
+                <FaCheckCircle className="text-2xl text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </FlowbiteCard>
+
+          <FlowbiteCard className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Kommande</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.upcomingBookings}</p>
+              </div>
+              <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
+                <FaClock className="text-2xl text-yellow-600 dark:text-yellow-400" />
+              </div>
+            </div>
+          </FlowbiteCard>
+
+          <FlowbiteCard className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div className="flex items-center justify-between p-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tillgängliga krediter</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalCredits}</p>
+              </div>
+              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
+                <FaCoins className="text-2xl text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </FlowbiteCard>
+        </div>
+
+        {/* Bookings Section with Flowbite */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Mina bokningar</h2>
+            <FlowbiteButton
+              color="light"
+              size="sm"
+              onClick={refreshBookings}
+              disabled={isRefreshing}
+              className="flex items-center gap-2"
+            >
+              {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
+            </FlowbiteButton>
           </div>
 
-          <Card className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-white shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-white">Översikt</CardTitle>
-              <CardDescription className="text-slate-300">Hantera kommande och tidigare lektioner</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="upcoming" onValueChange={setActiveTab}>
-                <TabsList className="bg-white/5 border border-white/10">
-                  <TabsTrigger value="upcoming">Kommande</TabsTrigger>
-                  <TabsTrigger value="past">Tidigare</TabsTrigger>
-                </TabsList>
-                <TabsContent value="upcoming">
+          <FlowbiteCard className="shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Översikt</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Hantera kommande och tidigare lektioner</p>
+              </div>
+
+              <FlowbiteTabs aria-label="Bookings tabs" style="underline">
+                <FlowbiteTabs.Item active={activeTab === 'upcoming'} title="Kommande">
                   {upcomingBookings.length > 0 ? (
-                    <BookingsTable 
-                      bookings={upcomingBookings} 
-                      userRole={user.role} 
-                      onRefresh={refreshBookings}
-                      compact={true}
-                    />
+                    <div className="mt-4">
+                      <BookingsTable
+                        bookings={upcomingBookings}
+                        userRole={user.role}
+                        onRefresh={refreshBookings}
+                        compact={true}
+                      />
+                    </div>
                   ) : (
-                    <div className="text-center py-8 text-slate-300">
-                      <p>Inga kommande lektioner hittades</p>
-                      {openingBooking ? (
-                        <div className="mt-4 flex flex-col items-center gap-2">
-                          <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-sky-500"></div>
-                          <div className="text-sm text-slate-200">Öppnar bokning...</div>
+                    <div className="text-center py-8">
+                      <FaBookOpen className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Inga kommande lektioner</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        {openingBooking ? 'Öppnar bokning...' : 'Börja med att boka en lektion'}
+                      </p>
+                      {!openingBooking && (
+                        <div className="mt-6">
+                          <FlowbiteButton
+                            color="blue"
+                            onClick={() => { setOpeningBooking(true); router.push('/boka-korning') }}
+                          >
+                            Boka lektion nu
+                          </FlowbiteButton>
                         </div>
-                      ) : (
-                        <Button 
-                          variant="outline" 
-                          className="mt-4 border-white/20 text-white hover:bg-white/10"
-                          onClick={() => { setOpeningBooking(true); router.push('/boka-korning') }}
-                        >
-                          Boka lektion nu
-                        </Button>
                       )}
                     </div>
                   )}
-                </TabsContent>
-                <TabsContent value="past">
+                </FlowbiteTabs.Item>
+
+                <FlowbiteTabs.Item active={activeTab === 'past'} title="Tidigare">
                   {pastBookings.length > 0 ? (
-                    <BookingsTable 
-                      bookings={pastBookings} 
-                      userRole={user.role}
-                      onRefresh={refreshBookings}
-                      compact={true}
-                    />
+                    <div className="mt-4">
+                      <BookingsTable
+                        bookings={pastBookings}
+                        userRole={user.role}
+                        onRefresh={refreshBookings}
+                        compact={true}
+                      />
+                    </div>
                   ) : (
-                    <div className="text-center py-8 text-slate-300">
-                      <p>Inga tidigare lektioner hittades</p>
+                    <div className="text-center py-8">
+                      <FaCheckCircle className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Inga tidigare lektioner</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Dina genomförda lektioner visas här</p>
                     </div>
                   )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+                </FlowbiteTabs.Item>
+              </FlowbiteTabs>
+            </div>
+          </FlowbiteCard>
 
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-extrabold flex items-center gap-2">
-                <FaCoins className="text-yellow-300" /> Dina krediter och paket
-              </h3>
-              <Button onClick={() => setShowPackageModal(true)} className="bg-sky-600 hover:bg-sky-500">Köp paket</Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-sm uppercase tracking-wide text-slate-300 mb-2">Krediter</h4>
-                {credits.length > 0 ? (
-                  <div className="space-y-3">
-                    {credits.map((credit: any) => (
-                      <div key={credit.id} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/10">
-                        <span className="text-sm">
-                          {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
-                        </span>
-                        <span className="font-bold text-purple-300">{credit.creditsRemaining || credit.remaining}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300">
-                    Inga krediter tillgängliga
-                  </div>
-                )}
+          {/* Credits and Packages Section with Flowbite */}
+          <FlowbiteCard className="shadow-lg">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <FaCoins className="text-yellow-500 text-xl" />
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">Dina krediter och paket</h3>
+                </div>
+                <FlowbiteButton
+                  color="blue"
+                  onClick={() => setShowPackageModal(true)}
+                >
+                  Köp paket
+                </FlowbiteButton>
               </div>
-              <div>
-                <h4 className="text-sm uppercase tracking-wide text-slate-300 mb-2">Aktiva paket</h4>
-                {userPackages.length > 0 ? (
-                  <div className="space-y-3">
-                    {userPackages.map((pkg) => (
-                      <div key={pkg.id} className="p-3 rounded-xl bg-white/5 border border-white/10">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold">{pkg.name || 'Paket'}</div>
-                            {pkg.purchaseDate && (
-                              <div className="text-xs text-slate-300">Köpt: {new Date(pkg.purchaseDate).toLocaleDateString('sv-SE')}</div>
-                            )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                    Krediter
+                  </h4>
+                  {credits.length > 0 ? (
+                    <div className="space-y-3">
+                      {credits.map((credit: any) => (
+                        <FlowbiteCard key={credit.id} className="border-l-4 border-l-purple-500">
+                          <div className="flex justify-between items-center p-3">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                            </span>
+                            <FlowbiteBadge color="purple" className="font-semibold">
+                              {credit.creditsRemaining || credit.remaining}
+                            </FlowbiteBadge>
                           </div>
-                          {typeof pkg.pricePaid !== 'undefined' && (
-                            <div className="text-sm text-slate-200">{Number(pkg.pricePaid).toLocaleString('sv-SE')} kr</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-slate-300">
-                    Inga aktiva paket
-                  </div>
-                )}
+                        </FlowbiteCard>
+                      ))}
+                    </div>
+                  ) : (
+                    <FlowbiteAlert color="gray" className="text-center">
+                      <span className="font-medium">Inga krediter tillgängliga</span>
+                    </FlowbiteAlert>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                    Aktiva paket
+                  </h4>
+                  {userPackages.length > 0 ? (
+                    <div className="space-y-3">
+                      {userPackages.map((pkg) => (
+                        <FlowbiteCard key={pkg.id} className="border-l-4 border-l-blue-500">
+                          <div className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-semibold text-gray-900 dark:text-white">
+                                  {pkg.name || 'Paket'}
+                                </div>
+                                {pkg.purchaseDate && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Köpt: {new Date(pkg.purchaseDate).toLocaleDateString('sv-SE')}
+                                  </div>
+                                )}
+                              </div>
+                              {typeof pkg.pricePaid !== 'undefined' && (
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {Number(pkg.pricePaid).toLocaleString('sv-SE')} kr
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </FlowbiteCard>
+                      ))}
+                    </div>
+                  ) : (
+                    <FlowbiteAlert color="gray" className="text-center">
+                      <span className="font-medium">Inga aktiva paket</span>
+                    </FlowbiteAlert>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </FlowbiteCard>
 
           {/* Strengths vs Needs Work */}
           <StudentStrengthsCard />
@@ -372,6 +481,63 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
             <LearningModules userId={user.id} />
           </div>
         </div>
+      </div>
+
+      {/* Flowbite Modal Demo - Package Store */}
+      <FlowbiteModal show={showPackageModal} onClose={() => setShowPackageModal(false)} size="lg">
+        <FlowbiteModal.Header>Paketbutik</FlowbiteModal.Header>
+        <FlowbiteModal.Body>
+          <div className="space-y-6">
+            <FlowbiteAlert color="info">
+              <span className="font-medium">Välkommen till paketbutiken!</span>
+              Köp lektionspaket för att spara pengar och få tillgång till fler funktioner.
+            </FlowbiteAlert>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FlowbiteCard className="border-l-4 border-l-blue-500">
+                <div className="p-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Grundpaket</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">5 lektioner</p>
+                  <p className="text-2xl font-bold text-blue-600 mt-2">1 250 kr</p>
+                  <FlowbiteButton color="blue" className="w-full mt-4">
+                    Köp paket
+                  </FlowbiteButton>
+                </div>
+              </FlowbiteCard>
+
+              <FlowbiteCard className="border-l-4 border-l-green-500">
+                <div className="p-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Premiumpaket</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">10 lektioner</p>
+                  <p className="text-2xl font-bold text-green-600 mt-2">2 200 kr</p>
+                  <FlowbiteButton color="green" className="w-full mt-4">
+                    Köp paket
+                  </FlowbiteButton>
+                </div>
+              </FlowbiteCard>
+            </div>
+          </div>
+        </FlowbiteModal.Body>
+        <FlowbiteModal.Footer>
+          <FlowbiteButton color="gray" onClick={() => setShowPackageModal(false)}>
+            Avbryt
+          </FlowbiteButton>
+          <FlowbiteButton color="blue" onClick={() => {
+            toast.success('Paketbutik - Kommer snart!');
+            setShowPackageModal(false);
+          }}>
+            Fortsätt till betalning
+          </FlowbiteButton>
+        </FlowbiteModal.Footer>
+      </FlowbiteModal>
+
+      {/* Flowbite Alert Demo - Status Messages */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {openingBooking && (
+          <FlowbiteAlert color="info" className="mb-2" onDismiss={() => setOpeningBooking(false)}>
+            <span className="font-medium">Öppnar bokning...</span>
+          </FlowbiteAlert>
+        )}
       </div>
 
       {/* Confirm use credits dialog */}

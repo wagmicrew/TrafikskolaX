@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { redirect } from 'next/navigation';
-import MessagesClient from '../../student/meddelande/messages-client';
+// Internal messaging has been deprecated. Show notice instead of messages UI.
 
 export const dynamic = 'force-dynamic';
 
@@ -22,8 +22,15 @@ export default async function AdminMessagesPage() {
             </div>
           </div>
         </div>
-        
-        <MessagesClient />
+
+        <div className="max-w-2xl mx-auto">
+          <div className="rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md p-6 shadow-xl">
+            <h2 className="text-xl font-semibold text-white mb-2">Interna meddelanden är borttagna</h2>
+            <p className="text-gray-300">
+              Funktionen för interna meddelanden är avvecklad. Använd e‑postnotiser och mallar.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

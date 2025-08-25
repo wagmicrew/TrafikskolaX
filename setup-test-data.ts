@@ -12,13 +12,12 @@ async function setupTestData() {
       const [newType] = await db.insert(lessonTypes).values({
         name: 'B-körkort 40 min',
         description: 'Standard körlektion för B-körkort',
-        price: 500,
-        priceStudent: 450,
+        price: '500.00',
+        priceStudent: '450.00',
         durationMinutes: 40,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
-
       }).returning();
       
       console.log('Created test lesson type:', newType);

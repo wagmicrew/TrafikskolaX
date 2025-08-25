@@ -1,6 +1,12 @@
+"use client";
+
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import fetcher from '@/lib/fetcher';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { OrbSpinner } from '@/components/ui/orb-loader';
 
 interface User {
   id: string;
@@ -61,41 +67,49 @@ const UserManagement = memo(() => {
     }
   }, []);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <OrbSpinner size="md" />
+    </div>
+  );
 
   return (
-    <div>
-      <h2>User Management</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Inskriven</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.role}</td>
-              <td>{user.inskriven ? 'Yes' : 'No'}</td>
-              <td>
-                <button onClick={() => handleToggleInskriven(user.id, user.inskriven)}>
-                  Toggle Inskriven
-                </button>
-                <button onClick={() => handleDeleteUser(user.id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card className="shadow-sm border border-gray-200">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold tracking-tight">Användarhantering</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Namn</TableHead>
+              <TableHead>E-post</TableHead>
+              <TableHead>Roll</TableHead>
+              <TableHead>Inskriven</TableHead>
+              <TableHead>Åtgärder</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium">{u.name}</TableCell>
+                <TableCell>{u.email}</TableCell>
+                <TableCell>{u.role}</TableCell>
+                <TableCell>{u.inskriven ? 'Ja' : 'Nej'}</TableCell>
+                <TableCell className="space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => handleToggleInskriven(u.id, u.inskriven)}>
+                    Växla inskriven
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDeleteUser(u.id)}>
+                    Ta bort
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 });
 

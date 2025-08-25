@@ -23,16 +23,3 @@ export default function StudentHeader({ title, icon, rightSlot }: { title: strin
   )
 }
 
-function MeddelandenLink() {
-  const [enabled, setEnabled] = React.useState(true)
-  React.useEffect(() => {
-    fetch('/api/messages/unread-count')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => setEnabled(data?.disabled !== true))
-      .catch(() => setEnabled(true))
-  }, [])
-  if (!enabled) return null
-  return <Link href="/dashboard/student/meddelande" className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20">Meddelanden</Link>
-}
-
-

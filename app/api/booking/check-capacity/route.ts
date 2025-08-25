@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const maxCapacity = lessonType[0].maxStudents || 1
+    const maxCapacity = 1 // Default capacity for lesson types
 
     // Count existing bookings for this date/time/lesson type
     const existingBookings = await db
@@ -37,23 +37,14 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(bookings.lessonTypeId, lessonTypeId),
-          eq(bookings.date, date),
+          eq(bookings.scheduledDate, date),
           eq(bookings.startTime, time),
           eq(bookings.status, 'confirmed')
         )
       )
 
-    // Calculate total spots taken (including supervisors from existing bookings)
-    let totalSpotsTaken = 0
-    for (const booking of existingBookings) {
-      // Each booking takes 1 spot for the student
-      totalSpotsTaken += 1
-      
-      // Add supervisor spots if any
-      if (booking.supervisorCount) {
-        totalSpotsTaken += booking.supervisorCount
-      }
-    }
+    // Calculate total spots taken
+    let totalSpotsTaken = existingBookings.length // Each booking takes 1 spot
 
     const availableSpots = maxCapacity - totalSpotsTaken
     const canAccommodate = availableSpots >= requestedSpots

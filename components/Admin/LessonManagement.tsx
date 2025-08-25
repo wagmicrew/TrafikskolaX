@@ -3,6 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { OrbSpinner } from '@/components/ui/orb-loader';
 import {
   Dialog,
   DialogTrigger,
@@ -66,72 +70,72 @@ const LessonManagement = () => {
     // Logic to populate form with existing lesson data
   };
 
-  if (loading) return <div>Loading...</div>;
-
-  return (
-    <div>
-      <h2>Lesson Management</h2>
-
-      {/* Edit Lesson Popover */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-            Add/Edit Lesson
-          </button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Lesson Type</DialogTitle>
-            <DialogDescription>
-              Make changes to the lesson type here. Click save when you&apos;re done.
-            </DialogDescription>
-          </DialogHeader>
-          {/* Form fields for editing */}
-          <form id="edit-lesson-form">
-            {/* Add form fields here */}
-          </form>
-          <DialogFooter>
-            <button type="submit" form="edit-lesson-form" className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-              Save Changes
-            </button>
-            <DialogClose asChild>
-              <button className="px-4 py-2 bg-red-600 text-white rounded-lg">
-                Cancel
-              </button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Duration</th>
-            <th>Active</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lessonTypes.map((lesson: LessonType) => (
-            <tr key={lesson.id}>
-              <td>{lesson.name}</td>
-              <td>{lesson.price}</td>
-              <td>{lesson.durationMinutes} min</td>
-              <td>{lesson.isActive ? 'Yes' : 'No'}</td>
-              <td>
-                <button onClick={() => handleDeleteLesson(lesson.id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <OrbSpinner size="md" />
     </div>
   );
-};
+
+  return (
+    <Card className="shadow-sm border border-gray-200">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold tracking-tight">Lektionshantering</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Edit Lesson Dialog with glassmorphism */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="primary" size="sm">Lägg till/Redigera lektion</Button>
+          </DialogTrigger>
+          <DialogContent className="backdrop-blur-md bg-white/70 border border-white/40 shadow-lg">
+            <DialogHeader>
+              <DialogTitle>Redigera lektionstyp</DialogTitle>
+              <DialogDescription>
+                Gör ändringar i lektionstypen här. Klicka spara när du är klar.
+              </DialogDescription>
+            </DialogHeader>
+            {/* Form fields for editing */}
+            <form id="edit-lesson-form" className="space-y-4">
+              {/* TODO: Add form fields */}
+            </form>
+            <DialogFooter className="gap-2">
+              <Button type="submit" form="edit-lesson-form" variant="primary">Spara</Button>
+              <DialogClose asChild>
+                <Button variant="outline">Avbryt</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Namn</TableHead>
+              <TableHead>Pris</TableHead>
+              <TableHead>Duration</TableHead>
+              <TableHead>Aktiv</TableHead>
+              <TableHead>Åtgärder</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lessonTypes.map((lesson: LessonType) => (
+              <TableRow key={lesson.id}>
+                <TableCell className="font-medium">{lesson.name}</TableCell>
+                <TableCell>{lesson.price}</TableCell>
+                <TableCell>{lesson.durationMinutes} min</TableCell>
+                <TableCell>{lesson.isActive ? 'Ja' : 'Nej'}</TableCell>
+                <TableCell className="space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => handleEditLesson(lesson)}>Redigera</Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDeleteLesson(lesson.id)}>Ta bort</Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default LessonManagement;
 

@@ -8,7 +8,7 @@ type SeedTemplate = {
   triggerType: string;
   subject: string;
   html: string;
-  receivers: Array<'student' | 'admin' | 'teacher' | 'specific_user'>;
+  receivers: Array<'student' | 'admin' | 'teacher' | 'specific_user' | 'school'>;
 };
 
 // Modern email template designs using the improved template structure
@@ -252,6 +252,25 @@ const modernTemplates: SeedTemplate[] = [
       <p style="margin-top:16px;">Denna bekräftelse skickas även till handledaren.</p>
     `,
     receivers: ['student']
+  },
+  {
+    triggerType: 'teori_session_request',
+    subject: 'Ny förfrågan om teorisession - {{customData.lessonTypeName}}',
+    html: `
+      <h1>Förfrågan om teorisession</h1>
+      <p>En användare har begärt information om nya teorisessioner.</p>
+      <div style="background-color:#f9fafb; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #0284c7;">
+        <p style="margin:8px 0;"><strong>Lektionstyp:</strong> {{customData.lessonTypeName}}</p>
+        <p style="margin:8px 0;"><strong>Lektionstyp ID:</strong> {{customData.lessonTypeId}}</p>
+        <p style="margin:8px 0;"><strong>Begärd:</strong> {{customData.requestedAt}}</p>
+        <p style="margin:8px 0;"><strong>Användare:</strong> {{user.firstName}} {{user.lastName}} ({{user.email}})</p>
+      </div>
+      <div style="margin-top:12px;">
+        <a href="{{appUrl}}/admin/teori" data-btn>Hantera teorisessioner</a>
+      </div>
+      <p style="margin-top:16px;">Skapa nya sessioner vid behov för att möta efterfrågan.</p>
+    `,
+    receivers: ['admin', 'school']
   }
 ];
 

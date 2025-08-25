@@ -40,13 +40,13 @@ async function testDailySummary() {
     const bookingData = {
       userId: teacher.id, // Using teacher as student for testing
       teacherId: teacher.id,
-      lessonTypeId: 1, // Assuming ID 1 exists
+      lessonTypeId: '1', // Convert to string as required by schema
       scheduledDate: today.toISOString().split('T')[0], // Today's date
       startTime: '10:00',
       endTime: '11:00',
       status: 'confirmed' as const,
       paymentStatus: 'paid' as const,
-      totalPrice: 500,
+      totalPrice: '500.00',
       transmissionType: 'manual' as const,
       isCompleted: false,
       feedbackReady: false,

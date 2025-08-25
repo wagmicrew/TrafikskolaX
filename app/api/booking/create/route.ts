@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, supervisorDetails, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';

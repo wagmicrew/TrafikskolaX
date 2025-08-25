@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Plus, X, Check, Package as PackageIcon, Loader2 } from 'lucide-react';
+import { OrbSpinner } from '@/components/ui/orb-loader';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PackageBuilderPopover from '@/components/PackageBuilderPopover';
@@ -262,7 +263,7 @@ export default function PackagesClient({ user, packages: initialPackages, hasAct
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <OrbSpinner size="sm" className="mr-2" />
               Laddar...
             </>
           ) : (
@@ -312,12 +313,11 @@ export default function PackagesClient({ user, packages: initialPackages, hasAct
                 priceStudent: currentPackage.priceStudent ?? undefined,
                 salePrice: currentPackage.salePrice ?? undefined,
                 isActive: currentPackage.isActive,
-                contents: (currentPackage.contents || []) as PackageContent[]
+                contents: (currentPackage.contents || []) as any
               } : undefined}
               onSave={handleSavePackage}
               onUpdate={handleUpdatePackage}
               onClose={() => setIsPopoverOpen(false)}
-              isLoading={isLoading}
             />
           </div>
         </div>
@@ -336,7 +336,7 @@ export default function PackagesClient({ user, packages: initialPackages, hasAct
               disabled={isLoading}
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <OrbSpinner size="sm" className="mr-2" />
               ) : null}
               {showInactive ? 'Dölj inaktiva' : 'Visa inaktiva'}
             </Button>
@@ -371,7 +371,7 @@ export default function PackagesClient({ user, packages: initialPackages, hasAct
                           disabled={isLoading}
                           className="h-8 px-2 text-xs bg-white/5 border border-white/20 text-white hover:bg-white/10 transition-all duration-200"
                         >
-                          {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Redigera'}
+                          {isLoading ? <OrbSpinner size="sm" className="h-3 w-3" /> : 'Redigera'}
                         </Button>
                         <Button
                           onClick={() => handleDeletePackage(pkg.id)}
@@ -380,7 +380,7 @@ export default function PackagesClient({ user, packages: initialPackages, hasAct
                           disabled={isLoading}
                           className="h-8 px-2 text-xs bg-red-500 hover:bg-red-600 text-white border border-red-400/30"
                         >
-                          {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Ta bort'}
+                          {isLoading ? <OrbSpinner size="sm" className="h-3 w-3" /> : 'Ta bort'}
                         </Button>
                       </div>
                     </div>

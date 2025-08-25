@@ -1,129 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import toast from 'react-hot-toast';
-import {
-  Plus,
-  Edit3,
-  Trash2,
-  Save,
-  X,
-  Calendar,
-  Clock,
-  Users,
-  DollarSign,
-  BookOpen,
-  Eye,
-  EyeOff,
-  ArrowUp,
-  ArrowDown
-} from 'lucide-react';
-
-interface TeoriLessonType {
-  id: string;
-  name: string;
-  allowsSupervisors: boolean;
-  price: string;
-  pricePerSupervisor: string | null;
-  durationMinutes: number;
-}
-
-interface TeoriSession {
-  id: string;
-  title: string;
-  description: string | null;
-  date: string;
-  startTime: string;
-  endTime: string;
-  maxParticipants: number;
-  currentParticipants: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lessonType: TeoriLessonType;
-}
-
-interface SessionFormData {
-  lessonTypeId: string;
-  title: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  maxParticipants: string;
-  isActive: boolean;
-}
+import { TeoriSessionsClient } from './teori-sessions-client';
 
 export default function TeoriSessionsPage() {
-  const [sessions, setSessions] = useState<TeoriSession[]>([]);
-  const [lessonTypes, setLessonTypes] = useState<TeoriLessonType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<TeoriSession | null>(null);
-
-  const [formData, setFormData] = useState<SessionFormData>({
-    lessonTypeId: '',
-    title: '',
-    description: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    maxParticipants: '1',
-    isActive: true
-  });
-
-  // Load sessions and lesson types
-  const loadData = async () => {
-    try {
-      const [sessionsResponse, lessonTypesResponse] = await Promise.all([
-        fetch('/api/admin/teori-sessions'),
-        fetch('/api/admin/teori-lesson-types')
-      ]);
-
-      if (sessionsResponse.ok) {
-        const sessionsData = await sessionsResponse.json();
-        setSessions(sessionsData.sessions);
-      }
-
-      if (lessonTypesResponse.ok) {
-        const lessonTypesData = await lessonTypesResponse.json();
-        setLessonTypes(lessonTypesData.lessonTypes);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Kunde inte ladda data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      const method = editingSession ? 'PUT' : 'POST';
-      const url = editingSession
-        ? `/api/admin/teori-sessions/${editingSession.id}`
-        : '/api/admin/teori-sessions';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
+  return <TeoriSessionsClient />;
+}
+/*
         body: JSON.stringify({
           lessonTypeId: formData.lessonTypeId,
           title: formData.title,
@@ -473,7 +355,7 @@ export default function TeoriSessionsPage() {
             Skapa Första Teorisession
           </Button>
         </div>
-      )}
+      )/*}
     </div>
   );
-}
+}*/

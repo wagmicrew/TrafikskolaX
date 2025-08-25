@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { siteSettings, emailTemplates, emailReceivers, internalMessages, users } from '@/lib/db/schema';
+import { siteSettings, emailTemplates, emailReceivers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import sgMail from '@sendgrid/mail';
 import nodemailer from 'nodemailer';
@@ -34,7 +34,8 @@ export type EmailTriggerType =
   | 'handledar_supervisor_confirmation'
   | 'handledar_supervisor_payment_request'
   | 'booking_payment_reminder'
-  | 'package_payment_reminder';
+  | 'package_payment_reminder'
+  | 'teori_session_request';
 
 export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user' | 'supervisor';
 
@@ -196,11 +197,11 @@ export class EnhancedEmailService {
         adminEmail: settingsMap['admin_email'] || 'admin@dintrafikskolahlm.se',
         schoolEmail: settingsMap['school_email'] || 'school@dintrafikskolahlm.se', // New setting
         
-        // Fallback
-        fallbackToInternal: settingsMap['fallback_to_internal'] !== 'false',
+        // Fallback (disabled)
+        fallbackToInternal: false,
         
-        // Force internal only
-        forceInternalOnly
+        // Force internal only (disabled)
+        forceInternalOnly: false
       };
 
       logger.info('email', 'Email configuration loaded', {
@@ -226,7 +227,7 @@ export class EnhancedEmailService {
         replyTo: 'info@dintrafikskolahlm.se',
         adminEmail: 'admin@dintrafikskolahlm.se',
         schoolEmail: 'school@dintrafikskolahlm.se',
-        fallbackToInternal: true
+        fallbackToInternal: false
       };
     }
   }
@@ -366,60 +367,13 @@ logger.info('email', 'Email sent via SMTP', {
    * Save email as internal message (fallback)
    */
   private static async saveAsInternalMessage(options: EmailOptions): Promise<boolean> {
-    try {
-      // Find recipient user
-      const recipient = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, options.to))
-        .limit(1);
-
-      if (!recipient[0]) {
-        logger.warn('email', 'Cannot save as internal message - user not found', {
-          email: options.to
-        });
-        return false;
-      }
-
-      // Get system/admin user
-      const systemUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.role, 'admin'))
-        .limit(1);
-
-      if (!systemUser[0]) {
-        logger.error('email', 'Cannot save as internal message - no admin user found');
-        return false;
-      }
-
-      // Save as internal message
-      await db.insert(internalMessages).values({
-        fromUserId: systemUser[0].id,
-        toUserId: recipient[0].id,
-        subject: options.subject,
-        message: options.html || options.text || '',
-        bookingId: options.bookingId || null,
-        messageType: options.messageType || 'general'
-      });
-
-      logger.info('email', 'Email saved as internal message', {
-        to: options.to,
-        subject: options.subject,
-        messageType: options.messageType
-      }, options.userId);
-
-      return true;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('email', 'Failed to save as internal message', {
-        to: options.to,
-        subject: options.subject,
-        error: errorMessage
-      }, options.userId);
-      
-      return false;
-    }
+    // Internal messaging removed from system
+    logger.info('email', 'Internal messaging disabled; skipping saveAsInternalMessage', {
+      to: options.to,
+      subject: options.subject,
+      messageType: options.messageType
+    }, options.userId);
+    return false;
   }
 
   /**
@@ -448,21 +402,15 @@ logger.info('email', 'Email sent via SMTP', {
       wrappedOptions.html = this.applyEmailTemplate(`<pre style="white-space: pre-wrap; font-family: inherit; color: #374151;">${wrappedOptions.text}</pre>`);
     }
 
-    // If force internal only is enabled, skip email providers
-    if (config.forceInternalOnly) {
-      logger.info('email', 'Force internal only mode enabled - saving as internal message', { to: options.to });
-      success = await this.saveAsInternalMessage(options);
-    } else {
-      // Try primary method first
-      // Replace system placeholders in the template (appUrl, schoolEmail, etc.)
-      if (wrappedOptions.html) {
-        wrappedOptions.html = await this.processTemplate(wrappedOptions.html, {}, config);
-      }
-      if (config.emailMethod === 'sendgrid' && config.useSendgrid) {
-        success = await this.sendViaSendGrid(wrappedOptions, config);
-      } else if (config.emailMethod === 'smtp' && config.useSmtp) {
-        success = await this.sendViaSmtp(wrappedOptions, config);
-      }
+    // Replace system placeholders in the template (appUrl, schoolEmail, etc.)
+    if (wrappedOptions.html) {
+      wrappedOptions.html = await this.processTemplate(wrappedOptions.html, {}, config);
+    }
+    // Try primary method first (internal messaging disabled)
+    if (config.emailMethod === 'sendgrid' && config.useSendgrid) {
+      success = await this.sendViaSendGrid(wrappedOptions, config);
+    } else if (config.emailMethod === 'smtp' && config.useSmtp) {
+      success = await this.sendViaSmtp(wrappedOptions, config);
     }
 
     // Try alternative methods if primary failed and not in force internal mode
@@ -476,11 +424,7 @@ logger.info('email', 'Email sent via SMTP', {
       }
     }
 
-    // Final fallback to internal messaging
-    if (!success && config.fallbackToInternal) {
-      logger.info('email', 'Using internal messaging as final fallback', { to: options.to });
-      success = await this.saveAsInternalMessage(options);
-    }
+    // Internal messaging fallback disabled
 
     if (!success) {
       logger.error('email', 'All email delivery methods failed', {
@@ -891,7 +835,8 @@ logger.info('email', 'Email sent via SMTP', {
       handledar_supervisor_confirmation: 'booking_related',
       handledar_supervisor_payment_request: 'payment_confirmation',
       booking_payment_reminder: 'payment_confirmation',
-      package_payment_reminder: 'payment_confirmation'
+      package_payment_reminder: 'payment_confirmation',
+      teori_session_request: 'general'
     };
 
     return mappings[triggerType] || 'general';

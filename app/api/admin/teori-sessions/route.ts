@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { teoriSessions, teoriLessonTypes } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     await requireAuth('admin');
 
-    const sessions = await db
+    const searchParams = request.nextUrl.searchParams;
+    const lessonTypeId = searchParams.get('lessonTypeId');
+    const available = searchParams.get('available') === 'true';
+
+    let query = db
       .select({
         id: teoriSessions.id,
         title: teoriSessions.title,
@@ -31,8 +35,25 @@ export async function GET(request: NextRequest) {
         }
       })
       .from(teoriSessions)
-      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
-      .orderBy(desc(teoriSessions.date), desc(teoriSessions.startTime));
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id));
+
+    // Filter by lesson type if specified
+    if (lessonTypeId) {
+      query = query.where(eq(teoriSessions.lessonTypeId, lessonTypeId));
+    }
+
+    // Filter by availability if requested
+    if (available) {
+      query = query.where(
+        and(
+          eq(teoriSessions.isActive, true),
+          // Add date filter to only show future sessions
+          sql`${teoriSessions.date} >= CURRENT_DATE`
+        )
+      );
+    }
+
+    const sessions = await query.orderBy(desc(teoriSessions.date), desc(teoriSessions.startTime));
 
     return NextResponse.json({
       success: true,

@@ -21,7 +21,11 @@ interface SupervisorSelectionProps {
   sessionType: 'handledarutbildning' | 'riskettan'
   basePrice: number
   pricePerSupervisor: number
-  onComplete: (data: { 
+  sessionCapacity?: {
+    maxParticipants: number
+    currentParticipants: number
+  }
+  onComplete: (data: {
     studentId: string
     supervisors: Supervisor[]
     totalPrice: number
@@ -30,12 +34,13 @@ interface SupervisorSelectionProps {
   onBack: () => void
 }
 
-export function SupervisorSelection({ 
-  sessionType, 
-  basePrice, 
-  pricePerSupervisor, 
-  onComplete, 
-  onBack 
+export function SupervisorSelection({
+  sessionType,
+  basePrice,
+  pricePerSupervisor,
+  sessionCapacity,
+  onComplete,
+  onBack
 }: SupervisorSelectionProps) {
   const [students, setStudents] = useState<Array<{ id: string; firstName: string; lastName: string; email: string }>>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
@@ -70,7 +75,22 @@ export function SupervisorSelection({
   }
 
   const addSupervisor = () => {
-    setSupervisors([...supervisors, { name: '', email: '', phone: '', personalNumber: '' }])
+    // Check capacity if session capacity is provided
+    if (sessionCapacity) {
+      const totalParticipantsWithNewSupervisor = 1 + supervisors.length + 1; // 1 student + current supervisors + new supervisor
+      const availableSpots = sessionCapacity.maxParticipants - sessionCapacity.currentParticipants;
+
+      if (totalParticipantsWithNewSupervisor > availableSpots) {
+        toast({
+          title: "Inga lediga platser",
+          description: `Det finns bara ${availableSpots} platser kvar. Du kan lägga till max ${availableSpots - (1 + supervisors.length)} handledare till.`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    setSupervisors([...supervisors, { name: '', email: '', phone: '', personalNumber: '' }]);
   }
 
   const removeSupervisor = (index: number) => {
@@ -105,6 +125,24 @@ export function SupervisorSelection({
         setError(`Fyll i telefon för handledare ${i + 1}`)
         return false
       }
+      if (!supervisor.personalNumber.trim()) {
+        setError(`Fyll i personnummer för handledare ${i + 1}`)
+        return false
+      }
+
+      // Validate Swedish personal number format (YYYYMMDD-XXXX)
+      const personalNumberRegex = /^\d{6}-\d{4}$/;
+      if (!personalNumberRegex.test(supervisor.personalNumber.trim())) {
+        setError(`Ogiltigt personnummer format för handledare ${i + 1}. Använd format: YYYYMMDD-XXXX`)
+        return false
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(supervisor.email.trim())) {
+        setError(`Ogiltig e-postadress för handledare ${i + 1}`)
+        return false
+      }
     }
 
     setError('')
@@ -115,7 +153,11 @@ export function SupervisorSelection({
     if (!validateForm()) return
 
     const participantCount = 1 + supervisors.length // 1 student + supervisors
-    const totalPrice = basePrice + (supervisors.length * pricePerSupervisor)
+
+    // First handledare is FREE, additional handledare cost extra
+    const freeHandledare = 1
+    const additionalHandledare = Math.max(0, supervisors.length - freeHandledare)
+    const totalPrice = basePrice + (additionalHandledare * pricePerSupervisor)
 
     onComplete({
       studentId: selectedStudentId,
@@ -238,12 +280,13 @@ export function SupervisorSelection({
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-white text-sm">Personnummer</Label>
+                      <Label className="text-white text-sm">Personnummer *</Label>
                       <Input
                         value={supervisor.personalNumber}
                         onChange={(e) => updateSupervisor(index, 'personalNumber', e.target.value)}
                         placeholder="YYYYMMDD-XXXX"
                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                        required
                       />
                     </div>
                   </div>
@@ -258,17 +301,30 @@ export function SupervisorSelection({
               <h4 className="text-white font-medium mb-3">Prisöversikt</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-300">Baspris (student):</span>
+                  <span className="text-slate-300">Baspris (student + 1 handledare):</span>
                   <span className="text-white">{basePrice} kr</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Handledare ({supervisors.length} × {pricePerSupervisor} kr):</span>
-                  <span className="text-white">{supervisors.length * pricePerSupervisor} kr</span>
-                </div>
+                {supervisors.length > 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Extra handledare ({supervisors.length - 1} × {pricePerSupervisor} kr):</span>
+                    <span className="text-white">{(supervisors.length - 1) * pricePerSupervisor} kr</span>
+                  </div>
+                )}
+                {supervisors.length <= 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Handledare:</span>
+                    <span className="text-green-400">INGEN KOSTNAD</span>
+                  </div>
+                )}
                 <div className="border-t border-white/20 pt-2 mt-2">
                   <div className="flex justify-between font-medium">
                     <span className="text-white">Totalt:</span>
-                    <span className="text-green-400">{basePrice + (supervisors.length * pricePerSupervisor)} kr</span>
+                    <span className="text-green-400">{(() => {
+                      // First handledare is FREE, additional handledare cost extra
+                      const freeHandledare = 1
+                      const additionalHandledare = Math.max(0, supervisors.length - freeHandledare)
+                      return basePrice + (additionalHandledare * pricePerSupervisor)
+                    })()} kr</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-400">
                     <span>Deltagare:</span>

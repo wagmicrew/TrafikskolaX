@@ -5,7 +5,7 @@ Sideditor är ett kraftfullt WYSIWYG-redigeringsverktyg för att redigera inneh�
 ## Funktioner
 
 ### 🎯 Huvudfunktioner
-- **WYSIWYG Editor**: TinyMCE-baserad editor med svensk lokalisering
+- **WYSIWYG Editor**: Puck-baserad editor med visuell blockredigering
 - **Sidor som stöds**:
   - **Om oss** (`app/om-oss/page.tsx`) - Presentation av trafikskolan
   - **Våra Tjänster** (`app/vara-tjanster/page.tsx`) - Tjänster och priser
@@ -16,13 +16,13 @@ Sideditor är ett kraftfullt WYSIWYG-redigeringsverktyg för att redigera inneh�
 - **Bilduppladdning**: Ladda upp bilder direkt från editorn till `/public/images/`
 
 ### 🖋️ Editorfunktioner
-- **Formatering**: Fetstil, kursiv, understrykning, genomstrykning
-- **Justering**: Vänster, mitten, höger, marginal
-- **Listor**: Punktlistor och numrerade listor
-- **Länkar och media**: Infoga länkar, bilder och andra media
-- **Tabeller**: Skapa och redigera tabeller
-- **Kod**: Visa och redigera HTML-kod
-- **Fullskärm**: Redigera i fullskärmsläge
+- **Blockbaserad redigering**: Visuell blockredigering med drag-and-drop
+- **Komponenter**: Rubriker, paragrafer, text, listor, länkar, bilder
+- **Formatering**: Fetstil, kursiv, listor och andra textformateringar
+- **Bildhantering**: Infoga och hantera bilder
+- **Länkar**: Skapa och redigera hyperlänkar
+- **Responsiv design**: Automatisk responsivitet för alla komponenter
+- **Live preview**: Se ändringar i realtid
 
 ### 🛡️ Säkerhet
 - **Admin-autentisering**: Kräver admin-behörighet

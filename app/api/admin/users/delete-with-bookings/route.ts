@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { users, bookings, handledarBookings, handledarSessions, userCredits, userPackages, internalMessages, userFeedback } from '@/lib/db/schema';
+import { users, bookings, handledarBookings, handledarSessions, userCredits, userPackages, internalMessages, userFeedback, lessonTypes } from '@/lib/db/schema';
 import { eq, and, or } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { sendEmail } from '@/lib/mailer/universal-mailer';
+import { generateUserDeletionPDF, UserDeletionPDFData } from '@/lib/pdf/user-deletion-pdf';
+import { savePDFToStorage, generatePDFFileName } from '@/lib/pdf/pdf-storage';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -40,10 +42,29 @@ export async function DELETE(request: NextRequest) {
 
     const userToDelete = userDetails[0];
 
-    // Get all user's bookings for potential PDF export
+    // Get all user's bookings with lesson type information for PDF export
     const userBookings = await db
-      .select()
+      .select({
+        id: bookings.id,
+        scheduledDate: bookings.scheduledDate,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        durationMinutes: bookings.durationMinutes,
+        status: bookings.status,
+        paymentStatus: bookings.paymentStatus,
+        paymentMethod: bookings.paymentMethod,
+        totalPrice: bookings.totalPrice,
+        notes: bookings.notes,
+        isCompleted: bookings.isCompleted,
+        completedAt: bookings.completedAt,
+        invoiceNumber: bookings.invoiceNumber,
+        invoiceDate: bookings.invoiceDate,
+        swishUUID: bookings.swishUUID,
+        createdAt: bookings.createdAt,
+        lessonTypeName: lessonTypes.name,
+      })
       .from(bookings)
+      .leftJoin(lessonTypes, eq(bookings.lessonTypeId, lessonTypes.id))
       .where(eq(bookings.userId, userId));
 
     // Get all handledar bookings where user is the teacher (via session's teacherId)
@@ -81,6 +102,10 @@ export async function DELETE(request: NextRequest) {
       await tx.delete(users).where(eq(users.id, userId));
     });
 
+    // Initialize PDF variables first
+    let pdfFileName = null;
+    let pdfFilePath = null;
+
     // Send notification email to admin about the deletion
     try {
       const deletionEmailData = {
@@ -95,9 +120,11 @@ export async function DELETE(request: NextRequest) {
             <li><strong>Roll:</strong> ${userToDelete.role}</li>
             <li><strong>Antal bokningar raderade:</strong> ${userBookings.length}</li>
             <li><strong>Antal handledar-bokningar avregistrerade:</strong> ${teacherBookings.length}</li>
+            ${pdfFileName ? `<li><strong>PDF-rapport genererad:</strong> ${pdfFileName}</li>` : ''}
           </ul>
           <p><strong>Raderad av:</strong> ${user.firstName} ${user.lastName}</p>
           <p><strong>Datum:</strong> ${new Date().toLocaleDateString('sv-SE')}</p>
+          ${pdfFilePath ? `<p><strong>PDF-rapport:</strong> <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}${pdfFilePath}">Ladda ner rapport</a></p>` : ''}
         `,
         text: `
           Användare raderad
@@ -108,9 +135,11 @@ export async function DELETE(request: NextRequest) {
           - Roll: ${userToDelete.role}
           - Antal bokningar raderade: ${userBookings.length}
           - Antal handledar-bokningar avregistrerade: ${teacherBookings.length}
+          ${pdfFileName ? `- PDF-rapport genererad: ${pdfFileName}` : ''}
           
           Raderad av: ${user.firstName} ${user.lastName}
           Datum: ${new Date().toLocaleDateString('sv-SE')}
+          ${pdfFilePath ? `PDF-rapport: ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}${pdfFilePath}` : ''}
         `
       };
 
@@ -121,27 +150,71 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Generate PDF export if requested
-    let pdfFileName = null;
     if (exportPdf && userBookings.length > 0) {
       try {
-        const pdfData = {
-          user: userToDelete,
-          bookings: userBookings,
+        const pdfData: UserDeletionPDFData = {
+          user: {
+            id: userToDelete.id,
+            firstName: userToDelete.firstName,
+            lastName: userToDelete.lastName,
+            email: userToDelete.email,
+            phone: userToDelete.phone || undefined,
+            personalNumber: userToDelete.personalNumber || undefined,
+            address: userToDelete.address || undefined,
+            postalCode: userToDelete.postalCode || undefined,
+            city: userToDelete.city || undefined,
+            role: userToDelete.role,
+            customerNumber: userToDelete.customerNumber || undefined,
+            inskriven: userToDelete.inskriven,
+            workplace: userToDelete.workplace || undefined,
+            workPhone: userToDelete.workPhone || undefined,
+            mobilePhone: userToDelete.mobilePhone || undefined,
+            createdAt: userToDelete.createdAt,
+          },
+          bookings: userBookings.map(booking => ({
+            id: booking.id,
+            scheduledDate: booking.scheduledDate,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            durationMinutes: booking.durationMinutes,
+            status: booking.status || 'unknown',
+            paymentStatus: booking.paymentStatus || 'unknown',
+            paymentMethod: booking.paymentMethod || undefined,
+            totalPrice: booking.totalPrice?.toString() || '0',
+            notes: booking.notes || undefined,
+            isCompleted: booking.isCompleted || false,
+            completedAt: booking.completedAt || undefined,
+            invoiceNumber: booking.invoiceNumber || undefined,
+            invoiceDate: booking.invoiceDate || undefined,
+            swishUUID: booking.swishUUID || undefined,
+            createdAt: booking.createdAt,
+            lessonTypeName: booking.lessonTypeName || undefined,
+          })),
           teacherBookings: teacherBookings,
-          deletedBy: user,
+          deletedBy: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+          },
           deletedAt: new Date()
         };
 
-        // Here you would implement PDF generation
-        // For now, we'll just create a filename
-        pdfFileName = `user_deletion_${userToDelete.id}_${Date.now()}.pdf`;
+        // Generate PDF buffer
+        const pdfBuffer = await generateUserDeletionPDF(pdfData);
         
-        // TODO: Implement actual PDF generation
-        // const pdfBuffer = await generateUserDeletionPDF(pdfData);
-        // await savePDFToStorage(pdfBuffer, pdfFileName);
+        // Generate filename and save PDF
+        pdfFileName = generatePDFFileName(
+          userToDelete.id,
+          `${userToDelete.firstName} ${userToDelete.lastName}`
+        );
+        pdfFilePath = await savePDFToStorage(pdfBuffer, pdfFileName);
+        
+        console.log(`PDF generated successfully: ${pdfFileName}`);
       } catch (pdfError) {
         console.error('Failed to generate PDF:', pdfError);
         // Don't fail the deletion if PDF generation fails
+        pdfFileName = null;
+        pdfFilePath = null;
       }
     }
 
@@ -158,7 +231,8 @@ export async function DELETE(request: NextRequest) {
         bookingsDeleted: userBookings.length,
         teacherBookingsUnassigned: teacherBookings.length,
         pdfGenerated: !!pdfFileName,
-        pdfFileName
+        pdfFileName,
+        pdfFilePath
       }
     });
 

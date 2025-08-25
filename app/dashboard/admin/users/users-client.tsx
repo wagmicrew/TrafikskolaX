@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { OrbLoader, OrbSpinner } from '@/components/ui/orb-loader';
 import {
   User,
   Mail,
@@ -63,6 +64,7 @@ export default function UsersClient({
   const [exportPdf, setExportPdf] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
+  const [showImpersonationLoader, setShowImpersonationLoader] = useState(false);
   const [tab, setTab] = useState<'users' | 'reports'>('users');
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
@@ -167,6 +169,7 @@ export default function UsersClient({
 
   const handleImpersonate = async (targetUser: User) => {
     setImpersonatingId(targetUser.id);
+    setShowImpersonationLoader(true);
     try {
       const res = await fetch('/api/auth/impersonate', {
         method: 'POST',
@@ -176,6 +179,7 @@ export default function UsersClient({
       if (!res.ok) {
         const data = await res.json().catch(() => ({} as any));
         toast.error(data?.error || 'Kunde inte hämta användarsession');
+        setShowImpersonationLoader(false);
         return;
       }
       const data = await res.json().catch(() => ({} as any));
@@ -204,6 +208,7 @@ export default function UsersClient({
       }
     } catch (e) {
       toast.error('Misslyckades att hämta användarsession');
+      setShowImpersonationLoader(false);
     } finally {
       setImpersonatingId(null);
     }
@@ -227,19 +232,21 @@ export default function UsersClient({
   };
 
   return (
-    <div className="text-slate-100">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
-          <User className="w-8 h-8 text-sky-300" /> Användarhantering
-        </h1>
+    <>
+      <OrbLoader isVisible={showImpersonationLoader} text="Antar identitet..." />
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
+            <User className="w-8 h-8 text-sky-300" /> Användarhantering
+          </h1>
 
-        <Link
-          href="/dashboard/admin/users/new"
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
-        >
-          <PlusCircle className="w-5 h-5" /> Lägg till Användare
-        </Link>
-      </div>
+          <Link
+            href="/dashboard/admin/users/new"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
+          >
+            <PlusCircle className="w-5 h-5" /> Lägg till Användare
+          </Link>
+        </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
         <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 mb-4">
@@ -458,7 +465,7 @@ export default function UsersClient({
                 >
                   {deleting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <OrbSpinner size="sm" />
                       Raderar...
                     </>
                   ) : (
@@ -509,5 +516,6 @@ export default function UsersClient({
         ))}
       </div>
     </div>
+    </>
   );
 }

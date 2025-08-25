@@ -43,7 +43,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     const data = await fs.promises.readFile(resolved);
 
-    return new NextResponse(data, {
+    return new NextResponse(data as any, {
       status: 200,
       headers: new Headers({
         'Content-Type': report.mimeType || 'application/pdf',

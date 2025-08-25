@@ -8,14 +8,16 @@ import { LessonSelection } from "@/components/booking/lesson-selection"
 import { TransmissionSelection } from "@/components/booking/transmission-selection"
 import { WeekCalendar } from "@/components/booking/week-calendar"
 import { HandledarSessionSelection } from "@/components/booking/handledar-session-selection"
+import { TeoriSessionSelection } from "@/components/booking/teori-session-selection"
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { useAuth } from "@/hooks/use-auth"
 import { SwishPaymentDialog } from "@/components/booking/swish-payment-dialog"
+import { OrbSpinner } from "@/components/ui/orb-loader"
 import { toast } from "react-hot-toast"
 
 interface SessionType {
   id: string
-  type: 'lesson' | 'handledar';
+  type: 'lesson' | 'handledar' | 'teori';
   name: string
   description: string | null
   durationMinutes: number
@@ -23,6 +25,9 @@ interface SessionType {
   priceStudent?: number
   salePrice?: number
   isActive: boolean
+  allowsSupervisors?: boolean
+  pricePerSupervisor?: number
+  maxParticipants?: number
 }
 
 interface BookingData {
@@ -352,48 +357,100 @@ const handleBookingComplete = async (paymentData: any) => {
     }
   }
 
-  const steps = bookingData.sessionType?.type === 'handledar' 
-    ? [
-        { number: 1, title: "Välj lektion" },
-        { number: 3, title: "Välj datum & tid" },
-        { number: 4, title: "Bekräfta" },
-      ]
-    : [
-        { number: 1, title: "Välj lektion" },
-        { number: 2, title: "Växellåda" },
-        { number: 3, title: "Välj datum & tid" },
-        { number: 4, title: "Bekräfta" },
-      ]
+  const getSteps = () => {
+    const sessionType = bookingData.sessionType?.type;
+    
+    if (sessionType === 'teori') {
+      return [
+        { number: 1, title: "Välj teorilektion" },
+        { number: 2, title: "Välj session & tid" },
+        { number: 3, title: "Bekräfta bokning" },
+        { number: 4, title: "Betala" },
+      ];
+    }
+
+    if (sessionType === 'handledar') {
+      return [
+        { number: 1, title: "Välj handledarkurs" },
+        { number: 2, title: "Välj session & tid" },
+        { number: 3, title: "Bekräfta bokning" },
+        { number: 4, title: "Betala" },
+      ];
+    }
+
+    // Normal lesson booking
+    return [
+      { number: 1, title: "Välj körlektion" },
+      { number: 2, title: "Välj växellåda" },
+      { number: 3, title: "Välj tid" },
+      { number: 4, title: "Bekräfta bokning" },
+      { number: 5, title: "Betala" },
+    ];
+  };
+  
+  const steps = getSteps();
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-white text-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar bokningssystem...</p>
+          <div className="mb-6 flex justify-center">
+            <OrbSpinner size="lg" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Laddar bokningssystem</h2>
+          <p className="text-gray-600 font-medium">Förbereder din bokningsupplevelse...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8">
-      <div className="container mx-auto px-4 md:px-6 max-w-6xl">
+    <div className="min-h-screen bg-white text-gray-900">
+      <div className="container mx-auto px-4 md:px-6 max-w-6xl py-6 md:py-12">
         {/* Header */}
-        <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-gray-800 mb-2 md:mb-4">Boka körning</h1>
-          <p className="text-lg md:text-xl text-gray-600">Välj session, tid och bekräfta din bokning</p>
+        <div className="text-center mb-8 md:mb-12">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200">
+              <CheckCircle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 tracking-tight">
+              Boka körning
+            </h1>
+          </div>
+          <p className="text-lg md:text-xl text-gray-700 font-medium leading-relaxed">Välj session, tid och bekräfta din bokning</p>
         </div>
 
         {/* Progress Steps */}
-        <BookingSteps currentStep={currentStep} steps={steps} />
+        <div className="mb-8 md:mb-12">
+          <BookingSteps currentStep={currentStep} steps={steps} />
+        </div>
 
         {/* Main Content */}
-        <div className="mt-6 md:mt-8">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gray-50 rounded-3xl border border-gray-200 shadow-sm"></div>
+          <div className="relative p-6 md:p-8 min-h-[600px]">
           {currentStep === 1 && <LessonSelection onComplete={handleStepComplete} />}
 
           {currentStep === 2 && bookingData.sessionType?.type === 'lesson' && (
             <TransmissionSelection onComplete={handleStepComplete} onBack={goBack} />
+          )}
+
+          
+
+          {currentStep === 2 && bookingData.sessionType?.type === 'teori' && (
+            <TeoriSessionSelection
+              sessionType={bookingData.sessionType}
+              onComplete={handleStepComplete}
+              onBack={goBack}
+            />
+          )}
+
+          {currentStep === 2 && bookingData.sessionType?.type === 'handledar' && (
+            <HandledarSessionSelection
+              sessionType={bookingData.sessionType}
+              onComplete={handleStepComplete}
+              onBack={goBack}
+            />
           )}
 
           {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'handledar' && (
@@ -414,20 +471,34 @@ const handleBookingComplete = async (paymentData: any) => {
             />
           )}
 
-          {currentStep === 4 && bookingData.sessionType && bookingData.selectedDate && bookingData.selectedTime && (
+          {/* Booking Confirmation Step */}
+          {((currentStep === 3 && (bookingData.sessionType?.type === 'teori' || bookingData.sessionType?.type === 'handledar')) ||
+            (currentStep === 4 && bookingData.sessionType?.type === 'lesson')) && 
+            bookingData.selectedDate && bookingData.selectedTime && (
             <BookingConfirmation
               bookingData={{
-                lessonType: bookingData.sessionType, // Map sessionType to lessonType for compatibility
-                transmissionType: bookingData.transmissionType,
+                lessonType: {
+                  id: bookingData.sessionType?.id || '',
+                  name: bookingData.sessionType?.name || '',
+                  durationMinutes: bookingData.sessionType?.durationMinutes || 0,
+                  price: bookingData.totalPrice || 0,
+                  priceStudent: bookingData.sessionType?.priceStudent,
+                  salePrice: bookingData.sessionType?.salePrice,
+                  type: bookingData.sessionType?.type,
+                  allowsSupervisors: bookingData.sessionType?.allowsSupervisors,
+                  pricePerSupervisor: bookingData.sessionType?.pricePerSupervisor,
+                  maxParticipants: bookingData.sessionType?.maxParticipants
+                },
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,
+                instructor: null,
+                vehicle: null,
                 totalPrice: bookingData.totalPrice,
-                tempBookingId: bookingData.tempBookingId, // Pass the temp booking ID
-                sessionId: bookingData.sessionId, // Pass the specific sessionId for handledar sessions
-                instructor: null, // Add missing required field
-                vehicle: null, // Add missing required field
-                isStudent: (user as any)?.inskriven || false, // Add missing required field
-                isHandledarutbildning: bookingData.sessionType?.type === 'handledar' // Add missing required field
+                isStudent: user?.role === 'student',
+                transmissionType: bookingData.transmissionType,
+                tempBookingId: bookingData.tempBookingId,
+                sessionId: bookingData.sessionId,
+                isHandledarutbildning: bookingData.sessionType?.type === 'handledar'
               }}
               user={user}
               onComplete={handleStepComplete}
@@ -435,14 +506,24 @@ const handleBookingComplete = async (paymentData: any) => {
             />
           )}
 
-          {currentStep === 5 && (
-            <div className="text-center py-12">
-              <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Bokning bekräftad!</h2>
-              <p className="text-gray-600 mb-6">Din körlektion har bokats. Du kommer få en bekräftelse via e-post.</p>
-              <Button 
-                onClick={() => window.location.href = user ? "/dashboard" : "/"} 
-                className="bg-red-600 hover:bg-red-700"
+          {/* Success Step - Dynamic based on lesson type */}
+          {((currentStep === 4 && (bookingData.sessionType?.type === 'teori' || bookingData.sessionType?.type === 'handledar')) ||
+            (currentStep === 5 && bookingData.sessionType?.type === 'lesson')) && (
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-50 border border-green-200 mb-6">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Bokning bekräftad!</h2>
+              <p className="text-gray-700 mb-8 text-lg leading-relaxed font-medium">
+                {bookingData.sessionType?.type === 'teori' 
+                  ? 'Din teorisession har bokats. Du kommer få en bekräftelse via e-post.'
+                  : bookingData.sessionType?.type === 'handledar'
+                    ? 'Din handledarkurs har bokats. Du kommer få en bekräftelse via e-post.'
+                    : 'Din körlektion har bokats. Du kommer få en bekräftelse via e-post.'}
+              </p>
+              <Button
+                onClick={() => window.location.href = user ? "/dashboard" : "/"}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-8 py-3 text-lg font-semibold transition-all duration-200 rounded-lg"
               >
                 {user ? "Gå till Min Sida" : "Gå till startsidan"}
               </Button>
@@ -453,19 +534,19 @@ const handleBookingComplete = async (paymentData: any) => {
         {/* Credit Suggestion Modal */}
         {showCreditSuggestion && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-gray-100">
               <div className="text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-50 border border-green-200 mb-4">
                   <CheckCircle className="h-6 w-6 text-green-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-bold text-gray-900 mb-2 tracking-tight">
                   Du har tillgängliga handledarkurskrediter!
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-700 mb-4 font-medium leading-relaxed">
                   Vi har upptäckt att du har handledarkurskrediter tillgängliga. Vill du använda en av dina krediter istället för att betala?
                 </p>
-                <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-gray-600">
+                <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-200">
+                  <p className="text-sm text-gray-800 font-semibold">
                     <strong>Krediter tillgängliga:</strong> {userCredits.filter(c => c.creditType === 'handledar' && c.creditsRemaining > 0).length}
                   </p>
                 </div>
@@ -477,7 +558,7 @@ const handleBookingComplete = async (paymentData: any) => {
                       // Add logic to use credit for booking
                       handleCreditPayment(bookingData.bookingId || '')
                     }}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200"
                   >
                     Använd kredit
                   </Button>
@@ -488,6 +569,7 @@ const handleBookingComplete = async (paymentData: any) => {
                       setShowSwishDialog(true)
                     }}
                     variant="outline"
+                    className="font-semibold px-4 py-2 rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200"
                   >
                     Betala istället
                   </Button>
@@ -496,6 +578,8 @@ const handleBookingComplete = async (paymentData: any) => {
             </div>
           </div>
         )}
+
+        </div>
 
         <SwishPaymentDialog
           isOpen={showSwishDialog}

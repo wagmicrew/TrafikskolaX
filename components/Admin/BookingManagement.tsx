@@ -1,6 +1,19 @@
+"use client";
+
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { OrbSpinner } from '@/components/ui/orb-loader';
+import { 
+  Select, 
+  SelectTrigger, 
+  SelectContent, 
+  SelectItem, 
+  SelectValue 
+} from '@/components/ui/select';
 
 const BookingManagement: React.FC = memo(() => {
   const { user } = useAuth();
@@ -65,64 +78,76 @@ const BookingManagement: React.FC = memo(() => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-12">
+      <OrbSpinner size="md" />
+    </div>
+  );
 
   return (
-    <div>
-      <h2>Booking Management</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>User</th>
-            <th>Lesson</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Status</th>
-            <th>Payment</th>
-            <th>Price</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bookings.map((booking) => (
-            <tr key={booking.id}>
-              <td>{booking.id}</td>
-              <td>{booking.userName || booking.userEmail}</td>
-              <td>{booking.lessonTypeName}</td>
-              <td>{new Date(booking.scheduledDate).toLocaleDateString()}</td>
-              <td>{booking.scheduledTime}</td>
-              <td>
-                <select 
-                  value={booking.status} 
-                  onChange={(e) => handleUpdateStatus(booking.id, e.target.value)}
-                >
-                  <option value="on_hold">On Hold</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </td>
-              <td>
-                <select 
-                  value={booking.paymentStatus} 
-                  onChange={(e) => handleUpdatePaymentStatus(booking.id, e.target.value)}
-                >
-                  <option value="unpaid">Unpaid</option>
-                  <option value="paid">Paid</option>
-                  <option value="refunded">Refunded</option>
-                </select>
-              </td>
-              <td>{booking.totalPrice} kr</td>
-              <td>
-                <button onClick={() => handleDeleteBooking(booking.id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Card className="shadow-sm border border-gray-200">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold tracking-tight">Bokningshantering</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Användare</TableHead>
+              <TableHead>Lektion</TableHead>
+              <TableHead>Datum</TableHead>
+              <TableHead>Tid</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Betalning</TableHead>
+              <TableHead>Pris</TableHead>
+              <TableHead>Åtgärder</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {bookings.map((booking) => (
+              <TableRow key={booking.id}>
+                <TableCell className="font-mono text-xs">{booking.id}</TableCell>
+                <TableCell>{booking.userName || booking.userEmail}</TableCell>
+                <TableCell>{booking.lessonTypeName}</TableCell>
+                <TableCell>{new Date(booking.scheduledDate).toLocaleDateString()}</TableCell>
+                <TableCell>{booking.scheduledTime}</TableCell>
+                <TableCell>
+                  <Select value={booking.status} onValueChange={(v) => handleUpdateStatus(booking.id, v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Välj status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="on_hold">Väntande</SelectItem>
+                      <SelectItem value="confirmed">Bekräftad</SelectItem>
+                      <SelectItem value="cancelled">Avbokad</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select value={booking.paymentStatus} onValueChange={(v) => handleUpdatePaymentStatus(booking.id, v)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Välj" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unpaid">Obetald</SelectItem>
+                      <SelectItem value="paid">Betald</SelectItem>
+                      <SelectItem value="refunded">Återbetald</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>{booking.totalPrice} kr</TableCell>
+                <TableCell className="space-x-2">
+                  <Button variant="danger" size="sm" onClick={() => handleDeleteBooking(booking.id)}>
+                    Ta bort
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 });
 

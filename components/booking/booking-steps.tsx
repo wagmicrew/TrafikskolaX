@@ -27,7 +27,7 @@ export function BookingSteps({ currentStep, steps }: BookingStepsProps) {
                 <div
                   aria-current={isActive ? 'step' : undefined}
                   aria-label={`${displayStepNumber}. ${step.title}`}
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${isComplete ? 'bg-green-600 text-white' : isActive ? 'bg-red-600 text-white ring-4 ring-red-100' : 'bg-gray-200 text-gray-600'}`}
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${isComplete ? 'bg-green-600 text-white' : isActive ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-gray-200 text-gray-700'}`}
                 >
                   {isComplete ? (
                     <Check className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -35,7 +35,7 @@ export function BookingSteps({ currentStep, steps }: BookingStepsProps) {
                     displayStepNumber
                   )}
                 </div>
-                <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-medium text-center px-1 ${isComplete || isActive ? 'text-gray-800' : 'text-gray-500'}`}>
+                <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-semibold text-center px-1 tracking-tight ${isComplete || isActive ? 'text-gray-900' : 'text-gray-600'}`}>
                   {step.title}
                 </span>
               </div>

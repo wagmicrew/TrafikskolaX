@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock } from "lucide-react"
+import { OrbSpinner } from "@/components/ui/orb-loader"
 
 interface SessionType {
   id: string
-  type: 'lesson' | 'handledar';
+  type: 'lesson' | 'handledar' | 'teori';
   name: string
   description: string | null
   durationMinutes: number
@@ -14,6 +15,9 @@ interface SessionType {
   priceStudent?: number
   salePrice?: number
   isActive: boolean
+  allowsSupervisors?: boolean
+  pricePerSupervisor?: number
+  maxParticipants?: number
 }
 
 interface LessonSelectionProps {
@@ -46,6 +50,23 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         }
       } catch (lessonError) {
         console.error("Error fetching lessons:", lessonError)
+      }
+
+      // Fetch Teori lesson types (public endpoint)
+      try {
+        const teoriResponse = await fetch('/api/teori/lesson-types')
+        if (teoriResponse.ok) {
+          const teoriData = await teoriResponse.json()
+          const teoriLessons = (teoriData.lessonTypes || []).map((lesson: any) => ({
+            ...lesson,
+            type: 'teori' as const,
+            price: parseFloat(lesson.price) || 0,
+            pricePerSupervisor: lesson.pricePerSupervisor ? parseFloat(lesson.pricePerSupervisor) : undefined
+          }))
+          allSessions.push(...teoriLessons);
+        }
+      } catch (teoriError) {
+        console.error("Error fetching teori lessons:", teoriError)
       }
 
       // Fetch handledar sessions (grouped view)
@@ -121,7 +142,9 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <div className="flex justify-center mb-4">
+          <OrbSpinner size="md" />
+        </div>
         <p className="text-gray-600">Laddar lektioner...</p>
       </div>
     )
@@ -140,12 +163,17 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
             key={`${session.type}-${session.id}`}
             className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative ${
               selectedSession?.id === session.id ? "ring-2 ring-red-600 border-red-600 bg-red-50" : "hover:border-red-300"
-            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}`}
+            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : session.type === 'teori' ? 'border-blue-200 bg-blue-50' : ''}`}
             onClick={() => handleSessionSelect(session)}
           >
             {session.type === 'handledar' && (
               <div className="absolute top-2 right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
                 Handledarkurs
+              </div>
+            )}
+            {session.type === 'teori' && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                Teorilektion
               </div>
             )}
             <CardContent className="p-4">
@@ -169,6 +197,9 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                   )}
                   {session.type === 'handledar' && (
                     <div className="text-xs text-orange-600 font-medium">Per deltagare</div>
+                  )}
+                  {session.type === 'teori' && session.maxParticipants && (
+                    <div className="text-xs text-blue-600 font-medium">Max {session.maxParticipants} deltagare</div>
                   )}
                 </div>
                 {session.description && (

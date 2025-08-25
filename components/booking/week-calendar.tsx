@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Clock, Calendar } from "lucide-react"
 import { format, addDays, startOfWeek, addWeeks, isSameDay } from "date-fns"
 import { sv } from "date-fns/locale"
 import { toast } from "react-hot-toast"
+import { OrbSpinner } from "@/components/ui/orb-loader"
 
 interface TimeSlot {
   time: string
@@ -314,7 +315,9 @@ export function WeekCalendar({
               </h4>
               {loading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                  <div className="flex justify-center">
+                    <OrbSpinner size="md" />
+                  </div>
                 </div>
                 ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -329,7 +332,7 @@ export function WeekCalendar({
                       const isDisabled = !slot.clickable
                       let statusBarColor = ""
                       
-                      if (selectedTime === slot.time) {
+                      if (selectedTime === hhmm) {
                         buttonClasses += "bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-lg"
                         statusBarColor = "bg-red-800"
                       } else if (slot.gradient === 'green') {
@@ -365,7 +368,7 @@ export function WeekCalendar({
                           {/* Status text overlay */}
                           <div className="absolute bottom-1 left-0 right-0">
                             <div className={`text-[9px] font-semibold text-center px-1 py-0.5 mx-1 rounded-sm ${
-                              selectedTime === slot.time 
+                              selectedTime === hhmm 
                                 ? 'bg-red-800 text-white' 
                                 : slot.gradient === 'green' 
                                   ? 'bg-green-100 text-green-800' 

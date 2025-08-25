@@ -4,7 +4,7 @@ import { verifyToken } from '@/lib/auth/jwt';
 import { db } from '@/lib/db';
 import { handledarSessions, handledarBookings, supervisorDetails } from '@/lib/db/schema';
 import { eq, and, lt } from 'drizzle-orm';
-import bcrypt from 'bcryptjs';
+import { PersonalDataManager } from '@/lib/utils/personal-data';
 
 export async function POST(
   request: NextRequest,
@@ -25,9 +25,34 @@ export async function POST(
 
     // Validate supervisor data
     for (const supervisor of supervisors) {
-      if (!supervisor.supervisorName || (!supervisor.supervisorEmail && !supervisor.supervisorPhone)) {
-        return NextResponse.json({ 
-          error: 'Each supervisor must have a name and either email or phone' 
+      if (!supervisor.supervisorName?.trim()) {
+        return NextResponse.json({
+          error: 'Alla handledare måste ha ett namn'
+        }, { status: 400 });
+      }
+
+      if (!supervisor.supervisorEmail?.trim()) {
+        return NextResponse.json({
+          error: 'Alla handledare måste ha en e-postadress'
+        }, { status: 400 });
+      }
+
+      if (!supervisor.supervisorPhone?.trim()) {
+        return NextResponse.json({
+          error: 'Alla handledare måste ha ett telefonnummer'
+        }, { status: 400 });
+      }
+
+      if (!supervisor.supervisorPersonalNumber?.trim()) {
+        return NextResponse.json({
+          error: 'Alla handledare måste ha ett personnummer'
+        }, { status: 400 });
+      }
+
+      // Validate personal number format
+      if (!PersonalDataManager.validatePersonalNumber(supervisor.supervisorPersonalNumber)) {
+        return NextResponse.json({
+          error: 'Ogiltigt personnummer format. Använd format: YYYYMMDD-XXXX'
         }, { status: 400 });
       }
     }
@@ -98,21 +123,20 @@ export async function POST(
       const bookingId = booking[0].id;
       bookingIds.push(bookingId);
 
-      // If personal number is provided, encrypt and store it
-      if (supervisor.supervisorPersonalNumber) {
-        const saltRounds = 12;
-        const hashedPersonalNumber = await bcrypt.hash(supervisor.supervisorPersonalNumber, saltRounds);
-        
-        const supervisorDetail = await db.insert(supervisorDetails).values({
-          handledarBookingId: bookingId,
-          supervisorName: supervisor.supervisorName,
-          supervisorEmail: supervisor.supervisorEmail || null,
-          supervisorPhone: supervisor.supervisorPhone || null,
-          supervisorPersonalNumber: hashedPersonalNumber, // Store encrypted version
-        }).returning();
+      // Encrypt and store personal number
+      const encryptedPersonalNumber = await PersonalDataManager.encryptPersonalNumber(
+        supervisor.supervisorPersonalNumber
+      );
 
-        supervisorDetailIds.push(supervisorDetail[0].id);
-      }
+      const supervisorDetail = await db.insert(supervisorDetails).values({
+        handledarBookingId: bookingId,
+        supervisorName: supervisor.supervisorName,
+        supervisorEmail: supervisor.supervisorEmail || null,
+        supervisorPhone: supervisor.supervisorPhone || null,
+        supervisorPersonalNumber: encryptedPersonalNumber, // Store encrypted version
+      }).returning();
+
+      supervisorDetailIds.push(supervisorDetail[0].id);
     }
 
     // Update session participant count
@@ -124,7 +148,11 @@ export async function POST(
       })
       .where(eq(handledarSessions.id, sessionId));
 
-    const totalPrice = Number(sessionData.pricePerParticipant ?? 0) * spotsNeeded;
+    // Pricing logic: First handledare is FREE, additional handledare cost extra
+    const basePrice = Number(sessionData.pricePerParticipant ?? 0);
+    const freeHandledare = 1;
+    const additionalHandledare = Math.max(0, supervisors.length - freeHandledare);
+    const totalPrice = basePrice + (additionalHandledare * basePrice);
 
     return NextResponse.json({
       message: 'Booking successful',

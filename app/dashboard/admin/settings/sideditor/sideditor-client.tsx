@@ -1,7 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { puckConfig } from '@/components/ui/simple-rich-editor';
 
@@ -13,14 +12,9 @@ const Puck = dynamic(() => import('@measured/puck').then(mod => ({ default: mod.
 
 // Import types separately
 import type { Data } from '@measured/puck';
-=======
-import React, { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
-import { createSideEditorConfig } from '@/lib/tinymce-config';
 import {
   Save,
   Eye,
@@ -30,13 +24,7 @@ import {
   Code
 } from 'lucide-react';
 
-<<<<<<< HEAD
 // Page configurations with direct file paths
-=======
-const Editor = dynamic(() => import('@tinymce/tinymce-react').then(m => m.Editor), { ssr: false }) as any;
-
-// Page configurations
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
 const PAGE_CONFIGS = {
   'om-oss': {
     title: 'Om oss',
@@ -55,13 +43,8 @@ const PAGE_CONFIGS = {
   }
 };
 
-<<<<<<< HEAD
-
-
 // TSX generation function
 function generateTSXFromPuckData(data: Data, pageTitle: string): string {
-  const imports = new Set(['React']);
-
   const renderComponent = (item: any): string => {
     const componentConfig = puckConfig.components[item.type as keyof typeof puckConfig.components];
     if (!componentConfig) return '';
@@ -102,25 +85,9 @@ function generateTSXFromPuckData(data: Data, pageTitle: string): string {
           })
           .join(' ');
         return `<${item.type} ${props} />`;
-=======
-// Create side editor configuration with UTF-8 support
-const getSideEditorConfig = (apiKey: string) => createSideEditorConfig(apiKey, async (blobInfo: any) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', blobInfo.blob(), blobInfo.filename());
-
-    const response = await fetch('/api/admin/sideditor/upload-image', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Bilduppladdning misslyckades');
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
     }
   };
 
-<<<<<<< HEAD
   const content = data.content
     .map(renderComponent)
     .join('\n      ');
@@ -162,20 +129,12 @@ async function writePageFile(filePath: string, content: string): Promise<void> {
     console.error('Error writing file:', error);
     throw error;
   }
-=======
-    const data = await response.json();
-    return data.location;
-  } catch (error) {
-    toast.error('Bilduppladdning misslyckades');
-    throw error;
-  }
-});
+}
 
 interface PageContent {
   title: string;
   content: string;
   lastModified?: string;
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
 }
 
 export default function SideditorClient() {
@@ -440,7 +399,6 @@ export default function SideditorClient() {
                   </p>
                 </div>
               ) : (
-<<<<<<< HEAD
                 <div className="space-y-6">
                   {/* Puck Editor */}
                   <div className="border-2 border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl bg-white" style={{ height: '80vh' }}>
@@ -476,16 +434,6 @@ export default function SideditorClient() {
                       </div>
                     </div>
                   )}
-=======
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden shadow-inner">
-                  <Editor
-                    key={tinymceApiKey || 'no-api-key'}
-                    apiKey={tinymceApiKey}
-                    value={editorContent}
-                    onEditorChange={handleEditorChange}
-                    init={getSideEditorConfig(tinymceApiKey)}
-                  />
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
                 </div>
               )}
             </CardContent>

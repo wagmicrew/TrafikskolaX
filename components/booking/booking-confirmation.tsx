@@ -237,8 +237,6 @@ export function BookingConfirmation({
     }
   }
 
-<<<<<<< HEAD
-=======
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -247,13 +245,6 @@ export function BookingConfirmation({
       }
     }
   }, [emailCheckTimeout])
-
-  const isAdminOrTeacher = authUser?.role === 'admin' || authUser?.role === 'teacher'
-  const isStudent = authUser?.role === 'student'
-  const isGuest = !authUser
-  const isHandledarutbildning = bookingData && (bookingData.lessonType.name === 'Handledarutbildning' ||
-                              bookingData.lessonType.name.toLowerCase().includes('handledarutbildning'))
-  const isTeoriSession = bookingData && bookingData.lessonType.type === 'teori'
 
   // Check Qliro availability on component mount
   useEffect(() => {
@@ -305,8 +296,6 @@ export function BookingConfirmation({
       fetchUnpaidBookings()
     }
   }, [isAdminOrTeacher, isStudent])
-
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
   const fetchStudents = async () => {
     try {
       const response = await fetch('/api/admin/students?excludeTemp=true&inskrivenOnly=false')
@@ -357,10 +346,9 @@ export function BookingConfirmation({
   }
 
   const handleSubmit = async () => {
-<<<<<<< HEAD
     setLoading(true)
     setShowLoader(true)
-=======
+    
     // Check capacity error first
     if (capacityError) {
       showNotification('Fel', 'Kan inte boka - otillräcklig kapacitet', 'error')
@@ -398,7 +386,6 @@ export function BookingConfirmation({
 
     // Check if admin has marked as already paid - if so, create booking directly for student
     if (isAdminOrTeacher && alreadyPaid) {
-      setLoading(true)
       try {
         // Use the appropriate API endpoint based on user role
         const endpoint = user?.role === 'admin' ? '/api/admin/bookings/create-for-student' : '/api/teacher/bookings/create-for-student';
@@ -528,17 +515,17 @@ export function BookingConfirmation({
       bookingPayload.personalId = supervisorSSN.trim()
     }
 
-  // Log selected payment method and booking data for troubleshooting (behind site debug flag)
-  try {
-    fetch('/api/public/site-settings').then(r=>r.json()).then(s=>{
-      if (s?.debug_extended_logs) {
-        console.debug('[BookingCheckout] Selected payment method:', selectedPaymentMethod)
-        console.debug('[BookingCheckout] Booking data tempBookingId:', bookingData.tempBookingId)
-        console.debug('[BookingCheckout] Booking data id:', bookingData.id)
-        console.debug('[BookingCheckout] Full booking data:', bookingData)
-      }
-    }).catch(()=>{})
-  } catch {}
+    // Log selected payment method and booking data for troubleshooting (behind site debug flag)
+    try {
+      fetch('/api/public/site-settings').then(r=>r.json()).then(s=>{
+        if (s?.debug_extended_logs) {
+          console.debug('[BookingCheckout] Selected payment method:', selectedPaymentMethod)
+          console.debug('[BookingCheckout] Booking data tempBookingId:', bookingData.tempBookingId)
+          console.debug('[BookingCheckout] Booking data id:', bookingData.id)
+          console.debug('[BookingCheckout] Full booking data:', bookingData)
+        }
+      }).catch(()=>{})
+    } catch {}
 
     // Handle Swish payment
     if (selectedPaymentMethod === 'swish') {
@@ -549,8 +536,6 @@ export function BookingConfirmation({
     // Handle Qliro payment
     if (selectedPaymentMethod === 'qliro') {
       try {
-        setLoading(true)
-        
         console.log('[BOOKING DEBUG] Starting Qliro payment for booking:', bookingData.id || bookingData.tempBookingId);
         
         // Step 1 & 2: Create order via unified API (following Qliro docs)
@@ -598,7 +583,6 @@ export function BookingConfirmation({
       }
       return
     }
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
     
     try {
       if (capacityError) {
@@ -648,9 +632,6 @@ export function BookingConfirmation({
     }
   }
 
-<<<<<<< HEAD
-  // Effects
-=======
   const isHandledarSession = bookingData.lessonType.type === 'handledar' || bookingData.lessonType.type === 'teori'
 
   // Function to mask personnummer
@@ -679,8 +660,7 @@ export function BookingConfirmation({
   // Calculate final price including handledare
   const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor);
 
-  // Validate capacity when supervisor count changes
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+  // Effects
   useEffect(() => {
     return () => {
       if (emailCheckTimeout) {
@@ -832,40 +812,21 @@ export function BookingConfirmation({
               </div>
             )}
 
-<<<<<<< HEAD
             {/* Supervisor Selection for lessons that allow supervisors */}
-            {allowsSupervisors && !isHandledarSession && (
-              <div className="bg-green-50 p-6 rounded-xl mb-6 border border-green-100">
+            {allowsSupervisors && (
+              <div className="bg-blue-50 p-6 rounded-xl mb-6 border border-blue-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Handledare</h3>
                 <p className="text-sm text-gray-700 mb-4 font-medium">
-                  Denna lektion tillåter handledare. Välj antal handledare som ska delta.
+                  {isHandledarSession
+                    ? `Du kan lägga till ytterligare handledare för ${pricePerSupervisor} kr per person utöver grundpriset.`
+                    : `Du kan lägga till handledare för ${pricePerSupervisor} kr per person.`
+                  }
                 </p>
                 
                 <div className="flex items-center space-x-4 mb-4">
                   <Label className="text-sm font-medium text-gray-700">Antal handledare:</Label>
                   <div className="flex items-center space-x-2">
                     <Button
-=======
-            {/* Handledare Section */}
-            {allowsSupervisors && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                  Handledare information
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {isHandledarSession
-                    ? `Du kan lägga till ytterligare handledare för ${pricePerSupervisor} kr per person utöver grundpriset.`
-                    : `Du kan lägga till handledare för ${pricePerSupervisor} kr per person.`
-                  }
-                </p>
-
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-sm font-medium text-gray-700">
-                    Antal handledare:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <button
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
                       type="button"
                       variant="outline"
                       size="sm"
@@ -895,7 +856,6 @@ export function BookingConfirmation({
 
                 {supervisorCount > 0 && (
                   <div className="space-y-4">
-<<<<<<< HEAD
                     <p className="text-sm text-gray-700 font-medium">
                       Fyll i information för alla handledare:
                     </p>
@@ -903,22 +863,10 @@ export function BookingConfirmation({
                       <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
                         <h4 className="font-medium text-gray-900 mb-3">Handledare {index + 1}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-sm font-medium text-gray-700">Namn *</Label>
-                            <Input
-=======
-                    {Array.from({ length: supervisorCount }, (_, index) => (
-                      <div key={index} className="p-4 bg-white rounded-lg border border-gray-200">
-                        <h4 className="text-md font-medium text-gray-800 mb-3">
-                          Handledare {index + 1}
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Personnummer */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Personnummer (ÅÅÅÅMMDD-XXXX) *
-                            </label>
-                            <input
+                            <Label className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX) *</Label>
+                            <Input
                               type="text"
                               value={supervisorDetails[index]?.personnummer || ''}
                               onChange={(e) => {
@@ -937,9 +885,8 @@ export function BookingConfirmation({
                                 };
                                 setSupervisorDetails(newDetails);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="ÅÅÅÅMMDD-XXXX"
-                              required
+                              className="mt-1"
                             />
                             {supervisorDetails[index]?.personnummer && (
                               <p className="text-xs text-gray-500 mt-1">
@@ -950,45 +897,27 @@ export function BookingConfirmation({
 
                           {/* Namn */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Namn *
-                            </label>
-                            <input
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+                            <Label className="text-sm font-medium text-gray-700">Namn *</Label>
+                            <Input
                               type="text"
                               value={supervisorDetails[index]?.name || ''}
                               onChange={(e) => {
                                 const newDetails = [...supervisorDetails];
-<<<<<<< HEAD
-                                newDetails[index] = { ...newDetails[index], name: e.target.value, phone: newDetails[index]?.phone || '' };
-                                setSupervisorDetails(newDetails);
-                              }}
-                              placeholder="För- och efternamn"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm font-medium text-gray-700">Telefon *</Label>
-                            <Input
-=======
                                 newDetails[index] = {
                                   ...newDetails[index],
                                   name: e.target.value
                                 };
                                 setSupervisorDetails(newDetails);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ange namn"
-                              required
+                              placeholder="För- och efternamn"
+                              className="mt-1"
                             />
                           </div>
 
                           {/* E-post */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              E-post *
-                            </label>
-                            <input
+                            <Label className="text-sm font-medium text-gray-700">E-post *</Label>
+                            <Input
                               type="email"
                               value={supervisorDetails[index]?.email || ''}
                               onChange={(e) => {
@@ -999,40 +928,27 @@ export function BookingConfirmation({
                                 };
                                 setSupervisorDetails(newDetails);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="johaswe@gmail.com"
-                              required
+                              placeholder="exempel@email.com"
+                              className="mt-1"
                             />
                           </div>
 
                           {/* Telefon */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Telefon *
-                            </label>
-                            <input
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+                            <Label className="text-sm font-medium text-gray-700">Telefon *</Label>
+                            <Input
                               type="tel"
                               value={supervisorDetails[index]?.phone || ''}
                               onChange={(e) => {
                                 const newDetails = [...supervisorDetails];
-<<<<<<< HEAD
-                                newDetails[index] = { ...newDetails[index], name: newDetails[index]?.name || '', phone: e.target.value };
-                                setSupervisorDetails(newDetails);
-                              }}
-                              placeholder="070-123 45 67"
-                              className="mt-1"
-=======
                                 newDetails[index] = {
                                   ...newDetails[index],
                                   phone: e.target.value
                                 };
                                 setSupervisorDetails(newDetails);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="0707123123"
-                              required
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+                              placeholder="070-123 45 67"
+                              className="mt-1"
                             />
                           </div>
                         </div>
@@ -1045,21 +961,15 @@ export function BookingConfirmation({
 
             {/* Guest Information for non-logged-in users */}
             {!authUser && !isAdminOrTeacher && !isHandledarSession && (
-<<<<<<< HEAD
               <div className="bg-amber-50 p-6 rounded-xl mb-6 border border-amber-100">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Dina kontaktuppgifter</h3>
-                <p className="text-sm text-gray-700 mb-5 font-medium">
-=======
-              <div className="bg-yellow-50 p-4 rounded-lg mb-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-800">Dina kontaktuppgifter</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Dina kontaktuppgifter</h3>
                   <div className="flex gap-2 text-sm">
                     <button onClick={() => window.location.href = '/registrering'} className="px-3 py-1 rounded border border-purple-300 text-purple-700 bg-white hover:bg-purple-50">Skapa elev</button>
                     <button onClick={() => window.location.href = '/login'} className="px-3 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">Logga in</button>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+                <p className="text-sm text-gray-700 mb-5 font-medium">
                   Vi behöver dina kontaktuppgifter för att skapa ett konto och skicka bokningsbekräftelse.
                 </p>
                 <div className="space-y-4">
@@ -1124,8 +1034,6 @@ export function BookingConfirmation({
                     />
                   </div>
                 </div>
-<<<<<<< HEAD
-=======
                 <div className="mt-4 p-3 bg-blue-100 rounded-md">
                   <p className="text-sm text-blue-800">
                     <strong>OBS!</strong> Ett konto kommer att skapas med dessa uppgifter. 

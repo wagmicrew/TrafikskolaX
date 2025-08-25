@@ -8,11 +8,8 @@ import { LessonSelection } from "@/components/booking/lesson-selection"
 import { TransmissionSelection } from "@/components/booking/transmission-selection"
 import { WeekCalendar } from "@/components/booking/week-calendar"
 import { HandledarSessionSelection } from "@/components/booking/handledar-session-selection"
-<<<<<<< HEAD
 import { TeoriSessionSelection } from "@/components/booking/teori-session-selection"
-=======
 import { SessionSelection } from "@/components/booking/session-selection"
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { useAuth } from "@/hooks/use-auth"
 import { SwishPaymentDialog } from "@/components/booking/swish-payment-dialog"
@@ -438,7 +435,7 @@ const handleBookingComplete = async (paymentData: any) => {
           <p className="text-gray-600 font-medium">Förbereder din bokningsupplevelse...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -480,9 +477,6 @@ const handleBookingComplete = async (paymentData: any) => {
             <TransmissionSelection onComplete={handleStepComplete} onBack={goBack} />
           )}
 
-<<<<<<< HEAD
-          
-
           {currentStep === 2 && bookingData.sessionType?.type === 'teori' && (
             <TeoriSessionSelection
               sessionType={bookingData.sessionType}
@@ -498,17 +492,6 @@ const handleBookingComplete = async (paymentData: any) => {
               onBack={goBack}
             />
           )}
-
-          {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'handledar' && (
-            <HandledarSessionSelection
-              sessionType={bookingData.sessionType}
-              onComplete={handleStepComplete}
-              onBack={goBack}
-            />
-          )}
-=======
-          {/* Migrerad: gamla handledare använder nu SessionSelection (steg 2) och hoppar inte hit */}
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
 
           {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'lesson' && (
             <WeekCalendar
@@ -526,44 +509,19 @@ const handleBookingComplete = async (paymentData: any) => {
             bookingData.selectedDate && bookingData.selectedTime && (
             <BookingConfirmation
               bookingData={{
-<<<<<<< HEAD
-                lessonType: {
-                  id: bookingData.sessionType?.id || '',
-                  name: bookingData.sessionType?.name || '',
-                  durationMinutes: bookingData.sessionType?.durationMinutes || 0,
-                  price: bookingData.totalPrice || 0,
-                  priceStudent: bookingData.sessionType?.priceStudent,
-                  salePrice: bookingData.sessionType?.salePrice,
-                  type: bookingData.sessionType?.type,
-                  allowsSupervisors: bookingData.sessionType?.allowsSupervisors,
-                  pricePerSupervisor: bookingData.sessionType?.pricePerSupervisor,
-                  maxParticipants: bookingData.sessionType?.maxParticipants
-                },
-=======
                 lessonType: bookingData.sessionType, // Map sessionType to lessonType for compatibility
                 selectedSession: bookingData.selectedSession, // Add unified session data
-                transmissionType: bookingData.transmissionType,
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,
                 instructor: null,
                 vehicle: null,
                 totalPrice: bookingData.totalPrice,
-<<<<<<< HEAD
-                isStudent: user?.role === 'student',
                 transmissionType: bookingData.transmissionType,
-                tempBookingId: bookingData.tempBookingId,
-                sessionId: bookingData.sessionId,
-                isHandledarutbildning: bookingData.sessionType?.type === 'handledar'
-=======
                 tempBookingId: bookingData.tempBookingId, // Pass the temp booking ID
                 sessionId: bookingData.sessionId, // Pass the specific sessionId for handledar sessions
-                instructor: null, // Add missing required field
-                vehicle: null, // Add missing required field
                 isStudent: (user as any)?.inskriven || false, // Add missing required field
                 isHandledarutbildning: bookingData.sessionType?.type === 'handledar', // Add missing required field
                 isUnifiedSession: bookingData.isUnifiedSession // Add unified session flag
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
               }}
               user={user}
               onComplete={handleStepComplete}
@@ -643,8 +601,6 @@ const handleBookingComplete = async (paymentData: any) => {
             </div>
           </div>
         )}
-
-        </div>
 
         <SwishPaymentDialog
           isOpen={showSwishDialog}

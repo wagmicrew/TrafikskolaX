@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-<<<<<<< HEAD
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, supervisorDetails, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
-=======
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots, extraSlots, bookingSupervisorDetails } from '@/lib/db/schema';
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, bookingSupervisorDetails, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';

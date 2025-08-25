@@ -53,28 +53,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         console.error("Error fetching legacy lessons:", lessonError)
       }
 
-<<<<<<< HEAD
-      // Fetch Teori lesson types (public endpoint)
-      try {
-        const teoriResponse = await fetch('/api/teori/lesson-types')
-        if (teoriResponse.ok) {
-          const teoriData = await teoriResponse.json()
-          const teoriLessons = (teoriData.lessonTypes || []).map((lesson: any) => ({
-            ...lesson,
-            type: 'teori' as const,
-            price: parseFloat(lesson.price) || 0,
-            pricePerSupervisor: lesson.pricePerSupervisor ? parseFloat(lesson.pricePerSupervisor) : undefined
-          }))
-          allSessions.push(...teoriLessons);
-        }
-      } catch (teoriError) {
-        console.error("Error fetching teori lessons:", teoriError)
-      }
-
-      // Fetch handledar sessions (grouped view)
-=======
       // Fetch new session types (including handledar sessions)
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
       try {
         const sessionTypesResponse = await fetch('/api/session-types')
         if (sessionTypesResponse.ok) {
@@ -191,12 +170,8 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
             key={`${session.type}-${session.id}`}
             className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative ${
               selectedSession?.id === session.id ? "ring-2 ring-red-600 border-red-600 bg-red-50" : "hover:border-red-300"
-<<<<<<< HEAD
-            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : session.type === 'teori' ? 'border-blue-200 bg-blue-50' : ''}`}
-=======
             } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}
             ${session.type === 'teori' ? 'border-blue-200 bg-blue-50' : ''}`}
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
             onClick={() => handleSessionSelect(session)}
           >
             {session.type === 'teori' && (
@@ -231,13 +206,11 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                   {session.type === 'handledar' && (
                     <div className="text-xs text-orange-600 font-medium">Per deltagare</div>
                   )}
-<<<<<<< HEAD
-                  {session.type === 'teori' && session.maxParticipants && (
-                    <div className="text-xs text-blue-600 font-medium">Max {session.maxParticipants} deltagare</div>
-=======
                   {session.type === 'teori' && session.availableSessions && (
                     <div className="text-xs text-blue-600 font-medium">{session.availableSessions} sessioner tillgängliga</div>
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
+                  )}
+                  {session.type === 'teori' && session.maxParticipants && !session.availableSessions && (
+                    <div className="text-xs text-blue-600 font-medium">Max {session.maxParticipants} deltagare</div>
                   )}
                 </div>
                 {session.description && (

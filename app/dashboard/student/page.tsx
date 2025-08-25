@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StudentDashboardClient from './student-dashboard-client';
+import { OrbSpinner } from '@/components/ui/orb-loader';
+import { TrueFocusText } from '@/components/ui/true-focus-text';
 
 export default function Studentsidan() {
   const { user, isLoading } = useAuth();

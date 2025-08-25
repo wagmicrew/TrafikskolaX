@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  FaCheckCircle,
-  FaClock,
+import { 
+  FaCheckCircle, 
+  FaClock, 
   FaCoins,
   FaStar,
   FaBookOpen,
@@ -210,7 +210,7 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
         <div className="flex items-center">
           <FaGraduationCap className="text-blue-600 text-2xl mr-3" />
           <span className="text-xl font-bold text-gray-900 dark:text-white">Studentsidan</span>
-        </div>
+      </div>
 
         <div className="flex items-center gap-3">
           <FlowbiteButton color="light" size="sm" as={Link} href="/dashboard/student">
@@ -321,7 +321,7 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
               disabled={isRefreshing}
               className="flex items-center gap-2"
             >
-              {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
+                {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
             </FlowbiteButton>
           </div>
 
@@ -332,7 +332,7 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                 <p className="text-sm text-gray-600 dark:text-gray-400">Hantera kommande och tidigare lektioner</p>
               </div>
 
-              <FlowbiteTabs aria-label="Bookings tabs" style="underline">
+              <FlowbiteTabs aria-label="Bookings tabs">
                 <FlowbiteTabs.Item active={activeTab === 'upcoming'} title="Kommande">
                   {upcomingBookings.length > 0 ? (
                     <div className="mt-4">
@@ -378,16 +378,16 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                       {/* Show full BookingsTable if more than 5 bookings */}
                       {upcomingBookings.length > 5 && (
                         <div className="mt-4">
-                          <BookingsTable
-                            bookings={upcomingBookings}
-                            userRole={user.role}
-                            onRefresh={refreshBookings}
-                            compact={true}
-                          />
+                    <BookingsTable 
+                      bookings={upcomingBookings} 
+                      userRole={user.role} 
+                      onRefresh={refreshBookings}
+                      compact={true}
+                    />
                         </div>
                       )}
-                    </div>
-                  ) : (
+                        </div>
+                      ) : (
                     <div className="text-center py-8">
                       <FaBookOpen className="mx-auto h-12 w-12 text-gray-400" />
                       <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Inga kommande lektioner</h3>
@@ -398,9 +398,9 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                         <div className="mt-6">
                           <FlowbiteButton
                             color="blue"
-                            onClick={() => { setOpeningBooking(true); router.push('/boka-korning') }}
-                          >
-                            Boka lektion nu
+                          onClick={() => { setOpeningBooking(true); router.push('/boka-korning') }}
+                        >
+                          Boka lektion nu
                           </FlowbiteButton>
                         </div>
                       )}
@@ -411,12 +411,12 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
                 <FlowbiteTabs.Item active={activeTab === 'past'} title="Tidigare">
                   {pastBookings.length > 0 ? (
                     <div className="mt-4">
-                      <BookingsTable
-                        bookings={pastBookings}
-                        userRole={user.role}
-                        onRefresh={refreshBookings}
-                        compact={true}
-                      />
+                    <BookingsTable 
+                      bookings={pastBookings} 
+                      userRole={user.role}
+                      onRefresh={refreshBookings}
+                      compact={true}
+                    />
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -447,68 +447,68 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
+              <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
                     Krediter
                   </h4>
-                  {credits.length > 0 ? (
-                    <div className="space-y-3">
-                      {credits.map((credit: any) => (
+                {credits.length > 0 ? (
+                  <div className="space-y-3">
+                    {credits.map((credit: any) => (
                         <FlowbiteCard key={credit.id} className="border-l-4 border-l-purple-500">
                           <div className="flex justify-between items-center p-3">
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
-                            </span>
+                          {credit.lessonTypeName === null ? 'Handledarutbildning' : credit.lessonTypeName}
+                        </span>
                             <FlowbiteBadge color="purple" className="font-semibold">
                               {credit.creditsRemaining || credit.remaining}
                             </FlowbiteBadge>
-                          </div>
+                      </div>
                         </FlowbiteCard>
-                      ))}
-                    </div>
-                  ) : (
+                    ))}
+                  </div>
+                ) : (
                     <FlowbiteAlert color="gray" className="text-center">
                       <span className="font-medium">Inga krediter tillgängliga</span>
                     </FlowbiteAlert>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <div>
+              <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
                     Aktiva paket
                   </h4>
-                  {userPackages.length > 0 ? (
-                    <div className="space-y-3">
-                      {userPackages.map((pkg) => (
+                {userPackages.length > 0 ? (
+                  <div className="space-y-3">
+                    {userPackages.map((pkg) => (
                         <FlowbiteCard key={pkg.id} className="border-l-4 border-l-blue-500">
                           <div className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div>
+                        <div className="flex items-center justify-between">
+                          <div>
                                 <div className="font-semibold text-gray-900 dark:text-white">
                                   {pkg.name || 'Paket'}
                                 </div>
-                                {pkg.purchaseDate && (
+                            {pkg.purchaseDate && (
                                   <div className="text-xs text-gray-500 dark:text-gray-400">
                                     Köpt: {new Date(pkg.purchaseDate).toLocaleDateString('sv-SE')}
                                   </div>
-                                )}
-                              </div>
-                              {typeof pkg.pricePaid !== 'undefined' && (
+                            )}
+                          </div>
+                          {typeof pkg.pricePaid !== 'undefined' && (
                                 <div className="text-sm font-medium text-gray-900 dark:text-white">
                                   {Number(pkg.pricePaid).toLocaleString('sv-SE')} kr
                                 </div>
-                              )}
-                            </div>
-                          </div>
+                          )}
+                        </div>
+                      </div>
                         </FlowbiteCard>
-                      ))}
-                    </div>
-                  ) : (
+                    ))}
+                  </div>
+                ) : (
                     <FlowbiteAlert color="gray" className="text-center">
                       <span className="font-medium">Inga aktiva paket</span>
                     </FlowbiteAlert>
                   )}
-                </div>
+                  </div>
               </div>
             </div>
           </FlowbiteCard>

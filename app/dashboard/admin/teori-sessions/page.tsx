@@ -1,13 +1,5 @@
 "use client";
 
-<<<<<<< HEAD
-import { TeoriSessionsClient } from './teori-sessions-client';
-
-export default function TeoriSessionsPage() {
-  return <TeoriSessionsClient />;
-}
-/*
-=======
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -271,7 +263,6 @@ export default function UnifiedSessionsPage() {
       const response = await fetch(url, {
         method,
         headers,
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
         body: JSON.stringify({
           sessionTypeId: formData.sessionTypeId,
           title: formData.title,
@@ -850,14 +841,10 @@ export default function UnifiedSessionsPage() {
                   </div>
                 </div>
               )}
-        </div>
-<<<<<<< HEAD
-      )/*}
-=======
+            </div>
           </DialogContent>
         </Dialog>
       )}
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
     </div>
   );
-}*/
+}

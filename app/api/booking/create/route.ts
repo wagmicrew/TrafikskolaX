@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+<<<<<<< HEAD
 import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, supervisorDetails, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
+=======
+import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, siteSettings, teacherAvailability, blockedSlots, extraSlots, bookingSupervisorDetails } from '@/lib/db/schema';
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';
@@ -12,6 +16,21 @@ import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 import { normalizeDateKey } from '@/lib/utils/date';
+import { bookingInvoiceService } from '@/lib/services/booking-invoice-service';
+import crypto from 'crypto';
+
+// Encryption function for personal IDs
+function encryptPersonalId(personalId: string): string {
+  const algorithm = 'aes-256-gcm';
+  const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long'; // Should be 32 characters
+  const iv = crypto.randomBytes(16);
+
+  const cipher = crypto.createCipher(algorithm, key);
+  let encrypted = cipher.update(personalId, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return encrypted;
+}
 
 // Helper function to get SendGrid API key from database
 async function getSendGridApiKey(): Promise<string> {
@@ -62,12 +81,40 @@ export async function POST(request: NextRequest) {
       guestName,
       guestEmail,
       guestPhone,
+      // Supervisor fields for handledar sessions
+      supervisorCount,
+      supervisorDetails,
     } = body;
 
     // Validate required fields - different validation for handledar vs regular lessons
     if (sessionType === 'handledar') {
       if (!sessionId || !scheduledDate || !startTime || !durationMinutes || !totalPrice) {
         return NextResponse.json({ error: 'Obligatoriska fält saknas för handledarutbildning' }, { status: 400 });
+      }
+
+      // Validate supervisor details for handledar sessions
+      if (supervisorCount > 0 && (!supervisorDetails || supervisorDetails.length < supervisorCount)) {
+        return NextResponse.json({ error: 'Handledarinformation saknas för alla handledare' }, { status: 400 });
+      }
+
+      // Validate each supervisor's information
+      if (supervisorDetails && supervisorDetails.length > 0) {
+        for (let i = 0; i < Math.min(supervisorDetails.length, supervisorCount); i++) {
+          const supervisor = supervisorDetails[i];
+          if (!supervisor.name || !supervisor.email || !supervisor.phone || !supervisor.personnummer) {
+            return NextResponse.json({
+              error: `Handledare ${i + 1} saknar obligatorisk information (namn, e-post, telefon eller personnummer)`
+            }, { status: 400 });
+          }
+
+          // Validate personnummer format (should be 12 digits)
+          const cleanPersonnummer = supervisor.personnummer.replace(/-/g, '');
+          if (cleanPersonnummer.length !== 12) {
+            return NextResponse.json({
+              error: `Handledare ${i + 1} har ogiltigt personnummer (måste vara 12 siffror)`
+            }, { status: 400 });
+          }
+        }
       }
     } else {
       if (!sessionId || !scheduledDate || !startTime || !endTime || !durationMinutes || !totalPrice) {
@@ -352,6 +399,26 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
+        // Process supervisor details for handledar sessions
+        if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
+          const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+            bookingId: booking.id,
+            supervisorName: supervisor.name,
+            supervisorEmail: supervisor.email,
+            supervisorPhone: supervisor.phone,
+            supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+          }));
+
+          // Insert supervisor details into the database
+          try {
+            await db.insert(bookingSupervisorDetails).values(supervisorInserts);
+            console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+          } catch (error) {
+            console.error('Error inserting supervisor details:', error);
+            // Continue with booking creation even if supervisor details fail
+          }
+        }
+
         // Send notification to the student
         const studentUser = await db.select().from(users).where(eq(users.id, userId!));
         if (studentUser.length > 0) {
@@ -617,6 +684,24 @@ export async function POST(request: NextRequest) {
             })
             .returning();
 
+          // Process supervisor details for handledar sessions
+          if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
+            const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+              bookingId: booking.id,
+              supervisorName: supervisor.name,
+              supervisorEmail: supervisor.email,
+              supervisorPhone: supervisor.phone,
+              supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+            }));
+
+            try {
+              await db.insert(bookingSupervisorDetails).values(supervisorInserts);
+              console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+            } catch (error) {
+              console.error('Error inserting supervisor details:', error);
+            }
+          }
+
           // Send email notification
            const userEmail = isGuestBooking ? guestEmail : (userId ? (await db.select().from(users).where(eq(users.id, userId!)))[0]?.email : null);
           if (userEmail) {
@@ -660,6 +745,24 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
+        // Process supervisor details for handledar sessions
+        if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
+          const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+            bookingId: booking.id,
+            supervisorName: supervisor.name,
+            supervisorEmail: supervisor.email,
+            supervisorPhone: supervisor.phone,
+            supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+          }));
+
+          try {
+            await db.insert(bookingSupervisorDetails).values(supervisorInserts);
+            console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+          } catch (error) {
+            console.error('Error inserting supervisor details:', error);
+          }
+        }
+
         // For admin bookings marked as already paid, update status immediately
         if (alreadyPaid && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
           await db
@@ -683,11 +786,37 @@ export async function POST(request: NextRequest) {
           } else if (isGuestBooking && guestEmail) {
             await sendBookingNotification(guestEmail, booking, true);
           }
+
+          // Create invoice marked as paid
+          try {
+            await bookingInvoiceService.createBookingInvoice({
+              id: booking.id,
+              studentId: booking.userId,
+              bookingDate: new Date(booking.scheduledDate),
+              totalPrice: booking.totalPrice,
+              status: booking.status
+            }, (guestEmail as string) || undefined);
+          } catch (e) {
+            console.error('Failed to create invoice for admin-paid booking:', e);
+          }
           
           return NextResponse.json({ 
             booking,
             message: 'Booking confirmed and marked as paid.'
           });
+        }
+
+        // Create invoice for non-credits flow (pending)
+        try {
+          await bookingInvoiceService.createBookingInvoice({
+            id: booking.id,
+            studentId: booking.userId,
+            bookingDate: new Date(booking.scheduledDate),
+            totalPrice: booking.totalPrice,
+            status: booking.status
+          }, (guestEmail as string) || undefined);
+        } catch (e) {
+          console.error('Failed to create invoice for booking:', e);
         }
 
         // For Qliro payment method, create or reuse checkout session (idempotent)

@@ -1,14 +1,26 @@
-'use client';
+"use client";
 
+<<<<<<< HEAD
 import { useState, useEffect, useCallback, useRef } from 'react';
+=======
+import { useState, useEffect, useCallback, useMemo } from 'react';
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import toast from 'react-hot-toast';
+<<<<<<< HEAD
 import { Loader2, Save, Mail, AlertCircle, Eye, Pencil, Copy, Info, Zap, FileText, CheckCircle, Edit3, Code } from 'lucide-react';
 import { OrbSpinner } from '@/components/ui/orb-loader';
 import { SimpleRichEditor, SimpleRichEditorRef } from '@/components/ui/simple-rich-editor';
+=======
+import { Loader2, Save, Mail, AlertCircle, Eye, Pencil, Copy, Info, Zap, Image, Upload } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { SimpleEmailPreview } from './SimpleEmailPreview';
+import { TriggerFlowPopup } from './TriggerFlowPopup';
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { TRIGGER_DEFINITIONS, getTriggerById, type TriggerDefinition } from '@/lib/email/trigger-definitions';
+import { createEmailTemplateConfig, type TinyMCEConfig } from '@/lib/tinymce-config';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +28,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+const Editor = dynamic(() => import('@tinymce/tinymce-react').then(m => m.Editor), { ssr: false }) as any;
 
 // Schema for form validation
 const templateFormSchema = z.object({
@@ -82,9 +96,98 @@ export default function EmailTemplateBuilder() {
     }
   });
 
+<<<<<<< HEAD
   // Load templates on component mount
   useEffect(() => {
     loadTemplates();
+=======
+  const { watch } = form;
+  const watchHtmlContent = watch('htmlContent');
+  const watchSubject = watch('subject');
+  const watchTriggerType = watch('triggerType');
+  const watchReceivers = watch('receivers');
+
+  // Define preview handler BEFORE effects that depend on it to avoid TDZ issues
+  const handlePreview = useCallback(async () => {
+    if (!watchHtmlContent || !watchSubject) return;
+
+    setIsPreviewLoading(true);
+    try {
+      const response = await fetch('/api/admin/email-templates/preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          templateId: form.getValues('id'),
+          htmlContent: watchHtmlContent,
+          subject: watchSubject,
+          testData: {
+            // Add any test data specific to the trigger type
+            triggerType: watchTriggerType,
+            receivers: watchReceivers,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate preview');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setPreviewContent(data.preview);
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      toast.error('Kunde inte generera förhandsvisning');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  }, [watchHtmlContent, watchSubject, watchTriggerType, watchReceivers, form]);
+
+  // Insert a variable token into the HTML content (append at the end)
+  const insertVariable = useCallback((token: string) => {
+    const current = form.getValues('htmlContent') || '';
+    const space = current && !current.endsWith(' ') ? ' ' : '';
+    form.setValue('htmlContent', `${current}${space}${token}`, { shouldDirty: true });
+    toast.success('Variabel insatt');
+  }, [form]);
+
+  // Update trigger info when trigger type changes
+  useEffect(() => {
+    if (watchTriggerType) {
+      const triggerInfo = getTriggerById(watchTriggerType as any);
+      setSelectedTriggerInfo(triggerInfo || null);
+
+      // Auto-populate default receivers if form is new
+      if (triggerInfo && !form.getValues('id')) {
+        form.setValue('receivers', triggerInfo.defaultReceivers);
+      }
+    }
+  }, [watchTriggerType]);
+
+  // Fetch TinyMCE API key from settings
+  const fetchTinymceApiKey = useCallback(async () => {
+    setIsApiKeyLoading(true);
+    try {
+      const response = await fetch('/api/admin/settings');
+      if (response.ok) {
+        const data = await response.json();
+        const apiKey = data.settings?.tinymce_api_key || 'ctrftbh9mzgkawsuuql8861wbce1ubk5ptt4q775x8l4m4k6';
+        console.log('Fetched TinyMCE API key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'none');
+        setTinymceApiKey(apiKey);
+      } else {
+        console.error('Failed to fetch settings:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching TinyMCE API key:', error);
+      // Use default API key as fallback
+      setTinymceApiKey('ctrftbh9mzgkawsuuql8861wbce1ubk5ptt4q775x8l4m4k6');
+    } finally {
+      setIsApiKeyLoading(false);
+    }
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
   }, []);
 
   const loadTemplates = async () => {
@@ -103,6 +206,85 @@ export default function EmailTemplateBuilder() {
     } finally {
       setIsLoading(false);
     }
+<<<<<<< HEAD
+=======
+  }, [activeTab, watchHtmlContent, watchSubject, handlePreview]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'preview' && !previewContent) {
+      handlePreview();
+    }
+  };
+
+  // Handle reset to standard templates
+  const handleReset = useCallback(async () => {
+    const response = await fetch('/api/admin/email-templates/seed-reminders', {
+      method: 'POST'
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Kunde inte återställa mallar');
+    }
+
+    // Reload templates after reset
+    const templatesResponse = await fetch('/api/admin/email-templates');
+    let templatesData: any | undefined;
+    if (templatesResponse.ok) {
+      templatesData = await templatesResponse.json();
+      setTemplates(templatesData.templates);
+    }
+
+    // Clear current form and reload if template was selected
+    if (selectedTemplate && templatesData?.templates) {
+      const updatedTemplate = templatesData.templates.find((t: any) => t.id === selectedTemplate);
+      if (updatedTemplate) {
+        // Load the updated template
+        const templateResponse = await fetch(`/api/admin/email-templates/${selectedTemplate}`);
+        if (templateResponse.ok) {
+          const templateData = await templateResponse.json();
+          form.reset(templateData);
+          // Refresh preview if we're on preview tab
+          if (activeTab === 'preview') {
+            setTimeout(() => handlePreview(), 100);
+          }
+        }
+      }
+    }
+  }, [selectedTemplate, activeTab, handlePreview, form]);
+
+  // Handle template copying
+  const handleCopyTemplate = useCallback(async () => {
+    const currentValues = form.getValues();
+    if (!currentValues.subject || !currentValues.htmlContent) {
+      toast.error('Ingen mall att kopiera');
+      return;
+    }
+
+    // Create copy with modified name
+    const copyName = `${currentValues.subject} (kopia)`;
+
+    form.reset({
+      id: undefined, // Clear ID to create new template
+      triggerType: '', // Clear trigger type for selection
+      subject: copyName,
+      htmlContent: currentValues.htmlContent,
+      isActive: true,
+      receivers: currentValues.receivers,
+    });
+
+    setSelectedTemplate('');
+    toast.success('Mall kopierad - välj ny trigger och spara');
+  }, [form]);
+
+  // Handle trigger selection from popup
+  const handleTriggerSelect = (trigger: TriggerDefinition) => {
+    form.setValue('triggerType', trigger.id);
+    form.setValue('receivers', trigger.defaultReceivers);
+    setSelectedTriggerInfo(trigger);
+    setShowTriggerPopup(false);
+    toast.success(`Trigger vald: ${trigger.name}`);
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
   };
 
   // Handle form submission
@@ -125,7 +307,11 @@ export default function EmailTemplateBuilder() {
       const result = await response.json();
       toast.success('Mall sparad');
 
+<<<<<<< HEAD
       // Update templates list
+=======
+      // Update templates list without causing re-renders
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
       setTemplates(prev => {
         if (data.id) {
           return prev.map(t => t.id === data.id ? result : t);
@@ -179,6 +365,7 @@ export default function EmailTemplateBuilder() {
           </p>
         </div>
 
+<<<<<<< HEAD
         {/* New Template Button */}
         <div className="flex justify-end mb-8">
           <Button
@@ -419,6 +606,11 @@ export default function EmailTemplateBuilder() {
           </CardContent>
         </Card>
         </div>
+=======
+      <div className="text-center">
+        <p>UTF-8 vänlig e-postmallredigerare</p>
+        <p>Svenska tecken och specialtecken stöds</p>
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
       </div>
     </div>
   );

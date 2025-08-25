@@ -8,7 +8,11 @@ import { LessonSelection } from "@/components/booking/lesson-selection"
 import { TransmissionSelection } from "@/components/booking/transmission-selection"
 import { WeekCalendar } from "@/components/booking/week-calendar"
 import { HandledarSessionSelection } from "@/components/booking/handledar-session-selection"
+<<<<<<< HEAD
 import { TeoriSessionSelection } from "@/components/booking/teori-session-selection"
+=======
+import { SessionSelection } from "@/components/booking/session-selection"
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { useAuth } from "@/hooks/use-auth"
 import { SwishPaymentDialog } from "@/components/booking/swish-payment-dialog"
@@ -32,6 +36,7 @@ interface SessionType {
 
 interface BookingData {
   sessionType: SessionType | null
+  selectedSession: any | null // For unified session system
   transmissionType: "manual" | "automatic" | null
   selectedDate: Date | null
   selectedTime: string | null
@@ -39,16 +44,19 @@ interface BookingData {
   bookingId?: string
   tempBookingId?: string // Track temporary booking for cleanup
   sessionId?: string // Add sessionId for handledar sessions
+  isUnifiedSession?: boolean // Flag to distinguish unified vs legacy sessions
 }
 
 export default function BokaKorning() {
   const [currentStep, setCurrentStep] = useState(1)
   const [bookingData, setBookingData] = useState<BookingData>({
     sessionType: null,
+    selectedSession: null,
     transmissionType: null,
     selectedDate: null,
     selectedTime: null,
     totalPrice: 0,
+    isUnifiedSession: false,
   })
   const [loading, setLoading] = useState(false)
   const [showSwishDialog, setShowSwishDialog] = useState(false)
@@ -137,12 +145,16 @@ export default function BokaKorning() {
       ...prev,
       sessionType,
       totalPrice: calculatePrice(sessionType, user),
+      // All icke-lektions-typer går via nya sessionsflödet (inkl. handledare/teori)
+      isUnifiedSession: Boolean(sessionType.type && sessionType.type !== 'lesson'),
     }))
     
-    if (sessionType.type === 'handledar') {
-      setCurrentStep(3);
+    // Nya sessionsflödet för allt utom lektions-typer
+    if (sessionType.type && sessionType.type !== 'lesson') {
+      setCurrentStep(2)
     } else {
-      setCurrentStep(2);
+      // Legacy lektionsflöde (växellåda + kalender)
+      setCurrentStep(2)
     }
     
     setShowCreditSuggestion(false)
@@ -154,11 +166,24 @@ export default function BokaKorning() {
         checkHandledarCreditsAndProceed(stepData.sessionType)
         break
       case 2:
-        setBookingData((prev) => ({
-          ...prev,
-          transmissionType: stepData.transmissionType,
-        }))
-        setCurrentStep(3)
+        // Enhetligt: sessionsval för alla icke-lektions-typer (inkl. handledare/teori)
+        if (bookingData.sessionType?.type && bookingData.sessionType.type !== 'lesson' && stepData.selectedSession) {
+          setBookingData((prev) => ({
+            ...prev,
+            selectedSession: stepData.selectedSession,
+            selectedDate: new Date(stepData.selectedSession.date),
+            selectedTime: stepData.selectedSession.startTime,
+            sessionId: stepData.selectedSession.id,
+          }))
+          setCurrentStep(4)
+        } else {
+          // Lektionsflöde: välj växellåda
+          setBookingData((prev) => ({
+            ...prev,
+            transmissionType: stepData.transmissionType,
+          }))
+          setCurrentStep(3)
+        }
         break
       case 3:
         setBookingData((prev) => ({
@@ -175,6 +200,10 @@ export default function BokaKorning() {
         handleBookingComplete(stepData)
         break
     }
+  }
+  
+  const handleSessionSelectionBack = () => {
+    setCurrentStep(1) // Go back to session type selection
   }
 
   const calculatePrice = (sessionType: SessionType, user: any) => {
@@ -237,6 +266,10 @@ const handleBookingComplete = async (paymentData: any) => {
           if (bookingId) {
             await handlePayAtLocation(bookingId)
           }
+        }
+        // Redirect to invoice page if invoice.id is present
+        if (data.invoice && data.invoice.id) {
+          window.location.href = `/dashboard/invoices/${data.invoice.id}`;
         }
       } catch (error) {
         console.error('Error updating booking:', error)
@@ -301,6 +334,10 @@ const handleBookingComplete = async (paymentData: any) => {
         if (bookingId) {
           await handlePayAtLocation(bookingId)
         }
+      }
+      // Redirect to invoice page if invoice.id is present
+      if (data.invoice && data.invoice.id) {
+        window.location.href = `/dashboard/invoices/${data.invoice.id}`;
       }
     } catch (error) {
       console.error('Error completing booking:', error)
@@ -431,10 +468,19 @@ const handleBookingComplete = async (paymentData: any) => {
           <div className="relative p-6 md:p-8 min-h-[600px]">
           {currentStep === 1 && <LessonSelection onComplete={handleStepComplete} />}
 
-          {currentStep === 2 && bookingData.sessionType?.type === 'lesson' && (
+          {currentStep === 2 && bookingData.sessionType && bookingData.sessionType.type !== 'lesson' && (
+            <SessionSelection 
+              sessionType={bookingData.sessionType}
+              onComplete={handleStepComplete} 
+              onBack={handleSessionSelectionBack} 
+            />
+          )}
+
+          {currentStep === 2 && bookingData.sessionType?.type === 'lesson' && !bookingData.isUnifiedSession && (
             <TransmissionSelection onComplete={handleStepComplete} onBack={goBack} />
           )}
 
+<<<<<<< HEAD
           
 
           {currentStep === 2 && bookingData.sessionType?.type === 'teori' && (
@@ -460,6 +506,9 @@ const handleBookingComplete = async (paymentData: any) => {
               onBack={goBack}
             />
           )}
+=======
+          {/* Migrerad: gamla handledare använder nu SessionSelection (steg 2) och hoppar inte hit */}
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
 
           {currentStep === 3 && bookingData.sessionType && bookingData.sessionType.type === 'lesson' && (
             <WeekCalendar
@@ -477,6 +526,7 @@ const handleBookingComplete = async (paymentData: any) => {
             bookingData.selectedDate && bookingData.selectedTime && (
             <BookingConfirmation
               bookingData={{
+<<<<<<< HEAD
                 lessonType: {
                   id: bookingData.sessionType?.id || '',
                   name: bookingData.sessionType?.name || '',
@@ -489,16 +539,31 @@ const handleBookingComplete = async (paymentData: any) => {
                   pricePerSupervisor: bookingData.sessionType?.pricePerSupervisor,
                   maxParticipants: bookingData.sessionType?.maxParticipants
                 },
+=======
+                lessonType: bookingData.sessionType, // Map sessionType to lessonType for compatibility
+                selectedSession: bookingData.selectedSession, // Add unified session data
+                transmissionType: bookingData.transmissionType,
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
                 selectedDate: bookingData.selectedDate,
                 selectedTime: bookingData.selectedTime,
                 instructor: null,
                 vehicle: null,
                 totalPrice: bookingData.totalPrice,
+<<<<<<< HEAD
                 isStudent: user?.role === 'student',
                 transmissionType: bookingData.transmissionType,
                 tempBookingId: bookingData.tempBookingId,
                 sessionId: bookingData.sessionId,
                 isHandledarutbildning: bookingData.sessionType?.type === 'handledar'
+=======
+                tempBookingId: bookingData.tempBookingId, // Pass the temp booking ID
+                sessionId: bookingData.sessionId, // Pass the specific sessionId for handledar sessions
+                instructor: null, // Add missing required field
+                vehicle: null, // Add missing required field
+                isStudent: (user as any)?.inskriven || false, // Add missing required field
+                isHandledarutbildning: bookingData.sessionType?.type === 'handledar', // Add missing required field
+                isUnifiedSession: bookingData.isUnifiedSession // Add unified session flag
+>>>>>>> d644b24effef7818a618a594170f5b5091984a19
               }}
               user={user}
               onComplete={handleStepComplete}

@@ -175,7 +175,7 @@ export default function PaymentLandingClient({
 
           {settings.mapsEmbedUrl && (
             <div className="mb-6 overflow-hidden rounded-xl border border-white/10 print:hidden">
-              <iframe src={settings.mapsEmbedUrl} className="h-52 w-full" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              <iframe src={settings.mapsEmbedUrl} className="h-52 w-full" referrerPolicy="no-referrer-when-downgrade" />
             </div>
           )}
 

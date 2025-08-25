@@ -126,7 +126,8 @@ export default function HomePage() {
                   alt="Bedömningslektion kampanj - BMW trafikskola bil för körkortsutbildning"
                   width={400}
                   height={300}
-                  className="rounded-lg shadow-md max-w-full h-auto"
+                  className="rounded-lg shadow-md w-full h-auto object-cover"
+                  style={{ maxWidth: '400px' }}
                   priority={false}
                 />
               </div>

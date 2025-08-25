@@ -168,6 +168,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         booking: updatedBooking,
+        // No invoice handling here (regular lessons invoice is created in create route)
         message: paymentMethod === 'swish' ? 
           'Booking updated. Payment verification pending.' :
           'Booking confirmed successfully'

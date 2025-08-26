@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select as FBSelect, Button as FBButton, Card as FBCard, Label as FBLabel } from 'flowbite-react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -621,14 +622,17 @@ export default function UnifiedSessionsPage() {
               </div>
             </div>
             <div className="relative z-[60]">
-              <Label className="text-slate-200">Koppla till användare (valfritt)</Label>
-              <select value={addForm.studentId} onChange={e => setAddForm(f => ({ ...f, studentId: e.target.value }))} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
-                <option value="">Ingen</option>
+              <FBLabel className="text-slate-200 block mb-2">Koppla till användare (valfritt)</FBLabel>
+              <FBSelect
+                value={addForm.studentId}
+                onChange={(e) => setAddForm(f => ({ ...f, studentId: e.target.value }))}
+                className="w-full bg-white/10 border border-white/20 text-white focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+              >
+                <option value="" className="bg-slate-900 text-white">Ingen</option>
                 {studentOptions.map(s => (
                   <option key={s.id} value={s.id} className="bg-slate-900 text-white">{s.label}</option>
                 ))}
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+              </FBSelect>
             </div>
           </div>
           <DialogFooter>
@@ -733,15 +737,18 @@ export default function UnifiedSessionsPage() {
               <DialogTitle className="text-white">Flytta deltagare</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <Label className="text-slate-200">Mål-session</Label>
+              <FBLabel className="text-slate-200 block">Mål-session</FBLabel>
               <div className="relative z-[70]">
-                <select value={moving.targetId} onChange={e => setMoving(m => m ? { ...m, targetId: e.target.value } : m)} className="w-full rounded-xl bg-white/10 border border-white/20 text-white p-3 pr-10 appearance-none">
-                  <option value="">Välj framtida session</option>
+                <FBSelect
+                  value={moving.targetId}
+                  onChange={(e) => setMoving(m => m ? { ...m, targetId: e.target.value } : m)}
+                  className="w-full bg-white/10 border border-white/20 text-white focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                >
+                  <option value="" className="bg-slate-900 text-white">Välj framtida session</option>
                   {moving.sessions.map((fs: any) => (
                     <option key={fs.id} value={fs.id} className="bg-slate-900 text-white">{fs.title} — {fs.date} {String(fs.startTime || '').slice(0, 5)}-{String(fs.endTime || '').slice(0, 5)}</option>
                   ))}
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">▼</span>
+                </FBSelect>
               </div>
             </div>
             <DialogFooter>

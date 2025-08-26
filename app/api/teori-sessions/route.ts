@@ -127,28 +127,29 @@ export async function GET(request: NextRequest) {
       price_per_supervisor: session.price_per_supervisor ? parseFloat(session.price_per_supervisor) : null,
     }));
 
-    // Filter only available sessions
+    // Filter available sessions
     const availableSessions = processedSessions.filter((session: any) => session.is_available);
 
-    // Group by lesson type for better presentation
-    const sessionsByType = availableSessions.reduce((acc: any, session: any) => {
-      const typeId = session.lesson_type_id;
-      if (!acc[typeId]) {
-        acc[typeId] = {
-          lessonType: {
-            id: typeId,
-            name: session.lesson_type_name,
-            description: session.lesson_type_description,
-            allows_supervisors: session.allows_supervisors,
-            price: session.price,
-            price_per_supervisor: session.price_per_supervisor,
-            duration_minutes: session.duration_minutes,
-            type: 'teori',
-          },
-          sessions: []
-        };
-      }
-      acc[typeId].sessions.push(session);
+    // Group by lesson type for better presentation (include all lesson types)
+    const sessionsByType = lessonTypes.rows.reduce((acc: any, lessonType: any) => {
+      const typeId = lessonType.id;
+      const lessonTypeSessions = availableSessions.filter((session: any) => session.lesson_type_id === typeId);
+
+      acc[typeId] = {
+        lessonType: {
+          id: typeId,
+          name: lessonType.name,
+          description: lessonType.description,
+          allows_supervisors: lessonType.allows_supervisors,
+          price: lessonType.price,
+          price_per_supervisor: lessonType.price_per_supervisor,
+          duration_minutes: lessonType.duration_minutes,
+          type: 'teori',
+        },
+        sessions: lessonTypeSessions,
+        hasAvailableSessions: lessonTypeSessions.length > 0
+      };
+
       return acc;
     }, {});
 

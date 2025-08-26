@@ -783,7 +783,8 @@ export async function POST(request: NextRequest) {
             await sendBookingNotification(guestEmail, booking, true);
           }
 
-          // Create invoice marked as paid
+                  // Create invoice marked as paid - make this completely non-blocking
+        setTimeout(async () => {
           try {
             await bookingInvoiceService.createBookingInvoice({
               id: booking.id,
@@ -792,9 +793,12 @@ export async function POST(request: NextRequest) {
               totalPrice: booking.totalPrice,
               status: booking.status
             }, (guestEmail as string) || undefined);
+            console.log('Invoice created successfully for admin-paid booking:', booking.id);
           } catch (e) {
-            console.error('Failed to create invoice for admin-paid booking:', e);
+            console.error('Failed to create invoice for admin-paid booking (non-blocking):', e);
+            // Don't throw error - booking should still be created even if invoice fails
           }
+        }, 100);
           
           return NextResponse.json({ 
             booking,
@@ -802,18 +806,22 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Create invoice for non-credits flow (pending)
-        try {
-          await bookingInvoiceService.createBookingInvoice({
-            id: booking.id,
-            studentId: booking.userId,
-            bookingDate: new Date(booking.scheduledDate),
-            totalPrice: booking.totalPrice,
-            status: booking.status
-          }, (guestEmail as string) || undefined);
-        } catch (e) {
-          console.error('Failed to create invoice for booking:', e);
-        }
+                  // Create invoice for non-credits flow (pending) - make this completely non-blocking
+                  setTimeout(async () => {
+                    try {
+                      await bookingInvoiceService.createBookingInvoice({
+                        id: booking.id,
+                        studentId: booking.userId,
+                        bookingDate: new Date(booking.scheduledDate),
+                        totalPrice: booking.totalPrice,
+                        status: booking.status
+                      }, (guestEmail as string) || undefined);
+                      console.log('Invoice created successfully for booking:', booking.id);
+                    } catch (e) {
+                      console.error('Failed to create invoice for booking (non-blocking):', e);
+                      // Don't throw error - booking should still be created even if invoice fails
+                    }
+                  }, 100);
 
         // For Qliro payment method, create or reuse checkout session (idempotent)
         if (paymentMethod === 'qliro') {

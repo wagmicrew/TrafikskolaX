@@ -1,0 +1,92 @@
+# =================================================================
+# TRAFIKSKOLAX ENVIRONMENT CONFIGURATION
+# =================================================================
+# Copy this file to .env.local and fill in your actual values
+# DO NOT commit .env.local to version control!
+
+# =================================================================
+# REQUIRED: Database Configuration
+# =================================================================
+# Get this from: https://console.neon.tech/app/projects
+DATABASE_URL="postgresql://username:password@ep-xyz.us-east-1.neon.tech/dbname?sslmode=require"
+
+# =================================================================
+# REQUIRED: JWT Authentication
+# =================================================================
+# Generate with: openssl rand -base64 32
+JWT_SECRET="your-super-secure-jwt-secret-key-here-32-chars-min"
+
+# =================================================================
+# REQUIRED: Application URLs
+# =================================================================
+# Your application's public URL (used for redirects, emails, etc.)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# =================================================================
+# REQUIRED: Encryption Keys
+# =================================================================
+# For encrypting sensitive data (32 characters minimum)
+ENCRYPTION_KEY="fallback-key-32-characters-long-123456789"
+PERSONAL_ID_ENCRYPTION_KEY="default-key-change-in-production-32-chars"
+
+# =================================================================
+# PAYMENT SYSTEM CONFIGURATION
+# =================================================================
+
+# Swish Payment Configuration
+NEXT_PUBLIC_SWISH_NUMBER="1234567890"
+
+# Qliro Payment Configuration
+QLIRO_MERCHANT_ID="your-qliro-merchant-id"
+QLIRO_API_KEY="your-qliro-api-key"
+NEXT_PUBLIC_QLIRO_MERCHANT_ID="your-qliro-merchant-id"
+
+# Teori Payment Configuration
+TEORI_API_KEY="your-teori-api-key"
+TEORI_API_SECRET="your-teori-api-secret"
+TEORI_MERCHANT_ID="your-teori-merchant-id"
+TEORI_SHARED_SECRET="your-teori-shared-secret"
+
+# =================================================================
+# EMAIL CONFIGURATION
+# =================================================================
+
+# SendGrid Email Service
+SENDGRID_API_KEY="your-sendgrid-api-key"
+
+# Admin Email for Notifications
+ADMIN_EMAIL="admin@your-domain.com"
+
+# =================================================================
+# OPTIONAL: Development & Testing
+# =================================================================
+
+# Environment Mode
+NODE_ENV="development"
+
+# Cron Job Secret (for automated tasks)
+CRON_SECRET_TOKEN="your-cron-secret-token"
+
+# Test Email for Development
+TEST_TEACHER_EMAIL="teacher@example.com"
+
+# =================================================================
+# SECURITY NOTES
+# =================================================================
+# 1. NEVER commit .env.local to version control
+# 2. Use strong, unique secrets for production
+# 3. Rotate secrets regularly in production
+# 4. Use different values for development vs production
+#
+# Generate secure secrets:
+# JWT_SECRET:        openssl rand -base64 32
+# ENCRYPTION_KEY:    openssl rand -hex 32
+# CRON_SECRET_TOKEN: openssl rand -base64 16
+
+# =================================================================
+# QUICK SETUP COMMANDS
+# =================================================================
+# 1. Copy this file: cp ENV_LOCAL_TEMPLATE.txt .env.local
+# 2. Edit values in .env.local with your actual credentials
+# 3. Test setup: node scripts/test-database-connection.js
+# 4. Start app: npm run dev

@@ -1,2 +1,0 @@
-{"timestamp":"2025-08-04T13:08:50.064Z","level":"info","category":"Creating Qliro checkout","message":{"amount":750,"reference":"booking-1754312929279","description":"Bokning: B-körkort","returnUrl":"http://localhost:3000/booking/confirmation"}}
-{"timestamp":"2025-08-04T13:17:11.319Z","level":"info","category":"Creating Qliro checkout","message":{"amount":750,"reference":"booking-1754313429428","description":"Bokning: B-körkort","returnUrl":"http://localhost:3000/booking/confirmation"}}

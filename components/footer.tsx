@@ -2,9 +2,21 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Phone, Mail, Clock } from "lucide-react"
+import { Phone, Mail, Clock, MapPin } from "lucide-react"
 import { useOpeningHours } from "@/hooks/useOpeningHours"
+import { useSiteSettings } from "@/hooks/useSiteSettings"
 import type { OpeningHoursConfig } from "@/lib/site-settings/opening-hours"
+import {
+  Footer,
+  FooterBrand,
+  FooterCopyright,
+  FooterDivider,
+  FooterIcon,
+  FooterLink,
+  FooterLinkGroup,
+  FooterTitle,
+} from "flowbite-react"
+import { BsFacebook, BsInstagram, BsTiktok } from "react-icons/bs"
 
 type Day = "mo" | "tu" | "we" | "th" | "fr" | "sa" | "su"
 type TimeInterval = { start: string; end: string }
@@ -58,8 +70,9 @@ function formatIntervals(list: TimeInterval[]) {
   return list.map((iv) => `${iv.start} - ${iv.end}`).join(", ")
 }
 
-export function Footer({ opening }: { opening?: OpeningHoursConfig }) {
-  const { data: openingData, loading, error } = useOpeningHours()
+export function FooterComponent({ opening }: { opening?: OpeningHoursConfig }) {
+  const { data: openingData, loading: openingLoading, error: openingError } = useOpeningHours()
+  const { settings, loading: settingsLoading } = useSiteSettings()
 
   // Guard against undefined shape
   const source = opening || openingData || null
@@ -70,156 +83,126 @@ export function Footer({ opening }: { opening?: OpeningHoursConfig }) {
   const drivingGroups = drivingWeekly ? compressWeekly(drivingWeekly) : []
 
   return (
-    <footer className="bg-gray-100 border-t">
-      <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Column 1: About */}
+    <Footer container>
+      <div className="w-full">
+        <div className="grid w-full justify-between sm:flex sm:justify-between md:flex md:grid-cols-1">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Om Din Trafikskola</h3>
-            <p className="text-gray-600 mb-4">
+            <FooterBrand
+              href="/"
+              src="/images/din-logo-small.png"
+              alt="Din Trafikskola Hässleholm"
+              name="Din Trafikskola Hässleholm"
+            />
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-300 max-w-xs">
               Hässleholms nyaste trafikskola med fokus på kvalitet och personlig service. Vi erbjuder utbildning för
               B-körkort i en trygg och modern miljö.
             </p>
-            <div className="flex items-center">
-              <Image src="/images/din-logo-small.png" alt="Din Trafikskola" width={48} height={48} className="h-12" />
-            </div>
           </div>
 
-          {/* Column 2: Contact */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Kontakta oss</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start">
-                <Phone className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
-                <div>
-                  <p className="font-medium">Telefon</p>
-                  <a href="tel:0760389192" className="text-red-600 hover:text-red-700">
-                    0760-389192
-                  </a>
+          <div className="grid grid-cols-2 gap-8 sm:mt-4 sm:grid-cols-3 sm:gap-6">
+            {/* Contact Information */}
+            <div>
+              <FooterTitle title="Kontakta oss" />
+              <FooterLinkGroup col>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <FooterLink href="tel:0760389192">0760-389192</FooterLink>
                 </div>
-              </li>
-              <li className="flex items-start">
-                <Mail className="w-5 h-5 text-red-600 mr-2 mt-0.5" />
-                <div>
-                  <p className="font-medium">E-post</p>
-                  <a href="mailto:info@dintrafikskolahlm.se" className="text-red-600 hover:text-red-700">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  <FooterLink href="mailto:info@dintrafikskolahlm.se">
                     info@dintrafikskolahlm.se
-                  </a>
+                  </FooterLink>
                 </div>
-              </li>
-              <li className="flex items-start">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5 text-red-600 mr-2 mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 mt-1" />
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Östergatan 3a<br />
+                    281 30 Hässleholm
+                  </div>
+                </div>
+              </FooterLinkGroup>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <FooterTitle title="Snabblänkar" />
+              <FooterLinkGroup col>
+                <FooterLink href="/om-oss">Om oss</FooterLink>
+                <FooterLink href="/vara-tjanster">Våra tjänster</FooterLink>
+                <FooterLink href="/boka-korning">Boka körlektion</FooterLink>
+                <FooterLink href="/lokalerna">Våra lokaler</FooterLink>
+              </FooterLinkGroup>
+            </div>
+
+            {/* Opening Hours */}
+            <div>
+              <FooterTitle title="Öppettider" />
+              <div className="space-y-2">
                 <div>
-                  <p className="font-medium">Adress</p>
-                  <p className="text-gray-600">Östergatan 3a, 281 30 Hässleholm</p>
+                  <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Kontorstider:</p>
+                  {officeGroups.length === 0 ? (
+                    <p className="text-sm text-gray-500">Stängt</p>
+                  ) : (
+                    officeGroups.map((g, idx) => (
+                      <p key={`office-${idx}`} className="text-sm text-gray-500">
+                        {formatGroupLabel(g)}: {formatIntervals(g.intervals)}
+                      </p>
+                    ))
+                  )}
                 </div>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Opening Hours */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Öppettider</h3>
-            <h4 className="font-medium text-gray-700 mb-2">Kontorstider:</h4>
-            <ul className="space-y-2 mb-4">
-              {officeGroups.length === 0 ? (
-                <li className="flex items-center">
-                  <Clock className="w-4 h-4 text-red-600 mr-2" />
-                  <span className="text-gray-600">Stängt</span>
-                </li>
-              ) : (
-                officeGroups.map((g, idx) => (
-                  <li className="flex items-center" key={`office-${idx}`}>
-                    <Clock className="w-4 h-4 text-red-600 mr-2" />
-                    <span className="text-gray-600">{formatGroupLabel(g)}: {formatIntervals(g.intervals)}</span>
-                  </li>
-                ))
-              )}
-            </ul>
-
-            <h4 className="font-medium text-gray-700 mb-2">Körlektioner:</h4>
-            <ul className="space-y-2">
-              {drivingGroups.length === 0 ? (
-                <li className="flex items-center">
-                  <Clock className="w-4 h-4 text-red-600 mr-2" />
-                  <span className="text-gray-600">Stängt</span>
-                </li>
-              ) : (
-                drivingGroups.map((g, idx) => (
-                  <li className="flex items-center" key={`driving-${idx}`}>
-                    <Clock className="w-4 h-4 text-red-600 mr-2" />
-                    <span className="text-gray-600">{formatGroupLabel(g)}: {formatIntervals(g.intervals)}</span>
-                  </li>
-                ))
-              )}
-              <li className="text-sm text-yellow-600 mt-2">* Flexibla tider efter överenskommelse</li>
-            </ul>
-          </div>
-
-          {/* Column 4: Quick Links & Admin */}
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Snabblänkar</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/om-oss" className="text-red-600 hover:text-red-700">
-                  Om oss
-                </Link>
-              </li>
-              <li>
-                <Link href="/vara-tjanster" className="text-red-600 hover:text-red-700">
-                  Våra tjänster
-                </Link>
-              </li>
-              <li>
-                <Link href="/boka-korning" className="text-red-600 hover:text-red-700">
-                  Boka körlektion
-                </Link>
-              </li>
-              <li>
-                <Link href="/lokalerna" className="text-red-600 hover:text-red-700">
-                  Våra lokaler
-                </Link>
-              </li>
-            </ul>
+                <div>
+                  <p className="font-medium text-sm text-gray-600 dark:text-gray-400">Körlektioner:</p>
+                  {drivingGroups.length === 0 ? (
+                    <p className="text-sm text-gray-500">Stängt</p>
+                  ) : (
+                    drivingGroups.map((g, idx) => (
+                      <p key={`driving-${idx}`} className="text-sm text-gray-500">
+                        {formatGroupLabel(g)}: {formatIntervals(g.intervals)}
+                      </p>
+                    ))
+                  )}
+                  <p className="text-xs text-yellow-600 mt-1">
+                    * Flexibla tider efter överenskommelse
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-200 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-gray-600 mb-4 md:mb-0">
-              <p>&copy; {new Date().getFullYear()} Din Trafikskola Hässleholm. Alla rättigheter förbehållna.</p>
-              <p className="text-sm">Org.nr: 559123-4567 | F-skattsedel: Ja</p>
-            </div>
-            <div className="flex space-x-6">
-              <Link href="/villkor" className="text-red-600 hover:text-red-700 text-sm">
-                Allmänna villkor
-              </Link>
-              <Link href="/integritetspolicy" className="text-red-600 hover:text-red-700 text-sm">
-                Integritetspolicy
-              </Link>
-            </div>
+        <FooterDivider />
+
+        <div className="w-full sm:flex sm:items-center sm:justify-between">
+          <FooterCopyright href="/" by="Din Trafikskola Hässleholm" year={new Date().getFullYear()} />
+          <div className="mt-4 flex space-x-6 sm:mt-0 sm:justify-center">
+            {/* Social Media Links */}
+            {settings?.social_facebook && (
+              <FooterIcon href={settings.social_facebook} icon={BsFacebook} />
+            )}
+            {settings?.social_instagram && (
+              <FooterIcon href={settings.social_instagram} icon={BsInstagram} />
+            )}
+            {settings?.social_tiktok && (
+              <FooterIcon href={settings.social_tiktok} icon={BsTiktok} />
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Org.nr: 559123-4567 | F-skattsedel: Ja
+          </p>
+          <div className="flex gap-4">
+            <FooterLink href="/villkor" className="text-sm">
+              Allmänna villkor
+            </FooterLink>
+            <FooterLink href="/integritetspolicy" className="text-sm">
+              Integritetspolicy
+            </FooterLink>
           </div>
         </div>
       </div>
-    </footer>
+    </Footer>
   )
 }

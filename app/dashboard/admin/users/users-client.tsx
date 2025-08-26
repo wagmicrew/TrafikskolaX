@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { OrbLoader } from '@/components/ui/orb-loader';
+import { ViewToggle } from '@/components/admin/view-toggle';
+import { UsersTable } from '@/components/admin/users-table';
 import {
   User as UserIcon,
   Mail,
@@ -16,14 +18,21 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { 
-  Button, 
-  Card, 
-  Badge, 
-  Select, 
-  TextInput, 
+import {
+  Button,
+  Card,
+  Badge,
+  Select,
+  TextInput,
   Alert,
-  Modal
+  Modal,
+  Label,
+  Checkbox,
+  FileInput,
+  Radio,
+  RangeSlider,
+  Textarea,
+  ToggleSwitch,
 } from 'flowbite-react';
 
 interface User {
@@ -62,12 +71,14 @@ export default function UsersClient({
   searchFilter,
 }: UsersClientProps) {
   const [tab, setTab] = useState<'users' | 'reports'>('users');
+  const [view, setView] = useState<'cards' | 'table'>('cards');
   const [search, setSearch] = useState(searchFilter);
   const [showImpersonationLoader, setShowImpersonationLoader] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   useEffect(() => {
     setSearch(searchFilter);
@@ -183,9 +194,21 @@ export default function UsersClient({
     window.location.href = `/dashboard/admin/users?role=${roleFilter}&search=${search}&page=${page}`;
   };
 
+  const handleSelectUser = (userId: string, selected: boolean) => {
+    setSelectedUsers(prev =>
+      selected
+        ? [...prev, userId]
+        : prev.filter(id => id !== userId)
+    );
+  };
+
+  const handleSelectAllUsers = (selected: boolean) => {
+    setSelectedUsers(selected ? users.map(user => user.id) : []);
+  };
+
   return (
     <>
-      <OrbLoader isVisible={showImpersonationLoader} text="Antar identitet..." />
+      <OrbLoader isVisible={showImpersonationLoader} text="Antar identitet..." textPosition="below" />
       <div className="space-y-6">
         {/* Header Section with Flowbite Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -303,7 +326,12 @@ export default function UsersClient({
               </div>
             </Card>
 
-            {/* Users Grid (Cards) */}
+            {/* View Toggle */}
+            <ViewToggle view={view} onViewChange={setView} />
+
+            {/* Users Display - Cards or Table */}
+            {view === 'cards' ? (
+              /* Users Grid (Cards) */
             <Card className="shadow-lg">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {users.map((user) => (
@@ -392,6 +420,45 @@ export default function UsersClient({
                 ))}
               </div>
             </Card>
+            ) : (
+              /* Users Table */
+              <Card className="shadow-lg">
+                <UsersTable
+                  users={users}
+                  selectedUsers={selectedUsers}
+                  onSelectUser={handleSelectUser}
+                  onSelectAll={handleSelectAllUsers}
+                  onUserDetails={(user) => {
+                    setSelectedUser(user);
+                    setDetailsOpen(true);
+                  }}
+                  onImpersonate={handleImpersonate}
+                  onToggleActive={handleToggleActive}
+                  onSkrivIn={handleSkrivIn}
+                  onDeleteUser={(userId) => {
+                    setUserToDelete(userId);
+                    setDeleteDialogOpen(true);
+                  }}
+                />
+                {selectedUsers.length > 0 && (
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        {selectedUsers.length} användare valda
+                      </span>
+                      <div className="flex gap-2">
+                        <Button size="xs" color="light">
+                          Exportera
+                        </Button>
+                        <Button size="xs" color="warning">
+                          Massuppdatera
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
 
             {/* Pagination */}
             <div className="flex justify-center mt-6">

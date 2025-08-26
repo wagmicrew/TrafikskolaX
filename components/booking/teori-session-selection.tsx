@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Clock, Calendar, Users, Mail } from "lucide-react"
+import { Clock, Calendar, Users, Mail, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { OrbSpinner } from "@/components/ui/orb-loader"
 
@@ -148,11 +148,22 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Välj teorisession</h2>
-        <p className="text-gray-700 font-medium leading-relaxed">
-          Välj en tillgänglig session för {sessionType.name}
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <Button
+          onClick={onBack}
+          variant="ghost"
+          className="text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Tillbaka
+        </Button>
+        <div className="text-center flex-1">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Välj teorisession</h2>
+          <p className="text-gray-800 font-medium leading-relaxed">
+            Välj en tillgänglig session för {sessionType.name}
+          </p>
+        </div>
+        <div className="w-20"></div> {/* Spacer for centering */}
       </div>
 
       {sessions.length === 0 ? (
@@ -160,8 +171,8 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
           <div className="max-w-md mx-auto">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-3">Inga sessioner tillgängliga</h3>
-            <p className="text-gray-700 mb-6 font-medium leading-relaxed">
-              Det finns för närvarande inga tillgängliga sessioner för {sessionType.name}. 
+            <p className="text-gray-800 mb-6 font-medium leading-relaxed">
+              Det finns för närvarande inga tillgängliga sessioner för {sessionType.name}.
               Vi kan meddela dig när nya sessioner blir tillgängliga.
             </p>
             <Button

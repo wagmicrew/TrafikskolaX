@@ -25,6 +25,7 @@ export async function GET() {
         sort_order as "sortOrder"
       FROM session_types
       WHERE is_active = true
+      AND type IN ('handledarutbildning', 'riskettan')  -- Only return handledar/supervisor sessions
       ORDER BY sort_order DESC, created_at DESC
     `);
 

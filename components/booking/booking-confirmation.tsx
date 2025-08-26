@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react'
-import { Card as FBCard, Button as FBButton, Label as FBLabel, TextInput, Select as FBSelect, Checkbox as FBCheckbox } from 'flowbite-react'
+import {
+  Card as FBCard,
+  Button as FBButton,
+  Label as FBLabel,
+  TextInput,
+  Select as FBSelect,
+  Checkbox as FBCheckbox,
+  FloatingLabel,
+} from 'flowbite-react'
 import { AlertCircle, Loader2, UserPlus, CheckCircle, ArrowLeft } from 'lucide-react'
 import { OrbLoader } from '@/components/ui/orb-loader'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -128,9 +136,14 @@ export function BookingConfirmation({
   const canPayAtLocation = isStudent && unpaidBookings < 2
   const allowsSupervisors = bookingData.lessonType?.allowsSupervisors || false
   const pricePerSupervisor = bookingData.lessonType?.pricePerSupervisor || 0
-  const isHandledarSession = isHandledarutbildning || bookingData.lessonType.type === 'teori'
+  // Unified theoretical lesson detection
+  const isTheoreticalLesson = bookingData.lessonType?.type === 'teori' || bookingData.lessonType?.type === 'handledar'
+  const isHandledarSession = allowsSupervisors || isHandledarutbildning || bookingData.lessonType?.type === 'handledar'
   const requiresPersonalId = Boolean((bookingData as any)?.lessonType?.requiresPersonalId) || isHandledarSession
-  const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor)
+  // New pricing model: base price includes 1 student + 1 supervisor
+  // Only charge for additional supervisors beyond the first
+  const extraSupervisors = Math.max(0, supervisorCount - 1)
+  const finalTotalPrice = bookingData.totalPrice + (extraSupervisors * pricePerSupervisor)
   const showUnpaidWarning = isStudent && unpaidBookings >= 2 && 
                           (selectedPaymentMethod === 'pay_at_location' || !selectedPaymentMethod)
 
@@ -635,6 +648,12 @@ export function BookingConfirmation({
         return
       }
 
+      // For handledar sessions, ensure at least one supervisor
+      if (allowsSupervisors && supervisorCount < 1) {
+        showNotification('Handledare krävs', 'Minst en handledare måste registreras för denna lektionstyp', 'error')
+        return
+      }
+
       if (supervisorCount > 0 && supervisorDetails.length < supervisorCount) {
         showNotification('Handledare information krävs', 'Fyll i information för alla handledare', 'error')
         return
@@ -710,6 +729,44 @@ export function BookingConfirmation({
                   <span className="text-gray-700 font-medium">Tid:</span>
                   <span className="text-gray-900 font-semibold">{bookingData.selectedTime}</span>
                 </div>
+
+                {/* Student Selection for Admin/Teacher - Integrated into summary */}
+                {isAdminOrTeacher && (
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700 font-medium">Elev:</span>
+                        <div className="flex-1 ml-4 max-w-xs">
+                          <FBSelect
+                            value={selectedStudent}
+                            onChange={(e) => setSelectedStudent((e.target as HTMLSelectElement).value)}
+                            className="w-full bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-gray-900 text-sm"
+                            required
+                          >
+                            <option value="" disabled>Välj elev</option>
+                            {students.map((student) => (
+                              <option key={student.id} value={student.id}>
+                                {student.firstName} {student.lastName}
+                              </option>
+                            ))}
+                          </FBSelect>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <FBButton
+                          onClick={() => setShowAddStudentDialog(true)}
+                          color="light"
+                          size="sm"
+                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        >
+                          <UserPlus className="w-4 h-4 mr-1" />
+                          Lägg till elev
+                        </FBButton>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center">
                   <span className="text-gray-700 font-medium">Pris:</span>
                   <span className="text-gray-900 font-semibold">{bookingData.totalPrice} kr</span>
@@ -727,46 +784,19 @@ export function BookingConfirmation({
               </div>
             </div>
 
-            {/* Student Selection for Admin/Teacher */}
-            {isAdminOrTeacher && (
-              <div className="bg-blue-50 p-6 rounded-xl mb-6 border border-blue-100">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Välj elev</h3>
-                <FBSelect
-                  value={selectedStudent}
-                  onChange={(e) => setSelectedStudent((e.target as HTMLSelectElement).value)}
-                  className="w-full bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                >
-                  <option value="" disabled>Välj en elev</option>
-                  {students.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.firstName} {student.lastName} ({student.email})
-                    </option>
-                  ))}
-                </FBSelect>
-                <FBButton
-                  onClick={() => setShowAddStudentDialog(true)}
-                  color="light"
-                  className="mt-3 w-full"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Lägg till ny elev
-                </FBButton>
-              </div>
-            )}
+
 
             {/* Supervisor Selection for lessons that allow supervisors */}
             {allowsSupervisors && (
               <div className="bg-blue-50 p-6 rounded-xl mb-6 border border-blue-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Handledare</h3>
-                <p className="text-sm text-gray-700 mb-4 font-medium">
-                  {isHandledarSession
-                    ? `Du kan lägga till ytterligare handledare för ${pricePerSupervisor} kr per person utöver grundpriset.`
-                    : `Du kan lägga till handledare för ${pricePerSupervisor} kr per person.`
-                  }
+                <p className="text-sm text-gray-800 mb-4 font-medium">
+                  Grundpriset inkluderar en student och en handledare.
+                  Du kan lägga till ytterligare handledare för {pricePerSupervisor} kr per person.
                 </p>
                 
                 <div className="flex items-center space-x-4 mb-4">
-                  <FBLabel className="text-sm font-medium text-gray-700">Antal handledare:</FBLabel>
+                  <FBLabel className="text-sm font-medium text-gray-800">Antal handledare:</FBLabel>
                   <div className="flex items-center space-x-2">
                     <FBButton
                       type="button"
@@ -805,8 +835,9 @@ export function BookingConfirmation({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Personnummer */}
                           <div>
-                            <FBLabel className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX) *</FBLabel>
-                            <TextInput
+                            <FloatingLabel
+                              variant="filled"
+                              label="Personnummer (ÅÅÅÅMMDD-XXXX) *"
                               type="text"
                               value={supervisorDetails[index]?.personnummer || ''}
                               onChange={(e) => {
@@ -826,7 +857,6 @@ export function BookingConfirmation({
                                 setSupervisorDetails(newDetails);
                               }}
                               placeholder="ÅÅÅÅMMDD-XXXX"
-                              className="mt-1"
                             />
                             {supervisorDetails[index]?.personnummer && (
                               <p className="text-xs text-gray-500 mt-1">
@@ -914,43 +944,44 @@ export function BookingConfirmation({
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <FBLabel htmlFor="guest-name" className="text-sm font-semibold text-gray-800">Namn *</FBLabel>
-                    <TextInput
+                    <FloatingLabel
+                      variant="filled"
+                      label="Namn *"
                       id="guest-name"
                       type="text"
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="För- och efternamn"
-                      className="mt-2 px-4 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium"
                     />
                   </div>
                   <div>
-                    <FBLabel htmlFor="guest-email" className="text-sm font-medium text-gray-700">E-post *</FBLabel>
                     <div className="relative">
-                      <TextInput
+                      <FloatingLabel
+                        variant="filled"
+                        label="E-post *"
                         id="guest-email"
                         type="email"
                         value={guestEmail}
                         onChange={(e) => handleEmailChange(e.target.value, true)}
                         placeholder="exempel@email.com"
-                        className={`mt-1 ${
+                        className={`${
                           emailValidationStatus === 'checking' ? 'border-yellow-400' :
                           emailValidationStatus === 'exists' ? 'border-red-400' :
                           emailValidationStatus === 'available' ? 'border-green-400' : ''
                         }`}
                       />
                       {emailValidationStatus === 'checking' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
                           <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
                         </div>
                       )}
                       {emailValidationStatus === 'available' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
                           <CheckCircle className="h-4 w-4 text-green-500" />
                         </div>
                       )}
                       {emailValidationStatus === 'exists' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
                           <AlertCircle className="h-4 w-4 text-red-500" />
                         </div>
                       )}

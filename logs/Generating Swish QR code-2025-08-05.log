@@ -1,9 +1,0 @@
-{"timestamp":"2025-08-05T11:46:39.826Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"1500","message":"Körlektion temp-175...","format":"png","size":256}}
-{"timestamp":"2025-08-05T12:33:39.723Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion e22f5c73...","format":"png","size":256}}
-{"timestamp":"2025-08-05T14:56:01.055Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","message":"undefined...","format":"png","size":300}}
-{"timestamp":"2025-08-05T14:56:01.063Z","level":"info","category":"Generating Swish QR code","message":{"payee":"461232732071","message":"undefined...","format":"png","size":300}}
-{"timestamp":"2025-08-05T15:00:31.629Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion c0873550...","format":"png","size":256}}
-{"timestamp":"2025-08-05T16:02:16.568Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion a47dfd97...","format":"png","size":256}}
-{"timestamp":"2025-08-05T18:02:46.430Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion 608e8911...","format":"png","size":256}}
-{"timestamp":"2025-08-05T18:43:48.128Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"750","message":"Körlektion 060c8d68...","format":"png","size":256}}
-{"timestamp":"2025-08-05T19:28:32.560Z","level":"info","category":"Generating Swish QR code","message":{"payee":"1234567890","amount":"1500","message":"Körlektion temp-175...","format":"png","size":256}}

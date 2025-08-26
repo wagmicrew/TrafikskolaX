@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { ViewToggle } from '@/components/admin/view-toggle';
+import { BookingsTable } from '@/components/admin/bookings-table';
 import {
   Calendar,
   Clock,
@@ -28,12 +30,12 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { 
-  Button, 
-  Card, 
-  Badge, 
-  Alert, 
-  Select, 
+import {
+  Button,
+  Card,
+  Badge,
+  Alert,
+  Select,
   TextInput
 } from 'flowbite-react';
 import { HiOutlineExclamation, HiOutlineEye, HiOutlineTrash, HiOutlineBan } from 'react-icons/hi';
@@ -84,6 +86,7 @@ export default function BookingsClient({
   showPast,
 }: BookingsClientProps) {
   const router = useRouter();
+  const [view, setView] = useState<'cards' | 'table'>('cards');
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -479,6 +482,9 @@ export default function BookingsClient({
         </div>
       </Card>
 
+      {/* View Toggle */}
+      <ViewToggle view={view} onViewChange={setView} />
+
       {/* Bulk Actions with Flowbite Alert */}
       {selectedBookings.length > 0 && (
         <Alert color="info" className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
@@ -540,9 +546,24 @@ export default function BookingsClient({
             </p>
           </div>
         </Card>
+      ) : view === 'cards' ? (
+        <>
+          {/* Bookings Cards View - Placeholder for now */}
+          <Card className="shadow-lg">
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Kommer snart: Kortvy för bokningar
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Kortvyn för bokningar är under utveckling.
+              </p>
+            </div>
+          </Card>
+        </>
       ) : (
         <>
-          {/* Simplified Bookings Table */}
+          {/* Bookings Table View */}
           <Card className="shadow-lg">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">

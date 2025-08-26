@@ -3,9 +3,9 @@
 import React, { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button as FBButton, Label as FBLabel, TextInput } from 'flowbite-react'
 import { UserPlus, X, Save } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -104,123 +104,146 @@ export function AddStudentPopup({ isOpen, onClose, onStudentAdded }: AddStudentP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-white border-0 shadow-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-            <UserPlus className="w-5 h-5 text-blue-600" />
-            Lägg till ny student
-          </DialogTitle>
-        </DialogHeader>
-        
-        <Card className="border-0 shadow-none bg-white">
-          <CardContent className="p-0">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[500px] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+        {/* Glassmorphism Container */}
+        <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full overflow-hidden">
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 rounded-xl sm:rounded-2xl"></div>
+
+          {/* Content Container */}
+          <div className="relative z-10 p-4 sm:p-6">
+            <DialogHeader className="relative mb-4 sm:mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-blue-400/30">
+                    <UserPlus className="w-5 h-5 text-blue-300" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">
+                      Lägg till ny student
+                    </DialogTitle>
+                    <p className="text-white/80 drop-shadow-sm text-sm mt-1">
+                      Fyll i informationen för den nya eleven
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 transition-all duration-200 group flex-shrink-0"
+                  aria-label="Stäng dialog"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 text-white group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mt-3 sm:mt-4"></div>
+            </DialogHeader>
+
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
+                  <FBLabel htmlFor="firstName" className="text-white font-medium drop-shadow-sm text-sm mb-2 block">
                     Förnamn *
-                  </Label>
-                  <Input
+                  </FBLabel>
+                  <TextInput
                     id="firstName"
                     type="text"
                     value={formData.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     placeholder="Förnamn"
                     required
-                    className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
+                  <FBLabel htmlFor="lastName" className="text-white font-medium drop-shadow-sm text-sm mb-2 block">
                     Efternamn *
-                  </Label>
-                  <Input
+                  </FBLabel>
+                  <TextInput
                     id="lastName"
                     type="text"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     placeholder="Efternamn"
                     required
-                    className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <FBLabel htmlFor="email" className="text-white font-medium drop-shadow-sm text-sm mb-2 block">
                   E-post *
-                </Label>
-                <Input
+                </FBLabel>
+                <TextInput
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="student@example.com"
                   required
-                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                 />
               </div>
 
               <div>
-                <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                <FBLabel htmlFor="phone" className="text-white font-medium drop-shadow-sm text-sm mb-2 block">
                   Telefon
-                </Label>
-                <Input
+                </FBLabel>
+                <TextInput
                   id="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="070-123 45 67"
-                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="+46 70 123 45 67"
+                  className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                 />
               </div>
 
               <div>
-                <Label htmlFor="personalNumber" className="text-sm font-medium text-gray-700">
+                <FBLabel htmlFor="personalNumber" className="text-white font-medium drop-shadow-sm text-sm mb-2 block">
                   Personnummer
-                </Label>
-                <Input
+                </FBLabel>
+                <TextInput
                   id="personalNumber"
                   type="text"
                   value={formData.personalNumber}
                   onChange={(e) => handleInputChange('personalNumber', e.target.value)}
-                  placeholder="YYYYMMDD-XXXX"
-                  className="mt-1 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="ÅÅÅÅMMDD-XXXX"
+                  className="bg-white/10 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/50 transition-all duration-200 rounded-lg"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button
+              <div className="flex justify-end space-x-3 pt-6 border-t border-white/10">
+                <FBButton
                   type="button"
-                  variant="outline"
+                  color="light"
                   onClick={handleClose}
                   disabled={loading}
-                  className="flex-1 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50"
                 >
-                  <X className="w-4 h-4 mr-2" />
                   Avbryt
-                </Button>
-                <Button
+                </FBButton>
+                <FBButton
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold border border-blue-500/30"
                 >
                   {loading ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="animate-spin inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white"></span>
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Skapar...
-                    </span>
+                    </>
                   ) : (
                     <>
                       <Save className="w-4 h-4 mr-2" />
                       Skapa student
                     </>
                   )}
-                </Button>
+                </FBButton>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

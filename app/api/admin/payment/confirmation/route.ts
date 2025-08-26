@@ -91,11 +91,36 @@ export async function POST(request: Request) {
         // Update booking payment status to 'paid'
         updateResult = await db
           .update(bookings)
-          .set({ 
+          .set({
             paymentStatus: 'paid',
             updatedAt: new Date()
           })
           .where(eq(bookings.id, itemId));
+
+        // Mark invoice as paid
+        try {
+          const { invoices } = await import('@/lib/db/schema');
+          const [existingInvoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.bookingId, itemId))
+            .limit(1);
+
+          if (existingInvoice) {
+            await db
+              .update(invoices)
+              .set({
+                status: 'paid',
+                paidAt: new Date(),
+                paymentMethod: paymentInfo.method,
+                paymentReference: paymentInfo.reference,
+                updatedAt: new Date()
+              })
+              .where(eq(invoices.id, existingInvoice.id));
+          }
+        } catch (error) {
+          console.error('Error updating booking invoice status:', error);
+        }
 
         // Get customer info
         if (booking.isGuestBooking) {
@@ -166,6 +191,31 @@ export async function POST(request: Request) {
           .set({ paymentStatus: 'paid' })
           .where(eq(packagePurchases.id, itemId));
 
+        // Mark package invoice as paid
+        try {
+          const { invoices } = await import('@/lib/db/schema');
+          const [existingInvoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.packageId, itemId))
+            .limit(1);
+
+          if (existingInvoice) {
+            await db
+              .update(invoices)
+              .set({
+                status: 'paid',
+                paidAt: new Date(),
+                paymentMethod: paymentInfo.method,
+                paymentReference: paymentInfo.reference,
+                updatedAt: new Date()
+              })
+              .where(eq(invoices.id, existingInvoice.id));
+          }
+        } catch (error) {
+          console.error('Error updating package invoice status:', error);
+        }
+
         // Get customer info
         const packageCustomerData = await db
           .select()
@@ -215,6 +265,31 @@ export async function POST(request: Request) {
           .update(handledarBookings)
           .set({ paymentStatus: 'paid' })
           .where(eq(handledarBookings.id, itemId));
+
+        // Mark handledar invoice as paid
+        try {
+          const { invoices } = await import('@/lib/db/schema');
+          const [existingInvoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.handledarBookingId, itemId))
+            .limit(1);
+
+          if (existingInvoice) {
+            await db
+              .update(invoices)
+              .set({
+                status: 'paid',
+                paidAt: new Date(),
+                paymentMethod: paymentInfo.method,
+                paymentReference: paymentInfo.reference,
+                updatedAt: new Date()
+              })
+              .where(eq(invoices.id, existingInvoice.id));
+          }
+        } catch (error) {
+          console.error('Error updating handledar invoice status:', error);
+        }
 
         // If studentId exists, get student info, otherwise use supervisor info
         if (handledarBooking.studentId) {

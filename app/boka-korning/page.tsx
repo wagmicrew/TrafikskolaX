@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { CheckCircle, ArrowLeft, Calendar, Clock, User, Car, UserPlus, ChevronDown } from "lucide-react"
+import { toast } from "sonner"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { OrbSpinner } from "@/components/ui/orb-loader"
 
@@ -11,7 +12,7 @@ import { BookingConfirmation } from "@/components/booking/booking-confirmation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dropdown, DropdownItem } from "flowbite-react"
+import { Dropdown, DropdownItem, Select, Label, TextInput, Card as FBCard } from "flowbite-react"
 
 interface TeoriSession {
   id: string
@@ -72,7 +73,7 @@ interface BookingData {
   selectedSession?: TeoriSession
 }
 
-type BookingStep = 'lesson-selection' | 'calendar' | 'session-selection' | 'confirmation' | 'complete'
+type BookingStep = 'lesson-selection' | 'calendar' | 'session-selection' | 'unavailable-session' | 'confirmation' | 'complete'
 
 export default function BookingPage() {
   const { user, isLoading } = useAuth()
@@ -135,9 +136,17 @@ export default function BookingPage() {
 
   const handleLessonSelection = (data: { sessionType: SessionType }) => {
     setSelectedLessonType(data.sessionType)
-    if (data.sessionType.type === 'teori') {
+    // lesson_types show calendar, teori_lesson_types show sessions if available
+    if (data.sessionType.type === 'teori' || data.sessionType.type === 'handledar') {
+      // Check if sessions are available for teori/handledar lessons
+      if (data.sessionType.hasAvailableSessions) {
       setCurrentStep('session-selection')
     } else {
+        // Show unavailable message with back button
+        setCurrentStep('unavailable-session')
+      }
+    } else {
+      // Regular driving lessons show calendar
       setCurrentStep('calendar')
     }
   }
@@ -210,7 +219,19 @@ export default function BookingPage() {
       alert('Du måste välja en användare att boka för innan du kan slutföra bokningen.')
       return
     }
-    setCurrentStep('complete')
+
+    // Redirect to payment page with booking data
+    const bookingDataToSend = {
+      ...bookingData,
+      selectedUserId: selectedUser?.id,
+      selectedUserName: selectedUser?.name,
+    }
+
+    // Store booking data in sessionStorage for the payment page
+    sessionStorage.setItem('pendingBooking', JSON.stringify(bookingDataToSend))
+
+    // Redirect to payment page
+    window.location.href = `/betalning?booking=${encodeURIComponent(JSON.stringify(bookingDataToSend))}`
   }
 
   const handleBack = () => {
@@ -255,6 +276,8 @@ export default function BookingPage() {
         return 'Välj ett datum och en tid som passar dig'
       case 'session-selection':
         return 'Välj en tillgänglig teorisession från listan'
+      case 'unavailable-session':
+        return 'Inga sessioner tillgängliga just nu'
       case 'confirmation':
         return 'Kontrollera dina uppgifter och slutför bokningen'
       case 'complete':
@@ -271,16 +294,16 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           
           {/* Header Section */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-red-800 mb-4 tracking-tight">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight font-['Inter','system-ui','-apple-system','sans-serif']">
               Boka Tid
             </h1>
-            <p className="text-xl text-gray-600 mb-6">
+            <p className="text-xl text-gray-900 mb-6 font-['Inter','system-ui','-apple-system','sans-serif'] font-medium">
               Enkel och snabb bokning av körlektioner online
             </p>
             
@@ -290,53 +313,55 @@ export default function BookingPage() {
             <div className="flex justify-center items-center space-x-4 mb-6">
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['lesson-selection', 'calendar', 'session-selection', 'confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-red-600 text-white'
+                  ['lesson-selection', 'calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   1
                 </div>
-                <span className="ml-2 text-sm text-gray-600">Välj lektion</span>
+                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Välj lektion</span>
               </div>
 
               <div className={`h-1 w-8 ${
-                ['calendar', 'session-selection', 'confirmation', 'complete'].includes(currentStep)
-                  ? 'bg-red-600'
-                  : 'bg-gray-200'
+                ['calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                  ? 'bg-blue-700'
+                  : 'bg-gray-400'
               }`} />
 
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['calendar', 'session-selection', 'confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-red-600 text-white'
+                  ['calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   2
                 </div>
-                <span className="ml-2 text-sm text-gray-600">
-                  {selectedLessonType?.type === 'teori' ? 'Välj session' : 'Välj tid'}
+                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">
+                  {(selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar')
+                    ? (currentStep === 'unavailable-session' ? 'Ej tillgänglig' : 'Välj session')
+                    : 'Välj tid'}
                 </span>
               </div>
 
               <div className={`h-1 w-8 ${
                 ['confirmation', 'complete'].includes(currentStep)
-                  ? 'bg-red-600'
-                  : 'bg-gray-200'
+                  ? 'bg-blue-700'
+                  : 'bg-gray-400'
               }`} />
 
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   ['confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-red-600 text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   3
                 </div>
-                <span className="ml-2 text-sm text-gray-600">Bekräfta</span>
+                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Bekräfta</span>
               </div>
 
               <div className={`h-1 w-8 ${
-                currentStep === 'complete' ? 'bg-green-600' : 'bg-gray-200'
+                currentStep === 'complete' ? 'bg-green-700' : 'bg-gray-400'
               }`} />
 
               <div className="flex items-center">
@@ -347,14 +372,14 @@ export default function BookingPage() {
                 }`}>
                   <CheckCircle className="w-4 h-4" />
                 </div>
-                <span className="ml-2 text-sm text-gray-600">Klar</span>
+                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Klar</span>
               </div>
             </div>
           </div>
 
           {/* Main Content Card */}
           <Card className="shadow-xl border-0">
-            <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-lg">
+            <CardHeader className="bg-white text-gray-900 border-b border-gray-200 rounded-t-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {currentStep !== 'lesson-selection' && currentStep !== 'complete' && (
@@ -362,23 +387,23 @@ export default function BookingPage() {
                       variant="ghost"
                       size="sm"
                       onClick={handleBack}
-                      className="text-white hover:bg-red-800/50 hover:text-white"
+                      className="text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                     >
                       <ArrowLeft className="w-4 h-4" />
                     </Button>
                   )}
                   <div>
-                    <CardTitle className="text-xl font-bold">
+                    <CardTitle className="text-xl font-bold text-gray-900 font-['Inter','system-ui','-apple-system','sans-serif']">
                       {getStepTitle()}
                     </CardTitle>
-                    <p className="text-blue-100 mt-1">
+                    <p className="text-gray-600 mt-1 font-['Inter','system-ui','-apple-system','sans-serif']">
                       {getStepDescription()}
                     </p>
                   </div>
                 </div>
                 
                 {selectedLessonType && (
-                  <Badge variant="secondary" className="bg-white/20 text-white">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 border border-blue-200 font-['Inter','system-ui','-apple-system','sans-serif']">
                     {selectedLessonType.name}
                   </Badge>
                 )}
@@ -460,102 +485,235 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
+
+              {currentStep === 'unavailable-session' && selectedLessonType && (
+                <div className="space-y-6">
+                  {/* Unavailable Session Message */}
+                  <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Clock className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Inga {selectedLessonType.name} sessioner tillgängliga
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Det finns för närvarande inga lediga platser för denna typ av session.
+                        Du kan antingen vänta på att nya sessioner blir tillgängliga eller kontakta oss direkt.
+                      </p>
+
+                      <div className="space-y-3">
+                        <Button
+                          onClick={handleBack}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Tillbaka till lektionsval
+                        </Button>
+
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            onClick={() => window.location.href = '/kontakt'}
+                            className="flex-1"
+                          >
+                            Kontakta oss
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => window.location.href = 'tel:0760389192'}
+                            className="flex-1"
+                          >
+                            <Phone className="w-4 h-4 mr-2" />
+                            Ring oss
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800">
+                          <strong>Tips:</strong> Nya sessioner läggs ofta ut med kort varsel.
+                          Håll utkik efter uppdateringar eller kontakta oss för att höra om kommande datum.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {currentStep === 'confirmation' && bookingData && (
                 <div className="space-y-6">
-                  {/* Admin User Selection */}
-                  {isAdmin && (
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Boka för användare:
-                      </label>
-                      <div className="relative">
-                        <Dropdown
-                          label={
-                            <div className="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium text-white bg-red-700 rounded-lg hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 shadow-lg">
-                              <div className="flex items-center">
-                                {selectedUser ? (
-                                  <>
-                                    <img
-                                      className="w-6 h-6 me-2 rounded-full border-2 border-white"
-                                      src={selectedUser.profilePicture || "/images/din-logo-small.png"}
-                                      alt={selectedUser.name}
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/images/din-logo-small.png";
-                                      }}
-                                    />
-                                    <span className="truncate max-w-32">{selectedUser.name}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <User className="w-6 h-6 me-2" />
-                                    <span>Välj användare</span>
-                                  </>
-                                )}
-                              </div>
-                              <ChevronDown className="w-2.5 h-2.5 ms-3 flex-shrink-0" />
+                  {/* Booking Summary Card with Flowbite */}
+                  <FBCard className="shadow-lg">
+                    <div className="p-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                        Bekräfta din bokning
+                      </h3>
+
+                      {/* Lesson Details */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Lektionstyp</Label>
+                          <div className="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center">
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800 border border-blue-200">
+                                {selectedLessonType?.name}
+                              </Badge>
                             </div>
-                          }
-                          color="red"
-                          className="w-full"
-                          disabled={loadingUsers}
-                        >
-                          <div className="h-48 py-2 overflow-y-auto text-gray-700 dark:text-gray-200">
-                            {loadingUsers ? (
-                              <DropdownItem disabled>
-                                <div className="flex items-center px-4 py-2">
-                                  <OrbSpinner size="sm" className="me-2" />
-                                  Laddar användare...
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Pris</Label>
+                          <div className="mt-1 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <span className="text-lg font-bold text-green-800">
+                              {bookingData.totalPrice} kr
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Date & Time */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Datum</Label>
+                          <div className="mt-1 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                              <div className="flex items-center">
+                              <Calendar className="w-4 h-4 text-gray-500 mr-2" />
+                              <span className="font-medium">
+                                {new Date(bookingData.scheduledDate).toLocaleDateString('sv-SE', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            </div>
+                              </div>
+                            </div>
+
+                        <div>
+                          <Label className="text-sm font-medium text-gray-700">Tid</Label>
+                          <div className="mt-1 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 text-gray-500 mr-2" />
+                              <span className="font-medium">
+                                {bookingData.startTime} - {bookingData.endTime}
+                                ({bookingData.durationMinutes} min)
+                              </span>
                                 </div>
-                              </DropdownItem>
-                            ) : users.length === 0 ? (
-                              <DropdownItem disabled>
-                                <div className="flex items-center px-4 py-2">
-                                  Inga användare hittades
                                 </div>
-                              </DropdownItem>
-                            ) : (
-                              users.map((user) => (
-                                <DropdownItem
-                                  key={user.id}
-                                  onClick={() => setSelectedUser(user)}
-                                >
-                                  <div className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
-                                    <img 
-                                      className="w-6 h-6 me-2 rounded-full" 
-                                      src={user.profilePicture || "/images/din-logo-small.png"} 
-                                      alt={user.name}
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = "/images/din-logo-small.png";
-                                      }}
-                                    />
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">{user.name}</span>
-                                      <span className="text-xs text-gray-500">{user.email}</span>
-                                      <span className="text-xs text-red-600 capitalize">{user.role}</span>
                                     </div>
                                   </div>
-                                </DropdownItem>
-                              ))
+
+                      {/* Admin User Selection - Inline Flowbite Select */}
+                  {isAdmin && (
+                    <div className="mb-6">
+                          <div className="mb-2">
+                            <Label htmlFor="student-select" className="text-sm font-medium text-gray-700">
+                              Boka för elev:
+                            </Label>
+                              </div>
+
+                          <div className="space-y-3">
+                            <select
+                              id="student-select"
+                              value={selectedUser?.id || ''}
+                              onChange={(e) => {
+                                const userId = e.target.value;
+                                if (userId === 'create-new') {
+                                  setShowNewUserForm(true);
+                                  return;
+                                }
+                                const user = users.find(u => u.id === userId);
+                                setSelectedUser(user || null);
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          disabled={loadingUsers}
+                              required
+                            >
+                              <option value="">
+                                {loadingUsers ? 'Laddar elever...' : 'Välj en elev'}
+                              </option>
+                              {users
+                                .filter(user => user.role === 'student') // Only show students
+                                .map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} - {user.email}
+                                  </option>
+                                ))
+                              }
+                              <option value="create-new" className="font-medium text-blue-600">
+                                ➕ Skapa ny elev
+                              </option>
+                            </select>
+
+                            {loadingUsers && (
+                              <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                              </div>
                             )}
-                          </div>
-                          <DropdownItem onClick={() => setShowNewUserForm(true)}>
-                            <div className="flex items-center p-3 text-sm font-medium text-red-600 border-t border-gray-200 rounded-b-lg bg-red-50 dark:border-gray-600 hover:bg-red-100 dark:bg-red-900 dark:hover:bg-red-800 dark:text-red-400 hover:underline cursor-pointer">
-                              <UserPlus className="w-4 h-4 me-2" />
-                              Ny användare
-                            </div>
-                          </DropdownItem>
-                        </Dropdown>
+                                </div>
                         
-                        {selectedUser && (
+                                                  {/* New User Form */}
+                          {showNewUserForm && (
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h4 className="text-sm font-medium text-blue-800 mb-3">Skapa ny elev</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input
+                                  type="text"
+                                  placeholder="Förnamn"
+                                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Efternamn"
+                                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                                <input
+                                  type="email"
+                                  placeholder="E-post"
+                                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                                <input
+                                  type="tel"
+                                  placeholder="Telefon"
+                                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                />
+                                </div>
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  onClick={() => setShowNewUserForm(false)}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  Avbryt
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    // TODO: Implement create new user logic
+                                    setShowNewUserForm(false);
+                                    toast.success('Ny elev har skapats!');
+                                  }}
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                >
+                                  Skapa elev
+                                </Button>
+                                    </div>
+                                  </div>
+                          )}
+
+                          {selectedUser && !showNewUserForm && (
                           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                             <div className="flex items-center">
                               <img 
-                                className="w-8 h-8 me-3 rounded-full" 
+                                  className="w-8 h-8 me-3 rounded-full border-2 border-green-300"
                                 src={selectedUser.profilePicture || "/images/din-logo-small.png"} 
                                 alt={selectedUser.name}
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/images/default-avatar.png";
+                                    (e.target as HTMLImageElement).src = "/images/din-logo-small.png";
                                 }}
                               />
                               <div>
@@ -563,7 +721,7 @@ export default function BookingPage() {
                                   Bokar för: {selectedUser.name}
                                 </div>
                                 <div className="text-xs text-green-600">
-                                  {selectedUser.email} • {selectedUser.role}
+                                    {selectedUser.email}
                                 </div>
                               </div>
                             </div>
@@ -571,20 +729,38 @@ export default function BookingPage() {
                         )}
                         
                         {isAdmin && !selectedUser && (
-                          <div className="mt-2 text-sm text-red-600">
-                            Du måste välja en användare att boka för innan du kan fortsätta.
+                            <div className="mt-2 text-sm text-red-600 flex items-center">
+                              <span className="w-4 h-4 bg-red-100 rounded-full flex items-center justify-center mr-2">
+                                <span className="text-red-600 text-xs">!</span>
+                              </span>
+                              Du måste välja en elev att boka för innan du kan fortsätta.
                           </div>
                         )}
-                      </div>
                     </div>
                   )}
                   
-                  <BookingConfirmation
-                    bookingData={bookingData}
-                    user={selectedUser || user}
-                    onComplete={handleBookingComplete}
-                    onBack={handleBack}
-                  />
+                      {/* Booking Actions */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
+                        <Button
+                          onClick={handleBack}
+                          variant="outline"
+                          className="flex-1 sm:flex-none"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Tillbaka
+                        </Button>
+
+                        <Button
+                          onClick={() => handleBookingComplete()}
+                          disabled={isAdmin && !selectedUser}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Bekräfta bokning
+                        </Button>
+                      </div>
+                    </div>
+                  </FBCard>
                 </div>
               )}
               

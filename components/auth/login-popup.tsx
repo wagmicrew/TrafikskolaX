@@ -133,7 +133,7 @@ export function LoginPopup({ isOpen, onClose, defaultTab = 'login', onForgotPass
                   </DialogTitle>
 
                 </div>
-                <DialogDescription id="auth-description" className="sr-only">
+                <DialogDescription id="auth-description" className="text-sm text-white/80 mt-2">
                   {activeTab === 'login'
                     ? 'Logga in på ditt konto med e-post och lösenord'
                     : 'Registrera ett nytt konto genom att fylla i formuläret nedan'

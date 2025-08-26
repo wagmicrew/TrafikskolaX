@@ -41,7 +41,7 @@ export default function ImpersonationBanner() {
 
   return (
     <>
-      <OrbLoader isVisible={showRestoreLoader} text="Återgår till Admin..." />
+      <OrbLoader isVisible={showRestoreLoader} text="Återgår till Admin..." textPosition="below" />
       <div className="fixed top-0 inset-x-0 z-[100] bg-yellow-500 text-black px-4 py-2 text-sm font-semibold flex items-center justify-between">
         <span>Du använder en tillfällig användarsession</span>
         <a href="#" onClick={handleRestore} className="underline">Återgå till admin</a>

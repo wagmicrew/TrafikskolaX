@@ -1,6 +1,16 @@
 # Suggestions and Duplicates
 
-Duplicates to unify
+## Database Table Duplicates
+
+**lesson_types vs teori_lesson_types**
+- Both tables define lesson types with similar structure (name, description, price, duration)
+- `lesson_types`: Used by regular driving lesson bookings system
+- `teori_lesson_types`: Used by theory sessions and supervisor training
+- **Recommendation**: Consider consolidating into unified `lesson_types` table with `category` field ('driving', 'theory', 'supervisor')
+- **Impact**: Would reduce schema complexity and maintenance overhead
+
+## API Endpoint Duplicates
+
 - available-slots endpoints: /api/booking/available-slots and /api/bookings/available-slots → keep one canonical path (prefer /api/booking/available-slots) and deprecate the other
 - Payment/QLIRO admin endpoints overlap (create/refund/repay/test/export scattered) → expose via a single admin/qliro/payments controller with sub-actions
 

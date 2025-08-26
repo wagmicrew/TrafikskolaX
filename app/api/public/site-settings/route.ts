@@ -33,7 +33,13 @@ export async function GET() {
       contact,
       opening_hours,
       site_name: map['site_name'] || '',
-      schoolname: map['schoolname'] || ''
+      schoolname: map['schoolname'] || '',
+      // Social media links for footer
+      social_facebook: map['social_facebook'] || '',
+      social_instagram: map['social_instagram'] || '',
+      social_tiktok: map['social_tiktok'] || '',
+      // Payment settings
+      swish_phone: map['swish_phone'] || map['school_phonenumber'] || ''
     })
   } catch (e) {
     return NextResponse.json({ debug_extended_logs: false })

@@ -69,11 +69,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate pricing
+    // Validate supervisor requirements for handledar sessions
+    if (lessonType.allowsSupervisors && supervisors.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'At least one supervisor is required for this lesson type' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate pricing - new model: base price includes 1 student + 1 supervisor
     const basePrice = parseFloat(session.price || lessonType.price);
     const supervisorPrice = lessonType.pricePerSupervisor ? parseFloat(lessonType.pricePerSupervisor) : 0;
-    const totalSupervisorPrice = supervisorPrice * supervisors.length;
-    const totalPrice = basePrice + totalSupervisorPrice;
+
+    // Only charge for additional supervisors beyond the first
+    const extraSupervisors = Math.max(0, supervisors.length - 1);
+    const totalExtraSupervisorPrice = supervisorPrice * extraSupervisors;
+    const totalPrice = basePrice + totalExtraSupervisorPrice;
+
+    console.log(`Pricing calculation: base=${basePrice}, supervisors=${supervisors.length}, extra=${extraSupervisors}, extraCost=${totalExtraSupervisorPrice}, total=${totalPrice}`);
 
     // Create booking
     const bookingResult = await db

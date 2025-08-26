@@ -330,14 +330,19 @@ export const Navigation = memo(function Navigation() {
       </div>
 
       <Dialog open={showContactForm} onOpenChange={setShowContactForm}>
-        <DialogContent className="sm:max-w-[525px]">
-          <DialogHeader>
-            <DialogTitle>Kontakta oss</DialogTitle>
-            <DialogDescription>
-              Fyll i formuläret nedan så kontaktar vi dig så snart som möjligt.
-            </DialogDescription>
-          </DialogHeader>
-          <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[525px] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+          <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 rounded-xl sm:rounded-2xl"></div>
+            <div className="relative z-10 p-4 sm:p-6">
+              <DialogHeader>
+                <DialogTitle className="text-white font-bold drop-shadow-lg">Kontakta oss</DialogTitle>
+                <DialogDescription className="text-white/80 drop-shadow-sm">
+                  Fyll i formuläret nedan så kontaktar vi dig så snart som möjligt.
+                </DialogDescription>
+              </DialogHeader>
+              <ContactForm isOpen={showContactForm} onClose={() => setShowContactForm(false)} />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

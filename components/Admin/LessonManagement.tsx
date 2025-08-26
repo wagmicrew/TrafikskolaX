@@ -87,23 +87,28 @@ const LessonManagement = () => {
           <DialogTrigger asChild>
             <Button variant="primary" size="sm">Lägg till/Redigera lektion</Button>
           </DialogTrigger>
-          <DialogContent className="backdrop-blur-md bg-white/70 border border-white/40 shadow-lg">
-            <DialogHeader>
-              <DialogTitle>Redigera lektionstyp</DialogTitle>
-              <DialogDescription>
-                Gör ändringar i lektionstypen här. Klicka spara när du är klar.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[90vw] sm:max-w-[600px] p-0 overflow-hidden border-0 bg-transparent shadow-none">
+            <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl sm:rounded-2xl shadow-2xl h-full overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-transparent to-purple-500/20 rounded-xl sm:rounded-2xl"></div>
+              <div className="relative z-10 p-4 sm:p-6">
+                <DialogHeader>
+                  <DialogTitle className="text-white font-bold drop-shadow-lg">Redigera lektionstyp</DialogTitle>
+                  <DialogDescription className="text-white/80 drop-shadow-sm">
+                    Gör ändringar i lektionstypen här. Klicka spara när du är klar.
+                  </DialogDescription>
+                </DialogHeader>
             {/* Form fields for editing */}
             <form id="edit-lesson-form" className="space-y-4">
               {/* TODO: Add form fields */}
             </form>
-            <DialogFooter className="gap-2">
-              <Button type="submit" form="edit-lesson-form" variant="primary">Spara</Button>
-              <DialogClose asChild>
-                <Button variant="outline">Avbryt</Button>
-              </DialogClose>
-            </DialogFooter>
+                <DialogFooter className="gap-2">
+                  <Button type="submit" form="edit-lesson-form" variant="primary">Spara</Button>
+                  <DialogClose asChild>
+                    <Button variant="outline">Avbryt</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 

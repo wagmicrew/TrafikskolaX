@@ -56,6 +56,30 @@ export async function POST(request: NextRequest) {
           .where(eq(handledarBookings.id, bookingId))
           .returning();
 
+        // Mark invoice as paid
+        try {
+          const { invoices } = await import('@/lib/db/schema');
+          const { eq } = await import('drizzle-orm');
+          const [existingInvoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.handledarBookingId, bookingId))
+            .limit(1);
+
+          if (existingInvoice) {
+            await db
+              .update(invoices)
+              .set({
+                status: 'paid',
+                paidAt: new Date(),
+                updatedAt: new Date()
+              })
+              .where(eq(invoices.id, existingInvoice.id));
+          }
+        } catch (error) {
+          console.error('Error updating handledar invoice status:', error);
+        }
+
         // Send confirmation email to student/supervisor
         const emailTo = booking.supervisorEmail || (booking.studentId ? await getUserEmail(booking.studentId) : null);
         if (emailTo) {
@@ -112,6 +136,30 @@ export async function POST(request: NextRequest) {
           })
           .where(eq(bookings.id, bookingId))
           .returning();
+
+        // Mark invoice as paid
+        try {
+          const { invoices } = await import('@/lib/db/schema');
+          const { eq } = await import('drizzle-orm');
+          const [existingInvoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.bookingId, bookingId))
+            .limit(1);
+
+          if (existingInvoice) {
+            await db
+              .update(invoices)
+              .set({
+                status: 'paid',
+                paidAt: new Date(),
+                updatedAt: new Date()
+              })
+              .where(eq(invoices.id, existingInvoice.id));
+          }
+        } catch (error) {
+          console.error('Error updating invoice status:', error);
+        }
 
         // Send confirmation email to student/guest
         const emailTo = booking.guestEmail || (booking.userId ? await getUserEmail(booking.userId) : null);

@@ -20,5 +20,3 @@ export function ClientRoot({ children }: { children: React.ReactNode }) {
     </AuthProvider>
   );
 }
-
-

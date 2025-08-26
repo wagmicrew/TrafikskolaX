@@ -34,6 +34,9 @@ export const Navigation = memo(function Navigation() {
     { href: "/boka-korning", label: "Boka körning", icon: Calendar },
   ]
 
+  // Check if we're on an admin page
+  const isAdminPage = pathname?.startsWith('/dashboard/admin');
+
   return (
     <>
       {/* Header */}
@@ -102,7 +105,7 @@ export const Navigation = memo(function Navigation() {
       </header>
 
       {/* Desktop Navigation */}
-      <nav className="hidden md:block sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+      <nav className={`hidden md:block z-40 bg-white border-b border-gray-200 shadow-sm ${isAdminPage ? '' : 'sticky top-0'}`}>
         <div className="container mx-auto px-6">
           <div className="flex justify-center">
             <div className="flex space-x-1 py-3">

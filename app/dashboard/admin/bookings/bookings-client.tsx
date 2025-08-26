@@ -4,12 +4,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Calendar, 
-  Clock, 
-  User, 
-  Mail, 
-  Phone, 
+import {
+  Calendar,
+  Clock,
+  User,
+  Mail,
+  Phone,
   Car,
   CheckCircle,
   XCircle,
@@ -23,8 +23,20 @@ import {
   Users,
   CheckSquare,
   Square,
-  Loader2
+  Loader2,
+  MoreHorizontal,
+  Search,
+  Filter
 } from 'lucide-react';
+import { 
+  Button, 
+  Card, 
+  Badge, 
+  Alert, 
+  Select, 
+  TextInput
+} from 'flowbite-react';
+import { HiOutlineExclamation, HiOutlineEye, HiOutlineTrash, HiOutlineBan } from 'react-icons/hi';
 
 interface Booking {
   id: string;
@@ -164,13 +176,16 @@ export default function BookingsClient({
     setWarning(`Är du säker på att du vill avboka ${selectedBookings.length} bokningar? Detta skickar e-post och återbetalar krediter.`);
     setConfirmAction(() => async () => {
       setWarning(null);
+      setConfirmAction(null);
       setIsProcessing(true);
+      
       try {
         const response = await fetch('/api/admin/bookings/bulk-unbook', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingIds: selectedBookings })
         });
+        
         const result = await response.json();
         if (response.ok) {
           toast({ title: 'Klart', description: result.message, variant: 'default' });
@@ -180,7 +195,7 @@ export default function BookingsClient({
           toast({ title: 'Fel', description: result.error || 'Fel vid avbokning', variant: 'destructive' });
         }
       } catch (error) {
-        console.error('Error bulk unbooking:', error);
+        console.error('Error unbooking:', error);
         toast({ title: 'Fel', description: 'Fel vid avbokning', variant: 'destructive' });
       } finally {
         setIsProcessing(false);
@@ -196,13 +211,16 @@ export default function BookingsClient({
     setWarning(`Ta bort ${selectedBookings.length} bokningar permanent? Detta går inte att ångra.`);
     setConfirmAction(() => async () => {
       setWarning(null);
+      setConfirmAction(null);
       setIsProcessing(true);
+      
       try {
         const response = await fetch('/api/admin/bookings/bulk-delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingIds: selectedBookings })
         });
+        
         const result = await response.json();
         if (response.ok) {
           toast({ title: 'Klart', description: result.message, variant: 'default' });
@@ -212,7 +230,7 @@ export default function BookingsClient({
           toast({ title: 'Fel', description: result.error || 'Fel vid borttagning', variant: 'destructive' });
         }
       } catch (error) {
-        console.error('Error bulk deleting:', error);
+        console.error('Error deleting:', error);
         toast({ title: 'Fel', description: 'Fel vid borttagning', variant: 'destructive' });
       } finally {
         setIsProcessing(false);
@@ -224,13 +242,16 @@ export default function BookingsClient({
     setWarning('Ta bort denna lärare permanent och avregistrera från alla bokningar?');
     setConfirmAction(() => async () => {
       setWarning(null);
+      setConfirmAction(null);
       setIsProcessing(true);
+      
       try {
-        const response = await fetch('/api/admin/teachers/remove', {
+        const response = await fetch('/api/admin/bookings/remove-teacher', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ teacherId })
         });
+        
         const result = await response.json();
         if (response.ok) {
           toast({ title: 'Klart', description: 'Lärare borttagen', variant: 'default' });
@@ -251,13 +272,16 @@ export default function BookingsClient({
     setWarning('Ta bort denna bokning permanent? Detta går inte att ångra.');
     setConfirmAction(() => async () => {
       setWarning(null);
+      setConfirmAction(null);
       setIsProcessing(true);
+      
       try {
         const response = await fetch('/api/admin/bookings/bulk-delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingIds: [bookingId] })
         });
+        
         const result = await response.json();
         if (response.ok) {
           toast({ title: 'Klart', description: 'Bokning borttagen', variant: 'default' });
@@ -275,35 +299,29 @@ export default function BookingsClient({
   };
 
   const getStatusIcon = (status: string | null) => {
-    if (!status) return <AlertCircle className="w-5 h-5 text-yellow-500" />;
-    
-    switch (status.toLowerCase()) {
+    switch (status) {
       case 'confirmed':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-green-400" />;
       case 'cancelled':
-        return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'pending':
+        return <XCircle className="w-5 h-5 text-rose-400" />;
+      case 'completed':
+        return <CheckCircle className="w-5 h-5 text-blue-400" />;
       default:
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        return <AlertCircle className="w-5 h-5 text-amber-400" />;
     }
   };
 
   const getPaymentIcon = (paymentStatus: string | null) => {
-    if (!paymentStatus) return <CreditCard className="w-5 h-5 text-gray-400" />;
-    
-    return paymentStatus.toLowerCase() === 'paid' ? (
-      <CreditCard className="w-5 h-5 text-green-500" />
-    ) : (
-      <CreditCard className="w-5 h-5 text-gray-400" />
-    );
-  };
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('sv-SE', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    switch (paymentStatus) {
+      case 'paid':
+        return <CreditCard className="w-5 h-5 text-green-400" />;
+      case 'pending':
+        return <CreditCard className="w-5 h-5 text-amber-400" />;
+      case 'refunded':
+        return <CreditCard className="w-5 h-5 text-blue-400" />;
+      default:
+        return <CreditCard className="w-5 h-5 text-rose-400" />;
+    }
   };
 
   const formatTime = (time: string) => {
@@ -311,302 +329,347 @@ export default function BookingsClient({
   };
 
   return (
-    <div className="text-slate-100">
-      {/* Glass warning dialog */}
+    <div className="space-y-6">
+      {/* Confirmation Dialog */}
       {warning && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-6 h-6 text-yellow-400" />
-              <h3 className="text-lg font-semibold text-white">Bekräfta</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center">
+              <HiOutlineExclamation className="w-6 h-6 text-yellow-500 mr-2" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Bekräfta åtgärd
+              </h3>
             </div>
-            <p className="text-slate-300 mb-6">{warning}</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setWarning(null); setConfirmAction(null); }} className="px-4 py-2 rounded-lg text-white border border-white/20 hover:bg-white/10">Avbryt</button>
-              <button onClick={() => confirmAction && confirmAction()} className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white">Fortsätt</button>
+            <div className="p-6">
+              <p className="text-base text-gray-500 dark:text-gray-300 mb-4">
+                {warning}
+              </p>
+              <Alert color="warning">
+                <span className="font-medium">Varning!</span> Denna åtgärd kan inte ångras.
+              </Alert>
+            </div>
+            <div className="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-700 gap-2">
+              <Button
+                color="gray"
+                onClick={() => { setWarning(null); setConfirmAction(null); }}
+              >
+                Avbryt
+              </Button>
+              <Button
+                color="red"
+                onClick={() => confirmAction && confirmAction()}
+              >
+                Fortsätt
+              </Button>
             </div>
           </div>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-2 drop-shadow-sm">
-          <Calendar className="w-8 h-8 text-sky-300" />
-          Bokningar
-        </h1>
-        
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <select
-            className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-            value={selectedUserId}
-            onChange={(e) => handleUserChange(e.target.value)}
-          >
-            <option value="">Alla användare</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name} ({user.email})
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleClearTemp}
-            disabled={isProcessing}
-            className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-50`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Rensar...
-              </>
-            ) : (
-              <>Rensa temporära bokningar</>
-            )}
-          </button>
 
-          <button
-            onClick={handleArchiveCancelled}
-            disabled={isProcessing}
-            className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border bg-white/10 text-white border-white/20 hover:bg-white/20 disabled:opacity-50`}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Arkiverar...
-              </>
-            ) : (
-              <>Arkivera avbrutna (15 min+)</>
-            )}
-          </button>
+      {/* Header Section with Flowbite Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Main Header Card */}
+        <Card className="lg:col-span-2 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Bokningar
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Hantera alla bokningar och scheman
+                </p>
+              </div>
+            </div>
+            <Badge color="info" className="text-sm">
+              {bookings.length} bokningar
+            </Badge>
+          </div>
+        </Card>
 
-            <button
-              onClick={() => {
-                const params = new URLSearchParams(window.location.search);
-                if (showPast) {
-                  params.delete('showPast');
-                } else {
-                  params.set('showPast', 'true');
-                }
-                params.set('page', '1');
-                router.push(`/dashboard/admin/bookings?${params.toString()}`);
-              }}
-              className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2 border ${
-                showPast 
-                  ? 'bg-white/20 text-white border-white/30 hover:bg-white/30' 
-                  : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-              }`}
+        {/* Quick Actions Card */}
+        <Card className="shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Snabbåtgärder
+          </h3>
+          <div className="space-y-2">
+            <Button
+              size="sm"
+              color="light"
+              onClick={handleClearTemp}
+              disabled={isProcessing}
+              className="w-full justify-start"
             >
-              <Calendar className="w-4 h-4" />
-              {showPast ? 'Visa endast framtida' : 'Visa alla bokningar'}
-            </button>
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Rensa temporära
+            </Button>
+            <Button
+              size="sm"
+              color="light"
+              onClick={handleArchiveCancelled}
+              disabled={isProcessing}
+              className="w-full justify-start"
+            >
+              {isProcessing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Ban className="w-4 h-4 mr-2" />
+              )}
+              Arkivera avbrutna
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters Section with Flowbite Components */}
+      <Card className="shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-1">
+            <div className="w-full sm:w-64">
+              <Select
+                value={selectedUserId}
+                onChange={(e) => handleUserChange(e.target.value)}
+                icon={User}
+              >
+                <option value="">Alla användare</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.email})
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
         </div>
+      </Card>
 
-      {/* Bulk Actions */}
-      {selectedBookings.length > 0 ? (
-        <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-sky-300" />
-              <span className="font-medium text-white">
-                {selectedBookings.length} bokning{selectedBookings.length !== 1 ? 'ar' : ''} vald{selectedBookings.length !== 1 ? 'a' : ''}
-              </span>
+      {/* Toggle Past/Future Bookings */}
+      <Card className="shadow-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Filter className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              Visa: {showPast ? 'Alla bokningar' : 'Endast framtida bokningar'}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            color={showPast ? "blue" : "light"}
+            onClick={() => {
+              const params = new URLSearchParams(window.location.search);
+              if (showPast) {
+                params.delete('showPast');
+              } else {
+                params.set('showPast', 'true');
+              }
+              params.set('page', '1');
+              router.push(`/dashboard/admin/bookings?${params.toString()}`);
+            }}
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            {showPast ? 'Visa framtida' : 'Visa alla'}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Bulk Actions with Flowbite Alert */}
+      {selectedBookings.length > 0 && (
+        <Alert color="info" className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div>
+                <span className="font-semibold text-blue-800 dark:text-blue-200">
+                  {selectedBookings.length} bokning{selectedBookings.length !== 1 ? 'ar' : ''} vald{selectedBookings.length !== 1 ? 'a' : ''}
+                </span>
+                <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                  Välj åtgärd för de valda bokningarna
+                </p>
+              </div>
             </div>
-            
+
             <div className="flex gap-2">
-              <button
+              <Button
+                size="sm"
+                color="warning"
                 onClick={handleBulkUnbook}
                 disabled={isProcessing}
-                className="px-4 py-2 rounded-xl bg-amber-500/80 hover:bg-amber-500 text-white disabled:opacity-50 flex items-center gap-2 shadow-lg"
               >
                 {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Ban className="w-4 h-4" />
+                  <Ban className="w-4 h-4 mr-2" />
                 )}
                 Avboka ({selectedBookings.length})
-              </button>
-              
-              <button
+              </Button>
+
+              <Button
+                size="sm"
+                color="red"
                 onClick={handleBulkDelete}
                 disabled={isProcessing}
-                className="px-4 py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white disabled:opacity-50 flex items-center gap-2 shadow-lg"
               >
                 {isProcessing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 mr-2" />
                 )}
                 Ta bort ({selectedBookings.length})
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      ) : null}
+        </Alert>
+      )}
 
       {bookings.length === 0 ? (
-        <div className="text-center py-12 text-slate-300">
-          <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-          <p className="text-lg">Inga bokningar hittades</p>
-        </div>
+        <Card className="shadow-lg">
+          <div className="text-center py-12">
+            <Calendar className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Inga bokningar hittades
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Det finns för närvarande inga bokningar att visa.
+            </p>
+          </div>
+        </Card>
       ) : (
         <>
-          <div className="grid gap-4 mb-6">
-            {bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/15 transition-colors duration-300 overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+          {/* Simplified Bookings Table */}
+          <Card className="shadow-lg">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="p-4">
+                      <div className="flex items-center">
                         <input
+                          id="checkbox-all"
                           type="checkbox"
-                          checked={selectedBookings.includes(booking.id)}
-                          onChange={() => handleBookingSelection(booking.id)}
-                          className="w-4 h-4 bg-white/10 border-white/30 rounded focus:ring-sky-500"
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          checked={selectedBookings.length === bookings.length && bookings.length > 0}
+                          onChange={handleSelectAll}
                         />
-                        <User className="w-5 h-5 text-slate-200" />
-                        <h3 className="text-xl font-semibold text-white">
-                          {booking.userName}
-                        </h3>
-                        {getStatusIcon(booking.status)}
-                        {getPaymentIcon(booking.paymentStatus)}
+                        <label htmlFor="checkbox-all" className="sr-only">checkbox</label>
                       </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Calendar className="w-4 h-4" />
-                          <span>{new Date(booking.scheduledDate).toLocaleDateString('sv-SE')}</span>
+                    </th>
+                    <th scope="col" className="px-6 py-3">Datum & Tid</th>
+                    <th scope="col" className="px-6 py-3">Kund</th>
+                    <th scope="col" className="px-6 py-3">Lektionstyp</th>
+                    <th scope="col" className="px-6 py-3">Status</th>
+                    <th scope="col" className="px-6 py-3">Betalning</th>
+                    <th scope="col" className="px-6 py-3">Pris</th>
+                    <th scope="col" className="px-6 py-3">Åtgärder</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((booking) => (
+                    <tr key={booking.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                      <td className="w-4 p-4">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            checked={selectedBookings.includes(booking.id)}
+                            onChange={() => handleBookingSelection(booking.id)}
+                          />
+                          <label className="sr-only">checkbox</label>
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Clock className="w-4 h-4" />
-                          <span>
-                            {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
-                          </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{new Date(booking.scheduledDate).toLocaleDateString('sv-SE')}</span>
+                          <span className="text-xs">{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</span>
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Car className="w-4 h-4" />
-                          <span>{booking.lessonTypeName}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{booking.userName}</span>
+                          <span className="text-xs">{booking.userEmail}</span>
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Mail className="w-4 h-4" />
-                          <span className="truncate">{booking.userEmail}</span>
+                      </td>
+                      <td className="px-6 py-4">{booking.lessonTypeName}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          booking.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                          booking.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                          'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                        }`}>
+                          {booking.status === 'confirmed' ? 'Bekräftad' :
+                           booking.status === 'cancelled' ? 'Avbruten' :
+                           booking.status === 'completed' ? 'Genomförd' : 'Väntar'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                          booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                        }`}>
+                          {booking.paymentStatus === 'paid' ? 'Betald' :
+                           booking.paymentStatus === 'pending' ? 'Väntar' :
+                           booking.paymentStatus === 'refunded' ? 'Återbetald' : 'Obetald'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-medium">{booking.totalPrice} kr</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                            title="Visa detaljer"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBooking(booking.id)}
+                            className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                            title="Ta bort"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Phone className="w-4 h-4" />
-                          <span>{booking.userPhone}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <span className="text-xs">
-                            Skapad: {new Date(booking.createdAt).toLocaleDateString('sv-SE')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Link
-                        href={`/dashboard/admin/bookings/${booking.id}`}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-colors duration-200"
-                      >
-                        <Eye className="w-5 h-5" />
-                        Öppna
-                      </Link>
-                      
-                      <button
-                        onClick={() => handleDeleteBooking(booking.id)}
-                        disabled={isProcessing}
-                        className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white disabled:opacity-50 transition-colors duration-200 shadow-lg"
-                        title="Ta bort bokning permanent"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Ta bort
-                      </button>
-                      
-                      {booking.teacherId && (
-                        <button
-                          onClick={() => handleRemoveTeacher(booking.teacherId!)}
-                          disabled={isProcessing}
-                          className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-600/80 hover:bg-amber-600 text-white disabled:opacity-50 transition-colors duration-200 shadow-lg"
-                          title="Ta bort lärare från bokningen"
-                        >
-                          <Users className="w-4 h-4" />
-                          Ta bort lärare
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Select All Button */}
-          <div className="mb-4 flex items-center gap-2">
-            <button
-              onClick={handleSelectAll}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-colors"
-            >
-              {selectedBookings.length === bookings.length ? (
-                <CheckSquare className="w-4 h-4" />
-              ) : (
-                <Square className="w-4 h-4" />
-              )}
-              {selectedBookings.length === bookings.length ? 'Avmarkera alla' : 'Markera alla'}
-            </button>
-          </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
           {/* Pagination */}
-          <div className="flex justify-center items-center gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`px-4 py-2 rounded-xl transition-colors border ${
-                      currentPage === pageNum
-                        ? 'bg-white/20 text-white border-white/30'
-                        : 'bg-white/10 hover:bg-white/20 border-white/20'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+          <div className="flex justify-center mt-6">
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                color="light"
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Föregående
+              </Button>
+              
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                Sida {currentPage} av {totalPages}
+              </span>
+              
+              <Button
+                size="sm"
+                color="light"
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                Nästa
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
-            
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
           </div>
         </>
       )}

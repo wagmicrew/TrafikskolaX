@@ -23,5 +23,12 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.d.ts", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "lib/payment/qliro-service-broken.ts"]
+  "exclude": [
+    "node_modules",
+    "lib/payment/qliro-service-broken.ts",
+    "components/booking/booking-confirmation-broken.tsx",
+    "components/booking/booking-confirmation-backup.tsx",
+    "components/booking/*-broken.tsx",
+    "components/booking/*-backup.tsx"
+  ]
 }

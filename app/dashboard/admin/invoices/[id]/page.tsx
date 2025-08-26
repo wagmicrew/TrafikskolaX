@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter as useNextRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {

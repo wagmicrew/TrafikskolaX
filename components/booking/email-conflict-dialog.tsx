@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AlertTriangle, Mail, UserPlus, LogIn, X, Lock } from 'lucide-react'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 interface EmailConflictDialogProps {
   isOpen: boolean

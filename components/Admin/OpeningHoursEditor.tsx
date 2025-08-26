@@ -132,12 +132,13 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <Label htmlFor="timezone">Tidszon</Label>
+        <Label htmlFor="timezone" className="text-black font-medium">Tidszon</Label>
         <Input
           id="timezone"
           placeholder="Europe/Stockholm"
           value={value.timezone || ""}
           onChange={(e) => updateTimezone(e.target.value)}
+          className="border-gray-300 text-black focus:border-blue-500"
         />
       </div>
 
@@ -160,26 +161,27 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-white font-semibold">Undantag</h3>
-          <Button type="button" variant="secondary" onClick={addException}>Lägg till undantag</Button>
+          <h3 className="text-black font-bold text-lg">Undantag</h3>
+          <Button type="button" variant="outline" onClick={addException} className="border-gray-300 text-gray-700 hover:bg-gray-50">Lägg till undantag</Button>
         </div>
         <div className="space-y-4">
           {(value.exceptions || []).length === 0 && (
-            <p className="text-sm text-slate-300">Inga undantag definierade.</p>
+            <p className="text-sm text-gray-600">Inga undantag definierade.</p>
           )}
           {(value.exceptions || []).map((ex, i) => (
-            <div key={i} className="rounded-xl border border-white/20 bg-white/10 p-4 space-y-3">
+            <div key={i} className="rounded-lg border border-gray-200 bg-white p-4 space-y-3 shadow-sm">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                  <Label>Datum (YYYY-MM-DD)</Label>
+                  <Label className="text-black font-medium">Datum (YYYY-MM-DD)</Label>
                   <Input
                     placeholder="2025-12-24"
                     value={ex.date || ""}
                     onChange={(e) => updateException(i, "date", e.target.value)}
+                    className="border-gray-300 text-black focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <Label>Gäller</Label>
+                  <Label className="text-black font-medium">Gäller</Label>
                   <Select value={ex.appliesTo} onValueChange={(v) => updateException(i, "appliesTo", v as any)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Välj" />
@@ -192,9 +194,9 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
                   </Select>
                 </div>
                 <div>
-                  <Label>Typ</Label>
+                  <Label className="text-black font-medium">Typ</Label>
                   <Select value={ex.type} onValueChange={(v) => updateException(i, "type", v as any)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-300 text-black focus:border-blue-500">
                       <SelectValue placeholder="Välj" />
                     </SelectTrigger>
                     <SelectContent>
@@ -204,11 +206,12 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
                   </Select>
                 </div>
                 <div>
-                  <Label>Notis</Label>
+                  <Label className="text-black font-medium">Notis</Label>
                   <Input
                     placeholder="Julafton"
                     value={ex.note || ""}
                     onChange={(e) => updateException(i, "note", e.target.value)}
+                    className="border-gray-300 text-black focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -216,8 +219,8 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
               {ex.type === "override" && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm text-slate-200">Tidsintervall</h4>
-                    <Button type="button" size="sm" variant="secondary" onClick={() => addExceptionInterval(i)}>
+                    <h4 className="text-sm text-black font-medium">Tidsintervall</h4>
+                    <Button type="button" size="sm" variant="outline" onClick={() => addExceptionInterval(i)} className="border-gray-300 text-gray-700 hover:bg-gray-50">
                       Lägg till intervall
                     </Button>
                   </div>
@@ -225,12 +228,12 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
                     {(ex.intervals || []).map((iv, idx) => (
                       <div key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
                         <div>
-                          <Label>Start</Label>
-                          <Input value={iv.start} onChange={(e) => updateExceptionInterval(i, idx, "start", e.target.value)} />
+                          <Label className="text-black font-medium">Start</Label>
+                          <Input value={iv.start} onChange={(e) => updateExceptionInterval(i, idx, "start", e.target.value)} className="border-gray-300 text-black focus:border-blue-500" />
                         </div>
                         <div>
-                          <Label>Slut</Label>
-                          <Input value={iv.end} onChange={(e) => updateExceptionInterval(i, idx, "end", e.target.value)} />
+                          <Label className="text-black font-medium">Slut</Label>
+                          <Input value={iv.end} onChange={(e) => updateExceptionInterval(i, idx, "end", e.target.value)} className="border-gray-300 text-black focus:border-blue-500" />
                         </div>
                         <div className="md:col-span-1">
                           <Button type="button" variant="destructive" onClick={() => removeExceptionInterval(i, idx)}>
@@ -244,7 +247,7 @@ export default function OpeningHoursEditor({ value, onChange }: Props) {
               )}
 
               <div className="flex justify-end">
-                <Button type="button" variant="destructive" onClick={() => removeException(i)}>
+                <Button type="button" variant="destructive" onClick={() => removeException(i)} className="bg-red-600 hover:bg-red-700">
                   Ta bort undantag
                 </Button>
               </div>
@@ -270,33 +273,33 @@ function SectionWeekly({
   onRemove: (day: Day, idx: number) => void;
 }) {
   return (
-    <div className="rounded-2xl bg-white/10 border border-white/20 p-4 space-y-3">
-      <h3 className="text-white font-semibold">{title}</h3>
+    <div className="rounded-lg bg-white border border-gray-200 p-4 space-y-3 shadow-sm">
+      <h3 className="text-black font-bold text-lg">{title}</h3>
       <div className="space-y-4">
         {DAYS.map((d) => (
           <div key={d} className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-slate-200">{DAY_LABELS[d]}</Label>
-              <Button type="button" size="sm" variant="secondary" onClick={() => onAdd(d)}>
+              <Label className="text-black font-medium">{DAY_LABELS[d]}</Label>
+              <Button type="button" size="sm" variant="outline" onClick={() => onAdd(d)} className="border-gray-300 text-gray-700 hover:bg-gray-50">
                 Lägg till intervall
               </Button>
             </div>
             {(weekly[d] || []).length === 0 ? (
-              <p className="text-xs text-slate-300">Inga tider</p>
+              <p className="text-xs text-red-600 font-semibold">Inga tider</p>
             ) : (
               <div className="space-y-2">
                 {(weekly[d] || []).map((iv, idx) => (
                   <div key={idx} className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
                     <div>
-                      <Label>Start</Label>
-                      <Input value={iv.start} onChange={(e) => onChange(d, idx, "start", e.target.value)} />
+                      <Label className="text-black font-medium">Start</Label>
+                      <Input value={iv.start} onChange={(e) => onChange(d, idx, "start", e.target.value)} className="border-gray-300 text-black focus:border-blue-500" />
                     </div>
                     <div>
-                      <Label>Slut</Label>
-                      <Input value={iv.end} onChange={(e) => onChange(d, idx, "end", e.target.value)} />
+                      <Label className="text-black font-medium">Slut</Label>
+                      <Input value={iv.end} onChange={(e) => onChange(d, idx, "end", e.target.value)} className="border-gray-300 text-black focus:border-blue-500" />
                     </div>
                     <div className="md:col-span-1">
-                      <Button type="button" variant="destructive" onClick={() => onRemove(d, idx)}>
+                      <Button type="button" variant="destructive" onClick={() => onRemove(d, idx)} className="bg-red-600 hover:bg-red-700">
                         Ta bort
                       </Button>
                     </div>

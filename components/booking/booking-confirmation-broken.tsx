@@ -110,7 +110,7 @@ export function BookingConfirmation({
   const [conflictingEmail, setConflictingEmail] = useState('')
   const [emailValidationStatus, setEmailValidationStatus] = useState<'idle' | 'checking' | 'available' | 'exists'>('idle')
   const [existingUserName, setExistingUserName] = useState('')
-  const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [emailCheckTimeout, setEmailCheckTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const { user: authUser } = useAuth()
   const { handleLogin } = useAuthActions()
   useQliroListener({

@@ -31,14 +31,12 @@ import {
   AlertTriangle,
   Edit,
   Copy,
-  Clock,
   Plus,
   Trash2,
   Download
 } from 'lucide-react';
 import { OrbSpinner } from '@/components/ui/orb-loader';
 import { ResetSiteButton } from '@/components/Admin/ResetSiteButton';
-import OpeningHoursEditor from '@/components/Admin/OpeningHoursEditor';
 import type { OpeningHoursConfig } from '@/lib/site-settings/opening-hours';
 
 interface Settings {
@@ -137,7 +135,6 @@ export default function SettingsClient() {
   const [editSchool, setEditSchool] = useState(false);
   const [editSite, setEditSite] = useState(false);
   const [editPayment, setEditPayment] = useState(false);
-  const [editOpening, setEditOpening] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   // Cron setup dialog state
@@ -683,8 +680,10 @@ export default function SettingsClient() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto text-white">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-6xl mx-auto text-white">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Link href="/dashboard/admin/settings/qliro">
           <Card className="bg-white/10 border border-white/20 hover:bg-white/15 transition-colors cursor-pointer">
             <CardHeader className="pb-3">
@@ -694,7 +693,7 @@ export default function SettingsClient() {
                 </div>
                 <div>
                   <CardTitle className="text-white">Qliro-betalningar</CardTitle>
-                  <CardDescription className="text-slate-300">Visa, exportera, skapa betalningar</CardDescription>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">Visa, exportera, skapa betalningar</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -702,36 +701,32 @@ export default function SettingsClient() {
         </Link>
       </div>
       <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1">
-          <TabsTrigger value="setup" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+        <TabsList className="grid w-full grid-cols-7 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1 rounded-lg">
+          <TabsTrigger value="setup" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <SettingsIcon className="w-4 h-4" />
-            Inställningar
+            <span className="hidden sm:inline">Inställningar</span>
           </TabsTrigger>
-          <TabsTrigger value="email" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="email" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <Mail className="w-4 h-4" />
-            E-postinställningar
+            <span className="hidden sm:inline">E-post</span>
           </TabsTrigger>
-          <TabsTrigger value="school" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="school" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <Building className="w-4 h-4" />
-            Skolinformation
+            <span className="hidden sm:inline">Skola</span>
           </TabsTrigger>
-          <TabsTrigger value="site" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="site" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <Globe className="w-4 h-4" />
-            Webbplatsinställningar
+            <span className="hidden sm:inline">Webbplats</span>
           </TabsTrigger>
-          <TabsTrigger value="opening" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
-            <Clock className="w-4 h-4" />
-            Öppettider
-          </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="payment" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <CreditCard className="w-4 h-4" />
-            Betalningsinställningar
+            <span className="hidden sm:inline">Betalning</span>
           </TabsTrigger>
-          <TabsTrigger value="useful" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="useful" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <SettingsIcon className="w-4 h-4" />
-            Nyttigt
+            <span className="hidden sm:inline">Nyttigt</span>
           </TabsTrigger>
-          <TabsTrigger value="troubleshooting" className="flex items-center gap-2 data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">
+          <TabsTrigger value="troubleshooting" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
             <AlertTriangle className="w-4 h-4" />
             <span className="hidden sm:inline">Felsökning</span>
           </TabsTrigger>
@@ -741,23 +736,26 @@ export default function SettingsClient() {
         <TabsContent value="setup">
           <div className="space-y-6">
             {/* Invoice System Setup */}
-            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader className="flex flex-row items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
-                    <Mail className="w-5 h-5" />
+                  <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-blue-600" />
                     Faktura system
                   </CardTitle>
-                  <CardDescription className="text-slate-300">
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
                     Konfigurera och initiera faktura systemet för alla betalningar
                   </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">📊 System status</h4>
-                    <p className="text-sm text-slate-300 mb-4">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <SettingsIcon className="w-4 h-4" />
+                      System status
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Kontrollera om faktura systemet är korrekt installerat och konfigurerat
                     </p>
                     <div className="flex gap-2">
@@ -776,7 +774,7 @@ export default function SettingsClient() {
                             toast.error('Fel vid kontroll av faktura system', { id: t });
                           }
                         }}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Kontrollera status
@@ -811,7 +809,7 @@ export default function SettingsClient() {
                             toast.error('Fel vid skapande av test faktura', { id: t });
                           }
                         }}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Skapa test faktura
@@ -819,9 +817,12 @@ export default function SettingsClient() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">⚙️ Databas setup</h4>
-                    <p className="text-sm text-slate-300 mb-4">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                      <SettingsIcon className="w-4 h-4" />
+                      Databas setup
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Initiera faktura tabeller och funktioner i databasen
                     </p>
                     <div className="flex gap-2">
@@ -843,7 +844,7 @@ export default function SettingsClient() {
                             toast.error('Fel vid initiering av faktura system', { id: t });
                           }
                         }}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <SettingsIcon className="w-4 h-4 mr-2" />
                         Initiera system
@@ -875,9 +876,9 @@ export default function SettingsClient() {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <h4 className="font-semibold text-white mb-2">📋 Integration med bokningssystem</h4>
-                  <p className="text-sm text-slate-300 mb-4">
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">📋 Integration med bokningssystem</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     Konfigurera hur fakturor automatiskt skapas från bokningar
                   </p>
                   <div className="grid md:grid-cols-3 gap-4">
@@ -888,7 +889,7 @@ export default function SettingsClient() {
                           checked={settings.invoice_auto_create || false}
                           onCheckedChange={(checked) => updateSetting('invoice_auto_create', checked)}
                         />
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
                           {settings.invoice_auto_create ? 'Aktiverad' : 'Inaktiverad'}
                         </span>
                       </div>
@@ -917,13 +918,13 @@ export default function SettingsClient() {
             </Card>
 
             {/* PDF Configuration */}
-            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
+                <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
                   <Download className="w-5 h-5" />
                   PDF-konfiguration
                 </CardTitle>
-                <CardDescription className="text-slate-300">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Konfigurera utseende och innehåll för faktura-PDF:er
                 </CardDescription>
               </CardHeader>
@@ -1000,7 +1001,7 @@ export default function SettingsClient() {
                         toast.error('Fel vid generering av test PDF', { id: t });
                       }
                     }}
-                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                    className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Generera test PDF
@@ -1013,7 +1014,7 @@ export default function SettingsClient() {
                       updateSetting('invoice_company_email', settings.school_email || '');
                       toast.success('Företagsinformation kopierad från skolinformation');
                     }}
-                    className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                    className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
                     <Copy className="w-4 h-4 mr-2" />
                     Kopiera från skola
@@ -1023,21 +1024,21 @@ export default function SettingsClient() {
             </Card>
 
             {/* Payment Integration Setup */}
-            <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-white font-extrabold drop-shadow flex items-center gap-2">
+                <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
                   <CreditCard className="w-5 h-5" />
                   Betalningsintegration
                 </CardTitle>
-                <CardDescription className="text-slate-300">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Konfigurera betalningsmetoder och integrationer
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">💳 Swish integration</h4>
-                    <p className="text-sm text-slate-300 mb-4">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">💳 Swish integration</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Konfigurera Swish för fakturabetalningar
                     </p>
                     <div className="flex gap-2">
@@ -1057,7 +1058,7 @@ export default function SettingsClient() {
                             toast.error('Fel vid test av Swish integration', { id: t });
                           }
                         }}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Testa Swish
@@ -1065,9 +1066,9 @@ export default function SettingsClient() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <h4 className="font-semibold text-white mb-2">🛒 Qliro integration</h4>
-                    <p className="text-sm text-slate-300 mb-4">
+                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">🛒 Qliro integration</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                       Konfigurera Qliro för fakturabetalningar
                     </p>
                     <div className="flex gap-2">
@@ -1087,7 +1088,7 @@ export default function SettingsClient() {
                             toast.error('Fel vid test av Qliro integration', { id: t });
                           }
                         }}
-                        className="bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Testa Qliro
@@ -1096,9 +1097,9 @@ export default function SettingsClient() {
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <h4 className="font-semibold text-white mb-2">🔄 Betalningsflöde</h4>
-                  <p className="text-sm text-slate-300 mb-4">
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">🔄 Betalningsflöde</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     Konfigurera hur betalningar hanteras i faktura systemet
                   </p>
                   <div className="grid md:grid-cols-3 gap-4">
@@ -1109,7 +1110,7 @@ export default function SettingsClient() {
                           checked={settings.payment_auto_confirm || false}
                           onCheckedChange={(checked) => updateSetting('payment_auto_confirm', checked)}
                         />
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
                           {settings.payment_auto_confirm ? 'Aktiverad' : 'Inaktiverad'}
                         </span>
                       </div>
@@ -1141,10 +1142,10 @@ export default function SettingsClient() {
 
         {/* Email Settings Tab */}
         <TabsContent value="email">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle className="text-white font-extrabold drop-shadow">E-postinställningar</CardTitle>
-              <CardDescription className="text-slate-300">
+              <CardDescription className="text-gray-600 dark:text-gray-300">
                 Konfigurera hur e-postmeddelanden skickas från systemet
               </CardDescription>
               <div className="ml-auto flex items-center gap-2">
@@ -1385,43 +1386,11 @@ export default function SettingsClient() {
           </Card>
         </TabsContent>
 
-        {/* Opening Hours Tab */}
-        <TabsContent value="opening">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <CardTitle className="text-white font-extrabold drop-shadow">Öppettider</CardTitle>
-              <CardDescription className="text-slate-300">
-                Redigera öppettider för kontor och körlektioner samt undantag
-              </CardDescription>
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 text-sm text-amber-400">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                    Osparade ändringar
-                  </div>
-                )}
-                <button onClick={() => setEditOpening((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20">
-                  <Edit className="w-4 h-4 text-white" />
-                </button>
-                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
-                  <Save className="w-4 h-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className={`space-y-6 ${editOpening ? '' : 'opacity-60 pointer-events-none'}`}>
-              {settings.opening_hours && (
-                <OpeningHoursEditor
-                  value={settings.opening_hours}
-                  onChange={(next) => updateSetting('opening_hours', next)}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        
 
         {/* School Information Tab */}
         <TabsContent value="school">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Skolinformation</CardTitle>
               <CardDescription>
@@ -1513,7 +1482,7 @@ export default function SettingsClient() {
 
         {/* Site Settings Tab */}
         <TabsContent value="site">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Webbplatsinställningar</CardTitle>
               <CardDescription>
@@ -1535,10 +1504,10 @@ export default function SettingsClient() {
               </div>
             </CardHeader>
             <CardContent className={`space-y-4 ${editSite ? '' : 'opacity-60 pointer-events-none'}`}> 
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+              <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-between">
                 <div>
                   <Label htmlFor="internal-messages-enabled" className="text-white">Interna meddelanden</Label>
-                  <p className="text-sm text-slate-300">Stäng av för att dölja interna meddelanden och sluta räkna olästa</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Stäng av för att dölja interna meddelanden och sluta räkna olästa</p>
                 </div>
                 <Switch
                   id="internal-messages-enabled"
@@ -1627,32 +1596,32 @@ export default function SettingsClient() {
 
         {/* Useful Tab: collect setup/init/test actions */}
         <TabsContent value="useful">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader>
               <CardTitle className="text-white font-extrabold drop-shadow">Nyttigt</CardTitle>
-              <CardDescription className="text-slate-300">Snabbåtgärder för initiering och test</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Snabbåtgärder för initiering och test</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid md:grid-cols-2 gap-3">
-                <Button onClick={initializeSchoolEmail} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={initializeSchoolEmail} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <SettingsIcon className="w-4 h-4 mr-2" /> Initiera skolans e-postinställning
                 </Button>
-                <Button onClick={initializeAllEmailSettings} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={initializeAllEmailSettings} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <SettingsIcon className="w-4 h-4 mr-2" /> Initiera alla e-postinställningar
                 </Button>
-                <Button onClick={initializeSchoolPhonenumber} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={initializeSchoolPhonenumber} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <Phone className="w-4 h-4 mr-2" /> Initiera skolans telefonnummer
                 </Button>
-                <Button onClick={addSwishPaymentTemplate} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={addSwishPaymentTemplate} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <DollarSign className="w-4 h-4 mr-2" /> Lägg till Swish betalningsmall
                 </Button>
-                <Button onClick={addEnumValue} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={addEnumValue} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <SettingsIcon className="w-4 h-4 mr-2" /> Lägg till enum värde
                 </Button>
-                <Button onClick={updateSwishTemplateReceiver} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={updateSwishTemplateReceiver} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <AtSign className="w-4 h-4 mr-2" /> Uppdatera Swish mall till skol-e-post
                 </Button>
-                <Button onClick={addSchoolReceiverType} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={addSchoolReceiverType} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <AtSign className="w-4 h-4 mr-2" /> Lägg till school receiver type
                 </Button>
                 <Button
@@ -1672,11 +1641,11 @@ export default function SettingsClient() {
                       toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
                     }
                   }}
-                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   <CreditCard className="w-4 h-4 mr-2" /> Initiera Qliro Checkout Flow Setting
                 </Button>
-                <Button onClick={testSwishConfirmation} className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testSwishConfirmation} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <CheckCircle className="w-4 h-4 mr-2" /> Testa Swish bekräftelse
                 </Button>
                 <Button
@@ -1705,7 +1674,7 @@ export default function SettingsClient() {
                       toast.error(e.message || 'Fel vid cron-setup', { id: t });
                     }
                   }}
-                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   <SettingsIcon className="w-4 h-4 mr-2" /> Sätt upp cron för temp-rensning
                 </Button>
@@ -1778,7 +1747,7 @@ export default function SettingsClient() {
 
         {/* Payment Settings Tab */}
         <TabsContent value="payment">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader className="flex flex-row items-start justify-between gap-4">
               <CardTitle>Betalningsinställningar</CardTitle>
               <CardDescription>
@@ -1853,11 +1822,11 @@ export default function SettingsClient() {
                 {settings.qliro_enabled && (
                   <div className="space-y-4 pl-4">
                     {/* Environment Selection */}
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <div className="text-white font-semibold">Produktionsmiljö</div>
-                          <div className="text-sm text-slate-300">Växla mellan utvecklings- och produktionsmiljö</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">Växla mellan utvecklings- och produktionsmiljö</div>
                         </div>
                         <Switch
                           id="qliro-use-prod"
@@ -1871,22 +1840,22 @@ export default function SettingsClient() {
                     </div>
 
                     {/* Extended debug toggle */}
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-white font-semibold">Utökad felsökning</div>
-                          <div className="text-sm text-slate-300">Aktivera extra debug-utskrifter i konsolen för Qliro-flöden</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">Aktivera extra debug-utskrifter i konsolen för Qliro-flöden</div>
                         </div>
                         <Switch id="debug-extended" checked={!!settings.debug_extended_logs} onCheckedChange={(checked) => updateSetting('debug_extended_logs', checked)} />
                       </div>
                     </div>
 
                     {/* Qliro checkout flow type */}
-                    <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                       <div className="space-y-3">
                         <div>
                           <div className="text-white font-semibold">Checkout Flow Type</div>
-                          <div className="text-sm text-slate-300">Välj hur Qliro-checkout ska visas för kunder</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">Välj hur Qliro-checkout ska visas för kunder</div>
                         </div>
                         <Select 
                           value={settings.qliro_checkout_flow || 'window'} 
@@ -1943,10 +1912,10 @@ export default function SettingsClient() {
                         />
                       </div>
                       {/* Computed config URLs helper */}
-                      <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                      <div className="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-white font-semibold">Qliro URL-konfiguration</div>
-                          <div className="text-xs text-slate-300">baserat på Publik webb-URL</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-300">baserat på Publik webb-URL</div>
                         </div>
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2">
@@ -1979,7 +1948,7 @@ export default function SettingsClient() {
                       <h4 className="font-medium text-white">Kredentialer</h4>
 
                       {/* Dev/Sandbox credentials */}
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                      <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 space-y-3">
                         <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                           <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" /> Utvecklings-kredentialer (Sandbox)
                         </div>
@@ -2024,7 +1993,7 @@ export default function SettingsClient() {
                       </div>
 
                       {/* Prod credentials */}
-                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                      <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 space-y-3">
                         <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                           <span className="inline-flex h-2 w-2 rounded-full bg-rose-400" /> Produktions-kredentialer
                         </div>
@@ -2104,10 +2073,10 @@ export default function SettingsClient() {
 
 {/* Troubleshooting Tab */}
         <TabsContent value="troubleshooting">
-          <Card className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader>
               <CardTitle className="text-white font-extrabold drop-shadow">Felsökning</CardTitle>
-              <CardDescription className="text-slate-300">Diagnostik och tester</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Diagnostik och tester</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -2115,22 +2084,22 @@ export default function SettingsClient() {
                 <Input id="test-user-id" value={testUserId} onChange={(e) => setTestUserId(e.target.value)} placeholder="Ange användar-ID för test" className="bg-white/10 border-white/20 text-white placeholder:text-slate-400" />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={runTests} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={runTests} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   {testing ? (<><OrbSpinner size="sm" className="mr-2" />Kör test...</>) : 'Kör krediterings-API-test'}
                 </Button>
-                <Button onClick={testQliroPayment} disabled={testing || !testUserId} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testQliroPayment} disabled={testing || !testUserId} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <CreditCard className="w-4 h-4 mr-2" /> Test Qliro Payment
                 </Button>
-                <Button onClick={testSendGridEmail} disabled={testing || !testUserId} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testSendGridEmail} disabled={testing || !testUserId} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <Mail className="w-4 h-4 mr-2" /> Testa SendGrid
                 </Button>
-                <Button onClick={testContactEmail} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testContactEmail} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär
                 </Button>
-                <Button onClick={testContactEmailDesign} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testContactEmailDesign} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär Design
                 </Button>
-                <Button onClick={testExportFunctions} disabled={testing} className="bg-white/10 border border-white/20 text-white hover:bg-white/20">
+                <Button onClick={testExportFunctions} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                   <DollarSign className="w-4 h-4 mr-2" /> Testa Export-funktioner
                 </Button>
                 <Button
@@ -2150,12 +2119,12 @@ export default function SettingsClient() {
                       toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
                     }
                   }}
-                  className="w-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   <Edit className="w-4 h-4 mr-2" /> Initiera TinyMCE API-nyckel
                 </Button>
               </div>
-              <div className="text-sm text-slate-200 p-4 rounded-xl bg-white/5 border border-white/10">
+              <div className="text-sm text-slate-200 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                 <p className="font-semibold">Observera:</p>
                 <ul className="list-disc list-inside space-y-1 mt-2">
                   <li>Krediterings-testet kontrollerar att API:et fungerar korrekt</li>
@@ -2167,7 +2136,7 @@ export default function SettingsClient() {
               </div>
               {testResults.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold text-white">Test Resultat:</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Test Resultat:</h4>
                   {testResults.map((result, index) => (
                     <div key={index} className={`p-4 rounded-xl border ${result.success ? 'border-green-500/50 bg-green-500/10' : 'border-rose-500/50 bg-rose-500/10'}`}>
                       <div className="flex items-center justify-between mb-2">
@@ -2188,7 +2157,7 @@ export default function SettingsClient() {
               )}
               {exportTestResults && (
                 <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold text-white">Export Test Resultat:</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Export Test Resultat:</h4>
                   <pre className="bg-white/5 border border-white/10 p-2 rounded overflow-x-auto text-xs text-slate-200">
                     {JSON.stringify(exportTestResults, null, 2)}
                   </pre>
@@ -2219,9 +2188,12 @@ export default function SettingsClient() {
           )}
           Spara inställningar
         </Button>
+        </div>
+        </div>
       </div>
     </div>
   );
 }
+
 
 

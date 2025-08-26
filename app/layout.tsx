@@ -1,5 +1,5 @@
 import React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClientRoot } from "@/components/ClientRoot"
@@ -9,6 +9,13 @@ import { getOpeningHours, toJsonLd } from "@/lib/site-settings/opening-hours"
 const inter = Inter({ subsets: ["latin"] })
 // Server-safe base URL for metadata. Avoids referencing window in server code.
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.dintrafikskolahlm.se'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -215,9 +222,6 @@ export default async function RootLayout({
           <ClientRoot>
             {children}
           </ClientRoot>
-          {/* Provide opening hours to Footer as fallback props for first render */}
-          {/* The client Footer will still hydrate/use hook if needed */}
-          
         </ErrorBoundary>
       </body>
     </html>

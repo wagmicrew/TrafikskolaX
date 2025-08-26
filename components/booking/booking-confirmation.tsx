@@ -1,23 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Card as FBCard, Button as FBButton, Label as FBLabel, TextInput, Select as FBSelect, Checkbox as FBCheckbox } from 'flowbite-react'
 import { AlertCircle, Loader2, UserPlus, CheckCircle, ArrowLeft } from 'lucide-react'
 import { OrbLoader } from '@/components/ui/orb-loader'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useAuth } from '@/hooks/use-auth'
-import { useAuthActions } from '@/hooks/useAuthActions'
+import { useAuth } from '@/lib/hooks/useAuth'
 import { toast, Toaster } from 'sonner'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { SwishPaymentDialog } from './swish-payment-dialog'
 import { QliroPaymentDialog } from './qliro-payment-dialog'
 import { useQliroListener } from '@/hooks/use-qliro-listener'
 import { EmailConflictDialog } from './email-conflict-dialog'
 import { AddStudentPopup } from './add-student-popup'
+import { getErrorMessage } from '@/utils/getErrorMessage'
 
 interface LessonType {
   id: string
@@ -107,13 +101,12 @@ export function BookingConfirmation({
   const [conflictingEmail, setConflictingEmail] = useState('')
   const [emailValidationStatus, setEmailValidationStatus] = useState<'idle' | 'checking' | 'available' | 'exists'>('idle')
   const [existingUserName, setExistingUserName] = useState('')
-  const [emailCheckTimeout, setEmailCheckTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [emailCheckTimeout, setEmailCheckTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true)
   const [qliroStatusMessage, setQliroStatusMessage] = useState<string>('')
   const [qliroStatusLoading, setQliroStatusLoading] = useState<boolean>(true)
 
   const { user: authUser } = useAuth()
-  const { handleLogin } = useAuthActions()
 
   useQliroListener({
     onCompleted: () => {
@@ -135,7 +128,8 @@ export function BookingConfirmation({
   const canPayAtLocation = isStudent && unpaidBookings < 2
   const allowsSupervisors = bookingData.lessonType?.allowsSupervisors || false
   const pricePerSupervisor = bookingData.lessonType?.pricePerSupervisor || 0
-  const isHandledarSession = isHandledarutbildning
+  const isHandledarSession = isHandledarutbildning || bookingData.lessonType.type === 'teori'
+  const requiresPersonalId = Boolean((bookingData as any)?.lessonType?.requiresPersonalId) || isHandledarSession
   const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor)
   const showUnpaidWarning = isStudent && unpaidBookings >= 2 && 
                           (selectedPaymentMethod === 'pay_at_location' || !selectedPaymentMethod)
@@ -160,6 +154,12 @@ export function BookingConfirmation({
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
+  }
+
+  // Ensure we always clear loading states on early exits
+  const stopLoading = () => {
+    setLoading(false)
+    setShowLoader(false)
   }
 
   const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -296,6 +296,7 @@ export function BookingConfirmation({
       fetchUnpaidBookings()
     }
   }, [isAdminOrTeacher, isStudent])
+
   const fetchStudents = async () => {
     try {
       const response = await fetch('/api/admin/students?excludeTemp=true&inskrivenOnly=false')
@@ -352,6 +353,7 @@ export function BookingConfirmation({
     // Check capacity error first
     if (capacityError) {
       showNotification('Fel', 'Kan inte boka - otillräcklig kapacitet', 'error')
+      stopLoading()
       return
     }
 
@@ -362,6 +364,7 @@ export function BookingConfirmation({
       )
       if (incompleteDetails) {
         showNotification('Fel', 'Vänligen fyll i personnummer, namn, e-post och telefonnummer för alla handledare', 'error')
+        stopLoading()
         return
       }
 
@@ -374,6 +377,7 @@ export function BookingConfirmation({
       )
       if (invalidPersonnummer) {
         showNotification('Fel', 'Personnummer måste vara 12 siffror (ÅÅÅÅMMDDXXXX)', 'error')
+        stopLoading()
         return
       }
     }
@@ -381,11 +385,12 @@ export function BookingConfirmation({
     // Admin/Teacher validation first
     if (isAdminOrTeacher && !selectedStudent) {
       showNotification('Fel', 'Välj en elev för bokningen', 'error')
+      stopLoading()
       return
     }
 
     // Check if admin has marked as already paid - if so, create booking directly for student
-    if (isAdminOrTeacher && alreadyPaid) {
+    if (isAdminOrTeacher && alreadyPaid === true) {
       try {
         // Use the appropriate API endpoint based on user role
         const endpoint = user?.role === 'admin' ? '/api/admin/bookings/create-for-student' : '/api/teacher/bookings/create-for-student';
@@ -398,7 +403,15 @@ export function BookingConfirmation({
             scheduledDate: formatLocalYmd(bookingData.selectedDate),
             startTime: bookingData.selectedTime,
             endTime: bookingData.selectedTime.split(':').slice(0, 2).join(':') + ':' + 
-                    String(parseInt(bookingData.selectedTime.split(':')[1]) + bookingData.lessonType.durationMinutes).padStart(2, '0'),
+                    (() => {
+                      const parts = (bookingData.selectedTime || '00:00').split(':')
+                      const sh = parseInt(parts[0], 10) || 0
+                      const sm = parseInt(parts[1], 10) || 0
+                      const total = sh * 60 + sm + (bookingData.lessonType?.durationMinutes || 0)
+                      const eh = Math.floor(total / 60) % 24
+                      const em = total % 60
+                      return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`
+                    })(),
             durationMinutes: bookingData.lessonType.durationMinutes,
             transmissionType: bookingData.transmissionType || 'manual',
             totalPrice: finalTotalPrice,
@@ -429,7 +442,7 @@ export function BookingConfirmation({
             date: formatLocalYmd(bookingData.selectedDate),
             time: bookingData.selectedTime,
             duration: bookingData.lessonType.durationMinutes,
-            price: bookingData.totalPrice,
+            price: finalTotalPrice,
             paymentMethod: 'admin_created',
             status: 'confirmed'
           }))
@@ -454,6 +467,22 @@ export function BookingConfirmation({
     // Regular flow - check payment method selection
     if (!selectedPaymentMethod) {
       showNotification('Välj betalningssätt', 'Vänligen välj ett betalningssätt för att fortsätta', 'error')
+      stopLoading()
+      return
+    }
+
+    // Additional payment-specific validations
+    if (selectedPaymentMethod === 'pay_at_location' && !canPayAtLocation) {
+      showNotification('Inte tillgängligt', 'Betalning på plats är inte tillåten eftersom du har för många obetalda bokningar', 'error')
+      setLoading(false)
+      setShowLoader(false)
+      return
+    }
+
+    if (selectedPaymentMethod === 'credits' && !canUseCredits) {
+      showNotification('Inga krediter', 'Du har inte tillräckliga krediter för denna bokning', 'error')
+      setLoading(false)
+      setShowLoader(false)
       return
     }
 
@@ -469,6 +498,7 @@ export function BookingConfirmation({
       if (!gPhone) missing.push('telefon')
       if (missing.length > 0) {
         showNotification('Saknar uppgifter', `Vänligen fyll i ${missing.join(', ')}`, 'error')
+        stopLoading()
         return
       }
 
@@ -504,7 +534,7 @@ export function BookingConfirmation({
       guestEmail: isHandledarutbildning ? supervisorEmail : guestEmail,
       guestPhone: isHandledarutbildning ? supervisorPhone : guestPhone,
       studentId: isAdminOrTeacher ? selectedStudent : undefined,
-      alreadyPaid: isAdminOrTeacher ? Boolean(alreadyPaid) : false,
+      alreadyPaid: isAdminOrTeacher ? (alreadyPaid === true) : false,
       // Handledare support for regular lessons
       supervisorCount: allowsSupervisors ? supervisorCount : undefined,
       supervisorDetails: allowsSupervisors && supervisorCount > 0 ? supervisorDetails.slice(0, supervisorCount) : undefined
@@ -559,7 +589,7 @@ export function BookingConfirmation({
         const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
         await QliroFlowManager.openQliroCheckout({
           orderId: String(data.checkoutId || data.checkoutId),
-          amount: bookingData.totalPrice,
+          amount: finalTotalPrice,
           description: `Körlektion ${bookingData.lessonType?.name || ''}`,
           checkoutUrl: data.checkoutUrl,
           onCompleted: () => {
@@ -632,8 +662,6 @@ export function BookingConfirmation({
     }
   }
 
-  const isHandledarSession = bookingData.lessonType.type === 'handledar' || bookingData.lessonType.type === 'teori'
-
   // Function to mask personnummer
   const maskPersonnummer = (personnummer: string) => {
     if (!personnummer || personnummer.length < 8) return personnummer;
@@ -650,101 +678,15 @@ export function BookingConfirmation({
 
     return personnummer;
   };
-  const allowsSupervisors = bookingData.lessonType.allowsSupervisors || false
-  const pricePerSupervisor = bookingData.lessonType.pricePerSupervisor || 0
-  const hasHandledarCredits = isHandledarutbildning && userCredits > 0
-  const canUseCredits = (isStudent && userCredits > 0) || hasHandledarCredits
-  const canPayAtLocation = isStudent && unpaidBookings < 2
-  const requiresPersonalId = Boolean((bookingData as any)?.lessonType?.requiresPersonalId) || isHandledarSession
   
-  // Calculate final price including handledare
-  const finalTotalPrice = bookingData.totalPrice + (supervisorCount * pricePerSupervisor);
-
-  // Effects
-  useEffect(() => {
-    return () => {
-      if (emailCheckTimeout) {
-        clearTimeout(emailCheckTimeout)
-      }
-    }
-  }, [emailCheckTimeout])
-
-  useEffect(() => {
-    try {
-      if (selectedStudent && Array.isArray(students) && students.length > 0) {
-        const s = students.find((u) => u.id === selectedStudent)
-        if (s) {
-          const fullName = [s.firstName, s.lastName].filter(Boolean).join(' ').trim()
-          if (!bookingData.isHandledarutbildning) {
-            if (fullName) setGuestName(fullName)
-            if (s.email) setGuestEmail(String(s.email))
-            if (s.phone) setGuestPhone(String(s.phone))
-          } else {
-            if (fullName) setSupervisorName(fullName)
-            if (s.email) setSupervisorEmail(String(s.email))
-            if (s.phone) setSupervisorPhone(String(s.phone))
-          }
-        }
-      }
-    } catch {}
-  }, [selectedStudent])
-
-  useEffect(() => {
-    const checkQliroStatus = async () => {
-      try {
-        setQliroStatusLoading(true)
-        const response = await fetch('/api/payments/qliro/status')
-        if (response.ok) {
-          const data = await response.json()
-          setQliroAvailable(data.available)
-          setQliroStatusMessage(data.message || '')
-        } else {
-          setQliroAvailable(false)
-          setQliroStatusMessage('Kunde inte kontrollera Qliro-status')
-        }
-      } catch (error) {
-        console.error('Failed to check Qliro status:', error)
-        setQliroAvailable(false)
-        setQliroStatusMessage('Qliro-tjänsten är för närvarande inte tillgänglig')
-      } finally {
-        setQliroStatusLoading(false)
-      }
-    }
-
-    checkQliroStatus()
-  }, [])
-
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      const data = event.data || {}
-      const id = bookingData.id || bookingData.tempBookingId
-      if (!id) return
-      const done = data && (data.type === 'qliro:completed' || data.event === 'payment_completed' || data.event === 'CheckoutCompleted' || data.status === 'Paid' || data.status === 'Completed')
-      if (done) {
-        try { window.location.href = `/qliro/return?ref=${encodeURIComponent(`booking_${id}`)}&status=paid` } catch {}
-      }
-    }
-    window.addEventListener('message', listener)
-    return () => window.removeEventListener('message', listener)
-  }, [bookingData?.id, bookingData?.tempBookingId])
-
-  useEffect(() => {
-    if (isAdminOrTeacher) {
-      fetchStudents()
-    }
-    if (isStudent) {
-      fetchUserCredits()
-      fetchUnpaidBookings()
-    }
-  }, [isAdminOrTeacher, isStudent])
 
   return (
     <>
       <OrbLoader isVisible={showLoader} text="Laddar..." />
       <div className="relative bg-white min-h-screen">
         <Toaster position="top-right" richColors />
-        <Card className="w-full max-w-2xl mx-auto bg-white shadow-lg border border-gray-100">
-          <CardContent className="p-8">
+        <FBCard className="w-full max-w-2xl mx-auto bg-white shadow-lg border border-gray-100">
+          <div className="p-8">
             <div className="text-center space-y-6">
               <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Bekräfta bokning</h2>
               <p className="text-lg text-gray-700 font-medium leading-relaxed">
@@ -789,26 +731,26 @@ export function BookingConfirmation({
             {isAdminOrTeacher && (
               <div className="bg-blue-50 p-6 rounded-xl mb-6 border border-blue-100">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Välj elev</h3>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                  <SelectTrigger className="w-full bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                    <SelectValue placeholder="Välj en elev" className="text-gray-900 font-medium" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {students.map((student) => (
-                      <SelectItem key={student.id} value={student.id} className="text-gray-900 font-medium hover:bg-blue-50 focus:bg-blue-50 cursor-pointer py-2 px-3">
-                        {student.firstName} {student.lastName} ({student.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
+                <FBSelect
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent((e.target as HTMLSelectElement).value)}
+                  className="w-full bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="" disabled>Välj en elev</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName} ({student.email})
+                    </option>
+                  ))}
+                </FBSelect>
+                <FBButton
                   onClick={() => setShowAddStudentDialog(true)}
-                  variant="outline"
+                  color="light"
                   className="mt-3 w-full"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Lägg till ny elev
-                </Button>
+                </FBButton>
               </div>
             )}
 
@@ -824,28 +766,26 @@ export function BookingConfirmation({
                 </p>
                 
                 <div className="flex items-center space-x-4 mb-4">
-                  <Label className="text-sm font-medium text-gray-700">Antal handledare:</Label>
+                  <FBLabel className="text-sm font-medium text-gray-700">Antal handledare:</FBLabel>
                   <div className="flex items-center space-x-2">
-                    <Button
+                    <FBButton
                       type="button"
-                      variant="outline"
-                      size="sm"
+                      color="light"
                       onClick={() => setSupervisorCount(Math.max(0, supervisorCount - 1))}
                       disabled={supervisorCount <= 0}
                       className="w-8 h-8 p-0"
                     >
                       -
-                    </Button>
+                    </FBButton>
                     <span className="w-8 text-center font-semibold">{supervisorCount}</span>
-                    <Button
+                    <FBButton
                       type="button"
-                      variant="outline"
-                      size="sm"
+                      color="light"
                       onClick={() => setSupervisorCount(supervisorCount + 1)}
                       className="w-8 h-8 p-0"
                     >
                       +
-                    </Button>
+                    </FBButton>
                   </div>
                   {pricePerSupervisor > 0 && (
                     <span className="text-sm text-gray-600">
@@ -865,8 +805,8 @@ export function BookingConfirmation({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* Personnummer */}
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX) *</Label>
-                            <Input
+                            <FBLabel className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX) *</FBLabel>
+                            <TextInput
                               type="text"
                               value={supervisorDetails[index]?.personnummer || ''}
                               onChange={(e) => {
@@ -897,8 +837,8 @@ export function BookingConfirmation({
 
                           {/* Namn */}
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Namn *</Label>
-                            <Input
+                            <FBLabel className="text-sm font-medium text-gray-700">Namn *</FBLabel>
+                            <TextInput
                               type="text"
                               value={supervisorDetails[index]?.name || ''}
                               onChange={(e) => {
@@ -916,8 +856,8 @@ export function BookingConfirmation({
 
                           {/* E-post */}
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">E-post *</Label>
-                            <Input
+                            <FBLabel className="text-sm font-medium text-gray-700">E-post *</FBLabel>
+                            <TextInput
                               type="email"
                               value={supervisorDetails[index]?.email || ''}
                               onChange={(e) => {
@@ -935,8 +875,8 @@ export function BookingConfirmation({
 
                           {/* Telefon */}
                           <div>
-                            <Label className="text-sm font-medium text-gray-700">Telefon *</Label>
-                            <Input
+                            <FBLabel className="text-sm font-medium text-gray-700">Telefon *</FBLabel>
+                            <TextInput
                               type="tel"
                               value={supervisorDetails[index]?.phone || ''}
                               onChange={(e) => {
@@ -974,8 +914,8 @@ export function BookingConfirmation({
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="guest-name" className="text-sm font-semibold text-gray-800">Namn *</Label>
-                    <Input
+                    <FBLabel htmlFor="guest-name" className="text-sm font-semibold text-gray-800">Namn *</FBLabel>
+                    <TextInput
                       id="guest-name"
                       type="text"
                       value={guestName}
@@ -985,9 +925,9 @@ export function BookingConfirmation({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="guest-email" className="text-sm font-medium text-gray-700">E-post *</Label>
+                    <FBLabel htmlFor="guest-email" className="text-sm font-medium text-gray-700">E-post *</FBLabel>
                     <div className="relative">
-                      <Input
+                      <TextInput
                         id="guest-email"
                         type="email"
                         value={guestEmail}
@@ -1023,8 +963,8 @@ export function BookingConfirmation({
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="guest-phone" className="text-sm font-medium text-gray-700">Telefon *</Label>
-                    <Input
+                    <FBLabel htmlFor="guest-phone" className="text-sm font-medium text-gray-700">Telefon *</FBLabel>
+                    <TextInput
                       id="guest-phone"
                       type="tel"
                       value={guestPhone}
@@ -1085,8 +1025,8 @@ export function BookingConfirmation({
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Handledare information</h3>
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="supervisor-ssn" className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX)</Label>
-                    <Input
+                    <FBLabel htmlFor="supervisor-ssn" className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX)</FBLabel>
+                    <TextInput
                       id="supervisor-ssn"
                       type="text"
                       inputMode="numeric"
@@ -1113,8 +1053,8 @@ export function BookingConfirmation({
                     <p className="text-xs text-gray-500">Sista fyra maskeras (••••). Lagring sker krypterat.</p>
                   </div>
                   <div>
-                    <Label htmlFor="supervisor-name" className="text-sm font-medium text-gray-700">Namn *</Label>
-                    <Input
+                    <FBLabel htmlFor="supervisor-name" className="text-sm font-medium text-gray-700">Namn *</FBLabel>
+                    <TextInput
                       id="supervisor-name"
                       type="text"
                       value={supervisorName}
@@ -1124,9 +1064,9 @@ export function BookingConfirmation({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="supervisor-email" className="text-sm font-medium text-gray-700">E-post *</Label>
+                    <FBLabel htmlFor="supervisor-email" className="text-sm font-medium text-gray-700">E-post *</FBLabel>
                     <div className="relative">
-                      <Input
+                      <TextInput
                         id="supervisor-email"
                         type="email"
                         value={supervisorEmail}
@@ -1162,8 +1102,8 @@ export function BookingConfirmation({
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="supervisor-phone" className="text-sm font-medium text-gray-700">Telefon *</Label>
-                    <Input
+                    <FBLabel htmlFor="supervisor-phone" className="text-sm font-medium text-gray-700">Telefon *</FBLabel>
+                    <TextInput
                       id="supervisor-phone"
                       type="tel"
                       value={supervisorPhone}
@@ -1173,9 +1113,9 @@ export function BookingConfirmation({
                     />
                   </div>
                 </div>
->>>>>>> d644b24effef7818a618a594170f5b5091984a19
               </div>
             )}
+            
 
             {/* Payment Methods */}
             <div className="mt-8 space-y-4">
@@ -1203,18 +1143,132 @@ export function BookingConfirmation({
                 </div>
               </div>
 
+              {/* Qliro Option */}
+              <div
+                className={`border rounded-lg p-4 transition-colors ${
+                  selectedPaymentMethod === 'qliro'
+                    ? 'border-blue-500 bg-blue-50'
+                    : qliroAvailable
+                      ? 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                      : 'border-gray-200 opacity-60 cursor-not-allowed'
+                }`}
+                onClick={() => {
+                  if (qliroAvailable) setSelectedPaymentMethod('qliro')
+                }}
+                aria-disabled={!qliroAvailable}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
+                    selectedPaymentMethod === 'qliro' ? 'border-blue-500 bg-blue-500' : 'border-gray-400'
+                  }`}>
+                    {selectedPaymentMethod === 'qliro' && <CheckCircle className="w-4 h-4 text-white" />}
+                  </div>
+                  <div>
+                    <p className="font-medium">Qliro</p>
+                    {qliroStatusLoading ? (
+                      <p className="text-sm text-gray-500">Kontrollerar tillgänglighet...</p>
+                    ) : (
+                      qliroAvailable ? (
+                        <p className="text-sm text-gray-500">Faktura eller delbetalning via Qliro</p>
+                      ) : (
+                        <p className="text-sm text-red-600">Inte tillgängligt just nu</p>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Credits Option (students) */}
+              {isStudent && (
+                <div
+                  className={`border rounded-lg p-4 transition-colors ${
+                    selectedPaymentMethod === 'credits'
+                      ? 'border-purple-500 bg-purple-50'
+                      : canUseCredits
+                        ? 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                        : 'border-gray-200 opacity-60 cursor-not-allowed'
+                  }`}
+                  onClick={() => {
+                    if (canUseCredits) setSelectedPaymentMethod('credits')
+                  }}
+                  aria-disabled={!canUseCredits}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
+                      selectedPaymentMethod === 'credits' ? 'border-purple-500 bg-purple-500' : 'border-gray-400'
+                    }`}>
+                      {selectedPaymentMethod === 'credits' && <CheckCircle className="w-4 h-4 text-white" />}
+                    </div>
+                    <div>
+                      <p className="font-medium">Använd krediter</p>
+                      <p className={`text-sm ${userCredits > 0 ? 'text-gray-500' : 'text-red-600'}`}>
+                        {userCredits > 0 ? `Tillgängliga krediter: ${userCredits}` : 'Inga krediter tillgängliga'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pay at location Option (students) */}
+              {isStudent && (
+                <div
+                  className={`border rounded-lg p-4 transition-colors ${
+                    selectedPaymentMethod === 'pay_at_location'
+                      ? 'border-amber-500 bg-amber-50'
+                      : canPayAtLocation
+                        ? 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                        : 'border-gray-200 opacity-60 cursor-not-allowed'
+                  }`}
+                  onClick={() => {
+                    if (!canPayAtLocation) {
+                      showNotification('Inte tillgängligt', 'Du har fler än 1 obetald bokning. Välj annat betalningssätt.', 'warning')
+                      return
+                    }
+                    setSelectedPaymentMethod('pay_at_location')
+                  }}
+                  aria-disabled={!canPayAtLocation}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`flex items-center justify-center w-6 h-6 rounded-full border-2 ${
+                      selectedPaymentMethod === 'pay_at_location' ? 'border-amber-500 bg-amber-500' : 'border-gray-400'
+                    }`}>
+                      {selectedPaymentMethod === 'pay_at_location' && <CheckCircle className="w-4 h-4 text-white" />}
+                    </div>
+                    <div>
+                      <p className="font-medium">Betala på plats</p>
+                      <p className={`text-sm ${canPayAtLocation ? 'text-gray-500' : 'text-red-600'}`}>
+                        {canPayAtLocation
+                          ? 'Betala när du kommer till trafikskolan'
+                          : `Inte tillåtet: du har ${unpaidBookings} obetalda bokningar`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Unpaid warning */}
+              {showUnpaidWarning && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertCircle className="w-4 h-4 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Du har {unpaidBookings} obetalda bokningar.</p>
+                    <p>Betalning på plats är inte tillåten. Välj ett annat betalningssätt.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Already Paid - Only for Admin/Teacher */}
               {isAdminOrTeacher && (
                 <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
+                    <FBCheckbox 
                       id="already-paid" 
-                      checked={alreadyPaid} 
-                      onCheckedChange={setAlreadyPaid}
+                      checked={!!alreadyPaid} 
+                      onChange={(e) => setAlreadyPaid(e.target.checked)}
                     />
-                    <Label htmlFor="already-paid" className="text-sm font-medium">
+                    <FBLabel htmlFor="already-paid" className="text-sm font-medium">
                       Eleven har redan betalat (bekräftad betalning)
-                    </Label>
+                    </FBLabel>
                   </div>
                   {alreadyPaid && (
                     <p className="text-xs text-green-600 mt-2">
@@ -1225,7 +1279,7 @@ export function BookingConfirmation({
               )}
             </div>
 
-            <Button
+            <FBButton
               onClick={handleSubmit}
               disabled={
                 loading || 
@@ -1243,13 +1297,13 @@ export function BookingConfirmation({
               ) : (
                 "Bekräfta bokning"
               )}
-            </Button>
-            <Button variant="outline" onClick={onBack} className="w-full">
+            </FBButton>
+            <FBButton color="light" onClick={onBack} className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Tillbaka
-            </Button>
-          </CardContent>
-        </Card>
+            </FBButton>
+          </div>
+        </FBCard>
 
         {/* Dialogs */}
         <SwishPaymentDialog

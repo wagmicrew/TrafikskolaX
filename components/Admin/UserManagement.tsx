@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, memo } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/lib/hooks/useAuth';
 import fetcher from '@/lib/fetcher';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';

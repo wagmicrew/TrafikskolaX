@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { supervisorDetails } from '@/lib/db/schema';
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and, lt, isNotNull } from 'drizzle-orm';
 
 // Encryption/decryption utilities for personal data
 export class PersonalDataManager {
@@ -44,7 +44,7 @@ export class PersonalDataManager {
           and(
             lt(supervisorDetails.createdAt, thirtyDaysAgo),
             // Only clean if personal number exists
-            supervisorDetails.supervisorPersonalNumber.isNotNull()
+            isNotNull(supervisorDetails.supervisorPersonalNumber)
           )
         );
 
@@ -92,7 +92,7 @@ export class PersonalDataManager {
         // Records with personal data
         db.select({ count: 'count' })
           .from(supervisorDetails)
-          .where(supervisorDetails.supervisorPersonalNumber.isNotNull()),
+          .where(isNotNull(supervisorDetails.supervisorPersonalNumber)),
 
         // Completed courses (older than 30 days)
         db.select({ count: 'count' })
@@ -105,7 +105,7 @@ export class PersonalDataManager {
           .where(
             and(
               lt(supervisorDetails.createdAt, thirtyDaysAgo),
-              supervisorDetails.supervisorPersonalNumber.isNotNull()
+              isNotNull(supervisorDetails.supervisorPersonalNumber)
             )
           )
       ]);

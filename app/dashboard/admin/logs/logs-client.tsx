@@ -87,7 +87,7 @@ export default function LogsClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
   
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

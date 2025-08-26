@@ -3,24 +3,28 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OrbLoader, OrbSpinner } from '@/components/ui/orb-loader';
+import { OrbLoader } from '@/components/ui/orb-loader';
 import {
-  User,
+  User as UserIcon,
   Mail,
-  ArrowLeftCircle,
-  ArrowRightCircle,
   PlusCircle,
-  Trash,
-  Check,
-  X,
-  UserCheck,
   Calendar,
-  CreditCard,
-  AlertTriangle,
   FileText,
   Shield,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { 
+  Button, 
+  Card, 
+  Badge, 
+  Select, 
+  TextInput, 
+  Alert,
+  Modal
+} from 'flowbite-react';
 
 interface User {
   id: string;
@@ -51,180 +55,128 @@ interface UsersClientProps {
 
 export default function UsersClient({
   users,
-  userStats,
+  userStats: _userStats,
   currentPage,
   totalPages,
   roleFilter,
   searchFilter,
 }: UsersClientProps) {
-  const [search, setSearch] = useState(searchFilter);
-  const [loadingSkriv, setLoadingSkriv] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [exportPdf, setExportPdf] = useState(true);
-  const [deleting, setDeleting] = useState(false);
-  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
-  const [showImpersonationLoader, setShowImpersonationLoader] = useState(false);
   const [tab, setTab] = useState<'users' | 'reports'>('users');
-  const [reports, setReports] = useState<any[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(false);
+  const [search, setSearch] = useState(searchFilter);
+  const [showImpersonationLoader, setShowImpersonationLoader] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const fetchReports = async () => {
+  useEffect(() => {
+    setSearch(searchFilter);
+  }, [searchFilter]);
+
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const role = e.target.value;
+    window.location.href = `/dashboard/admin/users?role=${role}&search=${search}&page=1`;
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    window.location.href = `/dashboard/admin/users?role=${roleFilter}&search=${search}&page=1`;
+  };
+
+  const handleDeleteUser = (userId: string) => {
+    setUserToDelete(userId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
     try {
-      setReportsLoading(true);
-      const res = await fetch('/api/admin/reports');
-      if (!res.ok) throw new Error('Kunde inte hämta rapporter');
-      const data = await res.json();
-      setReports(Array.isArray(data) ? data : data.reports || []);
-    } catch (e: any) {
-      toast.error(e?.message || 'Fel vid hämtning av rapporter');
+      const response = await fetch(`/api/admin/users/${userToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        toast.success('Användare borttagen');
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte ta bort användaren');
+      }
+    } catch (error) {
+      toast.error('Ett fel uppstod');
     } finally {
-      setReportsLoading(false);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
     }
   };
 
-  useEffect(() => {
-    if (tab === 'reports' && reports.length === 0 && !reportsLoading) {
-      fetchReports();
+  const handleToggleActive = async (userId: string, isCurrentlyActive: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/toggle-active`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: !isCurrentlyActive }),
+      });
+      
+      if (response.ok) {
+        toast.success(isCurrentlyActive ? 'Användare inaktiverad' : 'Användare aktiverad');
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte uppdatera användaren');
+      }
+    } catch (error) {
+      toast.error('Ett fel uppstod');
     }
-  }, [tab]);
+  };
 
   const handleSkrivIn = async (userId: string) => {
-    setLoadingSkriv(userId);
     try {
-      const response = await fetch('/api/admin/users/skriv-in', {
+      const response = await fetch(`/api/admin/users/${userId}/skriv-in`, {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        toast.success('Användare inskriven');
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte skriva in användaren');
+      }
+    } catch (error) {
+      toast.error('Ett fel uppstod');
+    }
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    setShowImpersonationLoader(true);
+    try {
+      const response = await fetch('/api/admin/users/impersonate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId }),
       });
-
+      
       if (response.ok) {
-        toast.success('Användaren skrevs in');
-        // Refresh the page to show updated data
-        window.location.reload();
+        window.location.href = '/dashboard';
       } else {
-        const err = await response.json().catch(() => ({}));
-        toast.error(err?.error || 'Ett fel uppstod vid inskrivning');
-      }
-    } catch (error) {
-      toast.error('Ett fel uppstod vid inskrivning');
-    }
-    setLoadingSkriv(null);
-  };
-
-  const handleDeleteClick = (user: User) => {
-    setUserToDelete(user);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!userToDelete) return;
-
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ exportPdf }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result?.pdfGenerated) {
-          toast.success(`Användare raderad. PDF skapad: ${result.pdfFileName || 'rapport.pdf'}`);
-          if (exportPdf && result?.reportId) {
-            // Trigger download
-            const url = `/api/admin/reports/${result.reportId}`;
-            const a = document.createElement('a');
-            a.href = url;
-            if (result?.pdfFileName) a.download = result.pdfFileName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          }
-        } else {
-          toast.success('Användare raderad. PDF skapades inte.');
-        }
-        window.location.reload();
-      } else {
-        const error = await response.json();
-        toast.error(`Fel vid radering: ${error?.error || 'Okänt fel'}`);
-      }
-    } catch (error) {
-      toast.error('Ett fel uppstod vid radering av användare');
-    }
-    setDeleting(false);
-    setDeleteDialogOpen(false);
-    setUserToDelete(null);
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setUserToDelete(null);
-  };
-
-  const handleImpersonate = async (targetUser: User) => {
-    setImpersonatingId(targetUser.id);
-    setShowImpersonationLoader(true);
-    try {
-      const res = await fetch('/api/auth/impersonate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: targetUser.id }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({} as any));
-        toast.error(data?.error || 'Kunde inte hämta användarsession');
+        const data = await response.json();
+        toast.error(data.error || 'Kunde inte anta identitet');
         setShowImpersonationLoader(false);
-        return;
       }
-      const data = await res.json().catch(() => ({} as any));
-      if (data?.adminToken) {
-        try { localStorage.setItem('admin-session-token', data.adminToken); } catch {}
-      }
-      if (data?.token) {
-        try { localStorage.setItem('auth-token', data.token); } catch {}
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
-        try {
-          const payload = JSON.parse(atob((data.token as string).split('.')[1] || ''));
-          const role = payload?.role || targetUser.role;
-          const href = role === 'admin' ? '/dashboard/admin' : role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
-          window.location.href = href;
-          return;
-        } catch {
-          // Fallback to targetUser.role if decoding fails
-          const href = targetUser.role === 'admin' ? '/dashboard/admin' : targetUser.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
-          window.location.href = href;
-          return;
-        }
-      } else {
-        // No token returned; fallback navigation based on role
-        const href = targetUser.role === 'admin' ? '/dashboard/admin' : targetUser.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
-        window.location.href = href;
-      }
-    } catch (e) {
-      toast.error('Misslyckades att hämta användarsession');
+    } catch (error) {
+      toast.error('Ett fel uppstod');
       setShowImpersonationLoader(false);
-    } finally {
-      setImpersonatingId(null);
     }
-  };
-
-  const handleRoleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    window.location.href = `/dashboard/admin/users?role=${event.target.value}`;
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(event.target.value);
-  };
-
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    window.location.href = `/dashboard/admin/users?role=${roleFilter}&search=${search}`;
   };
 
   const handlePageChange = (page: number) => {
@@ -235,287 +187,400 @@ export default function UsersClient({
     <>
       <OrbLoader isVisible={showImpersonationLoader} text="Antar identitet..." />
       <div className="space-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
-            <User className="w-8 h-8 text-sky-300" /> Användarhantering
-          </h1>
+        {/* Header Section with Flowbite Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Header Card */}
+          <Card className="lg:col-span-2 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <UserIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    Användarhantering
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Hantera användare och deras roller
+                  </p>
+                </div>
+              </div>
+              <Badge color="info" className="text-sm">
+                {users.length} användare
+              </Badge>
+            </div>
+          </Card>
 
-          <Link
-            href="/dashboard/admin/users/new"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
-          >
-            <PlusCircle className="w-5 h-5" /> Lägg till Användare
-          </Link>
+          {/* Add User Card */}
+          <Card className="shadow-lg">
+            <div className="text-center">
+              <Link
+                href="/dashboard/admin/users/new"
+                className="inline-flex items-center justify-center w-full gap-2 px-4 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+              >
+                <PlusCircle className="w-5 h-5" />
+                Lägg till Användare
+              </Link>
+            </div>
+          </Card>
         </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-1 mb-4">
-          <TabsTrigger value="users" className="data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">Användare</TabsTrigger>
-          <TabsTrigger value="reports" className="data-[state=active]:bg-white/10 data-[state=active]:border data-[state=active]:border-white/20 rounded-xl">Rapporter</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users">
-          <div className="flex gap-4 mb-4">
-            <select
-              value={roleFilter}
-              onChange={handleRoleChange}
-              className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-            >
-              <option value="">Alla roller</option>
-              <option value="student">Student</option>
-              <option value="teacher">Lärare</option>
-              <option value="admin">Admin</option>
-            </select>
-            <form onSubmit={handleSearchSubmit} className="flex items-center">
-              <input
-                type="text"
-                value={search}
-                onChange={handleSearchChange}
-                placeholder="Sök användare..."
-                className="px-4 py-2 rounded-l-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+        {/* Custom Tabs */}
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <ul className="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
+            <li className="mr-2">
               <button
-                type="submit"
-                className="px-4 py-2 rounded-r-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
+                className={`inline-flex items-center p-4 border-b-2 rounded-t-lg ${
+                  tab === 'users'
+                    ? 'text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500'
+                    : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'
+                }`}
+                onClick={() => setTab('users')}
               >
-                Sök
+                <UserIcon className="w-4 h-4 mr-2" />
+                Användare
               </button>
-            </form>
-          </div>
+            </li>
+            <li className="mr-2">
+              <button
+                className={`inline-flex items-center p-4 border-b-2 rounded-t-lg ${
+                  tab === 'reports'
+                    ? 'text-blue-600 border-blue-600 active dark:text-blue-500 dark:border-blue-500'
+                    : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'
+                }`}
+                onClick={() => setTab('reports')}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Rapporter
+              </button>
+            </li>
+          </ul>
+        </div>
 
-          <div className="overflow-x-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left">
-                  <th className="px-4 py-3 text-slate-300">Namn</th>
-                  <th className="px-4 py-3 text-slate-300">Email</th>
-                  <th className="px-4 py-3 text-slate-300">Roll</th>
-                  <th className="px-4 py-3 text-slate-300">Inskriven</th>
-                  <th className="px-4 py-3 text-slate-300">Bokningar</th>
-                  <th className="px-4 py-3 text-slate-300">Åtgärder</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-t border-white/10 hover:bg-white/5">
-                    <td className="px-4 py-3 text-slate-100">
-                      {user.firstName} {user.lastName}
-                    </td>
-                    <td className="px-4 py-3 text-slate-200">{user.email}</td>
-                    <td className="px-4 py-3 text-slate-200">
-                      {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Lärare' : 'Student'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {user.inskriven ? (
-                          <Check className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <X className="w-5 h-5 text-rose-400" />
-                        )}
-                        {user.role === 'student' && !user.inskriven && (
-                          <button
-                            onClick={() => handleSkrivIn(user.id)}
-                            disabled={loadingSkriv === user.id}
-                            className="px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs rounded transition-colors disabled:opacity-50"
-                          >
-                            {loadingSkriv === user.id ? (
-                              'Skriver in...'
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <UserCheck className="w-3 h-3" /> Skriv In
-                              </div>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {user.bookingCount > 0 ? (
-                        <Link
-                          href={`/dashboard/admin/bookings?user=${user.id}`}
-                          className="text-sky-300 hover:underline cursor-pointer flex items-center gap-1"
-                        >
-                          <Calendar className="w-4 h-4" />
-                          {user.bookingCount}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-400">{user.bookingCount}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Link href={`/dashboard/admin/users/${user.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white">
-                          Hantera
-                        </Link>
-                        <button
-                          onClick={() => handleImpersonate(user)}
-                          disabled={impersonatingId === user.id}
-                          className="px-3 py-1 rounded bg-amber-500/90 hover:bg-amber-500 text-black disabled:opacity-50"
-                        >
-                          <Shield className="w-4 h-4 inline mr-1" /> {impersonatingId === user.id ? 'Hämtar...' : 'Gå till användarsession'}
-                        </button>
-                        
-                        <button 
-                          onClick={() => handleDeleteClick(user)}
-                          className="px-3 py-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                        >
-                          <Trash className="w-4 h-4 inline mr-1" /> Radera
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="reports">
-          <div className="overflow-x-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4">
-            {reportsLoading ? (
-              <div className="text-slate-300">Hämtar rapporter...</div>
-            ) : (
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left">
-                    <th className="px-4 py-3 text-slate-300">Filnamn</th>
-                    <th className="px-4 py-3 text-slate-300">Skapad</th>
-                    <th className="px-4 py-3 text-slate-300">Användare</th>
-                    <th className="px-4 py-3 text-slate-300">Ladda ner</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reports.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-3 text-slate-400" colSpan={4}>Inga rapporter hittades.</td>
-                    </tr>
-                  ) : (
-                    reports.map((r: any) => (
-                      <tr key={r.id} className="border-t border-white/10 hover:bg-white/5">
-                        <td className="px-4 py-3 text-slate-100">{r.filename || r.fileName || `rapport-${r.id}.pdf`}</td>
-                        <td className="px-4 py-3 text-slate-200">{r.createdAt ? new Date(r.createdAt).toLocaleString('sv-SE') : '-'}</td>
-                        <td className="px-4 py-3 text-slate-200">{r.deletedUserName || r.userName || r.deletedUserEmail || '-'}</td>
-                        <td className="px-4 py-3">
-                          <Link href={`/api/admin/reports/${r.id}`} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white inline-flex items-center gap-2">
-                            <FileText className="w-4 h-4" /> Ladda ner
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Delete Confirmation Dialog with Glassmorphism */}
-      {deleteDialogOpen && userToDelete && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl max-w-md w-full mx-4">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-6 h-6 text-red-400" />
-                  <h3 className="text-lg font-semibold text-white">Bekräfta radering</h3>
+        {tab === 'users' && (
+          <div className="space-y-6">
+            {/* Filters Section with Flowbite Components */}
+            <Card className="shadow-lg">
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-1">
+                  <div className="w-full sm:w-48">
+                    <Select
+                      value={roleFilter}
+                      onChange={handleRoleChange}
+                      icon={Shield}
+                    >
+                      <option value="">Alla roller</option>
+                      <option value="student">Student</option>
+                      <option value="teacher">Lärare</option>
+                      <option value="admin">Admin</option>
+                    </Select>
+                  </div>
+                  <form onSubmit={handleSearchSubmit} className="w-full sm:w-64">
+                    <TextInput
+                      type="text"
+                      value={search}
+                      onChange={handleSearchChange}
+                      placeholder="Sök användare..."
+                      icon={Search}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSearchSubmit(e as any);
+                        }
+                      }}
+                    />
+                  </form>
                 </div>
-                <button
-                  onClick={handleDeleteCancel}
-                  className="text-white/70 hover:text-white transition-colors"
+                <Button
+                  size="sm"
+                  color="light"
+                  onClick={() => {
+                    window.location.href = '/dashboard/admin/users';
+                  }}
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  <Filter className="w-4 h-4 mr-2" />
+                  Rensa filter
+                </Button>
               </div>
-              
-              <p className="text-slate-300 mb-4">
-                Vill du verkligen radera användaren <strong className="text-white">{userToDelete.firstName} {userToDelete.lastName}</strong> och alla bokningar/feedback?
-              </p>
-              
-              <div className="mb-6">
-                <label className="flex items-center gap-2 text-sm text-white">
-                  <input
-                    type="checkbox"
-                    checked={exportPdf}
-                    onChange={(e) => setExportPdf(e.target.checked)}
-                    className="rounded bg-white/5 border-white/20 text-sky-500 focus:ring-sky-500"
-                  />
-                  <FileText className="w-4 h-4" />
-                  Exportera en sammanfattning till PDF åt kunden innan du raderar
-                </label>
-                <p className="text-xs text-slate-400 mt-1">
-                  (Detta kommer att kompilera all användardata, alla bokningar och bokningsrecensioner till en PDF med student-ID som PDF-namn och sparas på datorn)
-                </p>
+            </Card>
+
+            {/* Users Grid (Cards) */}
+            <Card className="shadow-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {users.map((user) => (
+                  <Card key={user.id} className="hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-semibold">
+                          {user.firstName[0]}{user.lastName[0]}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900 dark:text-white">
+                              {user.firstName} {user.lastName}
+                            </h3>
+                          </div>
+                          {user.customPrice && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Specialpris: {user.customPrice} kr</p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                        user.role === 'teacher' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                        'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                      }`}>
+                        {user.role === 'admin' ? 'Admin' : user.role === 'teacher' ? 'Lärare' : 'Student'}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                        <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                        <span className="truncate">{user.email}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            user.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                          }`}>
+                            {user.isActive ? 'Aktiv' : 'Inaktiv'}
+                          </span>
+                          {user.inskriven && (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                              Inskriven
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                          <span>{user.bookingCount}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        size="xs"
+                        color="light"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        Visa detaljer
+                      </Button>
+                      <Button size="xs" color="light" onClick={() => handleImpersonate(user.id)}>
+                        Anta identitet
+                      </Button>
+                      <Button
+                        size="xs"
+                        color={user.isActive ? 'warning' : 'success'}
+                        onClick={() => handleToggleActive(user.id, user.isActive)}
+                      >
+                        {user.isActive ? 'Inaktivera' : 'Aktivera'}
+                      </Button>
+                      {!user.inskriven && (
+                        <Button size="xs" color="purple" onClick={() => handleSkrivIn(user.id)}>
+                          Skriv in
+                        </Button>
+                      )}
+                      <Button size="xs" color="failure" onClick={() => handleDeleteUser(user.id)}>
+                        Ta bort
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
-              
-              {/* Footer */}
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={handleDeleteCancel}
-                  disabled={deleting}
-                  className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+            </Card>
+
+            {/* Pagination */}
+            <div className="flex justify-center mt-6">
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  color="light"
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
                 >
-                  Avbryt
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  disabled={deleting}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Föregående
+                </Button>
+                
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Sida {currentPage} av {totalPages}
+                </span>
+                
+                <Button
+                  size="sm"
+                  color="light"
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
                 >
-                  {deleting ? (
-                    <>
-                      <OrbSpinner size="sm" />
-                      Raderar...
-                    </>
-                  ) : (
-                    <>
-                      <Trash className="w-4 h-4" />
-                      Radera
-                    </>
-                  )}
-                </button>
+                  Nästa
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="flex justify-between items-center mt-6">
-        <div className="flex gap-2">
-          <span className="text-sm text-slate-300">
-            Visar {((currentPage - 1) * 20) + 1}-{Math.min(currentPage * 20, totalPages * 20)} av {totalPages * 20}
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ArrowLeftCircle className="w-5 h-5" /> Föregående
-          </button>
-          <button
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages || totalPages === 0}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Nästa <ArrowRightCircle className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+        {tab === 'reports' && (
+          <Card className="shadow-lg">
+            <div className="text-center py-12">
+              <FileText className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Rapporter kommer snart
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                Denna funktion är under utveckling.
+              </p>
+            </div>
+          </Card>
+        )}
 
-      <div className="flex gap-4 mt-8">
-        {userStats.map((stat) => (
-          <div key={stat.role} className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-            <span className="text-lg font-semibold">
-              {stat.role === 'admin' ? 'Admin' : stat.role === 'teacher' ? 'Lärare' : 'Studenter'}
-            </span>
-            <span className="text-2xl font-bold text-sky-300">{stat.count}</span>
+        {/* Delete Confirmation Dialog */}
+        {deleteDialogOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center">
+                <svg className="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Bekräfta radering
+                </h3>
+              </div>
+              <div className="p-6">
+                <p className="text-base text-gray-500 dark:text-gray-300 mb-4">
+                  Är du säker på att du vill ta bort denna användare? Denna åtgärd kan inte ångras.
+                </p>
+                <Alert color="failure">
+                  <span className="font-medium">Varning!</span> Alla bokningar och data för denna användare kommer att tas bort permanent.
+                </Alert>
+              </div>
+              <div className="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-700 gap-2">
+                <Button
+                  color="gray"
+                  onClick={() => setDeleteDialogOpen(false)}
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  color="failure"
+                  onClick={confirmDeleteUser}
+                >
+                  Ta bort användare
+                </Button>
+              </div>
+            </div>
           </div>
-        ))}
+        )}
+
+        {/* User Details Modal */}
+        <Modal show={detailsOpen} onClose={() => setDetailsOpen(false)} size="lg">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            {selectedUser ? (
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-md">
+                  <UserIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>
+                    {selectedUser.firstName} {selectedUser.lastName}
+                  </span>
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                    selectedUser.role === 'admin' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                    selectedUser.role === 'teacher' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                    'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                  }`}>
+                    {selectedUser.role === 'admin' ? 'Admin' : selectedUser.role === 'teacher' ? 'Lärare' : 'Student'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Användardetaljer</h3>
+            )}
+          </div>
+          {/* Body */}
+          <div className="p-6">
+            {selectedUser && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">E-post</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Bokningar</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.bookingCount}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                      selectedUser.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                    }`}>
+                      {selectedUser.isActive ? 'Aktiv' : 'Inaktiv'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Inskriven</p>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                      selectedUser.inskriven ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    }`}>
+                      {selectedUser.inskriven ? 'Ja' : 'Nej'}
+                    </span>
+                  </div>
+                </div>
+                {selectedUser.inskrivenDate && (
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Inskriven datum</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{new Date(selectedUser.inskrivenDate).toLocaleDateString('sv-SE')}</p>
+                  </div>
+                )}
+                {selectedUser.customPrice && (
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Specialpris</p>
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{selectedUser.customPrice} kr</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-2 justify-between items-center">
+            {selectedUser && (
+              <>
+                <div className="flex gap-2">
+                  <Button size="sm" color="light" onClick={() => window.open(`/dashboard/admin/users/${selectedUser.id}`, '_blank')}>
+                    Öppna profilsida
+                  </Button>
+                  <Button size="sm" color="light" onClick={() => handleImpersonate(selectedUser.id)}>
+                    Anta identitet
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  {!selectedUser.inskriven && (
+                    <Button size="sm" color="purple" onClick={() => handleSkrivIn(selectedUser.id)}>
+                      Skriv in
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    color={selectedUser.isActive ? 'warning' : 'success'}
+                    onClick={() => handleToggleActive(selectedUser.id, selectedUser.isActive)}
+                  >
+                    {selectedUser.isActive ? 'Inaktivera' : 'Aktivera'}
+                  </Button>
+                  <Button size="sm" color="gray" onClick={() => setDetailsOpen(false)}>
+                    Stäng
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
       </div>
-    </div>
     </>
   );
 }

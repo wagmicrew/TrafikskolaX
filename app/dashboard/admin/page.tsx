@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ExportSchedule from '@/components/Admin/ExportSchedule';
-import { 
-  FaUsers, 
-  FaCalendar, 
-  FaCog, 
-  FaFileAlt, 
-  FaGraduationCap, 
-  FaChartBar, 
-  FaEnvelope, 
+import {
+  FaUsers,
+  FaCalendar,
+  FaCog,
+  FaFileAlt,
+  FaGraduationCap,
+  FaChartBar,
+  FaEnvelope,
   FaCreditCard,
   FaShieldAlt,
   FaBookOpen,
@@ -21,11 +21,28 @@ import {
   FaExclamationTriangle,
   FaDatabase,
   FaEnvelopeOpen,
-  FaBell
+  FaBell,
+  FaRocket,
+  FaTools,
+  FaWrench,
+  FaGlobe,
+  FaCreditCard as FaCreditCardAlt,
+  FaTrash,
+  FaChevronDown
 } from 'react-icons/fa';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import {
+  Card,
+  Button,
+  Badge,
+  ButtonGroup,
+  DarkThemeToggle,
+  Dropdown,
+  DropdownItem,
+  DropdownDivider
+} from 'flowbite-react';
+import { HiOutlineArrowRight, HiChartPie, HiUserGroup, HiOfficeBuilding, HiCurrencyDollar } from 'react-icons/hi';
+import { Home } from 'lucide-react';
+// import AdministrationPanel from '@/components/ui/administration-panel';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -140,155 +157,163 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="text-slate-100">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-2 drop-shadow-sm">
-          <FaShieldAlt className="w-8 h-8 text-sky-300" />
-          Admin Dashboard
-        </h1>
-        <div className="text-slate-300">
-          Välkommen tillbaka, {user.firstName}!
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      {/* Statistics Cards - Bento Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <div className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-blue-100 font-semibold text-sm uppercase tracking-wider">Totalt Användare</p>
+                <p className="text-4xl font-black text-white mt-1">{stats.totalUsers}</p>
+              </div>
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <HiUserGroup className="h-8 w-8 text-white" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <div className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-green-100 font-semibold text-sm uppercase tracking-wider">Totalt Bokningar</p>
+                <p className="text-4xl font-black text-white mt-1">{stats.totalBookings}</p>
+              </div>
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaCalendar className="h-8 w-8 text-white" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+            <div className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-yellow-100 font-semibold text-sm uppercase tracking-wider">Väntande</p>
+                <p className="text-4xl font-black text-white mt-1">{stats.pendingBookings}</p>
+              </div>
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaExclamationTriangle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <div className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-purple-100 font-semibold text-sm uppercase tracking-wider">Genomförda</p>
+                <p className="text-4xl font-black text-white mt-1">{stats.completedBookings}</p>
+              </div>
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaCheckCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+          </Card>
         </div>
-      </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-white/10 border border-white/20 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-300">Totalt Användare</p>
-                <p className="text-3xl font-bold text-white">{stats.totalUsers}</p>
-              </div>
-              <div className="p-3 bg-sky-500/20 rounded-xl">
-                <FaUsers className="h-8 w-8 text-sky-300" />
-              </div>
+        {/* Quick Actions - Centered and Popping */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8 tracking-tight">
+            <FaRocket className="inline-block w-8 h-8 mr-3 text-red-500" />
+            Snabbåtgärder
+          </h2>
+
+          <div className="flex justify-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
+              <Button
+                onClick={() => router.push('/dashboard/admin/bookings')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+              >
+                <FaCalendar className="h-6 w-6" />
+                <span className="text-sm">Hantera Bokningar</span>
+              </Button>
+
+              <Button
+                onClick={() => router.push('/dashboard/admin/users')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+              >
+                <FaUsers className="h-6 w-6" />
+                <span className="text-sm">Hantera Användare</span>
+              </Button>
+
+              <Button
+                onClick={() => router.push('/dashboard/admin/settings')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+              >
+                <FaCog className="h-6 w-6" />
+                <span className="text-sm">Inställningar</span>
+              </Button>
+
+              {internalMessagesEnabled && (
+                <Button
+                  onClick={() => router.push('/dashboard/meddelande')}
+                  className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+                >
+                  <FaEnvelope className="h-6 w-6" />
+                  <span className="text-sm">Meddelanden</span>
+                </Button>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/10 border border-white/20 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-300">Totalt Bokningar</p>
-                <p className="text-3xl font-bold text-white">{stats.totalBookings}</p>
-              </div>
-              <div className="p-3 bg-green-500/20 rounded-xl">
-                <FaCalendar className="h-8 w-8 text-green-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/10 border border-white/20 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-300">Väntande</p>
-                <p className="text-3xl font-bold text-white">{stats.pendingBookings}</p>
-              </div>
-              <div className="p-3 bg-amber-500/20 rounded-xl">
-                <FaExclamationTriangle className="h-8 w-8 text-amber-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white/10 border border-white/20 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-300">Genomförda</p>
-                <p className="text-3xl font-bold text-white">{stats.completedBookings}</p>
-              </div>
-              <div className="p-3 bg-purple-500/20 rounded-xl">
-                <FaCheckCircle className="h-8 w-8 text-purple-300" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-6">Snabbåtgärder</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Button 
-            onClick={() => router.push('/dashboard/admin/bookings')}
-            className="h-auto p-4 flex flex-col items-center space-y-2 bg-sky-500 hover:bg-sky-600 text-white"
-          >
-            <FaCalendar className="h-6 w-6" />
-            <span>Hantera Bokningar</span>
-          </Button>
-          
-          <Button 
-            onClick={() => router.push('/dashboard/admin/users')}
-            className="h-auto p-4 flex flex-col items-center space-y-2 bg-green-500 hover:bg-green-600 text-white"
-          >
-            <FaUsers className="h-6 w-6" />
-            <span>Hantera Användare</span>
-          </Button>
-          
-          <Button 
-            onClick={() => router.push('/dashboard/admin/settings')}
-            className="h-auto p-4 flex flex-col items-center space-y-2 bg-purple-500 hover:bg-purple-600 text-white"
-          >
-            <FaCog className="h-6 w-6" />
-            <span>Inställningar</span>
-          </Button>
-          
-          {internalMessagesEnabled && (
-            <Button 
-              onClick={() => router.push('/dashboard/meddelande')}
-              className="h-auto p-4 flex flex-col items-center space-y-2 bg-indigo-500 hover:bg-indigo-600 text-white"
-            >
-              <FaEnvelope className="h-6 w-6" />
-              <span>Meddelanden</span>
-            </Button>
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Admin Tools Grid */}
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-6">Admin Verktyg</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {adminLinks.map((link) => {
-            const IconComponent = link.icon;
-            return (
-              <Link key={link.href} href={link.href}>
-                <Card className="h-full bg-white/10 border border-white/20 hover:bg-white/15 transition-colors cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className={`p-3 rounded-lg ${link.color} text-white`}>
-                        <IconComponent className="h-6 w-6" />
+        {/* Admin Tools - Bento Grid */}
+        <div>
+          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8 tracking-tight">
+            <FaTools className="inline-block w-8 h-8 mr-3 text-yellow-500" />
+            Admin Verktyg
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {adminLinks.map((link, index) => {
+              const IconComponent = link.icon;
+              return (
+                <Link key={link.href} href={link.href}>
+                  <Card className="h-full shadow-lg hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 hover:transform hover:scale-105 cursor-pointer group">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`p-3 rounded-xl ${link.color} text-white shadow-lg`}>
+                          <IconComponent className="h-6 w-6" />
+                        </div>
+                        {link.count !== undefined && (
+                          <Badge color="dark" className="bg-gray-900 text-white font-bold px-3 py-1 shadow-md">
+                            {link.count}
+                          </Badge>
+                        )}
                       </div>
-                      {link.count !== undefined && (
-                        <Badge variant="secondary" className="bg-white/20 text-white">
-                          {link.count}
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardTitle className="text-lg font-semibold text-white mb-2">
-                      {link.title}
-                    </CardTitle>
-                    <CardDescription className="text-slate-300">
-                      {link.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Export Schedule Component */}
-      <div className="mt-8">
-        <ExportSchedule userId={user?.userId} role="admin" />
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                        {link.title}
+                      </h3>
+
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                        {link.description}
+                      </p>
+
+                      <div className="flex items-center text-red-600 dark:text-red-400 font-semibold text-sm group-hover:text-red-700 dark:group-hover:text-red-300">
+                        Öppna verktyg
+                        <HiOutlineArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Export Schedule Component */}
+        <div className="mt-12">
+          <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                <FaWrench className="inline w-6 h-6 mr-2 text-yellow-500" />
+                Exportera Schema
+              </h3>
+              <ExportSchedule userId={user?.userId} role="admin" />
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

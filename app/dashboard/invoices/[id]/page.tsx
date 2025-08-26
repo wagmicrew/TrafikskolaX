@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter as useNextRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {

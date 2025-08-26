@@ -59,20 +59,30 @@ CREATE INDEX IF NOT EXISTS idx_teori_sessions_reference_id ON teori_sessions(ref
 --> statement-breakpoint
 
 -- Insert seed data for testing
+-- Use WHERE NOT EXISTS to avoid requiring a unique index on name
 INSERT INTO teori_lesson_types (
-  name, 
-  description, 
-  allows_supervisors, 
-  price, 
-  price_per_supervisor, 
-  duration_minutes, 
-  max_participants,
-  sort_order
-) VALUES 
-  ('Grundkurs Teori', 'Grundläggande teorilektion för nya studenter', false, 500.00, null, 60, 1, 1),
-  ('Risktväan Teori', 'Teorilektion för risktvåan', false, 500.00, null, 60, 1, 2),
-  ('Handledar Teori', 'Teorilektion med handledare - tidigare Handledarutbildning', true, 700.00, 500.00, 120, 1, 3)
-ON CONFLICT (name) DO NOTHING;
+  name, description, allows_supervisors, price, price_per_supervisor, duration_minutes, max_participants, sort_order
+)
+SELECT 'Grundkurs Teori', 'Grundläggande teorilektion för nya studenter', false, 500.00, null, 60, 1, 1
+WHERE NOT EXISTS (
+  SELECT 1 FROM teori_lesson_types WHERE name = 'Grundkurs Teori'
+);
+
+INSERT INTO teori_lesson_types (
+  name, description, allows_supervisors, price, price_per_supervisor, duration_minutes, max_participants, sort_order
+)
+SELECT 'Risktväan Teori', 'Teorilektion för risktvåan', false, 500.00, null, 60, 1, 2
+WHERE NOT EXISTS (
+  SELECT 1 FROM teori_lesson_types WHERE name = 'Risktväan Teori'
+);
+
+INSERT INTO teori_lesson_types (
+  name, description, allows_supervisors, price, price_per_supervisor, duration_minutes, max_participants, sort_order
+)
+SELECT 'Handledar Teori', 'Teorilektion med handledare - tidigare Handledarutbildning', true, 700.00, 500.00, 120, 1, 3
+WHERE NOT EXISTS (
+  SELECT 1 FROM teori_lesson_types WHERE name = 'Handledar Teori'
+);
 
 --> statement-breakpoint
 

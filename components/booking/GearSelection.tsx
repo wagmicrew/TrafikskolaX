@@ -87,9 +87,6 @@ export function GearSelection({
               <Settings className="w-8 h-8 text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Manuell</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Traditionell växellåda där du manuellt byter växel med kopplingspedalen
-            </p>
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${
               selectedGear === 'manual'
                 ? 'bg-blue-600 text-white'
@@ -114,9 +111,6 @@ export function GearSelection({
               <Settings className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Automat</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Automatisk växellåda där bilen byter växel automatiskt
-            </p>
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${
               selectedGear === 'automatic'
                 ? 'bg-green-600 text-white'

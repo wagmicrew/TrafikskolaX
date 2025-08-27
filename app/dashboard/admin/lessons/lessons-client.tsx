@@ -332,130 +332,137 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
         ))}
       </div>
 
-{/* Edit Lesson Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="w-full max-w-lg p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-6 h-6 text-sky-400" />
-                  <h3 className="text-lg font-semibold text-white">Redigera Lektionstyp</h3>
-                </div>
-
+{/* Edit Lesson Modal using Flowbite */}
+      <Modal 
+        show={isEditDialogOpen} 
+        onClose={() => setIsEditDialogOpen(false)}  
+        theme={{ content: { base: "bg-gray-900 border border-gray-800 shadow-xl" } }}
+        size="xl"
+      >
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-blue-500" />
+            <span className="text-lg font-bold text-white">Redigera Lektionstyp</span>
+          </div>
+        </div>
+        <div className="p-6 bg-gray-900">
+          <Alert color="gray" className="mb-4">
+            <div className="flex items-center gap-2">
+              <HiInformationCircle className="h-5 w-5" />
+              <span>Gör ändringar i lektionstypens egenskaper. Klicka spara när du är klar.</span>
+            </div>
+          </Alert>
+          
+          <form onSubmit={handleSaveLesson} className="space-y-4">
+            <div className="grid gap-4">
+              <div>
+                <Label htmlFor="name" className="text-white font-medium mb-2">Namn</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
               
-              <p className="text-slate-300 mb-6">
-                Gör ändringar i lektionstypens egenskaper. Klicka spara när du är klar.
-              </p>
+              <div>
+                <Label htmlFor="description" className="text-white font-medium mb-2">Beskrivning</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500 resize-none"
+                />
+              </div>
               
-              <form onSubmit={handleSaveLesson} className="space-y-4">
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="name" className="block text-white font-medium mb-2">Namn</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                      className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 placeholder:text-white/50"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="description" className="block text-white font-medium mb-2">Beskrivning</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                      className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none placeholder:text-white/50"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="duration" className="block text-white font-medium mb-2">Längd (minuter)</Label>
-                      <Input
-                        id="duration"
-                        type="number"
-                        value={formData.durationMinutes}
-                        onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
-                        required
-                        min="1"
-                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="price" className="block text-white font-medium mb-2">Pris (SEK)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        required
-                        min="0"
-                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="priceStudent" className="block text-white font-medium mb-2">Studentpris (SEK)</Label>
-                      <Input
-                        id="priceStudent"
-                        type="number"
-                        value={formData.priceStudent}
-                        onChange={(e) => setFormData({ ...formData, priceStudent: e.target.value })}
-                        min="0"
-                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="salePrice" className="block text-white font-medium mb-2">Reapris (SEK)</Label>
-                      <Input
-                        id="salePrice"
-                        type="number"
-                        value={formData.salePrice}
-                        onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
-                        min="0"
-                        className="w-full px-4 py-2 bg-white/5 border border-white/20 text-white rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="rounded border-white/20 text-sky-500 focus:ring-sky-500 bg-white/5"
-                    />
-                    <Label htmlFor="isActive" className="text-white font-medium">Aktiv</Label>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="duration" className="text-white font-medium mb-2">Längd (minuter)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={formData.durationMinutes}
+                    onChange={(e) => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) })}
+                    required
+                    min="1"
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
-
-                {/* Footer */}
-                <div className="flex gap-3 justify-end pt-4">
-                  <Button 
-                    type="button" 
-                    onClick={() => setIsEditDialogOpen(false)}
-                    className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg transition-colors"
-                  >
-                    Avbryt
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? 'Sparar...' : 'Spara ändringar'}
-                  </Button>
+                
+                <div>
+                  <Label htmlFor="price" className="text-white font-medium mb-2">Pris (SEK)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                    min="0"
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
-              </form>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="priceStudent" className="text-white font-medium mb-2">Studentpris (SEK)</Label>
+                  <Input
+                    id="priceStudent"
+                    type="number"
+                    value={formData.priceStudent}
+                    onChange={(e) => setFormData({ ...formData, priceStudent: e.target.value })}
+                    min="0"
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="salePrice" className="text-white font-medium mb-2">Reapris (SEK)</Label>
+                  <Input
+                    id="salePrice"
+                    type="number"
+                    value={formData.salePrice}
+                    onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                    min="0"
+                    className="bg-gray-800 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="rounded border-gray-700 text-blue-500 focus:ring-blue-500 bg-gray-800"
+                  />
+                  <Label htmlFor="isActive" className="text-white font-medium">Aktiv</Label>
+                </div>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </form>
+        </div>
+        <div className="p-4 border-t border-gray-800 bg-gray-900 flex items-center justify-end gap-3">
+          <Button 
+            onClick={() => setIsEditDialogOpen(false)}
+            color="gray"
+            className="bg-gray-800 hover:bg-gray-700 text-white"
+          >
+            Avbryt
+          </Button>
+          <Button 
+            onClick={handleSaveLesson}
+            disabled={isLoading}
+            color="blue"
+          >
+            {isLoading ? <><Spinner size="sm" className="mr-2" />Sparar...</> : 'Spara ändringar'}
+          </Button>
+        </div>
+      </Modal>
 
       {/* New Lesson Type Popover */}
       {isNewLessonPopoverOpen && (
@@ -541,121 +548,183 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
       )}
 
       <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-white drop-shadow-sm">Paket</h2>
+        <Banner className="mb-6 bg-gray-900 border border-gray-800">
+          <div className="flex items-center">
+            <Package className="w-7 h-7 text-blue-500 mr-3" />
+            <h2 className="text-2xl font-bold text-white">Paket</h2>
+          </div>
+        </Banner>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPackages.map(pkg => (
-            <div key={pkg.id} className="rounded-2xl p-4 bg-white/10 backdrop-blur-md border border-white/20 text-white">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
-                  <Package className="w-5 h-5 text-sky-300" /> {pkg.name}
-                </h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditPackage(pkg)}
-                    className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-                    title="Edit package"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeletePackage(pkg)}
-                    className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                    title={pkg.purchaseCount > 0 ? 'Arkivera paket' : 'Radera paket'}
-                  >
-                    {pkg.purchaseCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <p className="text-slate-300 mb-2">{pkg.description}</p>
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  <span>Pris: {pkg.price} SEK</span>
-                  {pkg.salePrice && <span className="ml-2 text-green-300">({pkg.salePrice} SEK på rea)</span>}
-                </div>
+            <Card key={pkg.id} className="bg-gray-900 border-gray-800 shadow-lg">
+              <div className="flex justify-between items-start">
                 <div className="flex items-center gap-2">
-                  {pkg.purchaseCount > 0 && (
-                    <span className="text-xs bg-white/10 text-white px-2 py-1 rounded border border-white/20">
-                      {pkg.purchaseCount} köp
-                    </span>
-                  )}
+                  <Package className="w-6 h-6 text-blue-500" />
+                  <h3 className="text-lg font-bold text-white">{pkg.name}</h3>
+                </div>
+                <div className="flex gap-2">
+                  <Tooltip content="Redigera paket">
+                    <Button 
+                      onClick={() => handleEditPackage(pkg)}
+                      size="sm"
+                      className="bg-gray-800 hover:bg-gray-700 border-gray-700"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content={pkg.purchaseCount > 0 ? 'Arkivera paket' : 'Radera paket'}>
+                    <Button 
+                      onClick={() => handleDeletePackage(pkg)}
+                      size="sm"
+                      color="failure"
+                    >
+                      {pkg.purchaseCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                    </Button>
+                  </Tooltip>
                 </div>
               </div>
-            </div>
+              
+              {pkg.description && (
+                <p className="text-gray-300 mt-2">{pkg.description}</p>
+              )}
+              
+              <div className="flex flex-wrap justify-between items-center mt-3 gap-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className="text-white font-semibold">
+                    {pkg.price} SEK
+                    {pkg.salePrice && (
+                      <Badge color="success" className="ml-2">
+                        {pkg.salePrice} SEK
+                      </Badge>
+                    )}
+                  </span>
+                </div>
+                
+                {pkg.purchaseCount > 0 && (
+                  <Badge color="blue">
+                    {pkg.purchaseCount} köp
+                  </Badge>
+                )}
+              </div>
+            </Card>
           ))}
         </div>
       </div>
 
-      {/* Delete Lesson Confirm Dialog */}
-      <Dialog open={!!deleteLessonTarget} onOpenChange={(open) => !open && setDeleteLessonTarget(null)}>
-        <DialogContent className="w-full max-w-md p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Trash2 className="w-6 h-6 text-rose-400" />
-                  <h3 className="text-lg font-semibold text-white">Bekräfta {deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'arkivering' : 'radering'}</h3>
-                </div>
-
-              </div>
-              <p className="text-slate-300 mb-6">
-                {deleteLessonTarget && deleteLessonTarget.bookingCount > 0
-                  ? `Lektionstypen har ${deleteLessonTarget.bookingCount} bokning(ar). Den kommer att arkiveras för att bevara historik. Vill du fortsätta?`
-                  : `Vill du radera "${deleteLessonTarget?.name}"? Detta kan inte ångras.`}
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button onClick={() => setDeleteLessonTarget(null)} className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg">Avbryt</Button>
-                <Button onClick={confirmDeleteLesson} disabled={isLoading} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg disabled:opacity-50">
-                  {isLoading ? 'Bearbetar...' : (deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'Arkivera' : 'Radera')}
-                </Button>
-              </div>
-            </div>
+      {/* Delete Lesson Confirm Modal */}
+      <Modal 
+        show={!!deleteLessonTarget} 
+        onClose={() => setDeleteLessonTarget(null)} 
+        size="md"
+        theme={{ content: { base: "bg-gray-900 border border-gray-800 shadow-xl" } }}  
+      >
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <Trash2 className="w-6 h-6 text-red-500" />
+            <h3 className="text-lg font-bold text-white">Bekräfta {deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'arkivering' : 'radering'}</h3>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+        <div className="p-6">
+          <Alert color="failure" className="mb-4">
+            {deleteLessonTarget && deleteLessonTarget.bookingCount > 0
+              ? `Lektionstypen har ${deleteLessonTarget.bookingCount} bokning(ar). Den kommer att arkiveras för att bevara historik. Vill du fortsätta?`
+              : `Vill du radera "${deleteLessonTarget?.name}"? Detta kan inte ångras.`}
+          </Alert>
+        </div>
+        <div className="p-4 border-t border-gray-800 flex justify-end gap-3">
+          <Button 
+            onClick={() => setDeleteLessonTarget(null)} 
+            color="gray" 
+            className="bg-gray-800 hover:bg-gray-700"
+          >
+            Avbryt
+          </Button>
+          <Button 
+            onClick={confirmDeleteLesson} 
+            disabled={isLoading} 
+            color="failure"
+          >
+            {isLoading ? <><Spinner size="sm" className="mr-2" />Bearbetar...</> : 
+             (deleteLessonTarget && deleteLessonTarget.bookingCount > 0 ? 'Arkivera' : 'Radera')}
+          </Button>
+        </div>
+      </Modal>
 
-      {/* Delete Package Confirm Dialog */}
-      <Dialog open={!!deletePackageTarget} onOpenChange={(open) => !open && setDeletePackageTarget(null)}>
-        <DialogContent className="w-full max-w-md p-0 overflow-hidden border-0 bg-transparent shadow-none">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Trash2 className="w-6 h-6 text-rose-400" />
-                  <h3 className="text-lg font-semibold text-white">Bekräfta {deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'arkivering' : 'radering'}</h3>
-                </div>
-
-              </div>
-              <p className="text-slate-300 mb-6">
-                {deletePackageTarget && deletePackageTarget.purchaseCount > 0
-                  ? `Paketet har ${deletePackageTarget.purchaseCount} köp. Det kommer att arkiveras för att bevara historik. Vill du fortsätta?`
-                  : `Vill du radera "${deletePackageTarget?.name}"? Detta kommer även att ta bort paketets innehåll och kan inte ångras.`}
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button onClick={() => setDeletePackageTarget(null)} className="px-4 py-2 text-white border border-white/20 hover:bg-white/10 rounded-lg">Avbryt</Button>
-                <Button onClick={confirmDeletePackage} disabled={isLoading} className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg disabled:opacity-50">
-                  {isLoading ? 'Bearbetar...' : (deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'Arkivera' : 'Radera')}
-                </Button>
-              </div>
-            </div>
+      {/* Delete Package Confirm Modal */}
+      <Modal 
+        show={!!deletePackageTarget} 
+        onClose={() => setDeletePackageTarget(null)} 
+        size="md"
+        theme={{ content: { base: "bg-gray-900 border border-gray-800 shadow-xl" } }}  
+      >
+        <div className="p-6 border-b border-gray-800">
+          <div className="flex items-center gap-3">
+            <Trash2 className="w-6 h-6 text-red-500" />
+            <h3 className="text-lg font-bold text-white">Bekräfta {deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'arkivering' : 'radering'}</h3>
           </div>
-        </DialogContent>
-      </Dialog>
-      <div className="flex gap-4 mt-8">
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-          <span className="text-lg font-semibold">Totalt Lektioner</span>
-          <span className="text-2xl font-bold text-sky-300">{stats.totalLessons}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-          <span className="text-lg font-semibold">Aktiva Lektioner</span>
-          <span className="text-2xl font-bold text-sky-300">{stats.activeLessons}</span>
+        <div className="p-6">
+          <Alert color="failure" className="mb-4">
+            {deletePackageTarget && deletePackageTarget.purchaseCount > 0
+              ? `Paketet har ${deletePackageTarget.purchaseCount} köp. Det kommer att arkiveras för att bevara historik. Vill du fortsätta?`
+              : `Vill du radera "${deletePackageTarget?.name}"? Detta kommer även att ta bort paketets innehåll och kan inte ångras.`}
+          </Alert>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-          <span className="text-lg font-semibold">Totalt Paket</span>
-          <span className="text-2xl font-bold text-sky-300">{stats.totalPackages}</span>
+        <div className="p-4 border-t border-gray-800 flex justify-end gap-3">
+          <Button 
+            onClick={() => setDeletePackageTarget(null)} 
+            color="gray" 
+            className="bg-gray-800 hover:bg-gray-700"
+          >
+            Avbryt
+          </Button>
+          <Button 
+            onClick={confirmDeletePackage} 
+            disabled={isLoading} 
+            color="failure"
+          >
+            {isLoading ? <><Spinner size="sm" className="mr-2" />Bearbetar...</> : 
+             (deletePackageTarget && deletePackageTarget.purchaseCount > 0 ? 'Arkivera' : 'Radera')}
+          </Button>
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20">
-          <span className="text-lg font-semibold">Aktiva Paket</span>
-          <span className="text-2xl font-bold text-sky-300">{stats.activePackages}</span>
+      </Modal>
+      <div className="mt-8">
+        <Banner className="mb-6 bg-gray-900 border border-gray-800">
+          <div className="flex items-center">
+            <HiInformationCircle className="w-7 h-7 text-blue-500 mr-3" />
+            <h2 className="text-2xl font-bold text-white">Statistik</h2>
+          </div>
+        </Banner>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-gray-900 border-gray-800">
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-semibold text-white">Totalt Lektioner</span>
+              <span className="text-3xl font-bold text-blue-500 mt-2">{stats.totalLessons}</span>
+            </div>
+          </Card>
+          
+          <Card className="bg-gray-900 border-gray-800">
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-semibold text-white">Aktiva Lektioner</span>
+              <span className="text-3xl font-bold text-blue-500 mt-2">{stats.activeLessons}</span>
+            </div>
+          </Card>
+          
+          <Card className="bg-gray-900 border-gray-800">
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-semibold text-white">Totalt Paket</span>
+              <span className="text-3xl font-bold text-blue-500 mt-2">{stats.totalPackages}</span>
+            </div>
+          </Card>
+          
+          <Card className="bg-gray-900 border-gray-800">
+            <div className="flex flex-col items-center">
+              <span className="text-lg font-semibold text-white">Aktiva Paket</span>
+              <span className="text-3xl font-bold text-blue-500 mt-2">{stats.activePackages}</span>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

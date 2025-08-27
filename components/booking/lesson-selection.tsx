@@ -317,9 +317,9 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         )}
       </div>
 
-      {sessionTypesList.length === 0 && !loading && (
+      {sessionTypesList.filter(s => s.type === 'teori' || s.type === 'handledar').length === 0 && !loading && (
         <div className="text-center py-12">
-          <p className="text-gray-600">Inga sessioner tillgängliga för tillfället.</p>
+          <p className="text-gray-600">Inga teorisessioner tillgängliga för tillfället.</p>
         </div>
       )}
     </div>

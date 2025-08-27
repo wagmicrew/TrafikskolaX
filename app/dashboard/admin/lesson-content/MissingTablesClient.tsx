@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert } from 'flowbite-react';
+import { Database, Loader2 } from 'lucide-react';
 
 export default function MissingTablesClient() {
   const [isRunning, setIsRunning] = useState(false);
@@ -24,14 +28,43 @@ export default function MissingTablesClient() {
 
   return (
     <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl max-w-xl w-full p-6 text-white text-center">
-        <h2 className="text-xl font-semibold mb-2">Tabeller saknas</h2>
-        <p className="text-white/80 mb-4">Tabeller för lektionsinnehåll saknas. Kör uppdateringarna eller migrations först.</p>
-        {error && <p className="text-rose-300 mb-3">{error}</p>}
-        <button onClick={runMigration} disabled={isRunning} className="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white disabled:opacity-50">
-          {isRunning ? 'Kör...' : 'Kör justeringar nu'}
-        </button>
-      </div>
+      <Card className="max-w-xl w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <Database className="w-16 h-16 text-blue-500" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+            Tabeller saknas
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center space-y-4">
+          <p className="text-gray-600 dark:text-gray-300">
+            Tabeller för lektionsinnehåll saknas. Kör uppdateringarna eller migrations först.
+          </p>
+
+          {error && (
+            <Alert color="failure" className="mb-4">
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            onClick={runMigration}
+            disabled={isRunning}
+            color="blue"
+            className="w-full"
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Kör...
+              </>
+            ) : (
+              'Kör justeringar nu'
+            )}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

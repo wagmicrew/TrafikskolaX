@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-hot-toast';
-import { Plus, Edit3, Trash2, Save, X, Loader2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, Save, X, Loader2, BookOpen } from 'lucide-react';
+
+// Import Flowbite components
+import { Banner } from 'flowbite-react';
 
 type Group = {
   id: string;
@@ -143,65 +146,169 @@ export default function LessonContentClient({ initialGroups, initialItems }: { i
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-white">Lektionsinnehåll</h1>
-        <div className="flex items-center gap-2">
-          <Input placeholder="Ny grupp..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} className="w-64 bg-white/10 border-white/20 text-white placeholder:text-white/50" />
-          <Button onClick={addGroup} disabled={creatingGroup} className="bg-sky-500 hover:bg-sky-600 text-white"><Plus className="w-4 h-4 mr-1" /> Lägg till grupp</Button>
+      {/* Flowbite Banner Component */}
+      <Banner className="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center">
+            <BookOpen className="w-8 h-8 text-blue-500 mr-3" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Lektionsinnehåll</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Input
+              placeholder="Ny grupp..."
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              className="w-64"
+            />
+            <Button
+              onClick={addGroup}
+              disabled={creatingGroup}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {creatingGroup ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : 'Lägg till grupp'}
+            </Button>
+          </div>
         </div>
-      </div>
+      </Banner>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {groups.sort((a,b) => (a.sortOrder||0)-(b.sortOrder||0)).map((group) => (
-          <Card key={group.id} className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl">
+          <Card key={group.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between">
               {editingGroupId === group.id ? (
                 <div className="flex-1 flex items-center gap-2">
-                  <Input value={editingGroupName} onChange={(e)=>setEditingGroupName(e.target.value)} className="bg-white/10 border-white/20 text-white" />
-                  <Button size="sm" onClick={() => saveGroupName(group.id)} disabled={savingGroupName===group.id} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50">
+                  <Input
+                    value={editingGroupName}
+                    onChange={(e)=>setEditingGroupName(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => saveGroupName(group.id)}
+                    disabled={savingGroupName===group.id}
+                    color="success"
+                  >
                     {savingGroupName===group.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />}
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setEditingGroupId(null); setEditingGroupName(''); }} className="border-white/20 text-white"><X className="w-4 h-4" /></Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setEditingGroupId(null); setEditingGroupName(''); }}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
               ) : (
-                <CardTitle className="flex items-center gap-2 text-white font-extrabold"><span>{group.name}</span></CardTitle>
+                <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white font-bold">
+                  <span>{group.name}</span>
+                </CardTitle>
               )}
               <div className="flex items-center gap-2">
                 {editingGroupId !== group.id && (
-                  <Button size="sm" variant="outline" onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); }} className="border-white/20 text-white"><Edit3 className="w-4 h-4" /></Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name); }}
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
                 )}
-                <Button size="sm" variant="destructive" onClick={() => deleteGroup(group.id)} className="bg-rose-600 hover:bg-rose-500"><Trash2 className="w-4 h-4" /></Button>
+                <Button
+                  size="sm"
+                  color="failure"
+                  onClick={() => deleteGroup(group.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {(itemsByGroup[group.id] || []).map((it) => (
-                  <div key={it.id} className="rounded-xl p-3 bg-white/5 border border-white/10">
+                  <div key={it.id} className="rounded-lg p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center gap-2">
-                      <Input value={it.title || ''} onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, title: e.target.value } : p))} className="flex-1 bg-white/10 border-white/20 text-white" />
-                      <Input type="number" value={it.durationMinutes || 0} onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, durationMinutes: Number(e.target.value) } : p))} className="w-24 bg-white/10 border-white/20 text-white" />
-                      <Button size="sm" onClick={() => updateItem(it)} disabled={savingItemId===it.id} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50">
+                      <Input
+                        value={it.title || ''}
+                        onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, title: e.target.value } : p))}
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={it.durationMinutes || 0}
+                        onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, durationMinutes: Number(e.target.value) } : p))}
+                        className="w-24"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => updateItem(it)}
+                        disabled={savingItemId===it.id}
+                        color="success"
+                      >
                         {savingItemId===it.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />}
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => deleteItem(it.id)} className="bg-rose-600 hover:bg-rose-500"><Trash2 className="w-4 h-4" /></Button>
+                      <Button
+                        size="sm"
+                        color="failure"
+                        onClick={() => deleteItem(it.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Textarea value={it.description || ''} onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, description: e.target.value } : p))} placeholder="Beskrivning..." className="mt-2 bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
+                    <Textarea
+                      value={it.description || ''}
+                      onChange={(e) => setItems(prev => prev.map(p => p.id === it.id ? { ...p, description: e.target.value } : p))}
+                      placeholder="Beskrivning..."
+                      className="mt-2"
+                    />
                   </div>
                 ))}
                 {addingItemForGroup === group.id ? (
-                  <div className="rounded-xl p-3 bg-white/5 border border-white/10">
+                  <div className="rounded-lg p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                     <div className="flex items-center gap-2">
-                      <Input value={itemDraft.title || ''} onChange={(e) => setItemDraft(prev => ({ ...prev, title: e.target.value }))} placeholder="Titel..." className="flex-1 bg-white/10 border-white/20 text-white" />
-                      <Input type="number" value={itemDraft.durationMinutes || 45} onChange={(e) => setItemDraft(prev => ({ ...prev, durationMinutes: Number(e.target.value) }))} className="w-24 bg-white/10 border-white/20 text-white" />
-                      <Button size="sm" onClick={() => addItem(group.id)} disabled={savingNewItem} className="bg-sky-600 hover:bg-sky-500 disabled:opacity-50">
+                      <Input
+                        value={itemDraft.title || ''}
+                        onChange={(e) => setItemDraft(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Titel..."
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={itemDraft.durationMinutes || 45}
+                        onChange={(e) => setItemDraft(prev => ({ ...prev, durationMinutes: Number(e.target.value) }))}
+                        className="w-24"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => addItem(group.id)}
+                        disabled={savingNewItem}
+                        color="blue"
+                      >
                         {savingNewItem ? <Loader2 className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4" />}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setAddingItemForGroup(null); setItemDraft({ title: '', description: '', durationMinutes: 45 }); }} className="border-white/20 text-white"><X className="w-4 h-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { setAddingItemForGroup(null); setItemDraft({ title: '', description: '', durationMinutes: 45 }); }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Textarea value={itemDraft.description || ''} onChange={(e) => setItemDraft(prev => ({ ...prev, description: e.target.value }))} placeholder="Beskrivning..." className="mt-2 bg-white/10 border-white/20 text-white placeholder:text-slate-300" />
+                    <Textarea
+                      value={itemDraft.description || ''}
+                      onChange={(e) => setItemDraft(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Beskrivning..."
+                      className="mt-2"
+                    />
                   </div>
                 ) : (
-                  <Button variant="outline" onClick={() => setAddingItemForGroup(group.id)} className="border-white/20 text-white"><Plus className="w-4 h-4 mr-1" /> Lägg till punkt</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setAddingItemForGroup(group.id)}
+                    color="gray"
+                  >
+                    <Plus className="w-4 h-4 mr-1" /> Lägg till punkt
+                  </Button>
                 )}
               </div>
             </CardContent>

@@ -1,25 +1,35 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  FaCalendarAlt, 
-  FaClock, 
-  FaCoins, 
-  FaUser,
-  FaPhone,
-  FaEnvelope,
-  FaCar,
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaArrowLeft,
-  FaQrcode,
-  FaMoneyBillWave,
-  FaTrashAlt,
-  FaTimesCircle
-} from 'react-icons/fa';
+import {
+  Calendar,
+  Clock,
+  Coins,
+  User,
+  Phone,
+  Mail,
+  Car,
+  CheckCircle,
+  AlertTriangle,
+  ArrowLeft,
+  QrCode,
+  CreditCard,
+  Trash2,
+  X,
+  RefreshCw,
+  BookOpen
+} from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from 'flowbite-react';
+import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import StudentHeader from '../../StudentHeader';
+import { FaExclamationCircle, FaCoins, FaQrcode, FaCheckCircle, FaMoneyBillWave } from 'react-icons/fa';
 
 interface BookingDetailClientProps {
   booking: any;
@@ -54,21 +64,21 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'confirmed': return 'text-green-600 bg-green-100';
-      case 'pending': return 'text-yellow-600 bg-yellow-100';
-      case 'on_hold': return 'text-orange-600 bg-orange-100';
-      case 'cancelled': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'confirmed': return 'success';
+      case 'pending': return 'warning';
+      case 'on_hold': return 'warning';
+      case 'cancelled': return 'failure';
+      default: return 'gray';
     }
   };
 
-  const getPaymentStatusColor = (status: string) => {
+  const getPaymentStatusColor = (status: string): string => {
     switch (status) {
-      case 'paid': return 'text-green-600 bg-green-100';
-      case 'unpaid': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'paid': return 'success';
+      case 'unpaid': return 'failure';
+      default: return 'gray';
     }
   };
 
@@ -225,26 +235,41 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
   }, [booking.id, user.id, booking.paymentStatus]);
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
-      {/* Cancellation Confirmation Modal */}
-      {showCancelConfirmation && (
-        <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleCancelConfirmation} />
-          <div className="relative z-[11010] rounded-2xl bg-slate-900/95 border border-white/10 text-white shadow-2xl p-6 w-[min(92vw,560px)]">
-            <h3 className="text-xl font-extrabold mb-2">Bekräfta avbokning</h3>
-            <p className="text-slate-300 mb-4">Är du säker på att du vill avboka denna bokning? Detta går inte att ångra.</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <StudentHeader
+        title="Bokningsdetaljer"
+        icon={<Calendar className="w-5 h-5" />}
+        userName={user.firstName}
+      />
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Cancellation Confirmation Modal */}
+        <Modal
+          show={showCancelConfirmation}
+          onClose={handleCancelConfirmation}
+          size="lg"
+        >
+          <ModalHeader>
+            <h3 className="text-lg font-semibold text-gray-900">Bekräfta avbokning</h3>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-gray-600 mb-4">
+              Är du säker på att du vill avboka denna bokning? Detta går inte att ångra.
+            </p>
 
             {cancellationError && (
-              <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 text-red-200 px-4 py-3">
-                {cancellationError}
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">{cancellationError}</p>
               </div>
             )}
 
             <div className="mb-4">
-              <label htmlFor="cancellationReason" className="block text-sm font-medium text-white mb-2">Anledning för avbokning *</label>
-              <textarea
+              <Label htmlFor="cancellationReason" className="text-gray-900 font-medium mb-2 block">
+                Anledning för avbokning *
+              </Label>
+              <Textarea
                 id="cancellationReason"
-                className="w-full rounded-md bg-white/5 border border-white/10 text-white placeholder:text-white/40 p-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 rows={3}
                 value={cancellationReason}
                 onChange={(e) => setCancellationReason(e.target.value)}
@@ -252,151 +277,150 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                 disabled={isCancelling}
                 required
               />
-              <p className="mt-1 text-sm text-white/60">Det är viktigt att du anger en anledning för avbokningen.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Det är viktigt att du anger en anledning för avbokningen.
+              </p>
             </div>
-
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                onClick={handleCancelConfirmation}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-50"
-                disabled={isCancelling}
-              >
-                Behåll
-              </button>
-              <button
-                onClick={handleCancelBooking}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white flex items-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <>
-                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                    Avbokar...
-                  </>
-                ) : (
-                  <>
-                    <FaTrashAlt />
-                    Ja, avboka bokningen
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Link 
-          href="/dashboard/student" 
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
-        >
-          <FaArrowLeft />
-          Tillbaka till Studentsidan
-        </Link>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        {/* Main Booking Card */}
-        <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl p-8 mb-6">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-extrabold mb-2">Bokning</h1>
-              <p className="text-slate-300">Bokning ID: {booking.id}</p>
-            </div>
-            <div className="text-right">
-              <div className="flex gap-2 mb-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20`}>
-                  {booking.status === 'confirmed' ? 'Bekräftad' : 
-                   booking.status === 'pending' ? 'Väntande' : 
-                   booking.status === 'on_hold' ? 'Pausad' : 
-                   booking.status === 'cancelled' ? 'Avbokad' : booking.status}
-                </span>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium bg-white/10 border border-white/20`}>
-                  {booking.paymentStatus === 'paid' ? 'Betald' : 
-                   booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
-                </span>
-              </div>
-              
-              {/* Cancellation Button - only show if booking is not already cancelled */}
-              {booking.status !== 'cancelled' && booking.status !== 'completed' && (
-                <button
-                  onClick={handleCancellationRequest}
-                  className="mt-2 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-sm"
-                >
-                  <FaTimesCircle />
-                  Avboka
-                </button>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelConfirmation}
+              disabled={isCancelling}
+            >
+              Behåll
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleCancelBooking}
+              disabled={isCancelling}
+            >
+              {isCancelling ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Avbokar...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Ja, avboka bokningen
+                </>
               )}
-            </div>
-          </div>
+            </Button>
+          </ModalFooter>
+        </Modal>
 
-          {/* Booking Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Lesson Information */}
-            <div className="space-y-6">
-              <div className="border-l-4 border-sky-400 pl-4">
-                <h2 className="text-xl font-extrabold mb-4">Lektionsinformation</h2>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <FaCalendarAlt className="text-sky-300" />
-                    <div>
-                      <p className="font-semibold">{booking.lessonTypeName}</p>
-                      <p className="text-sm text-slate-300">{booking.lessonTypeDescription}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <FaClock className="text-emerald-300" />
-                    <div>
-                      <p className="font-semibold">{formatDate(booking.scheduledDate)}</p>
-                      <p className="text-sm text-slate-300">{booking.startTime} - {booking.endTime} ({booking.durationMinutes} min)</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <FaCar className="text-purple-300" />
-                    <div>
-                      <p className="font-semibold">Växellåda: {booking.transmissionType || 'Ej specificerad'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <FaCoins className="text-yellow-300" />
-                    <div>
-                      <p className="font-semibold text-lg">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
-                    </div>
-                  </div>
-                </div>
+        {/* Main Booking Card */}
+        <Card className="bg-white border border-gray-200 shadow-sm mb-8">
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="text-2xl text-gray-900">Bokningsdetaljer</CardTitle>
+                <p className="text-gray-600 mt-1">Bokning ID: {booking.id}</p>
               </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex gap-2">
+                  <Badge color={getStatusColor(booking.status)} size="lg">
+                    {booking.status === 'confirmed' ? 'Bekräftad' :
+                     booking.status === 'pending' ? 'Väntande' :
+                     booking.status === 'on_hold' ? 'Pausad' :
+                     booking.status === 'cancelled' ? 'Avbokad' : booking.status}
+                  </Badge>
+                  <Badge color={getPaymentStatusColor(booking.paymentStatus)} size="lg">
+                    {booking.paymentStatus === 'paid' ? 'Betald' :
+                     booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
+                  </Badge>
+                </div>
+
+                {/* Cancellation Button - only show if booking is not already cancelled */}
+                {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                  <Button
+                    onClick={handleCancellationRequest}
+                    variant="danger"
+                    size="sm"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Avboka
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+
+            {/* Booking Details */}
+            <div className="space-y-6">
+              {/* Lesson Information */}
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-blue-900 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5" />
+                    Lektionsinformation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">{booking.lessonTypeName}</p>
+                      <p className="text-sm text-gray-600">{booking.lessonTypeDescription}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-green-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">{formatDate(booking.scheduledDate)}</p>
+                      <p className="text-sm text-gray-600">{booking.startTime} - {booking.endTime} ({booking.durationMinutes} min)</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Car className="w-5 h-5 text-purple-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Växellåda: {booking.transmissionType || 'Ej specificerad'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Coins className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-lg text-gray-900">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Teacher Information */}
               {booking.teacherFirstName && (
-                <div className="border-l-4 border-emerald-400 pl-4">
-                  <h2 className="text-xl font-extrabold mb-4">Körlärarinformation</h2>
-                  
-                  <div className="space-y-3">
+                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                  <CardHeader>
+                    <CardTitle className="text-green-900 flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      Körlärarinformation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <FaUser className="text-emerald-300" />
-                      <p className="font-semibold">{booking.teacherFirstName} {booking.teacherLastName}</p>
+                      <User className="w-5 h-5 text-green-600" />
+                      <p className="font-semibold text-gray-900">{booking.teacherFirstName} {booking.teacherLastName}</p>
                     </div>
 
                     {booking.teacherEmail && (
                       <div className="flex items-center gap-3">
-                        <FaEnvelope className="text-sky-300" />
-                        <p className="text-sm text-slate-200">{booking.teacherEmail}</p>
+                        <Mail className="w-5 h-5 text-green-600" />
+                        <p className="text-sm text-gray-700">{booking.teacherEmail}</p>
                       </div>
                     )}
 
                     {booking.teacherPhone && (
                       <div className="flex items-center gap-3">
-                        <FaPhone className="text-purple-300" />
-                        <p className="text-sm text-slate-200">{booking.teacherPhone}</p>
+                        <Phone className="w-5 h-5 text-green-600" />
+                        <p className="text-sm text-gray-700">{booking.teacherPhone}</p>
                       </div>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
 
@@ -515,8 +539,8 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </CardContent>
+      </Card>
 
         {/* Planned Steps and Feedback */}
         <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl p-8">

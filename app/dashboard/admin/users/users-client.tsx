@@ -192,7 +192,7 @@ export default function UsersClient({
       });
       
       if (response.ok) {
-        window.location.href = '/dashboard';
+        window.location.href = '/dashboard/student';
       } else {
         const data = await response.json();
         toast.error(data.error || 'Kunde inte anta identitet');

@@ -2,18 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  FaCheckCircle, 
-  FaClock, 
-  FaCoins,
-  FaBookOpen,
-} from 'react-icons/fa';
+import {
+  CheckCircle,
+  Clock,
+  Coins,
+  BookOpen,
+  RefreshCw,
+  Package,
+  MessageSquare,
+  Receipt,
+  FileText,
+  Calendar
+} from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookingsTable } from '@/components/bookings/bookings-table';
-import { Badge } from "@/components/ui/badge";
+import { Badge } from 'flowbite-react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import LearningModules from './LearningModules';
@@ -21,6 +27,7 @@ import StudentStrengthsCard from './StudentStrengthsCard';
 import PackageStoreModal from '@/components/PackageStoreModal';
 import { SwishPaymentDialog } from '@/components/booking/swish-payment-dialog';
 import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
+import StudentHeader from './StudentHeader';
 
 interface Booking {
   id: string;
@@ -61,6 +68,17 @@ interface StudentDashboardClientProps {
   credits: Credit[];
   packages: Package[];
   userPackages: any[];
+  invoices: any[];
+  stats: {
+    totalBookings: number;
+    completedBookings: number;
+    upcomingBookings: number;
+    totalCredits: number;
+    totalInvoices: number;
+    pendingInvoices: number;
+    paidInvoices: number;
+    totalInvoiceAmount: number;
+  };
 }
 
 const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
@@ -68,7 +86,9 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   bookings: initialBookings,
   credits: initialCredits,
   packages: initialPackages,
-  userPackages: initialUserPackages
+  userPackages: initialUserPackages,
+  invoices: initialInvoices,
+  stats
 }) => {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
@@ -81,13 +101,6 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   const [showQliroDialog, setShowQliroDialog] = useState(false);
   const [swishPaymentData, setSwishPaymentData] = useState<any>({});
   const [qliroPaymentData, setQliroPaymentData] = useState<any>({});
-
-  const stats = {
-    totalBookings: bookings.length,
-    completedBookings: bookings.filter(b => b.status === 'completed').length,
-    upcomingBookings: bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length,
-    totalCredits: credits.reduce((sum, c) => sum + c.creditsRemaining, 0)
-  };
 
   const refreshBookings = async () => {
     setIsRefreshing(true);
@@ -110,77 +123,62 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Välkommen, {user.firstName}!
-            </h1>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/student/bookings">Bokningar</Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/student/feedback">Feedback</Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/settings">Inställningar</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <StudentHeader
+        userName={user.firstName}
+        title="Elevöversikt"
+        icon={<BookOpen className="w-5 h-5" />}
+      />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Totalt lektioner</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalBookings}</p>
+                <p className="text-sm text-gray-600 font-medium">Totalt lektioner</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalBookings}</p>
               </div>
-              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
-                <FaBookOpen className="text-2xl text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <BookOpen className="text-2xl text-blue-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Genomförda</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.completedBookings}</p>
+                <p className="text-sm text-gray-600 font-medium">Genomförda lektioner</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.completedBookings}</p>
               </div>
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-full">
-                <FaCheckCircle className="text-2xl text-green-600 dark:text-green-400" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="text-2xl text-green-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Kommande</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.upcomingBookings}</p>
+                <p className="text-sm text-gray-600 font-medium">Kommande lektioner</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.upcomingBookings}</p>
               </div>
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-full">
-                <FaClock className="text-2xl text-yellow-600 dark:text-yellow-400" />
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <Clock className="text-2xl text-yellow-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Tillgängliga krediter</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.totalCredits}</p>
+                <p className="text-sm text-gray-600 font-medium">Tillgängliga krediter</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.totalCredits}</p>
               </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
-                <FaCoins className="text-2xl text-purple-600 dark:text-purple-400" />
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Coins className="text-2xl text-purple-600" />
               </div>
             </CardContent>
           </Card>
@@ -188,30 +186,112 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
 
         {/* Bookings Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Mina bokningar</h2>
-            <Button
-              onClick={refreshBookings}
-              disabled={isRefreshing}
-              variant="outline"
-            >
-              {isRefreshing ? 'Uppdaterar...' : 'Uppdatera'}
-            </Button>
-          </div>
-          
-          <Card>
-            <CardContent className="p-6">
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl text-gray-900">Mina bokningar</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Hantera dina kommande och genomförda lektioner
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={refreshBookings}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isRefreshing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Uppdaterar...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Uppdatera
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
               <BookingsTable bookings={bookings} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
+                <Calendar className="w-6 h-6 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Boka lektion</h3>
+              <p className="text-sm text-gray-600 mb-4">Boka ny körlektion online</p>
+              <Button asChild className="w-full">
+                <Link href="/dashboard/student/bokningar">Boka nu</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                <Package className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Paketbutik</h3>
+              <p className="text-sm text-gray-600 mb-4">Köp körlektioner till bättre pris</p>
+              <Button
+                onClick={() => setShowPackageModal(true)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Öppna butik
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
+                <MessageSquare className="w-6 h-6 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Feedback</h3>
+              <p className="text-sm text-gray-600 mb-4">Se lärarens kommentarer</p>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/student/feedback">Visa feedback</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
+            <CardContent className="p-6 text-center">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-200 transition-colors">
+                <Receipt className="w-6 h-6 text-orange-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Mina fakturor</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {stats.pendingInvoices > 0
+                  ? `${stats.pendingInvoices} väntande fakturor`
+                  : 'Hantera dina fakturor'
+                }
+              </p>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/student/fakturor">Visa fakturor</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
 
         {/* Learning Modules and Strengths */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <Card>
+          <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle>Lärande</CardTitle>
-              <CardDescription>Dina framsteg och moduler</CardDescription>
+              <CardTitle className="text-gray-900">Lärande & Framsteg</CardTitle>
+              <CardDescription className="text-gray-600">
+                Dina lärandemoduler och styrkor
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <LearningModules userId={user.id} />
@@ -219,17 +299,6 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
           </Card>
 
           <StudentStrengthsCard />
-        </div>
-
-        {/* Package Store Button */}
-        <div className="text-center">
-          <Button
-            onClick={() => setShowPackageModal(true)}
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Öppna Paketbutik
-          </Button>
         </div>
       </div>
 

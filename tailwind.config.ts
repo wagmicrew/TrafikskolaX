@@ -7,6 +7,7 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/flowbite-react/**/*.js",
+    "./node_modules/flowbite/**/*.js",
     "*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
@@ -92,6 +93,6 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("flowbite-typography"), require("flowbite/plugin")],
 };
 export default config;

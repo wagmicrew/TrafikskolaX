@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
 import { ViewToggle } from '@/components/admin/view-toggle';
 import { BookingsTable } from '@/components/admin/bookings-table';
@@ -36,7 +37,8 @@ import {
   Badge,
   Alert,
   Select,
-  TextInput
+  TextInput,
+  Banner
 } from 'flowbite-react';
 import { HiOutlineExclamation, HiOutlineEye, HiOutlineTrash, HiOutlineBan } from 'react-icons/hi';
 
@@ -86,7 +88,7 @@ export default function BookingsClient({
   showPast,
 }: BookingsClientProps) {
   const router = useRouter();
-  const [view, setView] = useState<'cards' | 'table'>('cards');
+  const [view, setView] = useState<'cards' | 'table'>('table');
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
@@ -94,11 +96,44 @@ export default function BookingsClient({
   const [warning, setWarning] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
+  // Load and persist view preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin_bookings_view');
+      if (saved === 'cards' || saved === 'table') setView(saved);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_bookings_view', view);
+    } catch {}
+  }, [view]);
+
+  // Remember selected user filter if URL lacks it
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const hasUserParam = url.searchParams.has('user');
+      if (!hasUserParam) {
+        const savedUser = localStorage.getItem('admin_bookings_selected_user');
+        if (savedUser) {
+          handleUserChange(savedUser);
+        }
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_bookings_selected_user', selectedUserId || '');
+    } catch {}
+  }, [selectedUserId]);
+
   const handleUserChange = (userId: string) => {
     const params = new URLSearchParams(window.location.search);
     if (userId) params.set('user', userId);
     else params.delete('user');
     params.set('page', '1');
+    try { localStorage.setItem('admin_bookings_selected_user', userId || ''); } catch {}
     router.push(`/dashboard/admin/bookings?${params.toString()}`);
   };
 
@@ -333,6 +368,25 @@ export default function BookingsClient({
 
   return (
     <div className="space-y-6">
+      {/* View Banner */}
+      <div className="sticky top-0 z-40">
+        <Banner>
+          <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
+            <div className="text-sm text-gray-800 dark:text-gray-100">
+              Vyn: <span className="font-semibold">{view === 'table' ? 'Lista' : 'Kort'}</span> · Vi kommer ihåg ditt val
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="xs" color={view === 'table' ? 'blue' : 'light'} onClick={() => setView('table')}>
+                Visa som lista
+              </Button>
+              <Button size="xs" color={view === 'cards' ? 'blue' : 'light'} onClick={() => setView('cards')}>
+                Visa som kort
+              </Button>
+            </div>
+          </div>
+        </Banner>
+      </div>
+
       {/* Confirmation Dialog */}
       {warning && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100]">
@@ -483,7 +537,7 @@ export default function BookingsClient({
       </Card>
 
       {/* View Toggle */}
-      <ViewToggle view={view} onViewChange={setView} />
+      {/* <ViewToggle view={view} onViewChange={setView} /> */}
 
       {/* Bulk Actions with Flowbite Alert */}
       {selectedBookings.length > 0 && (
@@ -548,16 +602,71 @@ export default function BookingsClient({
         </Card>
       ) : view === 'cards' ? (
         <>
-          {/* Bookings Cards View - Placeholder for now */}
+          {/* Bookings Cards View */}
           <Card className="shadow-lg">
-            <div className="text-center py-12">
-              <Users className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Kommer snart: Kortvy för bokningar
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Kortvyn för bokningar är under utveckling.
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {bookings.map((b) => (
+                <Card key={b.id} className="hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="font-semibold text-gray-900 dark:text-white">
+                        {new Date(b.scheduledDate).toLocaleDateString('sv-SE')} · {formatTime(b.startTime)}–{formatTime(b.endTime)}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {b.lessonTypeName}
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 mt-1"
+                      checked={selectedBookings.includes(b.id)}
+                      onChange={() => handleBookingSelection(b.id)}
+                      aria-label="Välj bokning"
+                    />
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <span className="truncate">{b.userName}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        b.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                        b.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                        b.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                      }`}>
+                        {b.status === 'confirmed' ? 'Bekräftad' : b.status === 'cancelled' ? 'Avbruten' : b.status === 'completed' ? 'Genomförd' : 'Väntar'}
+                      </span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        b.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                        b.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                        b.paymentStatus === 'refunded' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                        'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                      }`}>
+                        {b.paymentStatus === 'paid' ? 'Betald' : b.paymentStatus === 'pending' ? 'Väntar' : b.paymentStatus === 'refunded' ? 'Återbetald' : 'Obetald'}
+                      </span>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">{b.totalPrice} kr</div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      href={`/dashboard/admin/bookings/${b.id}`}
+                      className="inline-flex items-center px-2.5 py-1.5 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1" /> Visa
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteBooking(b.id)}
+                      className="inline-flex items-center px-2.5 py-1.5 text-xs rounded bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Ta bort
+                    </button>
+                  </div>
+                </Card>
+              ))}
             </div>
           </Card>
         </>

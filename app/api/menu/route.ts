@@ -1,43 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { menuItems, pages } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/menu - Get main menu items
+// GET /api/menu - Get main menu items (static response)
 export async function GET() {
   try {
-    // Get all active menu items that are not admin menu items
-    const menuData = await db
-      .select({
-        id: menuItems.id,
-        label: menuItems.label,
-        url: menuItems.url,
-        pageId: menuItems.pageId,
-        isExternal: menuItems.isExternal,
-        icon: menuItems.icon,
-        sortOrder: menuItems.sortOrder,
-        pageSlug: pages.slug,
-        pageTitle: pages.title,
-      })
-      .from(menuItems)
-      .leftJoin(pages, eq(menuItems.pageId, pages.id))
-      .where(and(
-        eq(menuItems.isActive, true),
-        eq(menuItems.isAdminMenu, false)
-      ))
-      .orderBy(menuItems.sortOrder);
-
-    // Build menu structure (supporting nested menus)
-    const menuStructure = menuData.map(item => ({
-      id: item.id,
-      label: item.label,
-      url: item.url || (item.pageSlug ? `/${item.pageSlug}` : '#'),
-      isExternal: item.isExternal,
-      icon: item.icon,
-      children: [] // For future nested menu support
-    }));
+    // Static menu structure to match the Navigation component
+    const menuStructure = [
+      {
+        id: 'home',
+        label: 'Hem',
+        url: '/',
+        isExternal: false,
+        icon: 'Home',
+        children: []
+      },
+      {
+        id: 'om-oss',
+        label: 'Om oss',
+        url: '/om-oss',
+        isExternal: false,
+        icon: 'User',
+        children: []
+      },
+      {
+        id: 'vara-tjanster',
+        label: 'Våra Tjänster',
+        url: '/vara-tjanster',
+        isExternal: false,
+        icon: 'Car',
+        children: []
+      },
+      {
+        id: 'lokalerna',
+        label: 'Lokalerna',
+        url: '/lokalerna',
+        isExternal: false,
+        icon: 'Building2',
+        children: []
+      },
+      {
+        id: 'boka-korning',
+        label: 'Boka körning',
+        url: '/boka-korning',
+        isExternal: false,
+        icon: 'Calendar',
+        children: []
+      }
+    ];
 
     return NextResponse.json({ menu: menuStructure });
   } catch (error) {

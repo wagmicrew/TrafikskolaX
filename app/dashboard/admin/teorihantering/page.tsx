@@ -56,12 +56,7 @@ export default async function TeoriHanteringPage() {
       studentFirstName: users.firstName,
       studentLastName: users.lastName,
       studentEmail: users.email,
-      studentPersonalNumber: users.personalNumber,
-      // Supervisor details
-      supervisorName: teoriBookings.supervisorName,
-      supervisorEmail: teoriBookings.supervisorEmail,
-      supervisorPhone: teoriBookings.supervisorPhone,
-      supervisorPersonalNumber: teoriBookings.supervisorPersonalNumber
+      studentPersonalNumber: users.personalNumber
     })
     .from(teoriBookings)
     .leftJoin(users, eq(teoriBookings.studentId, users.id))
@@ -79,7 +74,7 @@ export default async function TeoriHanteringPage() {
     .where(eq(users.role, 'student'))
     .orderBy(users.firstName, users.lastName);
 
-  // Structure data hierarchically: lessonTypes -> sessions -> bookings
+  // Structure data hierarchically: lessonTypes -> sessions -> bookings with null safety
   const structuredData = lessonTypes.map(lessonType => {
     const typeSessions = sessionsData.filter(session => session.lessonTypeId === lessonType.id);
 
@@ -88,20 +83,21 @@ export default async function TeoriHanteringPage() {
 
       return {
         ...session,
-        bookings: sessionBookings
+        bookings: sessionBookings || []
       };
     });
 
     return {
       ...lessonType,
-      sessions: sessionsWithBookings
+      allowsSupervisors: lessonType.allowsSupervisors || false,
+      sessions: sessionsWithBookings || []
     };
   });
 
   return (
     <TeoriHanteringClient
-      structuredData={structuredData}
-      students={students}
+      structuredData={structuredData || []}
+      students={students || []}
     />
   );
 }

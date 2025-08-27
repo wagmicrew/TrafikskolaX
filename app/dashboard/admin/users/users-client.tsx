@@ -33,6 +33,7 @@ import {
   RangeSlider,
   Textarea,
   ToggleSwitch,
+  Banner,
 } from 'flowbite-react';
 
 interface User {
@@ -71,7 +72,7 @@ export default function UsersClient({
   searchFilter,
 }: UsersClientProps) {
   const [tab, setTab] = useState<'users' | 'reports'>('users');
-  const [view, setView] = useState<'cards' | 'table'>('cards');
+  const [view, setView] = useState<'cards' | 'table'>('table');
   const [search, setSearch] = useState(searchFilter);
   const [showImpersonationLoader, setShowImpersonationLoader] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -83,6 +84,19 @@ export default function UsersClient({
   useEffect(() => {
     setSearch(searchFilter);
   }, [searchFilter]);
+
+  // Persisted view preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin_users_view');
+      if (saved === 'cards' || saved === 'table') setView(saved);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('admin_users_view', view);
+    } catch {}
+  }, [view]);
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const role = e.target.value;
@@ -169,7 +183,7 @@ export default function UsersClient({
   const handleImpersonate = async (userId: string) => {
     setShowImpersonationLoader(true);
     try {
-      const response = await fetch('/api/admin/users/impersonate', {
+      const response = await fetch('/api/auth/impersonate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,6 +224,30 @@ export default function UsersClient({
     <>
       <OrbLoader isVisible={showImpersonationLoader} text="Antar identitet..." textPosition="below" />
       <div className="space-y-6">
+        {/* View Banner */}
+        <div className="sticky top-0 z-40">
+          <Banner>
+            <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
+              <div className="text-sm text-gray-800 dark:text-gray-100">
+                Vyn: <span className="font-semibold">{view === 'table' ? 'Lista' : 'Kort'}</span> · Vi kommer ihåg ditt val
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className={`px-2.5 py-1 text-xs rounded ${view === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
+                  onClick={() => setView('table')}
+                >
+                  Visa som lista
+                </button>
+                <button
+                  className={`px-2.5 py-1 text-xs rounded ${view === 'cards' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100'}`}
+                  onClick={() => setView('cards')}
+                >
+                  Visa som kort
+                </button>
+              </div>
+            </div>
+          </Banner>
+        </div>
         {/* Header Section with Flowbite Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Header Card */}
@@ -326,8 +364,8 @@ export default function UsersClient({
               </div>
             </Card>
 
-            {/* View Toggle */}
-            <ViewToggle view={view} onViewChange={setView} />
+            {/* View Toggle (replaced by banner) */}
+            {/* <ViewToggle view={view} onViewChange={setView} /> */}
 
             {/* Users Display - Cards or Table */}
             {view === 'cards' ? (

@@ -80,6 +80,10 @@ export async function POST(request: NextRequest) {
       // Supervisor fields for handledar sessions
       supervisorCount,
       supervisorDetails,
+      // New handledare format
+      handledare,
+      // Student selection
+      selectedStudent,
     } = body;
 
     // Validate required fields - different validation for handledar vs regular lessons
@@ -88,26 +92,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Obligatoriska fält saknas för handledarutbildning' }, { status: 400 });
       }
 
-      // Validate supervisor details for handledar sessions
-      if (supervisorCount > 0 && (!supervisorDetails || supervisorDetails.length < supervisorCount)) {
-        return NextResponse.json({ error: 'Handledarinformation saknas för alla handledare' }, { status: 400 });
+      // Validate handledare details for handledar sessions
+      if (!handledare || handledare.length === 0) {
+        return NextResponse.json({ error: 'Minst 1 handledare krävs för handledarutbildning' }, { status: 400 });
       }
 
-      // Validate each supervisor's information
-      if (supervisorDetails && supervisorDetails.length > 0) {
-        for (let i = 0; i < Math.min(supervisorDetails.length, supervisorCount); i++) {
-          const supervisor = supervisorDetails[i];
-          if (!supervisor.name || !supervisor.email || !supervisor.phone || !supervisor.personnummer) {
+      // Validate each handledare's information
+      if (handledare && handledare.length > 0) {
+        for (let i = 0; i < handledare.length; i++) {
+          const handledareItem = handledare[i];
+          if (!handledareItem.name || !handledareItem.email || !handledareItem.phone || !handledareItem.personalNumber) {
             return NextResponse.json({
               error: `Handledare ${i + 1} saknar obligatorisk information (namn, e-post, telefon eller personnummer)`
             }, { status: 400 });
           }
 
-          // Validate personnummer format (should be 12 digits)
-          const cleanPersonnummer = supervisor.personnummer.replace(/-/g, '');
-          if (cleanPersonnummer.length !== 12) {
+          // Validate personnummer format (should be 10-12 digits)
+          const cleanPersonnummer = handledareItem.personalNumber.replace(/[-\s]/g, '');
+          if (cleanPersonnummer.length < 10 || cleanPersonnummer.length > 12) {
             return NextResponse.json({
-              error: `Handledare ${i + 1} har ogiltigt personnummer (måste vara 12 siffror)`
+              error: `Handledare ${i + 1} har ogiltigt personnummer (måste vara 10-12 siffror)`
             }, { status: 400 });
           }
         }
@@ -286,8 +290,11 @@ export async function POST(request: NextRequest) {
     }
 
     // If booking for a specific student as Admin or Teacher, ensure the booking is created for that student
-    if (studentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
-      userId = studentId;
+    // Priority: selectedStudent (from new UI) > studentId (legacy)
+    const finalStudentId = selectedStudent?.id || studentId;
+
+    if (finalStudentId && currentUserRole && ['admin', 'teacher'].includes(currentUserRole)) {
+      userId = finalStudentId;
       isGuestBooking = false;
     }
 
@@ -317,7 +324,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Special handling for admin/teacher booking for students
-    if (studentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
+    if (finalStudentId && (currentUserRole === 'admin' || currentUserRole === 'teacher')) {
       if (sessionType === 'handledar') {
         // Check if sessionId is the group placeholder
         if (sessionId === 'handledarutbildning-group') {
@@ -395,23 +402,23 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
-        // Process supervisor details for handledar sessions
-        if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
-          const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+        // Process handledare details for handledar sessions
+        if (sessionType === 'handledar' && handledare && handledare.length > 0) {
+          const handledareInserts = handledare.map(handledareItem => ({
             bookingId: booking.id,
-            supervisorName: supervisor.name,
-            supervisorEmail: supervisor.email,
-            supervisorPhone: supervisor.phone,
-            supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+            supervisorName: handledareItem.name,
+            supervisorEmail: handledareItem.email,
+            supervisorPhone: handledareItem.phone,
+            supervisorPersonalNumber: encryptPersonalId(handledareItem.personalNumber.replace(/[-\s]/g, '')),
           }));
 
-          // Insert supervisor details into the database
+          // Insert handledare details into the database
           try {
-            await db.insert(bookingSupervisorDetails).values(supervisorInserts);
-            console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+            await db.insert(bookingSupervisorDetails).values(handledareInserts);
+            console.log(`Inserted ${handledareInserts.length} handledare details for booking ${booking.id}`);
           } catch (error) {
-            console.error('Error inserting supervisor details:', error);
-            // Continue with booking creation even if supervisor details fail
+            console.error('Error inserting handledare details:', error);
+            // Continue with booking creation even if handledare details fail
           }
         }
 
@@ -680,21 +687,21 @@ export async function POST(request: NextRequest) {
             })
             .returning();
 
-          // Process supervisor details for handledar sessions
-          if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
-            const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+          // Process handledare details for handledar sessions
+          if (sessionType === 'handledar' && handledare && handledare.length > 0) {
+            const handledareInserts = handledare.map(handledareItem => ({
               bookingId: booking.id,
-              supervisorName: supervisor.name,
-              supervisorEmail: supervisor.email,
-              supervisorPhone: supervisor.phone,
-              supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+              supervisorName: handledareItem.name,
+              supervisorEmail: handledareItem.email,
+              supervisorPhone: handledareItem.phone,
+              supervisorPersonalNumber: encryptPersonalId(handledareItem.personalNumber.replace(/[-\s]/g, '')),
             }));
 
             try {
-              await db.insert(bookingSupervisorDetails).values(supervisorInserts);
-              console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+              await db.insert(bookingSupervisorDetails).values(handledareInserts);
+              console.log(`Inserted ${handledareInserts.length} handledare details for booking ${booking.id}`);
             } catch (error) {
-              console.error('Error inserting supervisor details:', error);
+              console.error('Error inserting handledare details:', error);
             }
           }
 
@@ -741,21 +748,21 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
-        // Process supervisor details for handledar sessions
-        if (sessionType === 'handledar' && supervisorCount > 0 && supervisorDetails) {
-          const supervisorInserts = supervisorDetails.slice(0, supervisorCount).map(supervisor => ({
+        // Process handledare details for handledar sessions
+        if (sessionType === 'handledar' && handledare && handledare.length > 0) {
+          const handledareInserts = handledare.map(handledareItem => ({
             bookingId: booking.id,
-            supervisorName: supervisor.name,
-            supervisorEmail: supervisor.email,
-            supervisorPhone: supervisor.phone,
-            supervisorPersonalNumber: encryptPersonalId(supervisor.personnummer.replace(/-/g, '')),
+            supervisorName: handledareItem.name,
+            supervisorEmail: handledareItem.email,
+            supervisorPhone: handledareItem.phone,
+            supervisorPersonalNumber: encryptPersonalId(handledareItem.personalNumber.replace(/[-\s]/g, '')),
           }));
 
           try {
-            await db.insert(bookingSupervisorDetails).values(supervisorInserts);
-            console.log(`Inserted ${supervisorInserts.length} supervisor details for booking ${booking.id}`);
+            await db.insert(bookingSupervisorDetails).values(handledareInserts);
+            console.log(`Inserted ${handledareInserts.length} handledare details for booking ${booking.id}`);
           } catch (error) {
-            console.error('Error inserting supervisor details:', error);
+            console.error('Error inserting handledare details:', error);
           }
         }
 

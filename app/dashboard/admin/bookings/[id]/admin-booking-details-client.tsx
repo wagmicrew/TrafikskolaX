@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import {
@@ -24,10 +24,14 @@ import {
   Car,
   CreditCard as CreditCardIcon,
   FileText as FileIcon,
-  Settings
+  Settings,
+  BookOpen,
+  ListChecks
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import AdminFeedbackForm from '@/components/admin/AdminFeedbackForm';
+import AdminFeedbackList from '@/components/admin/AdminFeedbackList';
 
 type Booking = {
   id: string;
@@ -107,6 +111,20 @@ type InvoiceItem = {
   itemReference?: string | null;
 };
 
+type BookingStep = {
+  id: number;
+  stepNumber: number;
+  category: string;
+  subcategory: string;
+  description: string;
+};
+
+type BookingPlanItem = {
+  id: string;
+  stepIdentifier: string;
+  isSelected: boolean;
+};
+
 type Settings = {
   schoolName: string;
   schoolPhone?: string;
@@ -134,6 +152,123 @@ export default function AdminBookingDetailsClient({
 }) {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+
+// Feedback Section Component
+function FeedbackSection({ bookingId }: { bookingId: string }) {
+  const [feedback, setFeedback] = useState<any[]>([]);
+  const [bookingSteps, setBookingSteps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState<any>(null);
+
+  useEffect(() => {
+    loadFeedback();
+    loadBookingSteps();
+  }, [bookingId]);
+
+  const loadFeedback = async () => {
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/feedback`);
+      if (response.ok) {
+        const data = await response.json();
+        setFeedback(data.feedback || []);
+      }
+    } catch (error) {
+      console.error('Error loading feedback:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBookingSteps = async () => {
+    try {
+      const response = await fetch('/api/booking-steps');
+      if (response.ok) {
+        const data = await response.json();
+        setBookingSteps(data.steps || []);
+      }
+    } catch (error) {
+      console.error('Error loading booking steps:', error);
+    }
+  };
+
+  const handleFeedbackSuccess = () => {
+    setShowForm(false);
+    setEditingFeedback(null);
+    loadFeedback();
+  };
+
+  const handleEditFeedback = (feedbackItem: any) => {
+    setEditingFeedback(feedbackItem);
+    setShowForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFeedback(null);
+    setShowForm(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-gradient-to-r from-green-600 to-blue-600 p-6">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <BookOpen className="w-5 h-5" />
+            Lektionsfeedback
+          </h2>
+        </div>
+        <div className="p-6 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-gradient-to-r from-green-600 to-blue-600 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <BookOpen className="w-5 h-5" />
+            Lektionsfeedback
+          </h2>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+          >
+            {showForm ? 'Avbryt' : 'Lägg till feedback'}
+          </button>
+        </div>
+      </div>
+      <div className="p-6">
+        {showForm && (
+          <div className="mb-6">
+            <AdminFeedbackForm
+              bookingId={bookingId}
+              steps={bookingSteps}
+              onSuccess={handleFeedbackSuccess}
+              onCancel={handleCancelEdit}
+              existingFeedback={editingFeedback}
+            />
+          </div>
+        )}
+
+        <AdminFeedbackList
+          bookingId={bookingId}
+          feedback={feedback}
+          onRefresh={loadFeedback}
+          onEdit={handleEditFeedback}
+        />
+      </div>
+    </div>
+  );
+}
+
+  // Lesson planning state
+  const [bookingSteps, setBookingSteps] = useState<BookingStep[]>([]);
+  const [selectedPlanningSteps, setSelectedPlanningSteps] = useState<Set<string>>(new Set());
+  const [isLoadingPlanning, setIsLoadingPlanning] = useState(false);
+  const [isSavingPlanning, setIsSavingPlanning] = useState(false);
 
   const amount = useMemo(() => Number(booking.totalPrice || 0), [booking.totalPrice]);
   const sessionDate = useMemo(() => format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv }), [booking.scheduledDate]);
@@ -201,6 +336,79 @@ export default function AdminBookingDetailsClient({
     } finally {
       setIsSendingReminder(false);
     }
+  };
+
+  // Lesson planning functions
+  useEffect(() => {
+    fetchLessonPlanning();
+  }, []);
+
+  const fetchLessonPlanning = async () => {
+    setIsLoadingPlanning(true);
+    try {
+      // Fetch booking steps
+      const stepsResponse = await fetch('/api/booking-steps');
+      if (stepsResponse.ok) {
+        const stepsData = await stepsResponse.json();
+        setBookingSteps(stepsData.steps || []);
+      }
+
+      // Fetch existing plan for this booking
+      const planResponse = await fetch(`/api/admin/bookings/${booking.id}/plan`);
+      if (planResponse.ok) {
+        const planData = await planResponse.json();
+        const selectedSteps = new Set(planData.planned || []);
+        setSelectedPlanningSteps(selectedSteps);
+      }
+    } catch (error) {
+      console.error('Error fetching lesson planning:', error);
+    } finally {
+      setIsLoadingPlanning(false);
+    }
+  };
+
+  const handleStepToggle = (stepId: string) => {
+    const newSelected = new Set(selectedPlanningSteps);
+    if (newSelected.has(stepId)) {
+      newSelected.delete(stepId);
+    } else {
+      newSelected.add(stepId);
+    }
+    setSelectedPlanningSteps(newSelected);
+  };
+
+  const saveLessonPlanning = async () => {
+    setIsSavingPlanning(true);
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}/plan`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planned: Array.from(selectedPlanningSteps) })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Lektionsplanering sparad! ${result.added} tillagda, ${result.removed} borttagna`);
+      } else {
+        toast.error('Kunde inte spara lektionsplanering');
+      }
+    } catch (error) {
+      console.error('Error saving planning:', error);
+      toast.error('Ett fel uppstod vid sparande');
+    } finally {
+      setIsSavingPlanning(false);
+    }
+  };
+
+  const groupStepsByCategory = (steps: BookingStep[]) => {
+    const grouped: { [key: string]: BookingStep[] } = {};
+    steps.forEach(step => {
+      if (!grouped[step.category]) {
+        grouped[step.category] = [];
+      }
+      grouped[step.category].push(step);
+    });
+    return grouped;
   };
 
   const declineOrder = async () => {
@@ -481,6 +689,103 @@ export default function AdminBookingDetailsClient({
             </div>
           </div>
 
+          {/* Lesson Planning */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Lektionsplanering
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Planera lektionen</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Välj vilka moment som ska ingå i denna lektion för att hjälpa eleven förstå vad som kommer att hända.
+                  </p>
+                </div>
+                <button
+                  onClick={saveLessonPlanning}
+                  disabled={isSavingPlanning}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSavingPlanning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sparar...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Spara planering
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {isLoadingPlanning ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600 dark:text-gray-400">Laddar planeringssteg...</span>
+                </div>
+              ) : bookingSteps.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>Inga planeringssteg tillgängliga</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(groupStepsByCategory(bookingSteps)).map(([category, steps]) => (
+                    <div key={category} className="space-y-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-white text-base bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">
+                        {category}
+                      </h4>
+                      <div className="space-y-2 pl-4">
+                        {steps.map((step) => (
+                          <div
+                            key={step.id}
+                            className={`flex items-start space-x-3 p-4 rounded-lg border transition-all cursor-pointer ${
+                              selectedPlanningSteps.has(String(step.stepNumber))
+                                ? 'bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-600'
+                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600'
+                            }`}
+                            onClick={() => handleStepToggle(String(step.stepNumber))}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedPlanningSteps.has(String(step.stepNumber))}
+                              onChange={() => handleStepToggle(String(step.stepNumber))}
+                              className="mt-1 w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h5 className="font-medium text-gray-900 dark:text-white">
+                                  {step.stepNumber}. {step.subcategory}
+                                </h5>
+                              </div>
+                              {step.description && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{step.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {selectedPlanningSteps.size > 0 && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                        <ListChecks className="w-4 h-4 inline mr-1" />
+                        {selectedPlanningSteps.size} moment{selectedPlanningSteps.size !== 1 ? 'er' : ''} vald{selectedPlanningSteps.size !== 1 ? 'a' : 't'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Invoice Information */}
           {invoice && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -634,6 +939,9 @@ export default function AdminBookingDetailsClient({
               <span>Boknings-ID: {booking.id}</span>
             </div>
           </div>
+
+          {/* Feedback Section */}
+          <FeedbackSection bookingId={booking.id} />
         </div>
       </div>
     </div>

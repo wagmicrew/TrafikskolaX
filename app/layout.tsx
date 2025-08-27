@@ -1,6 +1,7 @@
 import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
+import Script from "next/script"
 import "./globals.css"
 import { ClientRoot } from "@/components/ClientRoot"
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -223,6 +224,9 @@ export default async function RootLayout({
             {children}
           </ClientRoot>
         </ErrorBoundary>
+
+        {/* Flowbite JavaScript */}
+        <Script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js" />
       </body>
     </html>
   )

@@ -355,17 +355,427 @@ export class NotificationService {
   }
 
   /**
-   * Helper to translate payment status to Swedish
+   * Send inskrivningsmail to student when they get enrolled
    */
-  private static translatePaymentStatus(status: string): string {
-    const translations: Record<string, string> = {
-      'pending': 'Väntar på betalning',
-      'paid': 'Betald',
-      'failed': 'Misslyckad',
-      'refunded': 'Återbetald',
-      'partially_refunded': 'Delvis återbetald',
-      'cancelled': 'Inställd'
-    };
-    return translations[status] || status;
+  static async onStudentEnrolled(userId: string): Promise<boolean> {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+
+      if (!user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        customData: {
+          enrollmentDate: format(new Date(), 'd MMMM yyyy', { locale: sv }),
+          enrolledBy: 'system' // Could be enhanced to track who enrolled them
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('inskrivningsmail', context);
+    } catch (error) {
+      console.error('Error in onStudentEnrolled:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send handledar registered notification
+   */
+  static async onHandledarRegistered(handledarId: string): Promise<boolean> {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, handledarId)
+      });
+
+      if (!user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        },
+        customData: {
+          registrationDate: format(new Date(), 'd MMMM yyyy', { locale: sv })
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('handledar_registered', context);
+    } catch (error) {
+      console.error('Error in onHandledarRegistered:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send driving lesson reminder (day before)
+   */
+  static async sendDrivingLessonReminder(bookingId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true,
+          teacher: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        teacher: booking.teacher ? {
+          id: booking.teacher.id,
+          email: booking.teacher.email,
+          firstName: booking.teacher.firstName,
+          lastName: booking.teacher.lastName
+        } : undefined,
+        customData: {
+          reminderType: 'day_before_driving_lesson'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('driving_lesson_reminder', context);
+    } catch (error) {
+      console.error('Error in sendDrivingLessonReminder:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send handledar course reminder (day before)
+   */
+  static async sendHandledarCourseReminder(sessionId: string): Promise<boolean> {
+    try {
+      const session = await db.query.handledarSessions.findFirst({
+        where: eq(handledarSessions.id, sessionId)
+      });
+
+      if (!session) return false;
+
+      const context: EmailContext = {
+        customData: {
+          sessionTitle: session.title,
+          sessionDate: format(new Date(session.date), 'EEEE d MMMM yyyy', { locale: sv }),
+          sessionTime: `${session.startTime} - ${session.endTime}`,
+          sessionLocation: session.location || 'Din Trafikskola HLM',
+          reminderType: 'day_before_handledar_course'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('handledar_course_reminder', context);
+    } catch (error) {
+      console.error('Error in sendHandledarCourseReminder:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send payment admin request notification (when student clicks "I have paid" button)
+   */
+  static async onPaymentAdminRequest(bookingId: string, studentId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'd MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        customData: {
+          requestDate: format(new Date(), 'd MMMM yyyy HH:mm', { locale: sv }),
+          studentMessage: 'Student har meddelat att betalning är genomförd och ber om bekräftelse.'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('payment_admin_request', context);
+    } catch (error) {
+      console.error('Error in onPaymentAdminRequest:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send admin confirmation OK notification
+   */
+  static async onAdminConfirmationOk(bookingId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'd MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        customData: {
+          confirmationDate: format(new Date(), 'd MMMM yyyy HH:mm', { locale: sv }),
+          confirmationType: 'approved',
+          adminMessage: 'Din betalning har bekräftats av administratören.'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('admin_confirmation_ok', context);
+    } catch (error) {
+      console.error('Error in onAdminConfirmationOk:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send admin confirmation NOT OK notification
+   */
+  static async onAdminConfirmationNotOk(bookingId: string, reason?: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'd MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        customData: {
+          confirmationDate: format(new Date(), 'd MMMM yyyy HH:mm', { locale: sv }),
+          confirmationType: 'rejected',
+          adminMessage: reason || 'Din betalning kunde inte bekräftas. Kontakta skolan för mer information.',
+          rejectionReason: reason || 'Betalning kunde inte verifieras'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('admin_confirmation_not_ok', context);
+    } catch (error) {
+      console.error('Error in onAdminConfirmationNotOk:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send admin booking confirmed notification
+   */
+  static async onAdminBookingConfirmed(bookingId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true,
+          teacher: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'EEEE d MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        teacher: booking.teacher ? {
+          id: booking.teacher.id,
+          email: booking.teacher.email,
+          firstName: booking.teacher.firstName,
+          lastName: booking.teacher.lastName
+        } : undefined,
+        customData: {
+          confirmationDate: format(new Date(), 'd MMMM yyyy HH:mm', { locale: sv }),
+          confirmedBy: 'admin',
+          adminMessage: 'Din bokning har bekräftats av administratören.'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('admin_booking_confirmed', context);
+    } catch (error) {
+      console.error('Error in onAdminBookingConfirmed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send admin payment OK notification
+   */
+  static async onAdminPaymentOk(bookingId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'd MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        customData: {
+          paymentDate: format(new Date(), 'd MMMM yyyy HH:mm', { locale: sv }),
+          paymentStatus: 'confirmed_by_admin',
+          adminMessage: 'Din betalning har godkänts av administratören.'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('admin_payment_ok', context);
+    } catch (error) {
+      console.error('Error in onAdminPaymentOk:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send new review notification to admin and student
+   */
+  static async onNewReview(reviewId: string, bookingId: string): Promise<boolean> {
+    try {
+      const booking = await db.query.bookings.findFirst({
+        where: eq(bookings.id, bookingId),
+        with: {
+          user: true,
+          lessonType: true,
+          teacher: true
+        }
+      });
+
+      if (!booking || !booking.user) return false;
+
+      const context: EmailContext = {
+        user: {
+          id: booking.user.id,
+          email: booking.user.email,
+          firstName: booking.user.firstName,
+          lastName: booking.user.lastName,
+          role: booking.user.role
+        },
+        booking: {
+          id: booking.id,
+          scheduledDate: format(new Date(booking.scheduledDate), 'd MMMM yyyy', { locale: sv }),
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          lessonTypeName: booking.lessonType?.name || 'Körlektion',
+          totalPrice: booking.totalPrice.toString()
+        },
+        teacher: booking.teacher ? {
+          id: booking.teacher.id,
+          email: booking.teacher.email,
+          firstName: booking.teacher.firstName,
+          lastName: booking.teacher.lastName
+        } : undefined,
+        customData: {
+          reviewId,
+          reviewDate: format(new Date(), 'd MMMM yyyy', { locale: sv }),
+          reviewMessage: 'En ny recension har lämnats för denna bokning.'
+        }
+      };
+
+      return await EnhancedEmailService.sendTriggeredEmail('new_review', context);
+    } catch (error) {
+      console.error('Error in onNewReview:', error);
+      return false;
+    }
   }
 }

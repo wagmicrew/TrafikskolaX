@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
+import { NotificationService } from '@/lib/email/notification-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,14 @@ export async function POST(request: NextRequest) {
         { error: 'User not found' },
         { status: 404 }
       );
+    }
+
+    // Send inskrivningsmail to the enrolled student
+    try {
+      await NotificationService.onStudentEnrolled(userId);
+    } catch (emailError) {
+      console.error('Failed to send inskrivningsmail:', emailError);
+      // Don't fail the enrollment if email fails
     }
 
     return NextResponse.json({

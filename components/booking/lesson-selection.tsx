@@ -178,7 +178,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Välj typ av lektion</h2>
-        <p className="text-gray-700">Välj mellan körlektioner, teoripass och handledarutbildning</p>
+        <p className="text-gray-700">Välj mellan körlektioner och teorilektioner</p>
       </div>
 
             {/* Group by lesson type */}
@@ -188,7 +188,7 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
           <div className="space-y-4">
             <div className="text-center">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Körlektioner</h3>
-              <p className="text-gray-600">Välj en körlektion och sedan tid</p>
+              <p className="text-gray-600">Praktiska körlektioner med instruktör</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {sessionTypesList.filter(s => s.type === 'lesson').map((session) => (
@@ -204,28 +204,16 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                   <CardContent className="p-4">
                     <div className="text-center space-y-2">
                       <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
-                      <div className="flex items-center justify-center text-sm text-gray-700">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{formatDuration(session.durationMinutes)}</span>
-                      </div>
-                      <div className="space-y-1">
-                        {session.salePrice ? (
-                          <>
-                            <div className="text-2xl font-bold text-red-600">{formatPrice(session.salePrice)} kr</div>
-                            <div className="text-sm text-gray-500 line-through">{formatPrice(session.price)} kr</div>
-                          </>
-                        ) : (
-                          <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
-                        )}
-                        {session.priceStudent && (
-                          <div className="text-xs text-green-700 font-medium">Studentpris: {formatPrice(session.priceStudent)} kr</div>
-                        )}
-                      </div>
                       {session.description && (
-                        <p className="text-xs text-gray-600 mt-2">{session.description}</p>
+                        <p className="text-sm text-gray-600 mt-2">{session.description}</p>
                       )}
                       <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-blue-600 font-medium">Välj tid efter bokning</p>
+                        <p className="text-xs text-blue-600 font-medium">
+                          {session.availableSessions > 0
+                            ? `${session.availableSessions} tillgängliga sessioner`
+                            : 'Inga tillgängliga sessioner'
+                          }
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -235,15 +223,15 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
           </div>
         )}
 
-                 {/* Theory Lessons Group */}
-         {sessionTypesList.filter(s => s.type === 'teori').length > 0 && (
-           <div className="space-y-4">
-             <div className="text-center">
-               <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
-               <p className="text-gray-600">Välj en teorisession och sedan bekräfta bokning</p>
-             </div>
+                 {/* Theory Lessons Group - Unified (includes both teori and handledar sessions) */}
+        {sessionTypesList.filter(s => s.type === 'teori' || s.type === 'handledar').length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
+              <p className="text-gray-600">Teoretiska lektioner och handledarutbildning</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessionTypesList.filter(s => s.type === 'teori').map((session) => (
+              {sessionTypesList.filter(s => s.type === 'teori' || s.type === 'handledar').map((session) => (
                 <Card
                   key={`${session.type}-${session.id}`}
                   className={`transition-all hover:shadow-lg relative border-2 ${
@@ -254,27 +242,18 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                       : "border-gray-300 bg-gray-50 cursor-default"
                   }`}
                   onClick={() => {
-                    if (session.hasAvailableSessions) {
+                    if (session.hasAvailableSessions || session.type === 'handledar') {
                       handleSessionSelect(session);
                     }
                   }}
                 >
                   <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                    Teori
+                    {session.type === 'handledar' ? 'Handledar' : 'Teori'}
                   </div>
                   <CardContent className="p-4">
                     <div className="text-center space-y-2">
                       <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
-                      <div className="flex items-center justify-center text-sm text-gray-700">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{formatDuration(session.durationMinutes)}</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
-                        {session.maxParticipants && (
-                          <div className="text-xs text-blue-700 font-medium">Max {session.maxParticipants} deltagare</div>
-                        )}
-                      </div>
+
                       {session.description && (
                         <p className="text-xs text-gray-600 mt-2">{session.description}</p>
                       )}
@@ -289,8 +268,18 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                         </div>
                       )}
 
+                      {/* Handledar sessions are always available */}
+                      {session.type === 'handledar' && !session.hasAvailableSessions && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="text-sm text-green-600 font-medium mb-2">
+                            ✅ Tillgänglig för bokning
+                          </div>
+                          <p className="text-xs text-gray-600">Klicka för att fortsätta</p>
+                        </div>
+                      )}
+
                       {/* Notification button for unavailable sessions */}
-                      {!session.hasAvailableSessions && (
+                      {!session.hasAvailableSessions && session.type === 'teori' && (
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <Button
                             onClick={(e) => {
@@ -317,55 +306,6 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                           </p>
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Supervisor Training Group */}
-        {sessionTypesList.filter(s => s.type === 'handledar').length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Handledarutbildning</h3>
-              <p className="text-gray-600">För handledare och supervisorer</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessionTypesList.filter(s => s.type === 'handledar').map((session) => (
-                <Card
-                  key={`${session.type}-${session.id}`}
-                  className={`transition-all hover:shadow-lg relative border-2 ${
-                    selectedSession?.id === session.id
-                      ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50 cursor-pointer hover:scale-105"
-                      : "border-orange-200 bg-orange-50 cursor-pointer hover:scale-105"
-                  }`}
-                  onClick={() => handleSessionSelect(session)}
-                >
-                  <div className="absolute top-2 right-2 bg-orange-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                    Handledar
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="text-center space-y-2">
-                      <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
-                      <div className="flex items-center justify-center text-sm text-gray-700">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{formatDuration(session.durationMinutes)}</span>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
-                        <div className="text-xs text-orange-700 font-medium">Per deltagare</div>
-                        {session.pricePerSupervisor && (
-                          <div className="text-xs text-orange-600">+{formatPrice(session.pricePerSupervisor)} kr per extra handledare</div>
-                        )}
-                      </div>
-                      {session.description && (
-                        <p className="text-xs text-gray-600 mt-2">{session.description}</p>
-                      )}
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-orange-600 font-medium">Välj tid efter bokning</p>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         date: teoriSessions.date,
         startTime: teoriSessions.startTime,
         endTime: teoriSessions.endTime,
+        price: teoriSessions.price,
         maxParticipants: teoriSessions.maxParticipants,
         currentParticipants: teoriSessions.currentParticipants,
         isActive: teoriSessions.isActive,
@@ -37,20 +38,21 @@ export async function GET(request: NextRequest) {
       .from(teoriSessions)
       .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id));
 
-    // Filter by lesson type if specified
+    // Build conditions and apply a single where()
+    const conditions = [] as any[];
     if (lessonTypeId) {
-      query = query.where(eq(teoriSessions.lessonTypeId, lessonTypeId));
+      conditions.push(eq(teoriSessions.lessonTypeId, lessonTypeId));
     }
-
-    // Filter by availability if requested
     if (available) {
-      query = query.where(
+      conditions.push(
         and(
           eq(teoriSessions.isActive, true),
-          // Add date filter to only show future sessions
           sql`${teoriSessions.date} >= CURRENT_DATE`
         )
       );
+    }
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
     const sessions = await query.orderBy(desc(teoriSessions.date), desc(teoriSessions.startTime));
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
       date,
       startTime,
       endTime,
+      price,
       maxParticipants,
       isActive
     } = body;
@@ -100,6 +103,7 @@ export async function POST(request: NextRequest) {
       date,
       startTime,
       endTime,
+      price: price !== undefined && price !== null ? String(price) : null,
       maxParticipants: maxParticipants || 1,
       isActive: isActive !== undefined ? isActive : true,
     }).returning();

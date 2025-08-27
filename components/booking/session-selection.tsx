@@ -19,38 +19,38 @@ interface SessionType {
   isActive: boolean
 }
 
-interface Session {
+interface TeoriSession {
   id: string
-  sessionTypeId: string
+  lesson_type_id: string
   title: string
   description: string | null
   date: string
-  startTime: string
-  endTime: string
-  maxParticipants: number
-  currentParticipants: number
-  isActive: boolean
-  sessionType: {
-    id: string
-    name: string
-    type: string
-    basePrice: number
-    pricePerSupervisor: number
-    allowsSupervisors: boolean
-    requiresPersonalId: boolean
-    durationMinutes: number
-  }
+  start_time: string
+  end_time: string
+  max_participants: number
+  current_participants: number
+  teacher_id: string | null
+  is_active: boolean
+  lesson_type_name: string
+  lesson_type_description: string | null
+  allows_supervisors: boolean
+  price: number
+  price_per_supervisor: number | null
+  duration_minutes: number
+  booked_count: number
+  available_spots?: number
+  formatted_date_time?: string
 }
 
 interface SessionSelectionProps {
   sessionType: SessionType
-  onComplete: (data: { selectedSession: Session; sessionType: SessionType }) => void
+  onComplete: (data: { session: TeoriSession }) => void
   onBack: () => void
 }
 
 export function SessionSelection({ sessionType, onComplete, onBack }: SessionSelectionProps) {
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null)
+  const [sessions, setSessions] = useState<TeoriSession[]>([])
+  const [selectedSession, setSelectedSession] = useState<TeoriSession | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -79,14 +79,22 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
           return;
         }
 
-        if (sessionType.type === 'teori') {
-          // For Teori sessions, extract sessions from the specific lesson type group
-          console.log('Teori session data:', data);
+        if (sessionType.type === 'teori' || sessionType.type === 'handledar') {
+          // For Teori/Handledar sessions, extract sessions from the specific lesson type group
+          console.log('Teori/Handledar session data:', data);
           const lessonTypeGroup = data.sessionsByType?.find((group: any) => group.lessonType.id === sessionType.id);
           console.log('Lesson type group:', lessonTypeGroup);
           const sessionsData = lessonTypeGroup?.sessions || [];
-          console.log('Setting Teori sessions:', sessionsData);
-          setSessions(sessionsData);
+
+          // Map and enhance session data
+          const enhancedSessions = sessionsData.map((session: any) => ({
+            ...session,
+            available_spots: session.max_participants - (session.booked_count || 0),
+            formatted_date_time: formatDateTime(session.date, session.start_time, session.end_time)
+          }));
+
+          console.log('Setting Teori/Handledar sessions:', enhancedSessions);
+          setSessions(enhancedSessions);
         } else {
           console.log('Setting unified sessions:', data.sessions || []);
           setSessions(data.sessions || []);
@@ -102,41 +110,38 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
     }
   }
 
-  const formatDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return 'Date TBD';
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('sv-SE', {
+  const formatDateTime = (dateStr: string, startTime: string, endTime: string) => {
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('sv-SE', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    })
-  }
-
-  const formatTime = (timeStr: string | null | undefined) => {
-    if (!timeStr) return 'TBD';
-    return timeStr.substring(0, 5) // Remove seconds
+    });
+    const start = startTime ? startTime.substring(0, 5) : 'TBD';
+    const end = endTime ? endTime.substring(0, 5) : 'TBD';
+    return `${formattedDate} ${start} - ${end}`;
   }
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('sv-SE').format(amount)
   }
 
-  const handleSessionSelect = (session: Session) => {
+  const handleSessionSelect = (session: TeoriSession) => {
     setSelectedSession(session)
     setTimeout(() => {
-      onComplete({ selectedSession: session, sessionType })
+      onComplete({ session })
     }, 300)
   }
 
-  const getAvailableSpots = (session: Session) => {
-    return session.maxParticipants - session.currentParticipants
+  const getAvailableSpots = (session: TeoriSession) => {
+    return session.available_spots || (session.max_participants - (session.booked_count || 0))
   }
 
-  const getAvailabilityColor = (session: Session) => {
+  const getAvailabilityColor = (session: TeoriSession) => {
     const remaining = getAvailableSpots(session)
     if (remaining <= 0) return 'red'
-    if (remaining <= Math.max(1, Math.floor(session.maxParticipants * 0.2))) return 'yellow'
+    if (remaining <= Math.max(1, Math.floor(session.max_participants * 0.2))) return 'yellow'
     return 'green'
   }
 
@@ -239,18 +244,18 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
                 <div className="space-y-3">
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                    <span>{formatDate(session.date)}</span>
+                    <span>{session.formatted_date_time || formatDateTime(session.date, session.start_time, session.end_time)}</span>
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                    <span>{formatTime(session.startTime)} - {formatTime(session.endTime)}</span>
+                    <span>{session.duration_minutes} minuter</span>
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="h-4 w-4 mr-2 text-gray-400" />
                     <span>
-                      {availableSpots} av {session.maxParticipants} platser kvar
+                      {availableSpots} av {session.max_participants} platser kvar
                     </span>
                   </div>
                 </div>
@@ -259,14 +264,14 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Pris:</span>
                     <span className="text-lg font-bold text-gray-900">
-                      {formatPrice(sessionType.basePrice || sessionType.price)} kr
+                      {formatPrice(session.price)} kr
                     </span>
                   </div>
-                  {sessionType.allowsSupervisors && sessionType.pricePerSupervisor && (
+                  {session.allows_supervisors && session.price_per_supervisor && (
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-gray-500">Extra handledare:</span>
                       <span className="text-sm text-gray-600">
-                        +{formatPrice(sessionType.pricePerSupervisor)} kr/st
+                        +{formatPrice(session.price_per_supervisor)} kr/st
                       </span>
                     </div>
                   )}

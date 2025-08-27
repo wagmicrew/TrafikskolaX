@@ -14,18 +14,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       name,
       description,
       allowsSupervisors,
-      price,
-      pricePerSupervisor,
-      durationMinutes,
-      maxParticipants,
-      isActive,
+      // price,
+      // pricePerSupervisor,
+      // durationMinutes,
+      // maxParticipants,
+      // isActive,
       sortOrder
     } = body;
 
     // Validate required fields
-    if (!name || price === undefined) {
+    if (!name || description === undefined) {
       return NextResponse.json(
-        { error: 'Namn och pris är obligatoriska' },
+        { error: 'Namn och beskrivning är obligatoriska' },
         { status: 400 }
       );
     }
@@ -36,11 +36,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         name,
         description,
         allowsSupervisors: allowsSupervisors || false,
-        price: price.toString(),
-        pricePerSupervisor: pricePerSupervisor ? pricePerSupervisor.toString() : null,
-        durationMinutes: durationMinutes || 60,
-        maxParticipants: maxParticipants || 1,
-        isActive: isActive !== undefined ? isActive : true,
+        // Keep price-related and capacity/duration at existing values; handled per session
         sortOrder: sortOrder || 0,
         updatedAt: new Date(),
       })

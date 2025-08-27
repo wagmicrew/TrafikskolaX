@@ -35,7 +35,17 @@ export type EmailTriggerType =
   | 'handledar_supervisor_payment_request'
   | 'booking_payment_reminder'
   | 'package_payment_reminder'
-  | 'teori_session_request';
+  | 'teori_session_request'
+  | 'payment_admin_request'
+  | 'admin_confirmation_ok'
+  | 'admin_confirmation_not_ok'
+  | 'admin_booking_confirmed'
+  | 'admin_payment_ok'
+  | 'handledar_registered'
+  | 'handledar_course_reminder'
+  | 'driving_lesson_reminder'
+  | 'new_review'
+  | 'inskrivningsmail';
 
 export type EmailReceiverType = 'student' | 'teacher' | 'admin' | 'school' | 'specific_user' | 'supervisor';
 
@@ -347,7 +357,7 @@ export class EnhancedEmailService {
 
       await transporter.sendMail(mailOptions);
       
-logger.info('email', 'Email sent via SMTP', {
+      logger.info('email', 'Email sent via SMTP', {
         to: options.to,
         subject: options.subject,
         messageType: options.messageType,
@@ -356,18 +366,18 @@ logger.info('email', 'Email sent via SMTP', {
       }, options.userId);
 
       return true;
-      } catch (error: unknown) {
-    const err: any = error;
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    logger.error('email', 'SMTP email failed', {
-      to: options.to,
-      subject: options.subject,
-      error: errorMessage,
-      code: err?.code,
-      response: err?.response,
-      responseCode: err?.responseCode,
-      command: err?.command
-    }, options.userId);
+    } catch (error: unknown) {
+      const err: any = error;
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logger.error('email', 'SMTP email failed', {
+        to: options.to,
+        subject: options.subject,
+        error: errorMessage,
+        code: err?.code,
+        response: err?.response,
+        responseCode: err?.responseCode,
+        command: err?.command
+      }, options.userId);
       
       return false;
     }
@@ -846,7 +856,17 @@ logger.info('email', 'Email sent via SMTP', {
       handledar_supervisor_payment_request: 'payment_confirmation',
       booking_payment_reminder: 'payment_confirmation',
       package_payment_reminder: 'payment_confirmation',
-      teori_session_request: 'general'
+      teori_session_request: 'general',
+      handledar_registered: 'general',
+      handledar_course_reminder: 'booking_related',
+      driving_lesson_reminder: 'booking_related',
+      new_review: 'general',
+      inskrivningsmail: 'general',
+      payment_admin_request: 'payment_confirmation',
+      admin_confirmation_ok: 'payment_confirmation',
+      admin_confirmation_not_ok: 'payment_confirmation',
+      admin_booking_confirmed: 'booking_related',
+      admin_payment_ok: 'payment_confirmation'
     };
 
     return mappings[triggerType] || 'general';

@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       date,
       startTime,
       endTime,
+      price,
       maxParticipants,
       isActive
     } = body;
@@ -38,6 +39,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         date,
         startTime,
         endTime,
+        price: price !== undefined && price !== null ? String(price) : null,
         maxParticipants: maxParticipants || 1,
         isActive: isActive !== undefined ? isActive : true,
         updatedAt: new Date(),

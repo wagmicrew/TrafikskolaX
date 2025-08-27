@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import NewLessonTypePopover from '@/components/NewLessonTypePopover';
@@ -30,6 +30,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+
+// Import Flowbite components
+import { Alert, Badge, Banner, Card, Modal, Tabs, Table, Spinner, Tooltip } from 'flowbite-react';
+import { HiInformationCircle, HiOutlineTicket, HiArchive, HiPlus } from 'react-icons/hi';
 
 // Import PackageContent type for compatibility
 interface PackageContent {
@@ -227,76 +231,104 @@ export default function LessonsClient({ lessons, packages, handledarSessions, st
 
   return (
     <div className="text-slate-100">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2 text-white drop-shadow-sm">
-          <BookOpen className="w-8 h-8 text-sky-300" /> Lektioner &amp; Paket
-        </h1>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsNewLessonPopoverOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
-          >
-            <BookOpen className="w-4 h-4" /> Ny Lektionstyp
-          </button>
-          <button
-            onClick={() => setIsNewPackagePopoverOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
-          >
-            <Package className="w-4 h-4" /> Nytt Paket
-          </button>
+      {/* Flowbite Banner Component */}
+      <Banner className="mb-6 bg-gray-900 border border-gray-800">
+        <div className="flex w-full items-center justify-between">          
+          <div className="flex items-center">
+            <BookOpen className="w-8 h-8 text-blue-500 mr-3" />
+            <h1 className="text-3xl font-bold text-white">Lektioner &amp; Paket</h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Button 
+              onClick={() => setIsNewLessonPopoverOpen(true)}
+              className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 flex items-center gap-2"
+            >
+              <HiPlus className="w-4 h-4" /> Ny Lektionstyp
+            </Button>
+            <Button 
+              onClick={() => setIsNewPackagePopoverOpen(true)}
+              className="bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 flex items-center gap-2"
+            >
+              <HiPlus className="w-4 h-4" /> Nytt Paket
+            </Button>
+          </div>
         </div>
-      </div>
+      </Banner>
 
-      <div className="mb-4">
-        <button
-          onClick={() => setShowActive(!showActive)}
-          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors"
+      {/* View Toggle using Flowbite Badge */}
+      <div className="mb-6 flex items-center gap-2">
+        <Badge 
+          onClick={() => setShowActive(!showActive)} 
+          className="cursor-pointer text-white transition-all duration-200 hover:bg-gray-700" 
+          color={showActive ? "blue" : "gray"}
+          size="lg"
         >
-          {showActive ? 'Visa Inaktiva' : 'Visa Aktiva'}
-        </button>
+          {showActive ? 'Visa Aktiva' : 'Visa Inaktiva'}
+        </Badge>
+        <Badge className="bg-gray-800 text-white">
+          {showActive ? 
+            `Aktiva lektioner: ${stats.activeLessons}` : 
+            `Inaktiva lektioner: ${stats.totalLessons - stats.activeLessons}`}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredLessons.map(lesson => (
-          <div key={lesson.id} className="rounded-2xl p-4 bg-white/10 backdrop-blur-md border border-white/20 text-white">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-white">
-                <BookOpen className="w-5 h-5 text-sky-300" /> {lesson.name}
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openEditDialog(lesson)}
-                  className="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-                  title="Edit lesson"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteLesson(lesson)}
-                  className="p-1 rounded bg-rose-600/80 hover:bg-rose-600 text-white"
-                  title={lesson.bookingCount > 0 ? 'Arkivera lektion' : 'Radera lektion'}
-                >
-                  {lesson.bookingCount > 0 ? <Archive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            <p className="text-slate-300 mb-2">{lesson.description}</p>
-            <div className="flex justify-between items-center text-sm text-slate-200">
-              <div>
-                <span>Pris: {lesson.price} SEK</span>
-                {lesson.salePrice && <span className="ml-2 text-green-300">({lesson.salePrice} SEK på rea)</span>}
-              </div>
+          <Card key={lesson.id} className="bg-gray-900 border-gray-800 shadow-lg" theme={{ root: { base: "bg-gray-900 border-gray-800" } }}>
+            <div className="flex justify-between items-start">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-300">{lesson.durationMinutes} min</span>
-                {lesson.bookingCount > 0 && (
-                  <span className="text-xs bg-white/10 text-white px-2 py-1 rounded border border-white/20">
-                    {lesson.bookingCount} bokningar
-                  </span>
-                )}
+                <BookOpen className="w-6 h-6 text-blue-500" />
+                <h3 className="text-lg font-bold text-white">{lesson.name}</h3>
+              </div>
+              <div className="flex gap-2">
+                <Tooltip content="Redigera lektion">
+                  <Button 
+                    onClick={() => openEditDialog(lesson)}
+                    size="sm"
+                    className="bg-gray-800 hover:bg-gray-700 border-gray-700"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </Tooltip>
+                <Tooltip content={lesson.bookingCount > 0 ? 'Arkivera lektion' : 'Radera lektion'}>
+                  <Button 
+                    onClick={() => handleDeleteLesson(lesson)}
+                    size="sm"
+                    color="failure"
+                  >
+                    {lesson.bookingCount > 0 ? <HiArchive className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+                  </Button>
+                </Tooltip>
               </div>
             </div>
-          </div>
+            
+            {lesson.description && (
+              <p className="text-gray-300 mt-2">{lesson.description}</p>
+            )}
+            
+            <div className="flex flex-wrap justify-between items-center mt-3 gap-2 text-sm">
+              <div className="flex items-center gap-3">
+                <Badge color="gray" className="font-bold">
+                  {lesson.durationMinutes} min
+                </Badge>
+                <span className="text-white font-semibold">
+                  {lesson.price} SEK
+                  {lesson.salePrice && (
+                    <Badge color="success" className="ml-2">
+                      {lesson.salePrice} SEK
+                    </Badge>
+                  )}
+                </span>
+              </div>
+              
+              {lesson.bookingCount > 0 && (
+                <Badge color="blue">
+                  {lesson.bookingCount} bokningar
+                </Badge>
+              )}
+            </div>
+          </Card>
         ))}
       </div>
 

@@ -8,13 +8,14 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const bookingId = searchParams.get('bookingId');
     const sessionType = searchParams.get('sessionType');
+    const reason = searchParams.get('reason') || 'User cancelled';
 
     if (!bookingId) {
       return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
     }
 
     if (sessionType === 'handledar') {
-      // Handle handledar booking cleanup
+      // Handle handledar booking cancellation
       const [booking] = await db
         .select()
         .from(handledarBookings)
@@ -25,32 +26,32 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Allow cleanup of temporary or stale cancelled bookings
-      if (booking.status !== 'temp' && booking.status !== 'cancelled') {
-        return NextResponse.json({ error: 'Cannot cancel non-temporary booking' }, { status: 400 });
+      // For handledar bookings, we can cancel any non-cancelled booking
+      if (booking.status === 'cancelled') {
+        return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
       }
 
       // Decrease participant count in session
       await db
         .update(handledarSessions)
-        .set({ 
+        .set({
           currentParticipants: sql`GREATEST(${handledarSessions.currentParticipants} - 1, 0)`,
           updatedAt: new Date()
         })
         .where(eq(handledarSessions.id, booking.sessionId));
 
-      // Delete the booking
+      // Delete the booking (handledar bookings are deleted, not just marked cancelled)
       await db
         .delete(handledarBookings)
         .where(eq(handledarBookings.id, bookingId));
 
-      return NextResponse.json({ 
-        message: 'Temporary handledar booking cleaned up successfully',
-        sessionId: booking.sessionId
+      return NextResponse.json({
+        message: 'Handledar booking cancelled successfully',
+        bookingId: bookingId
       });
 
     } else {
-      // Handle regular lesson booking cleanup
+      // Handle regular lesson booking cancellation
       const [booking] = await db
         .select()
         .from(bookings)
@@ -61,23 +62,31 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
       }
 
-      // Only allow cleanup of temporary bookings
-      if (booking.status !== 'temp') {
-        return NextResponse.json({ error: 'Cannot cancel non-temporary booking' }, { status: 400 });
+      // Only allow cancellation of active bookings
+      if (booking.status === 'cancelled') {
+        return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 });
       }
 
-      // Permanently delete
-      await db.delete(bookings).where(eq(bookings.id, bookingId));
+      // Mark as cancelled instead of deleting
+      await db
+        .update(bookings)
+        .set({
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          cancelReason: reason,
+          updatedAt: new Date()
+        })
+        .where(eq(bookings.id, bookingId));
 
-      return NextResponse.json({ 
-        message: 'Temporary booking cleaned up successfully',
+      return NextResponse.json({
+        message: 'Booking cancelled successfully',
         bookingId: booking.id
       });
     }
 
   } catch (error) {
-    console.error('Error cleaning up booking:', error);
-    return NextResponse.json({ error: 'Failed to cleanup booking' }, { status: 500 });
+    console.error('Error cancelling booking:', error);
+    return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 });
   }
 }
 

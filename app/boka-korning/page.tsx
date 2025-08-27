@@ -1,18 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle, ArrowLeft, Calendar, Clock, User, Car, UserPlus, ChevronDown, Phone } from "lucide-react"
+import { CheckCircle, ArrowLeft, Calendar, Clock, User, Car, UserPlus, ChevronDown, Phone, MoreVertical, CreditCard, X } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { OrbSpinner } from "@/components/ui/orb-loader"
+import { SessionSelection } from "@/components/booking/session-selection"
 
 import { LessonSelection } from "@/components/booking/lesson-selection"
 import { WeekCalendar } from "@/components/booking/week-calendar"
 import { BookingConfirmation } from "@/components/booking/booking-confirmation"
+import { GearSelection } from "@/components/booking/GearSelection"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dropdown, DropdownItem, Select, Label, TextInput, Card as FBCard } from "flowbite-react"
+import { Dropdown, DropdownItem, Select, Label, Card as FBCard } from "flowbite-react"
+import DynamicHandledareForm from "@/components/booking/DynamicHandledareForm"
+import StudentSelectionForm from "@/components/booking/StudentSelectionForm"
+
+
 
 interface TeoriSession {
   id: string
@@ -43,6 +49,8 @@ interface SessionType {
   maxParticipants?: number
   sessions?: TeoriSession[]
   hasAvailableSessions?: boolean
+  // Add fields for guest booking
+  requiresPersonalInfo?: boolean
 }
 
 interface User {
@@ -72,9 +80,145 @@ interface BookingData {
   durationMinutes: number
   bookingId?: string
   selectedSession?: TeoriSession
+  // Guest user information
+  guestName?: string
+  guestEmail?: string
+  guestPhone?: string
+  guestPersonalNumber?: string
+  // Handledare information
+  handledare?: Array<{
+    id?: string
+    name: string
+    email: string
+    phone: string
+    personalNumber: string
+  }>
+  // Student information
+  selectedStudent?: {
+    id: string
+    name: string
+    email: string
+    phone?: string
+    role: string
+  }
 }
 
-type BookingStep = 'lesson-selection' | 'calendar' | 'session-selection' | 'unavailable-session' | 'confirmation' | 'complete'
+type BookingStep = 'lesson-selection' | 'calendar' | 'gear-selection' | 'session-selection' | 'unavailable-session' | 'guest-info' | 'handledare-info' | 'confirmation' | 'complete'
+
+/*
+AI DESCRIPTION DOCUMENT - TRAFIKSKOLA BOKNING FLOW
+
+BOOKING FLOW OVERVIEW:
+======================
+
+The booking system follows a structured 4-step flow designed to handle different user types and lesson types:
+
+STEP 1: LESSON TYPE SELECTION
+-----------------------------
+- Displays lesson types from TWO TABLES:
+  * lesson_types (regular driving lessons)
+  * teori_lesson_types (teori and handledar sessions)
+- Groups lessons by type:
+  * Körlektioner (Regular driving lessons)
+  * Teorilektioner (Theory lessons)
+  * Handledarutbildning (Supervisor training)
+- Each lesson shows pricing, duration, and availability
+
+STEP 2: DATE/TIME OR SESSION SELECTION
+-------------------------------------
+- BRANCHING LOGIC:
+  * Regular lessons (lesson_types) → Calendar view for date/time selection
+  * Teori/Handledar sessions (teori_lesson_types) → Session list view
+- Calendar shows available slots with real-time availability
+- Sessions show participant counts and capacity
+
+STEP 3: USER INFORMATION COLLECTION
+----------------------------------
+- CONDITIONAL BASED ON USER TYPE:
+  * LOGGED-IN USERS:
+    - Students: Skip to confirmation (use account info)
+    - Admins: Can select existing student or create new
+  * GUESTS (NOT LOGGED IN):
+    - Collect: Name, Email, Phone, Swedish Personal Number
+    - For Handledar sessions: Additional handledare information
+  * HANDLEDAR SESSIONS:
+    - Require at least 1 handledare
+    - Each handledare needs: Name, Email, Phone, Personal Number
+
+STEP 4: CONFIRMATION & PAYMENT
+-----------------------------
+- Shows complete booking summary
+- Creates invoice with correct booker details
+- Adds handledare to session if applicable
+- Redirects to payment (Swish/Qliro) or shows payment options
+
+FLOW CONTROL FEATURES:
+====================
+
+BACKWARD NAVIGATION:
+- Users can navigate back at any step
+- Temporary bookings are cleaned up when going back
+- State is properly reset on navigation
+
+FORWARD VALIDATION:
+- Each step validates required information
+- Clear error messages for missing data
+- Progress indicators show current step
+
+TEMPORARY BOOKING MANAGEMENT:
+- Temporary bookings created during flow
+- Automatically cleaned up on navigation/back
+- Prevents double bookings and orphaned records
+
+USER MENU (POST-BOOKING):
+- Mark payment as completed (Swish)
+- Cancel booking with confirmation
+- Proper cleanup and state reset
+
+TECHNICAL IMPLEMENTATION:
+=======================
+
+STATE MANAGEMENT:
+- React hooks for local state
+- Temporary booking IDs for cleanup
+- Guest information collection
+- Handledare management arrays
+
+API INTEGRATION:
+- RESTful endpoints for booking operations
+- Proper error handling and user feedback
+- Real-time availability checking
+
+VALIDATION & SECURITY:
+- Required field validation
+- Swedish personal number format
+- Email format validation
+- SQL injection protection
+
+FLOW DIAGRAM:
+============
+
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Lesson Type    │───▶│  Date/Time or    │───▶│  User Info      │
+│   Selection     │    │   Session List   │    │  Collection     │
+│                 │    │                  │    │                 │
+│ • Körlektioner  │    │ • Calendar view  │    │ • Guest details │
+│ • Teorilektioner│    │ • Session list   │    │ • Handledare    │
+│ • Handledar     │    │                  │    │   (if needed)   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         ▲                       ▲                       ▲
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌──────────────────┐
+                    │   Confirmation   │
+                    │   & Payment      │
+                    │                  │
+                    │ • Invoice        │
+                    │ • Payment        │
+                    │ • User menu      │
+                    └──────────────────┘
+*/
 
 export default function BookingPage() {
   const { user, isLoading } = useAuth()
@@ -93,6 +237,38 @@ export default function BookingPage() {
   // Handledare selection for teori sessions
   const [selectedHandledare, setSelectedHandledare] = useState<User[]>([])
   const [showHandledareForm, setShowHandledareForm] = useState(false)
+
+  // Session pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const sessionsPerPage = 10
+  
+  // Guest user information
+  const [guestInfo, setGuestInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    personalNumber: ''
+  })
+
+  // Dynamic handledare form state
+  const [handledareList, setHandledareList] = useState<Array<{
+    id?: string
+    name: string
+    email: string
+    phone: string
+    personalNumber: string
+  }>>([])
+  const [showDynamicHandledareForm, setShowDynamicHandledareForm] = useState(false)
+
+  // Student selection state
+  const [selectedStudent, setSelectedStudent] = useState<{
+    id: string
+    name: string
+    email: string
+    phone?: string
+    role: string
+  } | null>(null)
+  const [showStudentForm, setShowStudentForm] = useState(false)
 
   // Update temporary booking when student is selected
   const updateTemporaryBookingWithStudent = async (student: User) => {
@@ -188,17 +364,21 @@ export default function BookingPage() {
 
   const handleLessonSelection = (data: { sessionType: SessionType }) => {
     setSelectedLessonType(data.sessionType)
-    
-    // For teori and handledar lessons, always go to session selection first
-    if (data.sessionType.type === 'teori' || data.sessionType.type === 'handledar') {
+    setCurrentPage(1) // Reset pagination when selecting a new lesson type
+
+    // For teori lessons, check if sessions are available
+    if (data.sessionType.type === 'teori') {
       if (data.sessionType.hasAvailableSessions && data.sessionType.sessions && data.sessionType.sessions.length > 0) {
         setCurrentStep('session-selection')
       } else {
-        // Show unavailable message with back button
+        // Show unavailable message with contact form option
         setCurrentStep('unavailable-session')
       }
+    } else if (data.sessionType.type === 'handledar') {
+      // Handledar sessions go directly to session selection (they handle their own availability)
+      setCurrentStep('session-selection')
     } else {
-      // Regular driving lessons show calendar
+      // Regular driving lessons go to calendar
       setCurrentStep('calendar')
     }
   }
@@ -222,11 +402,55 @@ export default function BookingPage() {
         endTime: endTime,
         durationMinutes: selectedLessonType.durationMinutes,
         bookingId: data.bookingId,
+        tempBookingId: data.bookingId, // Track temporary booking for cleanup
         // Add selected user info for admin bookings
         ...(isAdmin && selectedUser && { selectedUserId: selectedUser.id, selectedUserName: selectedUser.name })
       }
       setBookingData(bookingData)
-      setCurrentStep('confirmation')
+
+      // Determine next step based on lesson type and user type
+      if (selectedLessonType?.type === 'lesson') {
+        // Driving lessons need gear selection
+        setCurrentStep('gear-selection')
+      } else if (!user) {
+        // Guest user - collect personal information
+        setCurrentStep('guest-info')
+      } else if (user.role === 'student') {
+        // Student - go directly to confirmation
+        setCurrentStep('confirmation')
+      } else if (isAdmin && selectedUser?.role === 'student') {
+        // Admin booking for student - go directly to confirmation
+        setCurrentStep('confirmation')
+      } else {
+        // Admin/teacher booking for themselves or others - go to confirmation
+        setCurrentStep('confirmation')
+      }
+    }
+  }
+
+  const handleGearSelection = (data: { transmissionType: "manual" | "automatic" }) => {
+    if (bookingData) {
+      const updatedBookingData = {
+        ...bookingData,
+        transmissionType: data.transmissionType
+      }
+      setBookingData(updatedBookingData)
+      setTransmissionType(data.transmissionType)
+
+      // After gear selection, determine next step based on user type
+      if (!user) {
+        // Guest user - collect personal information
+        setCurrentStep('guest-info')
+      } else if (user.role === 'student') {
+        // Student - go directly to confirmation
+        setCurrentStep('confirmation')
+      } else if (isAdmin && selectedUser?.role === 'student') {
+        // Admin booking for student - go directly to confirmation
+        setCurrentStep('confirmation')
+      } else {
+        // Admin/teacher booking for themselves or others - go to confirmation
+        setCurrentStep('confirmation')
+      }
     }
   }
 
@@ -257,18 +481,40 @@ export default function BookingPage() {
         endTime: session.endTime,
         durationMinutes: selectedLessonType.durationMinutes,
         selectedSession: session,
+        tempBookingId: session.id, // Track session for temporary booking cleanup
         // Add selected user info for admin bookings
         ...(isAdmin && selectedUser && { selectedUserId: selectedUser.id, selectedUserName: selectedUser.name })
       }
       setBookingData(bookingData)
+
+      // Determine next step based on user type and session requirements
+      if (!user) {
+        // Guest user - collect personal information
+        setCurrentStep('guest-info')
+      } else if (user.role === 'student') {
+        // Student - go directly to confirmation
+        setCurrentStep('confirmation')
+      } else if (isAdmin) {
+        // Admin - always go to confirmation for both teori and handledare
+        // They will select student and handledare in the confirmation step
+        setCurrentStep('confirmation')
+      } else {
+        // Other user types - go to confirmation
       setCurrentStep('confirmation')
+      }
     }
   }
 
   const handleBookingComplete = async () => {
-    // Check if admin has selected a user
-    if (isAdmin && !selectedUser) {
-      alert('Du måste välja en användare att boka för innan du kan slutföra bokningen.')
+    // Check if admin has selected a user (required for handledare sessions)
+    if (isAdmin && selectedLessonType?.type === 'handledar' && !selectedUser) {
+      toast.error('Du måste välja en elev för handledarutbildning.')
+      return
+    }
+
+    // Check if admin has selected a user for teori sessions (optional but recommended)
+    if (isAdmin && selectedLessonType?.type === 'teori' && !selectedUser && !user) {
+      toast.error('Du måste välja en elev eller vara inloggad som elev.')
       return
     }
 
@@ -283,9 +529,38 @@ export default function BookingPage() {
     // Update display state for UI
     setEffectiveUserDisplay(effectiveUser)
 
-    // Ensure we have user information for the booking
-    if (!effectiveUser) {
-      toast.error('Ingen användarinformation tillgänglig för bokningen.')
+    // For guest users, ensure we have guest information
+    if (!user && (!bookingData?.guestName || !bookingData?.guestEmail || !bookingData?.guestPhone || !bookingData?.guestPersonalNumber)) {
+      toast.error('Vänligen fyll i alla obligatoriska fält för gästbokning.')
+      return
+    }
+
+    // For handledare sessions, ensure we have handledare information
+    if (selectedLessonType?.type === 'handledar' && (!bookingData?.handledare || bookingData.handledare.length === 0)) {
+      toast.error('Vänligen ange minst en handledare för denna handledarutbildning.')
+      return
+    }
+
+    // Validate handledare information completeness
+    if (handledareList && handledareList.length > 0) {
+      const incompleteHandledare = handledareList.find(h =>
+        !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
+      );
+      if (incompleteHandledare) {
+        toast.error('Vänligen fyll i alla obligatoriska fält för alla handledare.')
+        return
+      }
+    }
+
+    // Validate student selection for non-student users
+    if (user && user.role !== 'student' && !selectedStudent) {
+      toast.error('Vänligen välj en elev för denna bokning.')
+      return
+    }
+
+    // Validate minimum handledare for handledar sessions
+    if (selectedLessonType?.type === 'handledar' && handledareList.length === 0) {
+      toast.error('Minst 1 handledare krävs för handledarutbildning.')
       return
     }
 
@@ -297,9 +572,11 @@ export default function BookingPage() {
     // Create booking first, then redirect to payment page
     const bookingDataToSend = {
       ...bookingData,
-      selectedUserId: effectiveUser?.id,
-      selectedUserName: effectiveUser?.name,
+      selectedUserId: selectedStudent?.id || effectiveUser?.id,
+      selectedUserName: selectedStudent?.name || effectiveUser?.name,
       selectedHandledare: selectedHandledare,
+      handledare: handledareList,
+      selectedStudent: selectedStudent,
     }
 
     // Transform the booking data to match the API expectations
@@ -309,13 +586,20 @@ export default function BookingPage() {
       scheduledDate: bookingData.scheduledDate,
       startTime: bookingData.startTime,
       endTime: bookingData.endTime,
-      durationMinutes: bookingData.durationMinutes,
+      durationMinutes: bookingData.durationMinutes || selectedLessonType?.durationMinutes || 60,
       totalPrice: bookingData.totalPrice,
       paymentMethod: 'swish',
       paymentStatus: 'pending',
       // Add optional fields for admin bookings and transmission type
-      ...(effectiveUser?.id && { studentId: effectiveUser.id }),
-      ...(bookingData.transmissionType && { transmissionType: bookingData.transmissionType })
+      ...(selectedStudent?.id && { studentId: selectedStudent.id }),
+      ...(bookingData.transmissionType && { transmissionType: bookingData.transmissionType }),
+      // Add guest information if applicable
+      ...(bookingData.guestName && { guestName: bookingData.guestName }),
+      ...(bookingData.guestEmail && { guestEmail: bookingData.guestEmail }),
+      ...(bookingData.guestPhone && { guestPhone: bookingData.guestPhone }),
+      ...(bookingData.guestPersonalNumber && { guestPersonalNumber: bookingData.guestPersonalNumber }),
+      // Add handledare information if applicable
+      ...(handledareList && handledareList.length > 0 && { handledare: handledareList })
     }
 
     try {
@@ -331,14 +615,16 @@ export default function BookingPage() {
           },
           body: JSON.stringify({
             bookingId: bookingData.bookingId,
-            studentId: effectiveUser?.id,
-            studentName: effectiveUser?.name,
+            studentId: selectedStudent?.id || effectiveUser?.id,
+            studentName: selectedStudent?.name || effectiveUser?.name,
             paymentMethod: 'swish',
-            handledare: selectedHandledare.map(h => ({
-              id: h.id,
-              name: h.name,
-              email: h.email
-            }))
+            handledare: handledareList,
+            // Add guest and handledare information
+            ...(bookingData.guestName && { guestName: bookingData.guestName }),
+            ...(bookingData.guestEmail && { guestEmail: bookingData.guestEmail }),
+            ...(bookingData.guestPhone && { guestPhone: bookingData.guestPhone }),
+            ...(bookingData.guestPersonalNumber && { guestPersonalNumber: bookingData.guestPersonalNumber }),
+            ...(bookingData.handledare && { handledare: bookingData.handledare })
           }),
         })
 
@@ -359,11 +645,7 @@ export default function BookingPage() {
         // Fallback: Create new booking if no temporary booking exists
         const apiDataWithHandledare = {
           ...apiBookingData,
-          handledare: selectedHandledare.map(h => ({
-            id: h.id,
-            name: h.name,
-            email: h.email
-          }))
+          handledare: handledareList
         };
         
         const bookingResponse = await fetch('/api/booking/create', {
@@ -396,21 +678,70 @@ export default function BookingPage() {
     }
   }
 
-  const handleBack = () => {
+  const handleBack = async () => {
     switch (currentStep) {
       case 'calendar':
         setCurrentStep('lesson-selection')
         break
+      case 'gear-selection':
+        setCurrentStep('calendar')
+        break
       case 'session-selection':
+        // Both teori and handledar sessions now go back to lesson-selection
         setCurrentStep('lesson-selection')
+        setCurrentPage(1) // Reset pagination when going back
+        break
+      case 'guest-info':
+        // If going back from guest-info, delete temporary booking and start over
+        if (bookingData?.tempBookingId) {
+          try {
+            await fetch(`/api/booking/cleanup?bookingId=${bookingData.tempBookingId}&sessionType=${selectedLessonType?.type || 'lesson'}`, {
+              method: 'DELETE'
+            })
+          } catch (error) {
+            console.error('Failed to cleanup temporary booking:', error)
+          }
+        }
+        setCurrentStep(selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar' ? 'session-selection' : 'calendar')
+        setBookingData(null)
+        break
+      case 'handledare-info':
+        setCurrentStep('guest-info')
         break
       case 'confirmation':
-        setCurrentStep(selectedLessonType?.type === 'teori' ? 'session-selection' : 'calendar')
+        // If going back from confirmation without confirming, cleanup temporary booking
+        if (bookingData?.tempBookingId) {
+          try {
+            await fetch(`/api/booking/cleanup?bookingId=${bookingData.tempBookingId}&sessionType=${selectedLessonType?.type || 'lesson'}`, {
+              method: 'DELETE'
+            })
+            setBookingData(null)
+          } catch (error) {
+            console.error('Failed to cleanup temporary booking:', error)
+          }
+        }
+
+        // Determine the correct previous step based on lesson type
+        if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
+          if (!user) {
+            setCurrentStep('guest-info')
+          } else {
+            setCurrentStep('session-selection')
+          }
+        } else {
+          if (!user) {
+            setCurrentStep('guest-info')
+          } else {
+            setCurrentStep('calendar')
+          }
+        }
         break
       case 'complete':
         setCurrentStep('lesson-selection')
         setBookingData(null)
         setSelectedLessonType(null)
+        setGuestInfo({ name: '', email: '', phone: '', personalNumber: '' })
+        setHandledareInfo([])
         break
     }
   }
@@ -421,10 +752,16 @@ export default function BookingPage() {
         return 'Välj typ av lektion'
       case 'calendar':
         return 'Välj datum och tid'
+      case 'gear-selection':
+        return 'Välj växellåda'
       case 'session-selection':
         return 'Välj session'
       case 'unavailable-session':
         return 'Inga sessioner tillgängliga'
+      case 'guest-info':
+        return 'Ange dina uppgifter'
+      case 'handledare-info':
+        return 'Ange handledare uppgifter'
       case 'confirmation':
         return 'Bekräfta bokning'
       case 'complete':
@@ -438,10 +775,16 @@ export default function BookingPage() {
         return 'Börja med att välja vilken typ av lektion du vill boka'
       case 'calendar':
         return 'Välj ett datum och en tid som passar dig'
+      case 'gear-selection':
+        return 'Välj vilken typ av växellåda du vill öva med'
       case 'session-selection':
         return 'Välj en tillgänglig session från listan'
       case 'unavailable-session':
         return 'Inga sessioner tillgängliga just nu'
+      case 'guest-info':
+        return 'Fyll i dina kontaktuppgifter för att slutföra bokningen'
+      case 'handledare-info':
+        return 'Ange uppgifter för handledare som ska delta i sessionen'
       case 'confirmation':
         return 'Kontrollera dina uppgifter och slutför bokningen'
       case 'complete':
@@ -477,7 +820,7 @@ export default function BookingPage() {
             <div className="flex justify-center items-center space-x-4 mb-6">
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['lesson-selection', 'calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                  ['lesson-selection', 'calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
@@ -487,14 +830,14 @@ export default function BookingPage() {
               </div>
 
               <div className={`h-1 w-8 ${
-                ['calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                ['calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
                   ? 'bg-blue-700'
                   : 'bg-gray-400'
               }`} />
 
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['calendar', 'session-selection', 'unavailable-session', 'confirmation', 'complete'].includes(currentStep)
+                  ['calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
@@ -508,20 +851,23 @@ export default function BookingPage() {
               </div>
 
               <div className={`h-1 w-8 ${
-                ['confirmation', 'complete'].includes(currentStep)
+                ['guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
                   ? 'bg-blue-700'
                   : 'bg-gray-400'
               }`} />
 
               <div className="flex items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['confirmation', 'complete'].includes(currentStep)
+                  ['guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
                   3
                 </div>
-                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Bekräfta</span>
+                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">
+                  {currentStep === 'guest-info' ? 'Uppgifter' : 
+                   currentStep === 'handledare-info' ? 'Handledare' : 'Bekräfta'}
+                </span>
               </div>
 
               <div className={`h-1 w-8 ${
@@ -589,67 +935,531 @@ export default function BookingPage() {
                 />
               )}
 
+              {currentStep === 'gear-selection' && selectedLessonType && bookingData && (
+                <GearSelection
+                  selectedDate={bookingData.selectedDate}
+                  selectedTime={bookingData.selectedTime}
+                  lessonTypeName={selectedLessonType.name}
+                  onComplete={handleGearSelection}
+                  onBack={handleBack}
+                />
+              )}
+
               {currentStep === 'session-selection' && selectedLessonType && (
+                <SessionSelection
+                  sessionType={selectedLessonType}
+                  onComplete={(data) => {
+                    setSelectedSession(data.session)
+                    setCurrentStep('confirmation')
+                  }}
+                  onBack={handleBack}
+                />
+              )}
+
+              {currentStep === 'confirmation' && selectedLessonType && selectedSession && (
                 <div className="space-y-6">
-                  {/* Session Selection */}
-                  <div className="bg-white p-6 rounded-lg border border-blue-200">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-4">
-                      Tillgängliga {selectedLessonType.name} sessioner
-                    </h3>
-                    <p className="text-sm text-blue-600 mb-4">
-                      {selectedLessonType.type === 'teori' ? 'Välj en teorisession och sedan bekräfta bokning' : 'Välj en session och sedan bekräfta bokning'}
-                    </p>
-                    <div className="space-y-4">
-                      {selectedLessonType.sessions && selectedLessonType.sessions.length > 0 ? (
-                        selectedLessonType.sessions.map((session) => (
-                          <div
-                            key={session.id}
-                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                              session.availableSpots > 0
-                                ? 'border-blue-200 hover:border-blue-400 hover:shadow-md bg-blue-50'
-                                : 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                            }`}
-                            onClick={() => session.availableSpots > 0 && handleSessionSelection(session)}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-900">{session.title}</h4>
-                                {session.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{session.description}</p>
-                                )}
-                                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="w-4 h-4" />
-                                    {session.formattedDateTime}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-4 h-4" />
-                                    {session.startTime} - {session.endTime}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-blue-600">
-                                  {session.price} kr
-                                </div>
-                                <div className={`text-sm font-medium ${
-                                  session.availableSpots > 0 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                  {session.availableSpots > 0
-                                    ? `${session.availableSpots} platser kvar`
-                                    : 'Fullbokad'
-                                  }
-                                </div>
-                              </div>
-                            </div>
+                  {/* Booking Summary Card */}
+                  <FBCard className="shadow-lg">
+                    <div className="p-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                        Bekräfta din bokning
+                      </h3>
+
+                      {/* Session Details */}
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">Sessionsdetaljer</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Typ:</span>
+                            <span className="font-medium">{selectedLessonType.name}</span>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-gray-500">
-                          <p>Inga tillgängliga sessioner just nu.</p>
-                          <p className="text-sm mt-2">Försök igen senare eller kontakta oss.</p>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Datum & Tid:</span>
+                            <span className="font-medium">{selectedSession.formattedDateTime}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Pris per deltagare:</span>
+                            <span className="font-medium text-red-600">{selectedSession.price} kr</span>
+                          </div>
+                          {selectedLessonType.type === 'handledar' && selectedLessonType.pricePerSupervisor && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Extra handledare:</span>
+                              <span className="font-medium text-blue-600">+{selectedLessonType.pricePerSupervisor} kr/st</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tillgängliga platser:</span>
+                            <span className="font-medium text-green-600">{selectedSession.availableSpots} st</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Student Selection */}
+                      <StudentSelectionForm
+                        selectedStudent={selectedStudent}
+                        onStudentSelect={(student) => {
+                          setSelectedStudent(student)
+                        }}
+                        userIsStudent={user?.role === 'student'}
+                        user={user ? {
+                          id: user.id,
+                          name: user.firstName + ' ' + user.lastName,
+                          email: user.email,
+                          phone: user.phone,
+                          role: user.role
+                        } : null}
+                        sessionType={selectedLessonType.type}
+                      />
+
+                      {/* Dynamic Handledare Form */}
+                      {selectedLessonType.type === 'handledar' && (
+                        <div className="mt-6">
+                          <DynamicHandledareForm
+                            handledare={handledareList}
+                            onChange={setHandledareList}
+                            maxSpots={selectedSession.maxParticipants}
+                            currentOccupancy={selectedSession.currentParticipants}
+                            sessionType={selectedLessonType.type}
+                          />
                         </div>
                       )}
+
+                      {/* Booking Actions */}
+                      <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                        <Button
+                          onClick={handleBack}
+                          variant="outline"
+                          className="flex-1 sm:flex-none"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Tillbaka
+                        </Button>
+
+                        <Button
+                          onClick={() => handleSessionSelection(selectedSession)}
+                          disabled={
+                            loading ||
+                            (selectedLessonType.type === 'handledar' && (
+                              (!selectedStudent && !user) ||
+                              handledareList.length === 0 ||
+                              handledareList.some(h =>
+                                !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
+                              )
+                            )) ||
+                            (user && user.role !== 'student' && !selectedStudent)
+                          }
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {loading ? (
+                            <OrbSpinner size="sm" className="mr-2" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                          )}
+                          {loading ? 'Behandlar...' : 'Bekräfta bokning'}
+                        </Button>
+                      </div>
+                    </div>
+                  </FBCard>
+                </div>
+              )}
+
+              {currentStep === 'unavailable-session' && selectedLessonType && (
+                <div className="space-y-6">
+                  {/* Unavailable Session Message */}
+                  <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Clock className="w-8 h-8 text-blue-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Inga {selectedLessonType.name} sessioner tillgängliga
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Det finns för närvarande inga lediga platser för denna typ av session.
+                        Du kan antingen vänta på att nya sessioner blir tillgängliga eller kontakta oss direkt.
+                      </p>
+
+                      <div className="space-y-3">
+                        <Button
+                          onClick={handleBack}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Tillbaka till lektionsval
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            // Open contact form modal
+                            const contactForm = document.createElement('div')
+                            contactForm.innerHTML = `
+                              <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                                  <h3 class="text-lg font-semibold mb-4">Kontakta oss</h3>
+                                  <p class="text-gray-600 mb-4">Berätta för oss vilken typ av session du är intresserad av så kan vi hjälpa dig att boka en tid.</p>
+                                  <form id="contact-form" class="space-y-4">
+                                    <div>
+                                      <label class="block text-sm font-medium text-gray-700 mb-1">Namn *</label>
+                                      <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                      <label class="block text-sm font-medium text-gray-700 mb-1">E-post *</label>
+                                      <input type="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                      <label class="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                                      <input type="tel" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div>
+                                      <label class="block text-sm font-medium text-gray-700 mb-1">Meddelande</label>
+                                      <textarea name="message" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                    </div>
+                                    <div class="flex gap-3">
+                                      <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Avbryt</button>
+                                      <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Skicka</button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            `
+                            document.body.appendChild(contactForm)
+
+                            // Handle form submission
+                            const form = contactForm.querySelector('#contact-form') as HTMLFormElement
+                            form?.addEventListener('submit', async (e) => {
+                              e.preventDefault()
+                              const formData = new FormData(form)
+                              const data = Object.fromEntries(formData)
+
+                              try {
+                                const response = await fetch('/api/contact', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    ...data,
+                                    subject: `Förfrågan om ${selectedLessonType.name}`,
+                                    message: `${data.message}\n\nIntresserad av: ${selectedLessonType.name}\nDatum: ${new Date().toLocaleDateString('sv-SE')}`
+                                  }),
+                                })
+
+                                if (response.ok) {
+                                  toast.success('Din förfrågan har skickats!')
+                                  contactForm.remove()
+                                } else {
+                                  toast.error('Kunde inte skicka förfrågan. Försök igen senare.')
+                                }
+                              } catch (error) {
+                                console.error('Error sending contact form:', error)
+                                toast.error('Ett fel uppstod. Försök igen senare.')
+                              }
+                            })
+                          }}
+                          className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3"
+                        >
+                          Kontakta oss
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+
+              {currentStep === 'guest-info' && (
+                <div className="space-y-6">
+                  <div className="bg-white p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                      Ange dina kontaktuppgifter
+                    </h3>
+                    <p className="text-sm text-blue-600 mb-6">
+                      För att slutföra bokningen behöver vi dina kontaktuppgifter
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="guest-name" className="text-sm font-medium text-gray-700">
+                          Namn *
+                        </Label>
+                        <TextInput
+                          id="guest-name"
+                          type="text"
+                          value={guestInfo.name}
+                          onChange={(e) => setGuestInfo(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Ditt fullständiga namn"
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="guest-email" className="text-sm font-medium text-gray-700">
+                          E-post *
+                        </Label>
+                        <TextInput
+                          id="guest-email"
+                          type="email"
+                          value={guestInfo.email}
+                          onChange={(e) => setGuestInfo(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="din.email@example.com"
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="guest-phone" className="text-sm font-medium text-gray-700">
+                          Telefon *
+                        </Label>
+                        <TextInput
+                          id="guest-phone"
+                          type="tel"
+                          value={guestInfo.phone}
+                          onChange={(e) => setGuestInfo(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="0760-123456"
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="guest-personal-number" className="text-sm font-medium text-gray-700">
+                          Personnummer *
+                        </Label>
+                        <TextInput
+                          id="guest-personal-number"
+                          type="text"
+                          value={guestInfo.personalNumber}
+                          onChange={(e) => setGuestInfo(prev => ({ ...prev, personalNumber: e.target.value }))}
+                          placeholder="ÅÅMMDD-XXXX"
+                          required
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={handleBack}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Tillbaka
+                      </Button>
+                      
+                      <Button
+                        onClick={() => {
+                          if (guestInfo.name && guestInfo.email && guestInfo.phone && guestInfo.personalNumber) {
+                            setBookingData(prev => prev ? {
+                              ...prev,
+                              guestName: guestInfo.name,
+                              guestEmail: guestInfo.email,
+                              guestPhone: guestInfo.phone,
+                              guestPersonalNumber: guestInfo.personalNumber
+                            } : null)
+                            
+                            // Check if this is a handledare session that requires additional info
+                            if (selectedLessonType?.type === 'handledar') {
+                              // Initialize with at least one handledare for handledare sessions
+                              setHandledareInfo([{
+                                name: '',
+                                email: '',
+                                phone: '',
+                                personalNumber: ''
+                              }])
+                              setCurrentStep('handledare-info')
+                            } else {
+                              setCurrentStep('confirmation')
+                            }
+                          } else {
+                            toast.error('Vänligen fyll i alla obligatoriska fält')
+                          }
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Fortsätt
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 'handledare-info' && (
+                <div className="space-y-6">
+                  <div className="bg-white p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                      Ange uppgifter för handledare
+                    </h3>
+                    <p className="text-sm text-blue-600 mb-6">
+                      För handledarutbildning behöver vi uppgifter om varje handledare som ska delta.
+                      Varje handledare upptar en plats på kursen.
+                    </p>
+
+                    {/* Spot availability info */}
+                    {selectedSession && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-center gap-2 text-blue-800">
+                          <User className="w-4 h-4" />
+                          <span className="font-medium">Tillgängliga platser:</span>
+                          <span className="font-bold">{selectedSession.availableSpots} av {selectedSession.maxParticipants}</span>
+                        </div>
+                        <p className="text-sm text-blue-700 mt-1">
+                          1 student + {handledareInfo.length} handledare = {1 + handledareInfo.length} platser upptagna
+                        </p>
+                        {selectedSession.availableSpots < (1 + handledareInfo.length) && (
+                          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+                            <strong>Obs:</strong> Du har valt för många handledare för denna kurs.
+                            Antingen välj en annan kurs eller minska antalet handledare till {selectedSession.availableSpots - 1}.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {handledareInfo.map((handledare, index) => (
+                      <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="flex justify-between items-center mb-3">
+                          <h4 className="font-medium text-gray-900">Handledare {index + 1}</h4>
+                          {handledareInfo.length > 1 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setHandledareInfo(prev => prev.filter((_, i) => i !== index))}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              Ta bort
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor={`handledare-name-${index}`} className="text-sm font-medium text-gray-700">
+                              Fullständigt namn *
+                            </Label>
+                            <TextInput
+                              id={`handledare-name-${index}`}
+                              type="text"
+                              value={handledare.name}
+                              onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                i === index ? { ...h, name: e.target.value } : h
+                              ))}
+                              placeholder="Förnamn Efternamn"
+                              required
+                              className="mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor={`handledare-email-${index}`} className="text-sm font-medium text-gray-700">
+                              E-postadress *
+                            </Label>
+                            <TextInput
+                              id={`handledare-email-${index}`}
+                              type="email"
+                              value={handledare.email}
+                              onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                i === index ? { ...h, email: e.target.value } : h
+                              ))}
+                              placeholder="namn@exempel.se"
+                              required
+                              className="mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor={`handledare-phone-${index}`} className="text-sm font-medium text-gray-700">
+                              Telefonnummer *
+                            </Label>
+                            <TextInput
+                              id={`handledare-phone-${index}`}
+                              type="tel"
+                              value={handledare.phone}
+                              onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                i === index ? { ...h, phone: e.target.value } : h
+                              ))}
+                              placeholder="070-123 45 67"
+                              required
+                              className="mt-1"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor={`handledare-personal-${index}`} className="text-sm font-medium text-gray-700">
+                              Personnummer *
+                            </Label>
+                            <TextInput
+                              id={`handledare-personal-${index}`}
+                              type="text"
+                              value={handledare.personalNumber}
+                              onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                i === index ? { ...h, personalNumber: e.target.value } : h
+                              ))}
+                              placeholder="ÅÅÅÅMMDD-NNNN"
+                              required
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add handledare button - only show if spots available */}
+                    {selectedSession && selectedSession.availableSpots > (1 + handledareInfo.length) && (
+                      <Button
+                        onClick={() => setHandledareInfo(prev => [...prev, {
+                          name: '',
+                          email: '',
+                          phone: '',
+                          personalNumber: ''
+                        }])}
+                        variant="outline"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white mt-4"
+                      >
+                        + Lägg till ytterligare handledare
+                      </Button>
+                    )}
+
+                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={() => setCurrentStep('guest-info')}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Tillbaka
+                      </Button>
+
+                      <Button
+                        onClick={() => {
+                          // Check spot availability
+                          const totalParticipants = 1 + handledareInfo.length; // 1 student + handledare
+                          if (selectedSession && totalParticipants > selectedSession.availableSpots) {
+                            toast.error(`För många deltagare! Endast ${selectedSession.availableSpots} platser tillgängliga.`);
+                            return;
+                          }
+
+                          if (handledareInfo.length > 0 && handledareInfo.every(h =>
+                            h.name && h.email && h.phone && h.personalNumber
+                          )) {
+                            setBookingData(prev => prev ? {
+                              ...prev,
+                              handledare: handledareInfo
+                            } : null)
+                            setCurrentStep('confirmation')
+                          } else {
+                            toast.error('Vänligen fyll i alla obligatoriska fält för alla handledare')
+                          }
+                        }}
+                        disabled={!selectedSession || (1 + handledareInfo.length) > selectedSession.availableSpots}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Fortsätt till bekräftelse
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -683,7 +1493,75 @@ export default function BookingPage() {
                         <div className="flex gap-3">
                           <Button
                             variant="outline"
-                            onClick={() => window.location.href = '/kontakt'}
+                            onClick={() => {
+                              // Open contact form modal
+                              const contactForm = document.createElement('div')
+                              contactForm.innerHTML = `
+                                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                                    <h3 class="text-lg font-semibold mb-4">Kontakta oss</h3>
+                                    <p class="text-gray-600 mb-4">Berätta för oss vilken typ av session du är intresserad av så kan vi hjälpa dig att boka en tid.</p>
+                                    <form id="contact-form" class="space-y-4">
+                                      <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Namn *</label>
+                                        <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                      </div>
+                                      <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">E-post *</label>
+                                        <input type="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                      </div>
+                                      <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+                                        <input type="tel" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                      </div>
+                                      <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Meddelande *</label>
+                                        <textarea name="message" rows="3" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Jag är intresserad av ${selectedLessonType?.name} sessioner. När kommer nya tider att bli tillgängliga?"></textarea>
+                                      </div>
+                                      <div class="flex gap-3 pt-2">
+                                        <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                                          Avbryt
+                                        </button>
+                                        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                          Skicka
+                                        </button>
+                                      </div>
+                                    </form>
+                                  </div>
+                                </div>
+                              `
+                              document.body.appendChild(contactForm)
+                              
+                              // Handle form submission
+                              const form = contactForm.querySelector('#contact-form')
+                              form?.addEventListener('submit', async (e) => {
+                                e.preventDefault()
+                                const formData = new FormData(e.target as HTMLFormElement)
+                                
+                                try {
+                                  const response = await fetch('/api/contact', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      name: formData.get('name'),
+                                      email: formData.get('email'),
+                                      phone: formData.get('phone'),
+                                      message: formData.get('message'),
+                                      preferredContact: 'email'
+                                    })
+                                  })
+                                  
+                                  if (response.ok) {
+                                    toast.success('Ditt meddelande har skickats! Vi återkommer snart.')
+                                    contactForm.remove()
+                                  } else {
+                                    toast.error('Kunde inte skicka meddelandet. Försök igen senare.')
+                                  }
+                                } catch (error) {
+                                  toast.error('Ett fel uppstod. Försök igen senare.')
+                                }
+                              })
+                            }}
                             className="flex-1"
                           >
                             Kontakta oss
@@ -776,12 +1654,12 @@ export default function BookingPage() {
                                     </div>
                                   </div>
 
-                      {/* Admin User Selection - Inline Flowbite Select */}
-                  {isAdmin && (
+                                            {/* Admin User Selection - Only for Teori sessions */}
+                      {isAdmin && selectedLessonType?.type === 'teori' && (
                     <div className="mb-6">
                           <div className="mb-2">
                             <Label htmlFor="student-select" className="text-sm font-medium text-gray-700">
-                              Boka för elev:
+                              Välj elev (valfritt):
                             </Label>
                               </div>
 
@@ -809,10 +1687,9 @@ export default function BookingPage() {
                               }}
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           disabled={loadingUsers}
-                              required
                             >
                               <option value="">
-                                {loadingUsers ? 'Laddar elever...' : 'Välj en elev'}
+                                {loadingUsers ? 'Laddar elever...' : 'Ingen elev vald (gästbokning)'}
                               </option>
                               {users
                                 .filter(user => user.role === 'student') // Only show students
@@ -833,6 +1710,166 @@ export default function BookingPage() {
                               </div>
                             )}
                                 </div>
+                      )}
+
+                      {/* Handledare Selection - Only for Handledar sessions */}
+                      {isAdmin && selectedLessonType?.type === 'handledar' && (
+                        <div className="mb-6">
+                          <div className="mb-4">
+                            <Label className="text-sm font-medium text-gray-700">
+                              Välj elev och ange handledare:
+                            </Label>
+                          </div>
+
+                          {/* Student Selection for Handledare */}
+                          <div className="mb-4">
+                            <Label htmlFor="handledare-student-select" className="text-sm font-medium text-gray-700">
+                              Välj elev:
+                            </Label>
+                            <select
+                              id="handledare-student-select"
+                              value={selectedUser?.id || ''}
+                              onChange={(e) => {
+                                const userId = e.target.value;
+                                if (userId === 'create-new') {
+                                  setShowNewUserForm(true);
+                                  return;
+                                }
+                                const user = users.find(u => u.id === userId);
+                                if (user) {
+                                  setSelectedUser(user);
+                                  setEffectiveUserDisplay(user);
+                                  handleStudentSelect(user).catch(console.error);
+                                } else {
+                                  setSelectedUser(null);
+                                  setEffectiveUserDisplay(null);
+                                }
+                              }}
+                              className="w-full mt-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                              disabled={loadingUsers}
+                              required
+                            >
+                              <option value="">
+                                {loadingUsers ? 'Laddar elever...' : 'Välj en elev'}
+                              </option>
+                              {users
+                                .filter(user => user.role === 'student')
+                                .map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} - {user.email}
+                                  </option>
+                                ))
+                              }
+                              <option value="create-new" className="font-medium text-blue-600">
+                                ➕ Skapa ny elev
+                              </option>
+                            </select>
+                          </div>
+
+                          {/* Handledare Manual Entry */}
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-gray-900">Handledare (1 eller fler):</h4>
+
+                            {handledareInfo.map((handledare, index) => (
+                              <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                                <div className="flex justify-between items-center mb-3">
+                                  <h5 className="font-medium text-gray-900">Handledare {index + 1}</h5>
+                                  {handledareInfo.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setHandledareInfo(prev => prev.filter((_, i) => i !== index))}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      Ta bort
+                                    </Button>
+                                  )}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700">
+                                      Fullständigt namn *
+                                    </Label>
+                                    <TextInput
+                                      type="text"
+                                      value={handledare.name}
+                                      onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                        i === index ? { ...h, name: e.target.value } : h
+                                      ))}
+                                      placeholder="Förnamn Efternamn"
+                                      required
+                                      className="mt-1"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700">
+                                      E-postadress *
+                                    </Label>
+                                    <TextInput
+                                      type="email"
+                                      value={handledare.email}
+                                      onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                        i === index ? { ...h, email: e.target.value } : h
+                                      ))}
+                                      placeholder="namn@exempel.se"
+                                      required
+                                      className="mt-1"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700">
+                                      Telefonnummer *
+                                    </Label>
+                                    <TextInput
+                                      type="tel"
+                                      value={handledare.phone}
+                                      onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                        i === index ? { ...h, phone: e.target.value } : h
+                                      ))}
+                                      placeholder="070-123 45 67"
+                                      required
+                                      className="mt-1"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-700">
+                                      Personnummer *
+                                    </Label>
+                                    <TextInput
+                                      type="text"
+                                      value={handledare.personalNumber}
+                                      onChange={(e) => setHandledareInfo(prev => prev.map((h, i) =>
+                                        i === index ? { ...h, personalNumber: e.target.value } : h
+                                      ))}
+                                      placeholder="ÅÅÅÅMMDD-NNNN"
+                                      required
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Add Handledare Button */}
+                            <Button
+                              onClick={() => setHandledareInfo(prev => [...prev, {
+                                name: '',
+                                email: '',
+                                phone: '',
+                                personalNumber: ''
+                              }])}
+                              variant="outline"
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              + Lägg till ytterligare handledare
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                         
                                                   {/* New User Form */}
                           {showNewUserForm && (
@@ -917,6 +1954,62 @@ export default function BookingPage() {
                     </div>
                   )}
 
+                  {/* Guest User Information Display */}
+                  {!user && bookingData?.guestName && (
+                    <div className="mb-6">
+                      <Label className="text-sm font-medium text-gray-700 mb-2">
+                        Gästbokning - Dina uppgifter:
+                      </Label>
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="font-medium text-blue-800">Namn:</span> {bookingData.guestName}
+                          </div>
+                          <div>
+                            <span className="font-medium text-blue-800">E-post:</span> {bookingData.guestEmail}
+                          </div>
+                          <div>
+                            <span className="font-medium text-blue-800">Telefon:</span> {bookingData.guestPhone}
+                          </div>
+                          <div>
+                            <span className="font-medium text-blue-800">Personnummer:</span> {bookingData.guestPersonalNumber}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Handledare Information Display */}
+                  {bookingData?.handledare && bookingData.handledare.length > 0 && (
+                    <div className="mb-6">
+                      <Label className="text-sm font-medium text-gray-700 mb-2">
+                        Handledare som deltar:
+                      </Label>
+                      <div className="space-y-2">
+                        {bookingData.handledare.map((handledare, index) => (
+                          <div key={index} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm flex-1">
+                                <div>
+                                  <span className="font-medium text-green-800">Namn:</span> {handledare.name}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-green-800">E-post:</span> {handledare.email}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-green-800">Telefon:</span> {handledare.phone}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-green-800">Personnummer:</span> {handledare.personalNumber}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Handledare Selection for Teori Sessions */}
                   {(selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') && 
                    selectedLessonType?.allowsSupervisors && (
@@ -965,59 +2058,69 @@ export default function BookingPage() {
                         </div>
                       )}
 
-                      {/* Add Handledare Button */}
-                      <Button
-                        onClick={() => setShowHandledareForm(true)}
-                        variant="outline"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        + Lägg till handledare
-                      </Button>
-
-                      {/* Handledare Selection Form */}
-                      {showHandledareForm && (
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                          <h4 className="text-sm font-medium text-blue-800 mb-3">Välj handledare</h4>
-                          <div className="space-y-3">
-                            <select
-                              value=""
-                              onChange={(e) => {
-                                const userId = e.target.value;
-                                if (userId) {
-                                  const user = users.find(u => u.id === userId);
-                                  if (user && !selectedHandledare.find(h => h.id === user.id)) {
-                                    setSelectedHandledare(prev => [...prev, user]);
-                                  }
-                                  e.target.value = '';
-                                }
-                              }}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                            >
-                              <option value="">Välj handledare...</option>
-                              {users
-                                .filter(user => user.role === 'student' && !selectedHandledare.find(h => h.id === user.id))
-                                .map((user) => (
-                                  <option key={user.id} value={user.id}>
-                                    {user.name} - {user.email}
-                                  </option>
-                                ))
-                              }
-                            </select>
-                            <div className="flex gap-2">
-                              <Button
-                                onClick={() => setShowHandledareForm(false)}
-                                variant="outline"
-                                size="sm"
-                              >
-                                Stäng
-                              </Button>
-                            </div>
-                          </div>
+                      {/* Student Selection Form */}
+                      {showStudentForm && (
+                        <div className="mt-4">
+                          <StudentSelectionForm
+                            selectedStudent={selectedStudent}
+                            onStudentSelect={(student) => {
+                              setSelectedStudent(student)
+                              setShowStudentForm(false)
+                              toast.success(student ? `Elev ${student.name} vald` : 'Elevval avbrutet')
+                            }}
+                            userIsStudent={user?.role === 'student'}
+                            user={user ? {
+                              id: user.id,
+                              name: user.firstName + ' ' + user.lastName,
+                              email: user.email,
+                              phone: user.phone,
+                              role: user.role
+                            } : null}
+                            onClose={() => setShowStudentForm(false)}
+                            sessionType={selectedLessonType?.type || 'lesson'}
+                          />
                         </div>
                       )}
 
+                      {/* Student Selection Button */}
+                      {user && user.role !== 'student' && !showStudentForm && !selectedStudent && (
+                      <Button
+                          onClick={() => setShowStudentForm(true)}
+                        variant="outline"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      >
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Välj elev
+                      </Button>
+                      )}
+
+                      {/* Dynamic Handledare Form */}
+                      {showDynamicHandledareForm && (
+                        <div className="mt-4">
+                          <DynamicHandledareForm
+                            handledare={handledareList}
+                            onChange={setHandledareList}
+                            maxSpots={selectedSession?.maxParticipants || 20}
+                            currentOccupancy={selectedSession?.currentParticipants || 0}
+                            sessionType={selectedLessonType?.type || 'teori'}
+                            onClose={() => setShowDynamicHandledareForm(false)}
+                          />
+                        </div>
+                      )}
+
+                      {/* Add Handledare Button */}
+                      {!showDynamicHandledareForm && (
+                              <Button
+                          onClick={() => setShowDynamicHandledareForm(true)}
+                                variant="outline"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                          + Lägg till handledare
+                              </Button>
+                      )}
+
                       {/* Handledare Requirement Warning */}
-                      {selectedHandledare.length === 0 && (
+                      {selectedLessonType?.type === 'handledar' && handledareList.length === 0 && (
                         <div className="mt-2 text-sm text-blue-600 flex items-center">
                           <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center mr-2">
                             <span className="text-blue-600 text-xs">i</span>
@@ -1025,6 +2128,66 @@ export default function BookingPage() {
                           Minst 1 handledare krävs för denna session
                         </div>
                       )}
+                    </div>
+                                        )}
+
+                      {/* Student Information Display */}
+                      {(selectedStudent || selectedUser || effectiveUserDisplay) && (
+                        <div className="mb-6">
+                          <Label className="text-sm font-medium text-gray-700 mb-2">
+                            Bokad för:
+                          </Label>
+                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <User className="w-5 h-5 text-green-600" />
+                              <div>
+                                <div className="font-medium text-green-800">
+                                  {selectedStudent?.name ||
+                                   selectedUser?.name ||
+                                   effectiveUserDisplay?.name}
+                                </div>
+                                <div className="text-sm text-green-600">
+                                  {selectedStudent?.email ||
+                                   selectedUser?.email ||
+                                   effectiveUserDisplay?.email}
+                                </div>
+                                {selectedStudent && (
+                                  <Badge className="mt-1 bg-green-100 text-green-800 border-green-300">
+                                    Elevkonto
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                                            {/* Handledare Information Display */}
+                      {handledareList && handledareList.length > 0 && (
+                        <div className="mb-6">
+                          <Label className="text-sm font-medium text-gray-700 mb-2">
+                            Handledare som deltar:
+                          </Label>
+                          <div className="space-y-2">
+                            {handledareList.map((handledare, index) => (
+                              <div key={index} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    <span className="font-medium text-blue-800">Namn:</span> {handledare.name}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-blue-800">E-post:</span> {handledare.email}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-blue-800">Telefon:</span> {handledare.phone}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-blue-800">Personnummer:</span> {handledare.personalNumber}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                     </div>
                   )}
                   
@@ -1039,17 +2202,29 @@ export default function BookingPage() {
                           Tillbaka
                         </Button>
 
-                        <Button
+                                                <Button
                           onClick={() => handleBookingComplete()}
                           disabled={
-                            (isAdmin && !selectedUser) || 
-                            ((selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') && 
-                             selectedLessonType?.allowsSupervisors && selectedHandledare.length === 0)
+                            loading ||
+                            // For handledare sessions: require student + at least one complete handledare
+                            (selectedLessonType?.type === 'handledar' && (
+                              (!selectedStudent && !user) ||
+                              handledareList.length === 0 ||
+                              handledareList.some(h =>
+                                !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
+                              )
+                            )) ||
+                            // For non-student users: require student selection
+                            (user && user.role !== 'student' && !selectedStudent)
                           }
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Bekräfta bokning
+                          {loading ? (
+                            <OrbSpinner size="sm" className="mr-2" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                          )}
+                          {loading ? 'Behandlar...' : 'Bekräfta bokning'}
                         </Button>
                       </div>
                     </div>
@@ -1101,6 +2276,13 @@ export default function BookingPage() {
                         setSelectedLessonType(null)
                         setSelectedSession(null)
                         setSelectedUser(null)
+                        setGuestInfo({ name: '', email: '', phone: '', personalNumber: '' })
+                        setHandledareInfo([])
+                        // Reset new state variables
+                        setHandledareList([])
+                        setShowDynamicHandledareForm(false)
+                        setSelectedStudent(null)
+                        setShowStudentForm(false)
                       }}
                       variant="outline"
                       className="border-red-300 text-red-600 hover:bg-red-50"
@@ -1120,6 +2302,83 @@ export default function BookingPage() {
               )}
             </CardContent>
           </Card>
+          
+          {/* User Menu */}
+                        {currentStep === 'complete' && bookingData && (
+            <div className="mt-8 flex justify-center">
+              <Dropdown
+                label={
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <MoreVertical className="w-4 h-4" />
+                    Alternativ
+                  </Button>
+                }
+                placement="top"
+              >
+                <DropdownItem
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/booking/mark-as-paid', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          bookingId: bookingData.bookingId,
+                          paymentMethod: 'swish'
+                        })
+                      })
+
+                      if (response.ok) {
+                        toast.success('Betalning markerad som genomförd med Swish')
+                      } else {
+                        const errorData = await response.json()
+                        toast.error(errorData.error || 'Kunde inte markera betalning')
+                      }
+                    } catch (error) {
+                      toast.error('Ett fel uppstod')
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Jag har betalat med Swish
+                </DropdownItem>
+                <DropdownItem
+                  onClick={async () => {
+                    if (confirm('Är du säker på att du vill avboka denna lektion?')) {
+                      try {
+                        const url = new URL('/api/booking/cleanup', window.location.origin)
+                        url.searchParams.set('bookingId', bookingData.bookingId)
+                        url.searchParams.set('sessionType', selectedLessonType?.type || 'lesson')
+                        url.searchParams.set('reason', 'User cancelled from booking page')
+
+                        const response = await fetch(url.toString(), {
+                          method: 'DELETE'
+                        })
+
+                        if (response.ok) {
+                          toast.success('Bokningen har avbokats')
+                          setCurrentStep('lesson-selection')
+                          setBookingData(null)
+                          setSelectedLessonType(null)
+                          setGuestInfo({ name: '', email: '', phone: '', personalNumber: '' })
+                          setHandledareInfo([])
+                        } else {
+                          const errorData = await response.json()
+                          toast.error(errorData.error || 'Kunde inte avboka bokningen')
+                        }
+                      } catch (error) {
+                        toast.error('Ett fel uppstod vid avbokning')
+                      }
+                    }
+                  }}
+                  className="flex items-center gap-2 text-red-600"
+                >
+                  <X className="w-4 h-4" />
+                  Avboka denna bokning
+                </DropdownItem>
+              </Dropdown>
+            </div>
+          )}
           
           {/* Help Section */}
           {currentStep !== 'complete' && (

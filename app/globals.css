@@ -1,6 +1,10 @@
+@import "flowbite/src/themes/default";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@source "../node_modules/flowbite";
 
 @layer base {
   * {

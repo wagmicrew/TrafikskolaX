@@ -27,7 +27,18 @@ export const emailTriggerEnum = pgEnum('email_trigger_type', [
   'handledar_payment_reminder',
   'booking_payment_reminder',
   'package_payment_reminder',
-  'teori_session_request'
+  'teori_session_request',
+  // New triggers
+  'payment_admin_request',
+  'admin_confirmation_ok',
+  'admin_confirmation_not_ok',
+  'admin_booking_confirmed',
+  'admin_payment_ok',
+  'handledar_registered',
+  'handledar_course_reminder',
+  'driving_lesson_reminder',
+  'new_review',
+  'inskrivningsmail'
 ]);
 
 // Email receiver types enum

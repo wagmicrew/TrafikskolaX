@@ -502,6 +502,92 @@ export default function PaymentPage() {
 
         </div>
       </div>
+
+      {/* Qliro Payment Modal */}
+      {showQliroPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Qliro Betalning</h3>
+                <p className="text-sm text-gray-600">
+                  Belopp att betala: <strong>{bookingData?.totalPrice} kr</strong>
+                </p>
+              </div>
+
+              {/* Simulated Qliro payment form */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kortnummer
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="1234 5678 9012 3456"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Giltighet
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="MM/ÅÅ"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CVC
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="123"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Kortinnehavarens namn
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowQliroPopup(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  onClick={handleQliroPayment}
+                  disabled={isProcessing}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  {isProcessing ? 'Bearbetar...' : 'Betala'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

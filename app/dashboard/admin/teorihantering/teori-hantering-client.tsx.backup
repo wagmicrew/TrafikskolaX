@@ -1,0 +1,1708 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import {
+  Plus,
+  Edit3,
+  Trash2,
+  Save,
+  BookOpen,
+  Users,
+  Clock,
+  DollarSign,
+  Calendar,
+  User as UserIcon,
+  X,
+  Eye,
+  Mail,
+  Phone,
+  CreditCard,
+  Loader2
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import toast from 'react-hot-toast';
+
+interface LessonType {
+  id: string;
+  name: string;
+  description: string | null;
+  allowsSupervisors: boolean;
+  price: string;
+  pricePerSupervisor: string | null;
+  durationMinutes: number;
+  maxParticipants: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Session {
+  id: string;
+  lessonTypeId: string;
+  title: string;
+  description: string | null;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxParticipants: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lessonTypeName: string;
+  currentParticipants: number;
+}
+
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  personalNumber: string | null;
+}
+
+interface LessonTypeFormData {
+  name: string;
+  description: string;
+  allowsSupervisors: boolean;
+  price: string;
+  pricePerSupervisor: string;
+  durationMinutes: string;
+  maxParticipants: string;
+  isActive: boolean;
+  sortOrder: string;
+}
+
+interface SessionFormData {
+  lessonTypeId: string;
+  title: string;
+  description: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  maxParticipants: string;
+  isActive: boolean;
+}
+
+interface ParticipantFormData {
+  studentId: string;
+  supervisorName: string;
+  supervisorEmail: string;
+  supervisorPhone: string;
+  personalId: string;
+  sendPaymentEmail: boolean;
+}
+
+export default function TeoriHanteringClient({
+  lessonTypes: initialLessonTypes,
+  sessions: initialSessions,
+  students
+}: {
+  lessonTypes: LessonType[];
+  sessions: Session[];
+  students: Student[];
+}) {
+  const [lessonTypes, setLessonTypes] = useState<LessonType[]>(initialLessonTypes);
+  const [sessions, setSessions] = useState<Session[]>(initialSessions);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [expandedLessonTypes, setExpandedLessonTypes] = useState<Set<string>>(new Set());
+
+  // Dialog states
+  const [isCreateLessonTypeOpen, setIsCreateLessonTypeOpen] = useState(false);
+  const [isEditLessonTypeOpen, setIsEditLessonTypeOpen] = useState(false);
+  const [isCreateSessionOpen, setIsCreateSessionOpen] = useState(false);
+  const [isEditSessionOpen, setIsEditSessionOpen] = useState(false);
+  const [isAddParticipantOpen, setIsAddParticipantOpen] = useState(false);
+  const [isParticipantsDialogOpen, setIsParticipantsDialogOpen] = useState(false);
+
+  // Form states
+  const [lessonTypeForm, setLessonTypeForm] = useState<LessonTypeFormData>({
+    name: '',
+    description: '',
+    allowsSupervisors: false,
+    price: '',
+    pricePerSupervisor: '',
+    durationMinutes: '60',
+    maxParticipants: '1',
+    isActive: true,
+    sortOrder: '0'
+  });
+
+  const [sessionForm, setSessionForm] = useState<SessionFormData>({
+    lessonTypeId: '',
+    title: '',
+    description: '',
+    date: '',
+    startTime: '09:00',
+    endTime: '11:00',
+    maxParticipants: '10',
+    isActive: true
+  });
+
+  const [participantForm, setParticipantForm] = useState<ParticipantFormData>({
+    studentId: '',
+    supervisorName: '',
+    supervisorEmail: '',
+    supervisorPhone: '',
+    personalId: '',
+    sendPaymentEmail: true
+  });
+
+  // Current item states
+  const [editingLessonType, setEditingLessonType] = useState<LessonType | null>(null);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [currentLessonTypeId, setCurrentLessonTypeId] = useState<string>('');
+  const [currentSessionId, setCurrentSessionId] = useState<string>('');
+  const [currentSessionTitle, setCurrentSessionTitle] = useState<string>('');
+
+  // Loading states
+  const [saving, setSaving] = useState(false);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+
+  // Reset functions
+  const resetLessonTypeForm = () => {
+    setLessonTypeForm({
+      name: '',
+      description: '',
+      allowsSupervisors: false,
+      price: '',
+      pricePerSupervisor: '',
+      durationMinutes: '60',
+      maxParticipants: '1',
+      isActive: true,
+      sortOrder: '0'
+    });
+    setEditingLessonType(null);
+  };
+
+  const resetSessionForm = () => {
+    setSessionForm({
+      lessonTypeId: currentLessonTypeId,
+      title: '',
+      description: '',
+      date: '',
+      startTime: '09:00',
+      endTime: '11:00',
+      maxParticipants: '10',
+      isActive: true
+    });
+    setEditingSession(null);
+  };
+
+  const resetParticipantForm = () => {
+    setParticipantForm({
+      studentId: '',
+      supervisorName: '',
+      supervisorEmail: '',
+      supervisorPhone: '',
+      personalId: '',
+      sendPaymentEmail: true
+    });
+  };
+
+  // Toggle lesson type expansion
+  const toggleLessonType = (lessonTypeId: string) => {
+    const newExpanded = new Set(expandedLessonTypes);
+    if (newExpanded.has(lessonTypeId)) {
+      newExpanded.delete(lessonTypeId);
+    } else {
+      newExpanded.add(lessonTypeId);
+    }
+    setExpandedLessonTypes(newExpanded);
+  };
+
+  // Load participants for a session
+  const loadParticipants = async (sessionId: string) => {
+    setLoadingParticipants(true);
+    try {
+      const response = await fetch(`/api/admin/teori-sessions/${sessionId}/participants`);
+      if (response.ok) {
+        const data = await response.json();
+        setParticipants(data.participants);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    } finally {
+      setLoadingParticipants(false);
+    }
+  };
+
+  // Lesson Type Handlers
+  const handleCreateLessonType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const response = await fetch('/api/admin/teori-lesson-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: lessonTypeForm.name,
+          description: lessonTypeForm.description,
+          allowsSupervisors: lessonTypeForm.allowsSupervisors,
+          price: parseFloat(lessonTypeForm.price),
+          pricePerSupervisor: lessonTypeForm.allowsSupervisors && lessonTypeForm.pricePerSupervisor
+            ? parseFloat(lessonTypeForm.pricePerSupervisor)
+            : null,
+          durationMinutes: parseInt(lessonTypeForm.durationMinutes),
+          maxParticipants: parseInt(lessonTypeForm.maxParticipants),
+          isActive: lessonTypeForm.isActive,
+          sortOrder: parseInt(lessonTypeForm.sortOrder)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success('Teorilektionstyp skapad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setIsCreateLessonTypeOpen(false);
+        resetLessonTypeForm();
+        // Reload page to get updated data
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Ett fel uppstod', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error creating lesson type:', error);
+      toast.error('Kunde inte skapa teorilektionstyp', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditLessonType = (lessonType: LessonType) => {
+    setEditingLessonType(lessonType);
+    setLessonTypeForm({
+      name: lessonType.name,
+      description: lessonType.description || '',
+      allowsSupervisors: lessonType.allowsSupervisors,
+      price: lessonType.price,
+      pricePerSupervisor: lessonType.pricePerSupervisor || '',
+      durationMinutes: lessonType.durationMinutes.toString(),
+      maxParticipants: lessonType.maxParticipants.toString(),
+      isActive: lessonType.isActive,
+      sortOrder: lessonType.sortOrder.toString()
+    });
+    setIsEditLessonTypeOpen(true);
+  };
+
+  const handleUpdateLessonType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLessonType) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/teori-lesson-types/${editingLessonType.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: lessonTypeForm.name,
+          description: lessonTypeForm.description,
+          allowsSupervisors: lessonTypeForm.allowsSupervisors,
+          price: parseFloat(lessonTypeForm.price),
+          pricePerSupervisor: lessonTypeForm.allowsSupervisors && lessonTypeForm.pricePerSupervisor
+            ? parseFloat(lessonTypeForm.pricePerSupervisor)
+            : null,
+          durationMinutes: parseInt(lessonTypeForm.durationMinutes),
+          maxParticipants: parseInt(lessonTypeForm.maxParticipants),
+          isActive: lessonTypeForm.isActive,
+          sortOrder: parseInt(lessonTypeForm.sortOrder)
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Teorilektionstyp uppdaterad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setIsEditLessonTypeOpen(false);
+        resetLessonTypeForm();
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Ett fel uppstod', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating lesson type:', error);
+      toast.error('Kunde inte uppdatera teorilektionstyp', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteLessonType = async (lessonTypeId: string) => {
+    if (!confirm('Är du säker på att du vill radera denna teorilektionstyp? Alla relaterade sessioner kommer också att raderas.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/teori-lesson-types/${lessonTypeId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Teorilektionstyp raderad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Kunde inte radera teorilektionstyp', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting lesson type:', error);
+      toast.error('Kunde inte radera teorilektionstyp', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    }
+  };
+
+  // Session Handlers
+  const handleCreateSession = (lessonTypeId: string) => {
+    setCurrentLessonTypeId(lessonTypeId);
+    setSessionForm(prev => ({ ...prev, lessonTypeId }));
+    setIsCreateSessionOpen(true);
+  };
+
+  const handleCreateSessionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const response = await fetch('/api/admin/teori-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionTypeId: sessionForm.lessonTypeId,
+          title: sessionForm.title,
+          description: sessionForm.description,
+          date: sessionForm.date,
+          startTime: sessionForm.startTime,
+          endTime: sessionForm.endTime,
+          maxParticipants: parseInt(sessionForm.maxParticipants),
+          isActive: sessionForm.isActive
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Session skapad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setIsCreateSessionOpen(false);
+        resetSessionForm();
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Ett fel uppstod', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error creating session:', error);
+      toast.error('Kunde inte skapa session', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditSession = (session: Session) => {
+    setEditingSession(session);
+    setSessionForm({
+      lessonTypeId: session.lessonTypeId,
+      title: session.title,
+      description: session.description || '',
+      date: session.date,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      maxParticipants: session.maxParticipants.toString(),
+      isActive: session.isActive
+    });
+    setIsEditSessionOpen(true);
+  };
+
+  const handleUpdateSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSession) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/teori-sessions/${editingSession.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: sessionForm.title,
+          description: sessionForm.description,
+          date: sessionForm.date,
+          startTime: sessionForm.startTime,
+          endTime: sessionForm.endTime,
+          maxParticipants: parseInt(sessionForm.maxParticipants),
+          isActive: sessionForm.isActive
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Session uppdaterad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setIsEditSessionOpen(false);
+        resetSessionForm();
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Ett fel uppstod', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating session:', error);
+      toast.error('Kunde inte uppdatera session', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Är du säker på att du vill radera denna session? Alla deltagare kommer att tas bort från sessionen.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/teori-sessions/${sessionId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Session raderad!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Kunde inte radera session', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast.error('Kunde inte radera session', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    }
+  };
+
+  // Participant Handlers
+  const handleViewParticipants = (session: Session) => {
+    setCurrentSessionId(session.id);
+    setCurrentSessionTitle(session.title);
+    setIsParticipantsDialogOpen(true);
+    loadParticipants(session.id);
+  };
+
+  const handleAddParticipant = (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    setIsAddParticipantOpen(true);
+  };
+
+  const handleAddParticipantSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const response = await fetch(`/api/admin/teori-sessions/${currentSessionId}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: participantForm.studentId,
+          supervisorName: participantForm.supervisorName,
+          supervisorEmail: participantForm.supervisorEmail,
+          supervisorPhone: participantForm.supervisorPhone,
+          personalId: participantForm.personalId,
+          sendPaymentEmail: participantForm.sendPaymentEmail
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Deltagare tillagd!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setIsAddParticipantOpen(false);
+        resetParticipantForm();
+        loadParticipants(currentSessionId);
+        window.location.reload(); // To update participant counts
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Ett fel uppstod', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      toast.error('Kunde inte lägga till deltagare', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveParticipant = async (bookingId: string) => {
+    if (!confirm('Är du säker på att du vill ta bort denna deltagare från sessionen?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/teori-bookings/${bookingId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast.success('Deltagare borttagen!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        loadParticipants(currentSessionId);
+        window.location.reload(); // To update participant counts
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Kunde inte ta bort deltagare', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      toast.error('Kunde inte ta bort deltagare', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    }
+  };
+
+  // Group sessions by lesson type
+  const sessionsByLessonType = sessions.reduce((acc, session) => {
+    if (!acc[session.lessonTypeId]) {
+      acc[session.lessonTypeId] = [];
+    }
+    acc[session.lessonTypeId].push(session);
+    return acc;
+  }, {} as Record<string, Session[]>);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Teorihantering</h1>
+              <p className="text-gray-600 mt-1">Hantera teorilektionstyper, sessioner och deltagare</p>
+            </div>
+            <Button
+              onClick={() => setIsCreateLessonTypeOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Skapa Teorilektionstyp
+            </Button>
+          </div>
+        </div>
+
+        {/* Lesson Types with Sessions */}
+        <div className="space-y-6">
+          {lessonTypes.map((lessonType) => (
+            <Card key={lessonType.id} className="shadow-lg border-0">
+              <CardHeader className="bg-white border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-lg ${lessonType.allowsSupervisors ? 'bg-blue-100' : 'bg-green-100'}`}>
+                      <BookOpen className={`w-6 h-6 ${lessonType.allowsSupervisors ? 'text-blue-600' : 'text-green-600'}`} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-gray-900">{lessonType.name}</CardTitle>
+                      <CardDescription className="text-gray-600">
+                        {lessonType.description}
+                      </CardDescription>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {lessonType.price} SEK
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {lessonType.durationMinutes} min
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          Max {lessonType.maxParticipants}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        {lessonType.isActive ? (
+                          <Badge className="bg-green-100 text-green-800 border border-green-200">
+                            Aktiv
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800 border border-gray-200">
+                            Inaktiv
+                          </Badge>
+                        )}
+                        {lessonType.allowsSupervisors && (
+                          <Badge className="bg-blue-100 text-blue-800 border border-blue-200">
+                            Med handledare
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditLessonType(lessonType)}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteLessonType(lessonType.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleLessonType(lessonType.id)}
+                      >
+                        {expandedLessonTypes.has(lessonType.id) ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              {expandedLessonTypes.has(lessonType.id) && (
+                <CardContent className="p-6">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Sessioner</h3>
+                    <Button
+                      onClick={() => handleCreateSession(lessonType.id)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Skapa Session
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {sessionsByLessonType[lessonType.id]?.map((session) => (
+                      <div key={session.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{session.title}</h4>
+                            <p className="text-sm text-gray-600">{session.description}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              session.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {session.isActive ? 'Aktiv' : 'Inaktiv'}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditSession(session)}
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteSession(session.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                            <span>{new Date(session.date).toLocaleDateString('sv-SE')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-green-600" />
+                            <span>{session.startTime} - {session.endTime}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <span>{session.currentParticipants}/{session.maxParticipants} deltagare</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleViewParticipants(session)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Visa Deltagare ({session.currentParticipants})
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddParticipant(session.id)}
+                            disabled={session.currentParticipants >= session.maxParticipants}
+                            className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Lägg Till Deltagare
+                          </Button>
+                        </div>
+                      </div>
+                    )) || (
+                      <div className="text-center py-8 text-gray-500">
+                        <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>Inga sessioner än för denna teorilektionstyp</p>
+                        <Button
+                          onClick={() => handleCreateSession(lessonType.id)}
+                          className="mt-4 bg-green-600 hover:bg-green-700"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Skapa Första Session
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+        </div>
+
+        {/* Create Lesson Type Dialog */}
+        <Dialog open={isCreateLessonTypeOpen} onOpenChange={setIsCreateLessonTypeOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-2xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-green-600" />
+                Skapa Ny Teorilektionstyp
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateLessonType} className="space-y-6 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-name" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Namn *
+                  </Label>
+                  <Input
+                    id="create-name"
+                    value={lessonTypeForm.name}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, name: e.target.value })}
+                    placeholder="t.ex. Riskettan Teori"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-sortOrder" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Sorteringsordning
+                  </Label>
+                  <Input
+                    id="create-sortOrder"
+                    type="number"
+                    value={lessonTypeForm.sortOrder}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, sortOrder: e.target.value })}
+                    placeholder="0"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="create-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Beskrivning
+                </Label>
+                <Textarea
+                  id="create-description"
+                  value={lessonTypeForm.description}
+                  onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, description: e.target.value })}
+                  placeholder="Beskrivning av denna teorilektionstyp..."
+                  rows={3}
+                  className="border-gray-300 focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="create-allowsSupervisors" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Tillåt handledare/supervisorer
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att tillåta supervisors att delta i lektionen
+                    </p>
+                  </div>
+                  <Switch
+                    id="create-allowsSupervisors"
+                    checked={lessonTypeForm.allowsSupervisors}
+                    onCheckedChange={(checked) => setLessonTypeForm({ ...lessonTypeForm, allowsSupervisors: checked })}
+                    className="data-[state=checked]:bg-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-price" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Pris (SEK) *
+                  </Label>
+                  <Input
+                    id="create-price"
+                    type="number"
+                    step="0.01"
+                    value={lessonTypeForm.price}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, price: e.target.value })}
+                    placeholder="500.00"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                {lessonTypeForm.allowsSupervisors && (
+                  <div>
+                    <Label htmlFor="create-pricePerSupervisor" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Pris per Handledare (SEK)
+                    </Label>
+                    <Input
+                      id="create-pricePerSupervisor"
+                      type="number"
+                      step="0.01"
+                      value={lessonTypeForm.pricePerSupervisor}
+                      onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, pricePerSupervisor: e.target.value })}
+                      placeholder="500.00"
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="create-durationMinutes" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Varaktighet (minuter)
+                  </Label>
+                  <Input
+                    id="create-durationMinutes"
+                    type="number"
+                    value={lessonTypeForm.durationMinutes}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, durationMinutes: e.target.value })}
+                    placeholder="60"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="create-maxParticipants" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Max Deltagare
+                  </Label>
+                  <Input
+                    id="create-maxParticipants"
+                    type="number"
+                    value={lessonTypeForm.maxParticipants}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, maxParticipants: e.target.value })}
+                    placeholder="1"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="create-isActive" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Aktiv
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att göra typen tillgänglig för bokning
+                    </p>
+                  </div>
+                  <Switch
+                    id="create-isActive"
+                    checked={lessonTypeForm.isActive}
+                    onCheckedChange={(checked) => setLessonTypeForm({ ...lessonTypeForm, isActive: checked })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateLessonTypeOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {saving ? 'Skapar...' : 'Skapa'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Lesson Type Dialog */}
+        <Dialog open={isEditLessonTypeOpen} onOpenChange={setIsEditLessonTypeOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-2xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-blue-600" />
+                Redigera Teorilektionstyp
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateLessonType} className="space-y-6 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Namn *
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    value={lessonTypeForm.name}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, name: e.target.value })}
+                    placeholder="t.ex. Riskettan Teori"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-sortOrder" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Sorteringsordning
+                  </Label>
+                  <Input
+                    id="edit-sortOrder"
+                    type="number"
+                    value={lessonTypeForm.sortOrder}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, sortOrder: e.target.value })}
+                    placeholder="0"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Beskrivning
+                </Label>
+                <Textarea
+                  id="edit-description"
+                  value={lessonTypeForm.description}
+                  onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, description: e.target.value })}
+                  placeholder="Beskrivning av denna teorilektionstyp..."
+                  rows={3}
+                  className="border-gray-300 focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-allowsSupervisors" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Tillåt handledare/supervisorer
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att tillåta supervisors att delta i lektionen
+                    </p>
+                  </div>
+                  <Switch
+                    id="edit-allowsSupervisors"
+                    checked={lessonTypeForm.allowsSupervisors}
+                    onCheckedChange={(checked) => setLessonTypeForm({ ...lessonTypeForm, allowsSupervisors: checked })}
+                    className="data-[state=checked]:bg-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-price" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Pris (SEK) *
+                  </Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    step="0.01"
+                    value={lessonTypeForm.price}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, price: e.target.value })}
+                    placeholder="500.00"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                {lessonTypeForm.allowsSupervisors && (
+                  <div>
+                    <Label htmlFor="edit-pricePerSupervisor" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Pris per Handledare (SEK)
+                    </Label>
+                    <Input
+                      id="edit-pricePerSupervisor"
+                      type="number"
+                      step="0.01"
+                      value={lessonTypeForm.pricePerSupervisor}
+                      onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, pricePerSupervisor: e.target.value })}
+                      placeholder="500.00"
+                      className="border-gray-300 focus:border-blue-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-durationMinutes" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Varaktighet (minuter)
+                  </Label>
+                  <Input
+                    id="edit-durationMinutes"
+                    type="number"
+                    value={lessonTypeForm.durationMinutes}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, durationMinutes: e.target.value })}
+                    placeholder="60"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-maxParticipants" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Max Deltagare
+                  </Label>
+                  <Input
+                    id="edit-maxParticipants"
+                    type="number"
+                    value={lessonTypeForm.maxParticipants}
+                    onChange={(e) => setLessonTypeForm({ ...lessonTypeForm, maxParticipants: e.target.value })}
+                    placeholder="1"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-isActive" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Aktiv
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att göra typen tillgänglig för bokning
+                    </p>
+                  </div>
+                  <Switch
+                    id="edit-isActive"
+                    checked={lessonTypeForm.isActive}
+                    onCheckedChange={(checked) => setLessonTypeForm({ ...lessonTypeForm, isActive: checked })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditLessonTypeOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {saving ? 'Uppdaterar...' : 'Uppdatera'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Session Dialog */}
+        <Dialog open={isCreateSessionOpen} onOpenChange={setIsCreateSessionOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-2xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-green-600" />
+                Skapa Ny Session
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateSessionSubmit} className="space-y-6 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="session-title" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Titel *
+                  </Label>
+                  <Input
+                    id="session-title"
+                    value={sessionForm.title}
+                    onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })}
+                    placeholder="t.ex. Riskettan Teori - Dag 1"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="session-date" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Datum *
+                  </Label>
+                  <Input
+                    id="session-date"
+                    type="date"
+                    value={sessionForm.date}
+                    onChange={(e) => setSessionForm({ ...sessionForm, date: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="session-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Beskrivning
+                </Label>
+                <Textarea
+                  id="session-description"
+                  value={sessionForm.description}
+                  onChange={(e) => setSessionForm({ ...sessionForm, description: e.target.value })}
+                  placeholder="Beskrivning av denna session..."
+                  rows={3}
+                  className="border-gray-300 focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="session-startTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Starttid *
+                  </Label>
+                  <Input
+                    id="session-startTime"
+                    type="time"
+                    value={sessionForm.startTime}
+                    onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="session-endTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Sluttid *
+                  </Label>
+                  <Input
+                    id="session-endTime"
+                    type="time"
+                    value={sessionForm.endTime}
+                    onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="session-maxParticipants" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Max Deltagare *
+                  </Label>
+                  <Input
+                    id="session-maxParticipants"
+                    type="number"
+                    value={sessionForm.maxParticipants}
+                    onChange={(e) => setSessionForm({ ...sessionForm, maxParticipants: e.target.value })}
+                    placeholder="10"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="session-isActive" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Aktiv
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att göra sessionen tillgänglig för bokning
+                    </p>
+                  </div>
+                  <Switch
+                    id="session-isActive"
+                    checked={sessionForm.isActive}
+                    onCheckedChange={(checked) => setSessionForm({ ...sessionForm, isActive: checked })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCreateSessionOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {saving ? 'Skapar...' : 'Skapa Session'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Session Dialog */}
+        <Dialog open={isEditSessionOpen} onOpenChange={setIsEditSessionOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-2xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-blue-600" />
+                Redigera Session
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateSession} className="space-y-6 p-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-session-title" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Titel *
+                  </Label>
+                  <Input
+                    id="edit-session-title"
+                    value={sessionForm.title}
+                    onChange={(e) => setSessionForm({ ...sessionForm, title: e.target.value })}
+                    placeholder="t.ex. Riskettan Teori - Dag 1"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-session-date" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Datum *
+                  </Label>
+                  <Input
+                    id="edit-session-date"
+                    type="date"
+                    value={sessionForm.date}
+                    onChange={(e) => setSessionForm({ ...sessionForm, date: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-session-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Beskrivning
+                </Label>
+                <Textarea
+                  id="edit-session-description"
+                  value={sessionForm.description}
+                  onChange={(e) => setSessionForm({ ...sessionForm, description: e.target.value })}
+                  placeholder="Beskrivning av denna session..."
+                  rows={3}
+                  className="border-gray-300 focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="edit-session-startTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Starttid *
+                  </Label>
+                  <Input
+                    id="edit-session-startTime"
+                    type="time"
+                    value={sessionForm.startTime}
+                    onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-session-endTime" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Sluttid *
+                  </Label>
+                  <Input
+                    id="edit-session-endTime"
+                    type="time"
+                    value={sessionForm.endTime}
+                    onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-session-maxParticipants" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Max Deltagare *
+                  </Label>
+                  <Input
+                    id="edit-session-maxParticipants"
+                    type="number"
+                    value={sessionForm.maxParticipants}
+                    onChange={(e) => setSessionForm({ ...sessionForm, maxParticipants: e.target.value })}
+                    placeholder="10"
+                    className="border-gray-300 focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-session-isActive" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Aktiv
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Aktivera för att göra sessionen tillgänglig för bokning
+                    </p>
+                  </div>
+                  <Switch
+                    id="edit-session-isActive"
+                    checked={sessionForm.isActive}
+                    onCheckedChange={(checked) => setSessionForm({ ...sessionForm, isActive: checked })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditSessionOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {saving ? 'Uppdaterar...' : 'Uppdatera Session'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Participant Dialog */}
+        <Dialog open={isAddParticipantOpen} onOpenChange={setIsAddParticipantOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-2xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-green-600" />
+                Lägg Till Deltagare
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddParticipantSubmit} className="space-y-6 p-6">
+              <div>
+                <Label htmlFor="participant-student" className="text-sm font-medium text-gray-700 mb-2 block">
+                  Välj Student *
+                </Label>
+                <Select
+                  value={participantForm.studentId}
+                  onValueChange={(value) => setParticipantForm({ ...participantForm, studentId: value })}
+                >
+                  <SelectTrigger className="border-gray-300 focus:border-blue-500">
+                    <SelectValue placeholder="Välj en student..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.name} - {student.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="participant-supervisorName" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Handledare Namn
+                  </Label>
+                  <Input
+                    id="participant-supervisorName"
+                    value={participantForm.supervisorName}
+                    onChange={(e) => setParticipantForm({ ...participantForm, supervisorName: e.target.value })}
+                    placeholder="Handledarens namn"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="participant-personalId" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Personnummer
+                  </Label>
+                  <Input
+                    id="participant-personalId"
+                    value={participantForm.personalId}
+                    onChange={(e) => setParticipantForm({ ...participantForm, personalId: e.target.value })}
+                    placeholder="YYYYMMDD-XXXX"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="participant-supervisorEmail" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Handledare E-post
+                  </Label>
+                  <Input
+                    id="participant-supervisorEmail"
+                    type="email"
+                    value={participantForm.supervisorEmail}
+                    onChange={(e) => setParticipantForm({ ...participantForm, supervisorEmail: e.target.value })}
+                    placeholder="handledare@exempel.se"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="participant-supervisorPhone" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Handledare Telefon
+                  </Label>
+                  <Input
+                    id="participant-supervisorPhone"
+                    value={participantForm.supervisorPhone}
+                    onChange={(e) => setParticipantForm({ ...participantForm, supervisorPhone: e.target.value })}
+                    placeholder="070-123 45 67"
+                    className="border-gray-300 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="participant-sendPaymentEmail" className="text-sm font-medium text-gray-900 cursor-pointer">
+                      Skicka betalningsmail
+                    </Label>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Skicka automatiskt e-post med betalningsinformation
+                    </p>
+                  </div>
+                  <Switch
+                    id="participant-sendPaymentEmail"
+                    checked={participantForm.sendPaymentEmail}
+                    onCheckedChange={(checked) => setParticipantForm({ ...participantForm, sendPaymentEmail: checked })}
+                    className="data-[state=checked]:bg-green-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddParticipantOpen(false)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {saving ? 'Lägger till...' : 'Lägg Till Deltagare'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Participants List Dialog */}
+        <Dialog open={isParticipantsDialogOpen} onOpenChange={setIsParticipantsDialogOpen}>
+          <DialogContent className="bg-white border border-gray-200 max-w-4xl">
+            <DialogHeader className="border-b border-gray-200 pb-4">
+              <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Deltagare - {currentSessionTitle}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="p-6">
+              {loadingParticipants ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Laddar deltagare...</p>
+                  </div>
+                </div>
+              ) : participants.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-16 h-16 mx-auto mb-4 opacity-50 text-gray-400" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Inga deltagare än</h3>
+                  <p className="text-gray-600">Lägg till den första deltagaren för denna session.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {participants.map((participant) => (
+                    <div key={participant.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{participant.studentName}</h4>
+                          <p className="text-sm text-gray-600">{participant.studentEmail}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleRemoveParticipant(participant.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Ta Bort
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <UserIcon className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium">Student:</span>
+                            <span>{participant.studentName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-green-600" />
+                            <span className="font-medium">E-post:</span>
+                            <span>{participant.studentEmail}</span>
+                          </div>
+                        </div>
+
+                        {(participant.supervisorName || participant.supervisorEmail) && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <UserIcon className="w-4 h-4 text-purple-600" />
+                              <span className="font-medium">Handledare:</span>
+                              <span>{participant.supervisorName || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-purple-600" />
+                              <span className="font-medium">Handledare E-post:</span>
+                              <span>{participant.supervisorEmail || 'N/A'}</span>
+                            </div>
+                            {participant.supervisorPhone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium">Handledare Tel:</span>
+                                <span>{participant.supervisorPhone}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {participant.personalId && (
+                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                          <div className="flex items-center gap-2 text-sm">
+                            <CreditCard className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium">Personnummer:</span>
+                            <span>{participant.personalId}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 text-xs text-gray-500">
+                        Tillagd: {new Date(participant.createdAt).toLocaleString('sv-SE')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="border-t border-gray-200 pt-4 gap-3">
+              <Button
+                onClick={() => setIsParticipantsDialogOpen(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white"
+              >
+                Stäng
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsParticipantsDialogOpen(false);
+                  setIsAddParticipantOpen(true);
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Lägg Till Deltagare
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}

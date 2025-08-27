@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { supervisorDetails } from '@/lib/db/schema';
-import { eq, and, lt, isNotNull } from 'drizzle-orm';
+import { eq, and, lt, isNotNull, count } from 'drizzle-orm';
 
 // Encryption/decryption utilities for personal data
 export class PersonalDataManager {
@@ -56,7 +56,6 @@ export class PersonalDataManager {
           .update(supervisorDetails)
           .set({
             supervisorPersonalNumber: null,
-            updatedAt: new Date(),
           })
           .where(eq(supervisorDetails.id, record.id));
 
@@ -85,36 +84,39 @@ export class PersonalDataManager {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const [totalRecords, recordsWithPersonalData, completedCourses, pendingCleanup] = await Promise.all([
+      const [totalRecordsRes, recordsWithPersonalDataRes, completedCoursesRes, pendingCleanupRes] = await Promise.all([
         // Total supervisor records
-        db.select({ count: 'count' }).from(supervisorDetails),
+        db.select({ value: count() }).from(supervisorDetails),
 
         // Records with personal data
-        db.select({ count: 'count' })
+        db
+          .select({ value: count() })
           .from(supervisorDetails)
           .where(isNotNull(supervisorDetails.supervisorPersonalNumber)),
 
         // Completed courses (older than 30 days)
-        db.select({ count: 'count' })
+        db
+          .select({ value: count() })
           .from(supervisorDetails)
           .where(lt(supervisorDetails.createdAt, thirtyDaysAgo)),
 
         // Pending cleanup (completed courses with personal data)
-        db.select({ count: 'count' })
+        db
+          .select({ value: count() })
           .from(supervisorDetails)
           .where(
             and(
               lt(supervisorDetails.createdAt, thirtyDaysAgo),
               isNotNull(supervisorDetails.supervisorPersonalNumber)
             )
-          )
+          ),
       ]);
 
       return {
-        totalRecords: parseInt(totalRecords[0].count as string),
-        recordsWithPersonalData: parseInt(recordsWithPersonalData[0].count as string),
-        completedCourses: parseInt(completedCourses[0].count as string),
-        pendingCleanup: parseInt(pendingCleanup[0].count as string),
+        totalRecords: Number(totalRecordsRes[0]?.value ?? 0),
+        recordsWithPersonalData: Number(recordsWithPersonalDataRes[0]?.value ?? 0),
+        completedCourses: Number(completedCoursesRes[0]?.value ?? 0),
+        pendingCleanup: Number(pendingCleanupRes[0]?.value ?? 0),
       };
     } catch (error) {
       console.error('[PersonalDataManager] Error getting retention stats:', error);

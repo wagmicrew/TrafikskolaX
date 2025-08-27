@@ -254,6 +254,16 @@ export function BookingsTable({ bookings, userRole, onRefresh, compact = false }
                 <TableCell className="text-right">
                   {userRole === 'student' ? (
                     <div className="flex justify-end items-center gap-2">
+                      {booking.paymentStatus === 'unpaid' && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => router.push(`/booking/payment/${booking.id}`)}
+                        >
+                          Betala
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"

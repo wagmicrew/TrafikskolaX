@@ -106,60 +106,60 @@ export const Navigation = memo(function Navigation() {
 
       {/* Desktop Navigation */}
       <nav className={`hidden md:block z-40 bg-white border-b border-gray-200 shadow-sm ${isAdminPage ? '' : 'sticky top-0'}`}>
-        <div className="container mx-auto px-6">
-          <div className="flex justify-center">
-            <div className="flex space-x-1 py-3">
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base ${
-                      isActive
-                        ? "bg-red-600 text-white shadow-lg transform scale-105"
-                        : "text-gray-700 hover:text-red-600 hover:bg-red-50"
-                    }`}
-                    aria-label={`Gå till ${item.label}`}
-                  >
-                    <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                )
-              })}
-              {/* Dashboard/Logout Button */}
-              {user ? (
-                <div className="ml-4 flex items-center space-x-2">
-                  <Link
-                    href="/dashboard/help"
-                    className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
-                    aria-label="Hjälp"
-                  >
-                    <HelpCircle className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span>Hjälp</span>
-                  </Link>
-                  <UserAvatarMenu />
-                </div>
-              ) : (
-                <div className="ml-2 flex items-center">
-                  <button
-                    onClick={() => {
-                      setLoginPopupTab('login')
-                      setShowLoginPopup(true)
-                    }}
-                    className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
-                    aria-label="Öppna Kundportal"
-                  >
-                    <User className="w-4 h-4 lg:w-5 lg:h-5" />
-                    <span>Kundportal</span>
-                  </button>
-                </div>
-              )}
+          <div className="container mx-auto px-6">
+            <div className="flex justify-center">
+              <div className="flex space-x-1 py-3">
+                {menuItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base ${
+                        isActive
+                          ? "bg-red-600 text-white shadow-lg transform scale-105"
+                          : "text-gray-700 hover:text-red-600 hover:bg-red-50"
+                      }`}
+                      aria-label={`Gå till ${item.label}`}
+                    >
+                      <Icon className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )}
+                )}
+                {/* Dashboard/Logout Button */}
+                {user ? (
+                  <div className="ml-4 flex items-center space-x-2">
+                    <Link
+                      href="/dashboard/help"
+                      className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                      aria-label="Hjälp"
+                    >
+                      <HelpCircle className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <span>Hjälp</span>
+                    </Link>
+                    <UserAvatarMenu />
+                  </div>
+                ) : (
+                  <div className="ml-2 flex items-center">
+                    <button
+                      onClick={() => {
+                        setLoginPopupTab('login')
+                        setShowLoginPopup(true)
+                      }}
+                      className="flex items-center space-x-2 px-4 lg:px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap text-sm lg:text-base text-gray-700 hover:text-red-600 hover:bg-red-50"
+                      aria-label="Öppna Kundportal"
+                    >
+                      <User className="w-4 h-4 lg:w-5 lg:h-5" />
+                      <span>Kundportal</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
       {/* Mobile Navigation - iOS Style */}
       <div className="md:hidden">

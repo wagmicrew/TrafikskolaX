@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 
-interface SiteSettings {
+export interface SiteSettings {
   social_facebook?: string;
   social_instagram?: string;
   social_tiktok?: string;
-  // Add other settings as needed
+  // Common public contact fields
+  contact?: {
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  // Publicly exposed swish phone (if configured)
+  swish_phone?: string;
 }
 
 export function useSiteSettings() {

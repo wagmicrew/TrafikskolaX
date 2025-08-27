@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button as FlowbiteButton, Card as FlowbiteCard } from "flowbite-react"
+// Removed shadcn Card in favor of Flowbite Card for this page
+// import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Car, Clock, Award } from "lucide-react"
 import { ContactForm } from "@/components/contact-form"
@@ -13,68 +14,50 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - Static Background Image Only */}
-      <section className="static-hero-section relative min-h-screen flex items-center">
-        {/* Static Background Image */}
-        <div
-          className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/images/hero-background.jpg')`,
-          }}
-        />
-        {/* Responsive hero cars image */}
-        <div 
-          className="absolute inset-0 w-full h-full bg-contain bg-center bg-no-repeat md:bg-cover"
-          style={{
-            backgroundImage: `url('/images/hero-cars.jpg')`,
-            backgroundPosition: 'center bottom',
-            opacity: 0.8
-          }}
-        />
+      {/* Hero Section - Flowbite Jumbotron style, full viewport */}
+      <section className="relative isolate z-30 min-h-screen bg-center bg-cover bg-no-repeat bg-[url('/images/hero-cars.jpg')] flex items-center">
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 z-0 bg-black/10 pointer-events-none" />
 
-        {/* Dark Overlay for Text Readability */}
-        <div className="absolute inset-0 bg-black/50" />
-
-        {/* Content Container */}
+        {/* Content Container (Flowbite spacing) */}
         <div className="relative z-10 w-full">
-          <div className="container mx-auto px-6 text-center">
-            {/* Main Heading */}
-            <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-8 text-white drop-shadow-2xl">
+          <div className="px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56">
+            {/* Heading */}
+            <h1 className="mb-6 text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl">
               Välkommen till{" "}
               <span className="text-yellow-400 whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
-            </h2>
+            </h1>
 
-            {/* Subtitle */}
-            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-12 max-w-5xl mx-auto text-white drop-shadow-xl font-medium">
+            {/* Subheading */}
+            <p className="mb-10 text-lg md:text-xl lg:text-2xl font-medium text-gray-100 sm:px-8 lg:px-48 drop-shadow-xl">
               Hässleholms nyaste trafikskola har öppnat sina dörrar! Få ditt körkort med professionell utbildning och
               personlig service.
             </p>
 
-            {/* CTA Section */}
-            <div className="flex flex-col items-center gap-8">
-              {/* Main CTA Button */}
-              <Button
+            {/* CTA buttons (primary uses site red palette) */}
+            <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
+              <FlowbiteButton
                 size="lg"
-                className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xl sm:text-2xl md:text-3xl px-12 sm:px-16 md:px-20 py-6 sm:py-8 md:py-10 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 border-2 border-white/20 backdrop-blur-sm"
+                color="failure"
+                pill
+                className="shadow-2xl ring-2 ring-white/70 ring-offset-2 ring-offset-black/20 backdrop-blur-[2px] focus:outline-none focus:ring-4 focus:ring-red-300 hover:scale-[1.02] transition-transform"
                 onClick={() => setShowContactForm(true)}
                 aria-label="Öppna kontaktformulär för att veta mer om Din Trafikskola Hässleholm"
               >
-                <span className="drop-shadow-lg">Jag vill veta mer</span>
-              </Button>
+                Jag vill veta mer
+              </FlowbiteButton>
+            </div>
 
-              {/* Phone CTA Box */}
-              <div className="bg-black/30 backdrop-blur-lg border-2 border-white/30 rounded-2xl px-8 sm:px-10 md:px-12 py-4 sm:py-6 md:py-8 shadow-2xl transform hover:scale-105 transition-all duration-300">
-                <p className="text-white text-lg sm:text-xl md:text-2xl mb-2 sm:mb-3 text-center font-semibold drop-shadow-lg">
-                  Ring oss direkt:
-                </p>
-                <a
-                  href="tel:0760389192"
-                  className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-yellow-300 hover:text-yellow-200 transition-colors duration-200 drop-shadow-xl"
-                  aria-label="Ring Din Trafikskola Hässleholm på telefonnummer 0760-389192"
-                >
-                  0760-389192
-                </a>
-              </div>
+            {/* Phone CTA - keep highly visible */}
+            <div className="mt-8 inline-block bg-black/30 backdrop-blur-lg border border-white/30 rounded-2xl px-8 py-5 shadow-2xl">
+              <p className="text-white/95 text-lg md:text-xl mb-1 font-semibold text-center">Ring oss direkt:</p>
+              <a
+                href="tel:0760389192"
+                className="block text-3xl md:text-4xl lg:text-5xl font-extrabold text-yellow-300 hover:text-yellow-200 transition-colors duration-200 drop-shadow-xl"
+                aria-label="Ring Din Trafikskola Hässleholm på telefonnummer 0760-389192"
+              >
+                0760-389192
+              </a>
             </div>
           </div>
         </div>
@@ -147,24 +130,24 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
+            <FlowbiteCard className="text-center hover:shadow-lg transition-shadow">
+              <div className="space-y-4 p-6">
                 <Car className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">B-körkort</h3>
                 <p className="text-gray-600">Personbil - vårt mest populära körkort</p>
-              </CardContent>
-            </Card>
+              </div>
+            </FlowbiteCard>
 
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
+            <FlowbiteCard className="text-center hover:shadow-lg transition-shadow">
+              <div className="space-y-4 p-6">
                 <Clock className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">Taxiförarlegitimation</h3>
                 <p className="text-gray-600">Professionell yrkesutbildning</p>
-              </CardContent>
-            </Card>
+              </div>
+            </FlowbiteCard>
 
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="space-y-4">
+            <FlowbiteCard className="text-center hover:shadow-lg transition-shadow">
+              <div className="space-y-4 p-6">
                 <Award className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
                 <h3 className="text-xl font-semibold">Övriga behörigheter</h3>
                 <p className="text-gray-600">
@@ -172,8 +155,8 @@ export default function HomePage() {
                   <br />
                   Kontakta oss för vägledning med råd och tips
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </FlowbiteCard>
           </div>
         </div>
       </section>
@@ -254,14 +237,15 @@ export default function HomePage() {
             ditt körkort!
           </p>
           <div className="flex flex-col items-center gap-6">
-            <Button
+            <FlowbiteButton
               size="lg"
+              pill
               className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 text-xl px-12 py-6 shadow-2xl hover:shadow-3xl transition-all duration-300"
               onClick={() => setShowContactForm(true)}
               aria-label="Öppna kontaktformulär för att veta mer"
             >
               Jag vill veta mer
-            </Button>
+            </FlowbiteButton>
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-8 py-4 shadow-xl">
               <p className="text-white/90 text-lg mb-2 text-center">Ring oss direkt:</p>
               <a

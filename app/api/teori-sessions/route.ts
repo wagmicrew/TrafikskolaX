@@ -117,45 +117,43 @@ export async function GET(request: NextRequest) {
     // Process sessions to include availability information
     const processedSessions = (sessions.rows || []).map((session: any) => ({
       ...session,
-      available_spots: session.max_participants - (session.current_participants || 0) - (session.booked_count || 0),
+      availableSpots: session.max_participants - (session.current_participants || 0) - (session.booked_count || 0),
       is_available: (session.max_participants - (session.current_participants || 0) - (session.booked_count || 0)) > 0,
       type: 'teori',
-      formatted_date_time: formatDateTime(session.date, session.start_time, session.end_time),
+      formattedDateTime: formatDateTime(session.date, session.start_time, session.end_time),
       price: parseFloat(session.price || 0),
-      duration_minutes: session.duration_minutes || 60,
-      allows_supervisors: session.allows_supervisors || false,
-      price_per_supervisor: session.price_per_supervisor ? parseFloat(session.price_per_supervisor) : null,
+      durationMinutes: session.duration_minutes || 60,
+      allowsSupervisors: session.allows_supervisors || false,
+      pricePerSupervisor: session.price_per_supervisor ? parseFloat(session.price_per_supervisor) : null,
     }));
 
     // Filter available sessions
     const availableSessions = processedSessions.filter((session: any) => session.is_available);
 
     // Group by lesson type for better presentation (include all lesson types)
-    const sessionsByType = lessonTypes.rows.reduce((acc: any, lessonType: any) => {
+    const sessionsByType = lessonTypes.rows.map((lessonType: any) => {
       const typeId = lessonType.id;
       const lessonTypeSessions = availableSessions.filter((session: any) => session.lesson_type_id === typeId);
 
-      acc[typeId] = {
+      return {
         lessonType: {
           id: typeId,
           name: lessonType.name,
           description: lessonType.description,
-          allows_supervisors: lessonType.allows_supervisors,
+          allowsSupervisors: lessonType.allows_supervisors,
           price: lessonType.price,
-          price_per_supervisor: lessonType.price_per_supervisor,
-          duration_minutes: lessonType.duration_minutes,
+          pricePerSupervisor: lessonType.price_per_supervisor,
+          durationMinutes: lessonType.duration_minutes,
           type: 'teori',
         },
         sessions: lessonTypeSessions,
         hasAvailableSessions: lessonTypeSessions.length > 0
       };
-
-      return acc;
-    }, {});
+    });
 
     return NextResponse.json({
       sessions: availableSessions,
-      sessionsByType: Object.values(sessionsByType),
+      sessionsByType: sessionsByType,
       totalAvailable: availableSessions.length,
       lessonTypes: lessonTypes.rows
     });

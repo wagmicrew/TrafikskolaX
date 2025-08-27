@@ -23,7 +23,7 @@ import {
   FaTools,
   FaWrench
 } from 'react-icons/fa';
-import { HiChartPie } from 'react-icons/hi';
+// Removed HiChartPie as sessions link is consolidated
 import { Home } from 'lucide-react';
 import {
   Card,
@@ -123,9 +123,7 @@ export default function AdministrationPanel({ currentPage = "Administration" }: 
                   </div>
                 }
               >
-                <DropdownItem as={Link} href="/dashboard/admin/cms" icon={FaGlobe}>
-                  Sidredigerare
-                </DropdownItem>
+
                 <DropdownItem as={Link} href="/dashboard/admin/email-templates" icon={FaEnvelope}>
                   E-postmallar
                 </DropdownItem>
@@ -133,9 +131,7 @@ export default function AdministrationPanel({ currentPage = "Administration" }: 
                 <DropdownItem as={Link} href="/dashboard/admin/settings/database-updates" icon={FaDatabase}>
                   Databashantering
                 </DropdownItem>
-                <DropdownItem as={Link} href="/dashboard/admin/setup" icon={FaCog}>
-                  Setuphjälp
-                </DropdownItem>
+
               </Dropdown>
 
               {/* Skolan Dropdown */}
@@ -166,11 +162,8 @@ export default function AdministrationPanel({ currentPage = "Administration" }: 
                   Öppettider
                 </DropdownItem>
                 <DropdownDivider />
-                <DropdownItem as={Link} href="/dashboard/admin/teori-lesson-types" icon={FaGraduationCap}>
+                <DropdownItem as={Link} href="/dashboard/admin/teorihantering" icon={FaGraduationCap}>
                   Teorihantering
-                </DropdownItem>
-                <DropdownItem as={Link} href="/dashboard/admin/teori-sessions" icon={HiChartPie}>
-                  Sessionshantering
                 </DropdownItem>
               </Dropdown>
 

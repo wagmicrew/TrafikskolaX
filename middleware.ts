@@ -7,6 +7,15 @@ export function middleware(request: NextRequest) {
   // Get token from cookies
   const token = request.cookies.get('auth-token')?.value;
 
+  // Legacy teori routes -> consolidated teori handling route
+  if (
+    pathname.startsWith('/dashboard/admin/teori-lesson-types') ||
+    pathname.startsWith('/dashboard/admin/teori-sessions')
+  ) {
+    const targetUrl = new URL('/dashboard/admin/teorihantering', request.url);
+    return NextResponse.redirect(targetUrl);
+  }
+
   // Handle dashboard routes
   if (pathname.startsWith('/dashboard')) {
     // If no token, redirect to login

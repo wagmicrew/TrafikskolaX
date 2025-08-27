@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, handledarBookings, users, blockedSlots } from '@/lib/db/schema';
+import { bookings, handledarBookings, users, blockedSlots, invoices, invoiceItems, lessonTypes } from '@/lib/db/schema';
 import { doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { bookingId, sessionType, swishUUID, paymentMethod = 'swish', guestName, guestEmail, guestPhone } = body;
+    const { bookingId, sessionType, swishUUID, paymentMethod = 'swish', guestName, guestEmail, guestPhone, studentId, studentName } = body;
 
     if (!bookingId) {
       return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
@@ -120,16 +121,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Tiden är blockerad. Kan inte bekräfta bokning.' }, { status: 400 });
       }
 
-      // Update booking with guest information and payment status
+      // Update booking with student information and payment status
       const updateData: any = {
         paymentMethod,
         updatedAt: new Date()
       };
 
-      // Update guest information if provided
-      if (guestName) updateData.guestName = guestName;
-      if (guestEmail) updateData.guestEmail = guestEmail;
-      if (guestPhone) updateData.guestPhone = guestPhone;
+      // If a student is selected, update the booking with student information
+      if (studentId) {
+        updateData.userId = studentId;
+        updateData.isGuestBooking = false;
+        updateData.guestName = null;
+        updateData.guestEmail = null;
+        updateData.guestPhone = null;
+      } else {
+        // Update guest information if provided (fallback for guest bookings)
+        if (guestName) updateData.guestName = guestName;
+        if (guestEmail) updateData.guestEmail = guestEmail;
+        if (guestPhone) updateData.guestPhone = guestPhone;
+        updateData.isGuestBooking = true;
+      }
 
       // Handle different payment methods
       if (paymentMethod === 'swish') {
@@ -154,23 +165,117 @@ export async function POST(request: NextRequest) {
         .where(eq(bookings.id, bookingId))
         .returning();
 
-      // Send appropriate notification based on payment method
-      if (paymentMethod === 'swish') {
-        // Send email to school for Swish payment verification
-        await sendSwishPaymentNotification(updatedBooking, false);
-      } else {
-        // Send confirmation email to student/guest
-        const emailTo = guestEmail || booking.guestEmail || (booking.userId ? await getUserEmail(booking.userId) : null);
-        if (emailTo) {
-          await sendConfirmationNotification(emailTo, updatedBooking, false);
+      // Create invoice for regular lesson bookings
+      let invoice = null;
+      try {
+        // Get student details for invoice - use selected student if available
+        let studentDetails = null;
+        let customerId = studentId || updatedBooking.userId;
+
+        if (customerId) {
+          const student = await db
+            .select({
+              id: users.id,
+              email: users.email,
+              firstName: users.firstName,
+              lastName: users.lastName,
+              phone: users.phone
+            })
+            .from(users)
+            .where(eq(users.id, customerId))
+            .limit(1);
+
+          if (student.length > 0) {
+            studentDetails = student[0];
+          }
         }
+
+        // Get lesson type details for invoice
+        let lessonTypeDetails = null;
+        if (updatedBooking.lessonTypeId) {
+          const lessonType = await db
+            .select({
+              id: lessonTypes.id,
+              name: lessonTypes.name,
+              description: lessonTypes.description
+            })
+            .from(lessonTypes)
+            .where(eq(lessonTypes.id, updatedBooking.lessonTypeId))
+            .limit(1);
+
+          if (lessonType.length > 0) {
+            lessonTypeDetails = lessonType[0];
+          }
+        }
+
+        // Create invoice
+        const invoiceNumber = `INV-${Date.now()}`;
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30); // 30 days payment term
+
+        const invoiceData = await db
+          .insert(invoices)
+          .values({
+            invoiceNumber: invoiceNumber,
+            bookingId: updatedBooking.id,
+            customerId: customerId,
+            customerName: studentDetails ? `${studentDetails.firstName} ${studentDetails.lastName}` : studentName || guestName || 'Unknown',
+            customerEmail: studentDetails?.email || guestEmail || null,
+            amount: updatedBooking.totalPrice,
+            status: 'pending',
+            dueDate: dueDate,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+
+        if (invoiceData.length > 0) {
+          invoice = invoiceData[0];
+
+          // Create invoice item
+          await db
+            .insert(invoiceItems)
+            .values({
+              invoiceId: invoice.id,
+              description: `Körlektion - ${lessonTypeDetails?.name || 'Körlektion'} - ${new Date(updatedBooking.scheduledDate).toLocaleDateString('sv-SE')}`,
+              quantity: 1,
+              unitPrice: updatedBooking.totalPrice,
+              amount: updatedBooking.totalPrice,
+              itemType: 'lesson',
+              itemReference: updatedBooking.lessonTypeId || updatedBooking.id
+            });
+        }
+      } catch (invoiceError) {
+        console.error('Error creating invoice:', invoiceError);
+        // Continue with booking confirmation even if invoice creation fails
+      }
+
+      // Send booking confirmation email with payment link
+      let emailTo = null;
+
+      if (studentDetails?.email) {
+        // Send to selected student
+        emailTo = studentDetails.email;
+      } else if (guestEmail) {
+        // Send to guest email
+        emailTo = guestEmail;
+      } else if (booking.guestEmail) {
+        // Send to existing guest email
+        emailTo = booking.guestEmail;
+      } else if (updatedBooking.userId) {
+        // Get email from updated booking user
+        emailTo = await getUserEmail(updatedBooking.userId);
+      }
+
+      if (emailTo) {
+        await sendBookingConfirmationNotification(emailTo, updatedBooking, false, paymentMethod === 'swish');
       }
 
       return NextResponse.json({
         booking: updatedBooking,
-        // No invoice handling here (regular lessons invoice is created in create route)
-        message: paymentMethod === 'swish' ? 
-          'Booking updated. Payment verification pending.' :
+        invoice: invoice,
+        message: paymentMethod === 'swish' ?
+          'Booking confirmed. Payment verification pending.' :
           'Booking confirmed successfully'
       });
     }
@@ -234,6 +339,62 @@ async function sendConfirmationNotification(email: string, booking: any, isHandl
 async function getUserEmail(userId: string) {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return user ? user.email : null;
+}
+
+// Helper function to send booking confirmation notification
+async function sendBookingConfirmationNotification(email: string, booking: any, isHandledar: boolean = false, isSwishPayment: boolean = false) {
+  try {
+    // Use new email template service
+    const { EmailService } = await import('@/lib/email/email-service');
+
+    // Get user details for email context
+    let userDetails = null;
+    const userId = booking.userId || booking.studentId;
+    if (userId) {
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      userDetails = user;
+    }
+
+    // Generate payment URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const paymentUrl = `${baseUrl}/booking/payment/${booking.id}`;
+
+    const emailContext = {
+      user: userDetails ? {
+        id: userDetails.id,
+        email: userDetails.email,
+        firstName: userDetails.firstName,
+        lastName: userDetails.lastName,
+        role: userDetails.role
+      } : {
+        id: '',
+        email: email,
+        firstName: booking.guestName?.split(' ')[0] || booking.supervisorName?.split(' ')[0] || 'Kund',
+        lastName: booking.guestName?.split(' ').slice(1).join(' ') || booking.supervisorName?.split(' ').slice(1).join(' ') || '',
+        role: 'student'
+      },
+      booking: {
+        id: booking.id,
+        scheduledDate: booking.scheduledDate,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        lessonTypeName: isHandledar ? 'Handledarutbildning' : 'Körlektion',
+        totalPrice: booking.totalPrice?.toString() || booking.price?.toString() || '0',
+        swishUUID: booking.swishUUID,
+        paymentMethod: booking.paymentMethod
+      },
+      customData: {
+        paymentUrl: paymentUrl,
+        isSwishPayment: isSwishPayment
+      }
+    };
+
+    // Send booking confirmation email
+    await EmailService.sendTriggeredEmail('booking_confirmed_payment', emailContext);
+
+  } catch (error) {
+    console.error('Failed to send booking confirmation notification:', error);
+  }
 }
 
 // Helper function to send Swish payment notification

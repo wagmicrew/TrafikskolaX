@@ -642,12 +642,13 @@ export default function BookingsClient({
                       <td className="px-6 py-4 font-medium">{booking.totalPrice} kr</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <button
-                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                          <Link
+                            href={`/dashboard/admin/bookings/${booking.id}`}
+                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 inline-block"
                             title="Visa detaljer"
                           >
                             <Eye className="w-4 h-4" />
-                          </button>
+                          </Link>
                           <button
                             onClick={() => handleDeleteBooking(booking.id)}
                             className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"

@@ -77,7 +77,7 @@ async function addTestTeoriData() {
           startTime: `${startHour.toString().padStart(2, '0')}:00`,
           endTime: `${(startHour + Math.floor(lessonType.durationMinutes / 60)).toString().padStart(2, '0')}:${(lessonType.durationMinutes % 60).toString().padStart(2, '0')}`,
           maxParticipants: lessonType.maxParticipants || 8,
-          currentParticipants: Math.floor(Math.random() * 4), // 0-3 random participants
+          currentParticipants: 0, // Start with 0 participants - will be updated when bookings are added
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),

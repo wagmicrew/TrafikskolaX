@@ -80,17 +80,17 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
           if (teoriData.sessionsByType && teoriData.sessionsByType.length > 0) {
             const theoreticalSessions = teoriData.sessionsByType.map((group: any) => ({
               ...group.lessonType,
-              type: group.lessonType.allows_supervisors ? 'handledar' : 'teori',
+              type: group.lessonType.allowsSupervisors ? 'handledar' : 'teori',
               name: group.lessonType.name,
               description: group.lessonType.description,
               price: group.lessonType.price,
-              durationMinutes: group.lessonType.duration_minutes || 60,
+              durationMinutes: group.lessonType.durationMinutes || 60,
               availableSessions: group.sessions.length,
               sessions: group.sessions,
               hasAvailableSessions: group.hasAvailableSessions,
-              allowsSupervisors: group.lessonType.allows_supervisors,
-              pricePerSupervisor: group.lessonType.price_per_supervisor,
-              requiresPersonalId: group.lessonType.allows_supervisors // Handledar sessions require personal ID
+              allowsSupervisors: group.lessonType.allowsSupervisors,
+              pricePerSupervisor: group.lessonType.pricePerSupervisor,
+              requiresPersonalId: group.lessonType.allowsSupervisors // Handledar sessions require personal ID
             }))
             allSessions.push(...theoreticalSessions);
           }
@@ -177,104 +177,202 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2 font-['Inter','system-ui','-apple-system','sans-serif']">Välj session</h2>
-        <p className="text-gray-700 font-['Inter','system-ui','-apple-system','sans-serif']">Välj mellan körlektioner och teoripass</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Välj typ av lektion</h2>
+        <p className="text-gray-700">Välj mellan körlektioner, teoripass och handledarutbildning</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-        {sessionTypesList.map((session) => (
-          <Card
-            key={`${session.type}-${session.id}`}
-            className={`transition-all hover:shadow-lg relative border-2 ${
-              session.type === 'teori' && !session.hasAvailableSessions
-                ? "border-gray-300 bg-gray-50 cursor-default"
-                : selectedSession?.id === session.id
-                ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50 cursor-pointer hover:scale-105"
-                : "hover:border-blue-300 border-gray-200 cursor-pointer hover:scale-105"
-            } ${session.type === 'handledar' ? 'border-orange-200 bg-orange-50' : ''}
-            ${session.type === 'teori' && session.hasAvailableSessions ? 'border-blue-200 bg-blue-50' : ''}`}
-            onClick={() => {
-              if (session.type === 'teori' && !session.hasAvailableSessions) {
-                return; // Don't do anything for unavailable teori sessions
-              }
-              handleSessionSelect(session);
-            }}
-          >
-            {session.type === 'teori' && (
-              <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-['Inter','system-ui','-apple-system','sans-serif'] font-medium">
-                Teori
-              </div>
-            )}
-            {session.type === 'handledar' && (
-              <div className="absolute top-2 right-2 bg-orange-600 text-white text-xs px-2 py-1 rounded-full font-['Inter','system-ui','-apple-system','sans-serif'] font-medium">
-                Handledar
-              </div>
-            )}
-            <CardContent className="p-4">
-                            <div className="text-center space-y-2">
-                <h3 className="font-semibold text-lg text-gray-900 font-['Inter','system-ui','-apple-system','sans-serif']">{session.name}</h3>
-                <div className="flex items-center justify-center text-sm text-gray-700 font-['Inter','system-ui','-apple-system','sans-serif']">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span>{formatDuration(session.durationMinutes)}</span>
-                </div>
-                <div className="space-y-1">
-              {session.salePrice ? (
-                    <>
-                      <div className="text-2xl font-bold text-red-600 font-['Inter','system-ui','-apple-system','sans-serif']">{formatPrice(session.salePrice)} kr</div>
-                      <div className="text-sm text-gray-500 line-through font-['Inter','system-ui','-apple-system','sans-serif']">{formatPrice(session.price)} kr</div>
-                    </>
-                  ) : (
-                    <div className="text-2xl font-bold text-red-600 font-['Inter','system-ui','-apple-system','sans-serif']">{formatPrice(session.price)} kr</div>
-                  )}
-              {session.priceStudent && (
-                    <div className="text-xs text-green-700 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Studentpris: {formatPrice(session.priceStudent)} kr</div>
-                  )}
-                  {session.type === 'handledar' && (
-                    <div className="text-xs text-orange-700 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Per deltagare</div>
-                  )}
-                  {session.type === 'teori' && session.availableSessions && (
-                    <div className="text-xs text-blue-700 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">{session.availableSessions} sessioner tillgängliga</div>
-                  )}
-                  {session.type === 'teori' && session.maxParticipants && !session.availableSessions && (
-                    <div className="text-xs text-blue-700 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Max {session.maxParticipants} deltagare</div>
-                  )}
-                </div>
-                {session.description && (
-                  <p className="text-xs text-gray-600 mt-2 font-['Inter','system-ui','-apple-system','sans-serif']">{session.description}</p>
-                )}
-
-                {/* Notification button for unavailable teori sessions */}
-                {session.type === 'teori' && !session.hasAvailableSessions && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNotificationRequest(session);
-                      }}
-                      disabled={requestingNotification === session.id}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-['Inter','system-ui','-apple-system','sans-serif'] font-medium text-sm"
-                    >
-                      {requestingNotification === session.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                          Skickar förfrågan...
-                        </>
-                      ) : (
-                        <>
-                          <Bell className="w-4 h-4 mr-2" />
-                          Meddela mig när ledigt
-                        </>
+            {/* Group by lesson type */}
+      <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Regular Driving Lessons Group */}
+        {sessionTypesList.filter(s => s.type === 'lesson').length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Körlektioner</h3>
+              <p className="text-gray-600">Välj en körlektion och sedan tid</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessionTypesList.filter(s => s.type === 'lesson').map((session) => (
+                <Card
+                  key={`${session.type}-${session.id}`}
+                  className={`transition-all hover:shadow-lg relative border-2 ${
+                    selectedSession?.id === session.id
+                      ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50 cursor-pointer hover:scale-105"
+                      : "hover:border-blue-300 border-gray-200 cursor-pointer hover:scale-105"
+                  }`}
+                  onClick={() => handleSessionSelect(session)}
+                >
+                  <CardContent className="p-4">
+                    <div className="text-center space-y-2">
+                      <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
+                      <div className="flex items-center justify-center text-sm text-gray-700">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>{formatDuration(session.durationMinutes)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        {session.salePrice ? (
+                          <>
+                            <div className="text-2xl font-bold text-red-600">{formatPrice(session.salePrice)} kr</div>
+                            <div className="text-sm text-gray-500 line-through">{formatPrice(session.price)} kr</div>
+                          </>
+                        ) : (
+                          <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
+                        )}
+                        {session.priceStudent && (
+                          <div className="text-xs text-green-700 font-medium">Studentpris: {formatPrice(session.priceStudent)} kr</div>
+                        )}
+                      </div>
+                      {session.description && (
+                        <p className="text-xs text-gray-600 mt-2">{session.description}</p>
                       )}
-                    </Button>
-                    <p className="text-xs text-gray-500 mt-2 font-['Inter','system-ui','-apple-system','sans-serif']">
-                      Få meddelande när nya sessioner blir tillgängliga
-                    </p>
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs text-blue-600 font-medium">Välj tid efter bokning</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Theory Lessons Group */}
+        {sessionTypesList.filter(s => s.type === 'teori').length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
+              <p className="text-gray-600">Välj en teorisession direkt</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessionTypesList.filter(s => s.type === 'teori').map((session) => (
+                <Card
+                  key={`${session.type}-${session.id}`}
+                  className={`transition-all hover:shadow-lg relative border-2 ${
+                    session.hasAvailableSessions
+                      ? selectedSession?.id === session.id
+                        ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50 cursor-pointer hover:scale-105"
+                        : "border-blue-200 bg-blue-50 cursor-pointer hover:scale-105"
+                      : "border-gray-300 bg-gray-50 cursor-default"
+                  }`}
+                  onClick={() => {
+                    if (session.hasAvailableSessions) {
+                      handleSessionSelect(session);
+                    }
+                  }}
+                >
+                  <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    Teori
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  <CardContent className="p-4">
+                    <div className="text-center space-y-2">
+                      <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
+                      <div className="flex items-center justify-center text-sm text-gray-700">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>{formatDuration(session.durationMinutes)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
+                        {session.maxParticipants && (
+                          <div className="text-xs text-blue-700 font-medium">Max {session.maxParticipants} deltagare</div>
+                        )}
+                      </div>
+                      {session.description && (
+                        <p className="text-xs text-gray-600 mt-2">{session.description}</p>
+                      )}
+
+                      {/* Available sessions info */}
+                      {session.hasAvailableSessions && session.availableSessions && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="text-sm text-green-600 font-medium mb-2">
+                            ✅ {session.availableSessions} sessioner tillgängliga
+                          </div>
+                          <p className="text-xs text-gray-600">Klicka för att välja session</p>
+                        </div>
+                      )}
+
+                      {/* Notification button for unavailable sessions */}
+                      {!session.hasAvailableSessions && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotificationRequest(session);
+                            }}
+                            disabled={requestingNotification === session.id}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm"
+                          >
+                            {requestingNotification === session.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                                Skickar förfrågan...
+                              </>
+                            ) : (
+                              <>
+                                <Bell className="w-4 h-4 mr-2" />
+                                Meddela mig när ledigt
+                              </>
+                            )}
+                          </Button>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Få meddelande när nya sessioner blir tillgängliga
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Supervisor Training Group */}
+        {sessionTypesList.filter(s => s.type === 'handledar').length > 0 && (
+          <div className="space-y-4">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Handledarutbildning</h3>
+              <p className="text-gray-600">För handledare och supervisorer</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sessionTypesList.filter(s => s.type === 'handledar').map((session) => (
+                <Card
+                  key={`${session.type}-${session.id}`}
+                  className={`transition-all hover:shadow-lg relative border-2 ${
+                    selectedSession?.id === session.id
+                      ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50 cursor-pointer hover:scale-105"
+                      : "border-orange-200 bg-orange-50 cursor-pointer hover:scale-105"
+                  }`}
+                  onClick={() => handleSessionSelect(session)}
+                >
+                  <div className="absolute top-2 right-2 bg-orange-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    Handledar
+                  </div>
+                  <CardContent className="p-4">
+                    <div className="text-center space-y-2">
+                      <h3 className="font-semibold text-lg text-gray-900">{session.name}</h3>
+                      <div className="flex items-center justify-center text-sm text-gray-700">
+                        <Clock className="w-4 h-4 mr-1" />
+                        <span>{formatDuration(session.durationMinutes)}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-2xl font-bold text-red-600">{formatPrice(session.price)} kr</div>
+                        <div className="text-xs text-orange-700 font-medium">Per deltagare</div>
+                        {session.pricePerSupervisor && (
+                          <div className="text-xs text-orange-600">+{formatPrice(session.pricePerSupervisor)} kr per extra handledare</div>
+                        )}
+                      </div>
+                      {session.description && (
+                        <p className="text-xs text-gray-600 mt-2">{session.description}</p>
+                      )}
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs text-orange-600 font-medium">Välj tid efter bokning</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {sessionTypesList.length === 0 && !loading && (

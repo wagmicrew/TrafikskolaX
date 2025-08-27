@@ -971,6 +971,9 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
     formattedScheduledDate = format(new Date(), 'yyyy-MM-dd');
   }
   
+  // Generate payment URL for unpaid bookings
+  const paymentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.dintrafikskolahlm.se'}/booking/payment/${booking.id}`;
+
   const emailContext = {
     user: userDetails ? {
       id: userDetails.id,
@@ -996,7 +999,8 @@ async function sendBookingNotification(email: string, booking: any, alreadyPaid:
       paymentMethod: paymentMethod || booking.paymentMethod
     },
     customData: {
-      swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890'
+      swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1234567890',
+      paymentUrl: paymentUrl
     }
   };
   

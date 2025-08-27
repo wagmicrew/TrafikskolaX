@@ -27,7 +27,6 @@ import {
   FaCheckCircle,
   FaExclamationTriangle
 } from 'react-icons/fa';
-import { HiChartPie } from 'react-icons/hi';
 import { Home } from 'lucide-react';
 import {
   Card,
@@ -48,6 +47,7 @@ export default function AdminHeaderCard({
 }: AdminHeaderCardProps) {
   const { user } = useAuth();
   const pathname = usePathname();
+  const safePathname = pathname ?? '';
 
   // Helper function to get page title from pathname
   function getPageTitleFromPath(pathname: string): string {
@@ -67,13 +67,13 @@ export default function AdminHeaderCard({
       'lessons': 'Lektioner',
       'slots': 'Slothantering',
       'settings': 'Inställningar',
-      'cms': 'Hemsidan',
+
       'email-templates': 'E-postmallar',
       'teori-sessions': 'Teorisessioner',
       'logs': 'Loggar',
       'invoices': 'Fakturor',
       'payments': 'Betalningar',
-      'setup': 'Setuphjälp',
+
       'migrate': 'Migrering',
       'meddelande': 'Meddelanden',
       'handledarkurs': 'Handledarkurs',
@@ -81,6 +81,7 @@ export default function AdminHeaderCard({
       'logging': 'Loggning',
       'teori-lesson-types': 'Teorihantering',
       'teori-management': 'Teorihantering',
+      'teorihantering': 'Teorihantering',
       'supervisor-cleanup': 'Handledare Data Cleanup',
       'swish-approvals': 'Swish-godkännanden',
       'packages-store': 'Paketbutik',
@@ -93,7 +94,7 @@ export default function AdminHeaderCard({
       const nestedMap: Record<string, string> = {
         'settings/qliro': 'Qliro-inställningar',
         'settings/database-updates': 'Databasuppdateringar',
-        'settings/sideditor': 'Sidredigerare',
+
         'payments/qliro': 'Qliro-betalningar',
         'payments/swish': 'Swish-betalningar',
         'skolan/oppettider': 'Öppettider',
@@ -123,7 +124,7 @@ export default function AdminHeaderCard({
   }
 
   // Get current page title from pathname if not provided
-  const pageTitle = currentPage || getPageTitleFromPath(pathname);
+  const pageTitle = currentPage || getPageTitleFromPath(safePathname);
 
   // Default descriptions for common pages
   const getDefaultDescription = (page: string): string => {
@@ -132,17 +133,15 @@ export default function AdminHeaderCard({
       'Bokningar': 'Hantera alla bokningar och scheman',
       'Användare': 'Hantera studenter, lärare och administratörer',
       'Lektioner': 'Konfigurera lektionstyper och priser',
-      'Slothantering': 'Hantera tillgängliga tidsluckor',
+
       'Inställningar': 'Systemkonfiguration och inställningar',
       'Qliro-betalningar': 'Hantera Qliro-betalningar',
       'E-postmallar': 'Hantera e-postmallar och meddelanden',
-      'Teorisessioner': 'Hantera teorilektioner, sessioner och deltagare',
+      'Teorihantering': 'Hantera teorilektioner, sessioner och deltagare',
       'Loggar': 'Systemloggar och debugging',
       'Fakturor': 'Hantera fakturor och betalningar',
-      'Innehåll': 'Hantera webbplatsinnehåll och CMS',
-      'Sidredigerare': 'Redigera webbplatsens sidor',
-      'Databashantering': 'Hantera databasuppdateringar',
-      'Setuphjälp': 'Konfigurera och ställa in systemet'
+
+      'Databashantering': 'Hantera databasuppdateringar'
     };
     return descriptions[page] || `${page} - Administrationspanel`;
   };
@@ -219,11 +218,7 @@ export default function AdminHeaderCard({
                 <span>Användare</span>
               </Link>
 
-              {/* Slothantering */}
-              <Link href="/dashboard/admin/slots" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:shadow-md">
-                <FaClock className="w-4 h-4" />
-                <span>Slothantering</span>
-              </Link>
+
 
               {/* Hemsidan Dropdown */}
               <Dropdown
@@ -239,9 +234,7 @@ export default function AdminHeaderCard({
                   </div>
                 }
               >
-                <DropdownItem as={Link} href="/dashboard/admin/cms" icon={FaGlobe}>
-                  Sidredigerare
-                </DropdownItem>
+
                 <DropdownItem as={Link} href="/dashboard/admin/email-templates" icon={FaEnvelope}>
                   E-postmallar
                 </DropdownItem>
@@ -281,11 +274,8 @@ export default function AdminHeaderCard({
                 <DropdownItem as={Link} href="/dashboard/admin/slots" icon={FaClock}>
                   Slothantering
                 </DropdownItem>
-                <DropdownItem as={Link} href="/dashboard/admin/teori-lesson-types" icon={FaGraduationCap}>
+                <DropdownItem as={Link} href="/dashboard/admin/teorihantering" icon={FaGraduationCap}>
                   Teorihantering
-                </DropdownItem>
-                <DropdownItem as={Link} href="/dashboard/admin/teori-sessions" icon={HiChartPie}>
-                  Sessionshantering
                 </DropdownItem>
               </Dropdown>
 

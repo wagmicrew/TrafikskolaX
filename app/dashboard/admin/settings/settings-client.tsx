@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { QliroPaymentDialog } from '@/components/booking/qliro-payment-dialog';
 import { Switch } from '@/components/ui/switch';
-import toast from 'react-hot-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Mail, 
   Globe, 
@@ -33,11 +32,10 @@ import {
   Copy,
   Plus,
   Trash2,
-  Download
+  Download,
+  X,
+  Disc
 } from 'lucide-react';
-import { OrbSpinner } from '@/components/ui/orb-loader';
-import { ResetSiteButton } from '@/components/Admin/ResetSiteButton';
-import type { OpeningHoursConfig } from '@/lib/site-settings/opening-hours';
 
 interface Settings {
   // Email settings
@@ -63,9 +61,6 @@ interface Settings {
   schoolname: string;
   school_phonenumber: string;
     internal_messages_enabled: boolean;
-
-  // Editor settings
-
   
 // Qliro API URLs
   qliro_dev_api_url: string;
@@ -85,2115 +80,1002 @@ interface Settings {
   qliro_prod_merchant_id: string;
   qliro_prod_api_key: string;
   qliro_prod_api_secret?: string;
-  // Qliro flow type
   qliro_checkout_flow?: string;
-  // Social links (optional)
+
+  // Social links
   social_facebook?: string;
   social_instagram?: string;
   social_tiktok?: string;
+
   // Maps
   google_maps_api_key?: string;
+
   // Debug
   debug_extended_logs?: boolean;
-  // Opening hours
-  opening_hours?: OpeningHoursConfig;
 }
-
-interface TestResult {
-  endpoint: string;
-  method: string;
-  status: number;
-  success: boolean;
-  data: any;
-  error?: string;
-}
-
-type CronExamples = {
-  linuxCron: string;
-  curlNow: string;
-  windowsPowerShellOneLiner: string;
-  windowsSchtasks: string;
-};
-
-type CronInfo = {
-  endpoint: string;
-  validated: boolean;
-  probe: { status: number; body: any };
-  examples: CronExamples;
-};
 
 export default function SettingsClient() {
-  const [settings, setSettings] = useState<Settings>({} as Settings);
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [exportTestResults, setExportTestResults] = useState<any>(null);
-  const [qliroTestOpen, setQliroTestOpen] = useState(false);
-  const [testUserId, setTestUserId] = useState('d601c43a-599c-4715-8b9a-65fe092c6c11');
-  const [editEmail, setEditEmail] = useState(false);
-  const [editSchool, setEditSchool] = useState(false);
-  const [editSite, setEditSite] = useState(false);
-  const [editPayment, setEditPayment] = useState(false);
+  const [activeTab, setActiveTab] = useState('email');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
-  // Cron setup dialog state
-  const [cronDialogOpen, setCronDialogOpen] = useState(false);
-  const [cronInfo, setCronInfo] = useState<CronInfo | null>(null);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
-  const loadSettings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/admin/settings');
-      if (!response.ok) throw new Error('Kunde inte hämta inställningar');
-      const data = await response.json();
-      setSettings(data.settings);
-      setHasUnsavedChanges(false);
-      toast.success('Inställningar hämtade');
-    } catch (error) {
-      console.error('Fel vid hämtning av inställningar:', error);
-      toast.error('Kunde inte hämta inställningar');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [settings, setSettings] = useState<Settings>({
+    // Email settings
+    use_sendgrid: false,
+    sendgrid_api_key: '',
+    use_smtp: false,
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_username: '',
+    smtp_password: '',
+    smtp_secure: true,
+    from_name: '',
+    from_email: '',
+    reply_to: '',
+    school_email: '',
+    force_internal_only: false,
+    fallback_to_internal: false,
 
+    // Site settings
+    site_domain: '',
+    public_app_url: '',
+    site_name: '',
+    schoolname: '',
+    school_phonenumber: '',
+    internal_messages_enabled: true,
+
+    // Qliro API URLs
+    qliro_dev_api_url: '',
+    qliro_prod_api_url: '',
+    qliro_use_prod_env: false,
+
+    // Payment settings
+    swish_number: '',
+    swish_enabled: false,
+    qliro_api_key: '',
+    qliro_api_secret: '',
+    qliro_secret: '',
+    qliro_merchant_id: '',
+    qliro_sandbox: true,
+    qliro_enabled: false,
+    qliro_prod_enabled: false,
+    qliro_prod_merchant_id: '',
+    qliro_prod_api_key: '',
+    qliro_prod_api_secret: '',
+    qliro_checkout_flow: 'redirect',
+
+    // Social links
+    social_facebook: '',
+    social_instagram: '',
+    social_tiktok: '',
+
+    // Maps
+    google_maps_api_key: '',
+
+    // Debug
+    debug_extended_logs: false,
+  });
+
+  const [originalSettings, setOriginalSettings] = useState<Settings | null>(null);
+
+  // Load settings on component mount
   useEffect(() => {
     loadSettings();
-  }, [loadSettings]);
-
-  const fetchSettings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/admin/settings');
-      if (!response.ok) throw new Error('Kunde inte hämta inställningar');
-      const data = await response.json();
-      setSettings(data.settings);
-      setHasUnsavedChanges(false);
-      toast.success('Inställningar hämtade');
-    } catch (error) {
-      console.error('Fel vid hämtning av inställningar:', error);
-      toast.error('Kunde inte hämta inställningar');
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
-  const saveSettings = useCallback(async () => {
-    setSaving(true);
-    const loadingToast = toast.loading('Sparar inställningar...');
-    
-    try {
-      const response = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) throw new Error('Kunde inte spara inställningar');
-
-      toast.success('Inställningar sparade framgångsrikt!', {
-        id: loadingToast,
-      });
-      setHasUnsavedChanges(false);
-    } catch (error) {
-      console.error('Fel vid sparande av inställningar:', error);
-      toast.error('Kunde inte spara inställningar', {
-        id: loadingToast,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [settings]);
-
-  const updateSetting = useCallback((key: keyof Settings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setHasUnsavedChanges(true);
-  }, []);
-
-  const testQliroPayment = async () => {
-    setQliroTestOpen(true);
-    const loadingToast = toast.loading('Testar Qliro-betalning...');
-    try {
-      // First, get a real package ID
-      const packagesResponse = await fetch('/api/packages');
-      if (!packagesResponse.ok) {
-        throw new Error('Kunde inte hämta paket');
-      }
-      const packagesData = await packagesResponse.json();
-      if (packagesData.length === 0) {
-        throw new Error('Inga paket tillgängliga för testning');
-      }
-      const testPackageId = packagesData[0].id;
-      
-      const response = await fetch('/api/packages/purchase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          packageId: testPackageId,  // Use real package ID
-          paymentMethod: 'qliro',
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte testa Qliro-betalning');
-      }
-      toast.success('Qliro-betalningstest initierat framgångsrikt!', { id: loadingToast });
-    } catch (error: unknown) {
-      console.error('Qliro-testfel:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Okänt fel';
-      toast.error(`Qliro-test misslyckades: ${errorMessage}`, { id: loadingToast });
-    } finally {
-      setQliroTestOpen(false);
-    }
-  };
-
-  const copyToClipboard = async (value: string, label?: string) => {
-    try {
-      await navigator.clipboard.writeText(value || '');
-      toast.success(`${label || 'Värde'} kopierad`);
-    } catch (e) {
-      toast.error('Kunde inte kopiera');
-    }
-  };
-
-  const runTests = async () => {
-    setTesting(true);
-    setTestResults([]);
-    const loadingToast = toast.loading('Kör krediteringstester...');
-    
-    console.log('=== Krediterings-API-test startat ===');
-    console.log('Testanvändar-ID:', testUserId);
-
-    const apiBase = `/api/admin/users/${testUserId}/credits`;
-    
-    // First, get a real lesson type ID
-    let realLessonTypeId = null;
-    try {
-      const lessonTypesResponse = await fetch('/api/lesson-types');
-      if (lessonTypesResponse.ok) {
-        const lessonTypesData = await lessonTypesResponse.json();
-        if (lessonTypesData.length > 0) {
-          realLessonTypeId = lessonTypesData[0].id;
-          console.log('Using real lesson type ID:', realLessonTypeId);
-        }
-      }
-    } catch (error) {
-      console.error('Kunde inte hämta lektionstyper:', error);
-    }
-    
-    const tests = [
-      { 
-        name: 'Hämta krediter',
-        method: 'GET', 
-        endpoint: apiBase 
-      },
-      { 
-        name: 'Lägg till lektionskrediter',
-        method: 'POST', 
-        endpoint: apiBase,
-        body: { 
-          creditType: 'lesson', 
-          lessonTypeId: realLessonTypeId, 
-          amount: 5 
-        }
-      },
-      { 
-        name: 'Lägg till handledarkrediter',
-        method: 'POST', 
-        endpoint: apiBase,
-        body: { 
-          creditType: 'handledar', 
-          handledarSessionId: null, 
-          amount: 3 
-        }
-      }
-    ];
-
-    const results: TestResult[] = [];
-
-    for (const test of tests) {
-      try {
-        console.log(`\n=== Kör ${test.name} ===`);
-        console.log('Slutpunkt:', test.endpoint);
-        console.log('Metod:', test.method);
-        if (test.body) {
-          console.log('Innehåll:', JSON.stringify(test.body, null, 2));
-        }
-        
-        const options: RequestInit = {
-          method: test.method,
-          headers: { 'Content-Type': 'application/json' },
-        };
-        
-        if (test.body) {
-          options.body = JSON.stringify(test.body);
-        }
-
-        const response = await fetch(test.endpoint, options);
-        const data = await response.json();
-        
-        console.log('Response status:', response.status);
-        console.log('Response data:', data);
-        
-        const result = {
-          endpoint: test.endpoint,
-          method: test.method,
-          status: response.status,
-          success: response.ok,
-          data
-        };
-        
-        results.push(result);
-        
-        // Show individual test results as toasts
-        if (response.ok) {
-          toast.success(`${test.name}: Success!`);
-        } else {
-          toast.error(`${test.name}: Failed (${response.status})`);
-        }
-        
-      } catch (error: any) {
-        console.error(`Error in ${test.name}:`, error);
-        const result = {
-          endpoint: test.endpoint,
-          method: test.method,
-          status: 0,
-          success: false,
-          data: null,
-          error: error.message
-        };
-        results.push(result);
-        toast.error(`${test.name}: Network error`);
-      }
-    }
-
-    console.log('=== All tests completed ===');
-    console.log('Results:', results);
-    
-    setTestResults(results);
-    setTesting(false);
-    toast.success('Alla tester slutförda!', { id: loadingToast });
-  };
-  
-  const testSendGridEmail = async () => {
-    if (!testUserId) {
-      toast.error('Ange ett användar-ID först');
-      return;
-    }
-    
-    const loadingToast = toast.loading('Skickar test-email...');
-    
-    try {
-      const response = await fetch('/api/admin/test-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: testUserId }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || data.details || 'Failed to send test email');
-      }
-      
-      toast.success('Test-email skickat framgångsrikt!', { id: loadingToast });
-    } catch (error: any) {
-      console.error('SendGrid test error:', error);
-      toast.error(`SendGrid test misslyckades: ${error.message}`, { id: loadingToast });
-    }
-  };
-
-  const testContactEmail = async () => {
-    const loadingToast = toast.loading('Skickar test kontaktformulär...');
-    
-    try {
-      const response = await fetch('/api/admin/test-contact-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          testEmail: 'test@example.com' 
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send test contact email');
-      }
-      
-      toast.success(`Test kontaktformulär skickat till ${data.schoolEmail}!`, { id: loadingToast });
-    } catch (error: any) {
-      console.error('Contact email test error:', error);
-      toast.error(`Test kontaktformulär misslyckades: ${error.message}`, { id: loadingToast });
-    }
-  };
-
-  const testContactEmailDesign = async () => {
-    const loadingToast = toast.loading('Skickar test kontaktformulär design...');
-    
-    try {
-      const response = await fetch('/api/admin/test-contact-email-design', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          testEmail: 'test@example.com' 
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send test contact email design');
-      }
-      
-      toast.success('Test kontaktformulär design skickat!', { id: loadingToast });
-    } catch (error: any) {
-      console.error('Contact email design test error:', error);
-      toast.error(`Test kontaktformulär design misslyckades: ${error.message}`, { id: loadingToast });
-    }
-  };
-
-  const initializeSchoolEmail = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/add-school-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success(result.message);
-        // Refresh settings to show the new school_email field
-        await fetchSettings();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to initialize school email setting');
-      }
-    } catch (error) {
-      console.error('Error initializing school email:', error);
-      toast.error('Failed to initialize school email setting');
-    }
-  };
-
-  const initializeAllEmailSettings = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/initialize-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success(`${result.message} (${result.summary.added} added, ${result.summary.alreadyExists} already existed)`);
-        // Refresh settings to show all the new email fields
-        await fetchSettings();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to initialize email settings');
-      }
-    } catch (error) {
-      console.error('Error initializing email settings:', error);
-      toast.error('Failed to initialize email settings');
-    }
-  };
-
-  const initializeSchoolPhonenumber = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/add-school-phonenumber', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Skoltelefonnummer tillagt!');
-        fetchSettings(); // Refresh settings
-      } else {
-        toast.error(result.error || 'Fel vid tillägg av skoltelefonnummer');
-      }
-    } catch (error) {
-      console.error('Error adding school phonenumber:', error);
-      toast.error('Fel vid tillägg av skoltelefonnummer');
-    }
-  };
-
-  const addSwishPaymentTemplate = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/add-swish-payment-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Swish betalningsmall tillagd!');
-      } else {
-        toast.error(result.error || 'Fel vid tillägg av Swish betalningsmall');
-      }
-    } catch (error) {
-      console.error('Error adding Swish payment template:', error);
-      toast.error('Fel vid tillägg av Swish betalningsmall');
-    }
-  };
-
-  const addEnumValue = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/add-enum-value', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Enum värde tillagt!');
-      } else {
-        toast.error(result.error || 'Fel vid tillägg av enum värde');
-      }
-    } catch (error) {
-      console.error('Error adding enum value:', error);
-      toast.error('Fel vid tillägg av enum värde');
-    }
-  };
-
-  const testSwishConfirmation = async () => {
-    try {
-      const response = await fetch('/api/admin/test-swish-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Swish bekräftelse test lyckades!');
-      } else {
-        toast.error(result.error || 'Fel vid test av Swish bekräftelse');
-      }
-    } catch (error) {
-      console.error('Error testing Swish confirmation:', error);
-      toast.error('Fel vid test av Swish bekräftelse');
-    }
-  };
-
-  const updateSwishTemplateReceiver = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/update-swish-template-receiver', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'Swish mall uppdaterad till skol-e-post!');
-      } else {
-        toast.error(result.error || 'Fel vid uppdatering av Swish mall');
-      }
-    } catch (error) {
-      console.error('Error updating Swish template receiver:', error);
-      toast.error('Fel vid uppdatering av Swish mall');
-    }
-  };
-
-  const addSchoolReceiverType = async () => {
-    try {
-      const response = await fetch('/api/admin/settings/add-school-receiver-type', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success(result.message || 'School receiver type tillagd!');
-      } else {
-        toast.error(result.error || 'Fel vid tillägg av school receiver type');
-      }
-    } catch (error) {
-      console.error('Error adding school receiver type:', error);
-      toast.error('Fel vid tillägg av school receiver type');
-    }
-  };
-
-  const testExportFunctions = async () => {
-    const loadingToast = toast.loading('Testar export-funktioner...');
-    
-    try {
-      const response = await fetch('/api/admin/test-export-functions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        toast.success('Export-funktioner testade framgångsrikt!', { id: loadingToast });
-        console.log('Export test results:', result);
-        setExportTestResults(result);
-      } else {
-        toast.error(result.error || 'Fel vid test av export-funktioner', { id: loadingToast });
-      }
-    } catch (error: any) {
-      console.error('Export test error:', error);
-      toast.error(`Export test misslyckades: ${error.message}`, { id: loadingToast });
-    }
-  };
-
-  // Warn user before leaving page with unsaved changes
+  // Handle navigation warnings
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
-        return 'Du har osparade ändringar. Är du säker på att du vill lämna sidan?';
+        e.returnValue = '';
+        return '';
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [hasUnsavedChanges]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <OrbSpinner size="lg" />
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/settings');
+        if (response.ok) {
+        const data = await response.json();
+        setSettings(data.settings);
+        setOriginalSettings(JSON.parse(JSON.stringify(data.settings)));
+        } else {
+        toast.error('Kunde inte ladda inställningar', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast.error('Kunde inte ladda inställningar', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateSetting = (key: keyof Settings, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+
+    // Check if settings have changed
+    if (originalSettings) {
+      const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
+      setHasUnsavedChanges(hasChanges);
+    }
+  };
+
+  const saveSettings = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success('Inställningar sparade!', {
+          style: { background: '#10b981', color: '#fff', border: '1px solid #059669' },
+          icon: '✅'
+        });
+        setOriginalSettings(JSON.parse(JSON.stringify(settings)));
+        setHasUnsavedChanges(false);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Kunde inte spara inställningar', {
+          style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+          icon: '❌'
+        });
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Kunde inte spara inställningar', {
+        style: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+        icon: '❌'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleNavigation = (path: string) => {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(path);
+      setShowExitWarning(true);
+      } else {
+      router.push(path);
+    }
+  };
+
+  const confirmExit = () => {
+    setShowExitWarning(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+    }
+  };
+
+  const cancelExit = () => {
+    setShowExitWarning(false);
+    setPendingNavigation(null);
+  };
+
+    // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header skeleton */}
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/3 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
+
+          {/* Tabs skeleton */}
+          <div className="flex space-x-1 mb-6">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="h-10 bg-gray-200 rounded w-24"></div>
+            ))}
       </div>
-    );
+
+          {/* Content skeleton */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+                </div>
+              </div>
+      </div>
+                </div>
+                    </div>
+                  </div>
+  );
+
+  if (loading) {
+    return <LoadingSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="max-w-6xl mx-auto text-white">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <Link href="/dashboard/admin/settings/qliro">
-          <Card className="bg-white/10 border border-white/20 hover:bg-white/15 transition-colors cursor-pointer">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-sky-600/30 text-sky-300">
-                  <CreditCard className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-white">Qliro-betalningar</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">Visa, exportera, skapa betalningar</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        </Link>
-      </div>
-      <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-1 rounded-lg">
-          <TabsTrigger value="setup" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <SettingsIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Inställningar</span>
-          </TabsTrigger>
-          <TabsTrigger value="email" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <Mail className="w-4 h-4" />
-            <span className="hidden sm:inline">E-post</span>
-          </TabsTrigger>
-          <TabsTrigger value="school" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <Building className="w-4 h-4" />
-            <span className="hidden sm:inline">Skola</span>
-          </TabsTrigger>
-          <TabsTrigger value="site" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">Webbplats</span>
-          </TabsTrigger>
-          <TabsTrigger value="payment" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <CreditCard className="w-4 h-4" />
-            <span className="hidden sm:inline">Betalning</span>
-          </TabsTrigger>
-          <TabsTrigger value="useful" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <SettingsIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">Nyttigt</span>
-          </TabsTrigger>
-          <TabsTrigger value="troubleshooting" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:border data-[state=active]:border-gray-300 dark:data-[state=active]:border-gray-600 rounded-md transition-colors">
-            <AlertTriangle className="w-4 h-4" />
-            <span className="hidden sm:inline">Felsökning</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Setup Tab */}
-        <TabsContent value="setup">
-          <div className="space-y-6">
-            {/* Invoice System Setup */}
-            <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader className="flex flex-row items-start justify-between gap-4">
-                <div>
-                  <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-blue-600" />
-                    Faktura system
-                  </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">
-                    Konfigurera och initiera faktura systemet för alla betalningar
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                      <SettingsIcon className="w-4 h-4" />
-                      System status
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                      Kontrollera om faktura systemet är korrekt installerat och konfigurerat
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Kontrollerar faktura system...');
-                          try {
-                            const response = await fetch('/api/admin/invoices');
-                            if (response.ok) {
-                              const data = await response.json();
-                              toast.success(`Faktura system OK! ${data.stats.total_invoices} fakturor`, { id: t });
-                            } else {
-                              toast.error('Faktura system ej tillgängligt', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid kontroll av faktura system', { id: t });
-                          }
-                        }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Kontrollera status
-                      </Button>
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Skapar test faktura...');
-                          try {
-                            const response = await fetch('/api/admin/invoices', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                type: 'custom',
-                                customerName: 'Test Kund',
-                                customerEmail: 'test@example.com',
-                                description: 'Test faktura',
-                                amount: 100,
-                                items: [{
-                                  description: 'Test tjänst',
-                                  quantity: 1,
-                                  unitPrice: 100
-                                }]
-                              })
-                            });
-                            if (response.ok) {
-                              const data = await response.json();
-                              toast.success(`Test faktura skapad: ${data.invoice.invoice_number}`, { id: t });
-                            } else {
-                              toast.error('Kunde inte skapa test faktura', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid skapande av test faktura', { id: t });
-                          }
-                        }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Skapa test faktura
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                      <SettingsIcon className="w-4 h-4" />
-                      Databas setup
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                      Initiera faktura tabeller och funktioner i databasen
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Initierar faktura system...');
-                          try {
-                            const response = await fetch('/api/admin/settings/init-invoice-system', {
-                              method: 'POST'
-                            });
-                            if (response.ok) {
-                              const data = await response.json();
-                              toast.success(data.message, { id: t });
-                            } else {
-                              const error = await response.json();
-                              toast.error(error.error || 'Misslyckades att initiera faktura system', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid initiering av faktura system', { id: t });
-                          }
-                        }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <SettingsIcon className="w-4 h-4 mr-2" />
-                        Initiera system
-                      </Button>
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Återställer faktura system...');
-                          try {
-                            const response = await fetch('/api/admin/settings/reset-invoice-system', {
-                              method: 'POST'
-                            });
-                            if (response.ok) {
-                              const data = await response.json();
-                              toast.success(data.message, { id: t });
-                            } else {
-                              const error = await response.json();
-                              toast.error(error.error || 'Misslyckades att återställa faktura system', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid återställning av faktura system', { id: t });
-                          }
-                        }}
-                        className="bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Återställ system
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">📋 Integration med bokningssystem</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    Konfigurera hur fakturor automatiskt skapas från bokningar
-                  </p>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-white">Automatisk fakturering</Label>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={settings.invoice_auto_create || false}
-                          onCheckedChange={(checked) => updateSetting('invoice_auto_create', checked)}
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {settings.invoice_auto_create ? 'Aktiverad' : 'Inaktiverad'}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sticky Save Banner */}
+        {hasUnsavedChanges && (
+          <div
+            id="sticky-banner"
+            className="fixed top-0 left-0 z-50 flex justify-between w-full p-4 border-b border-gray-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800"
+          >
+            <div className="flex items-center mx-auto">
+              <p className="flex items-center text-sm font-normal text-amber-800 dark:text-amber-200">
+                <span className="inline-flex p-1 mr-3 bg-amber-200 rounded-full dark:bg-amber-800 w-6 h-6 items-center justify-center shrink-0">
+                  <AlertTriangle className="w-3 h-3" />
                         </span>
+                <span>Du har osparade ändringar - kom ihåg att spara innan du lämnar sidan</span>
+              </p>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">Förfallodatum (dagar)</Label>
-                      <Input
-                        type="number"
-                        value={settings.invoice_due_days || 30}
-                        onChange={(e) => updateSetting('invoice_due_days', parseInt(e.target.value) || 30)}
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">Påminnelse (dagar)</Label>
-                      <Input
-                        type="number"
-                        value={settings.invoice_reminder_days || 7}
-                        onChange={(e) => updateSetting('invoice_reminder_days', parseInt(e.target.value) || 7)}
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* PDF Configuration */}
-            <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                  <Download className="w-5 h-5" />
-                  PDF-konfiguration
-                </CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-300">
-                  Konfigurera utseende och innehåll för faktura-PDF:er
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-white">Företagsnamn</Label>
-                    <Input
-                      value={settings.invoice_company_name || settings.schoolname || ''}
-                      onChange={(e) => updateSetting('invoice_company_name', e.target.value)}
-                      className="bg-white/10 border-white/20 text-white"
-                      placeholder="Din Trafikskola Hässleholm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white">Företagsadress</Label>
-                    <Input
-                      value={settings.invoice_company_address || ''}
-                      onChange={(e) => updateSetting('invoice_company_address', e.target.value)}
-                      className="bg-white/10 border-white/20 text-white"
-                      placeholder="Storgatan 1, 281 31 Hässleholm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white">Företags telefon</Label>
-                    <Input
-                      value={settings.invoice_company_phone || settings.school_phonenumber || ''}
-                      onChange={(e) => updateSetting('invoice_company_phone', e.target.value)}
-                      className="bg-white/10 border-white/20 text-white"
-                      placeholder="040-123 45 67"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-white">Företags e-post</Label>
-                    <Input
-                      value={settings.invoice_company_email || settings.school_email || ''}
-                      onChange={(e) => updateSetting('invoice_company_email', e.target.value)}
-                      className="bg-white/10 border-white/20 text-white"
-                      placeholder="info@dintrafikskolahlm.se"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={async () => {
-                      const t = toast.loading('Genererar test PDF...');
-                      try {
-                        const response = await fetch('/api/admin/invoices/test-pdf', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            companyName: settings.invoice_company_name || settings.schoolname,
-                            companyAddress: settings.invoice_company_address,
-                            companyPhone: settings.invoice_company_phone || settings.school_phonenumber,
-                            companyEmail: settings.invoice_company_email || settings.school_email
-                          })
-                        });
-                        if (response.ok) {
-                          const blob = await response.blob();
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.style.display = 'none';
-                          a.href = url;
-                          a.download = 'test-faktura.pdf';
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          toast.success('Test PDF genererad och nedladdad!', { id: t });
-                        } else {
-                          toast.error('Kunde inte generera test PDF', { id: t });
-                        }
-                      } catch (error) {
-                        toast.error('Fel vid generering av test PDF', { id: t });
-                      }
-                    }}
-                    className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Generera test PDF
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      updateSetting('invoice_company_name', settings.schoolname || '');
-                      updateSetting('invoice_company_address', '');
-                      updateSetting('invoice_company_phone', settings.school_phonenumber || '');
-                      updateSetting('invoice_company_email', settings.school_email || '');
-                      toast.success('Företagsinformation kopierad från skolinformation');
-                    }}
-                    className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Kopiera från skola
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Payment Integration Setup */}
-            <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-gray-900 dark:text-white font-bold flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  Betalningsintegration
-                </CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-300">
-                  Konfigurera betalningsmetoder och integrationer
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">💳 Swish integration</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                      Konfigurera Swish för fakturabetalningar
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Testar Swish integration...');
-                          try {
-                            const response = await fetch('/api/payments/swish/test', {
-                              method: 'POST'
-                            });
-                            if (response.ok) {
-                              toast.success('Swish integration fungerar!', { id: t });
-                            } else {
-                              toast.error('Swish integration fungerar inte', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid test av Swish integration', { id: t });
-                          }
-                        }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Testa Swish
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">🛒 Qliro integration</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                      Konfigurera Qliro för fakturabetalningar
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          const t = toast.loading('Testar Qliro integration...');
-                          try {
-                            const response = await fetch('/api/payments/qliro/test', {
-                              method: 'POST'
-                            });
-                            if (response.ok) {
-                              toast.success('Qliro integration fungerar!', { id: t });
-                            } else {
-                              toast.error('Qliro integration fungerar inte', { id: t });
-                            }
-                          } catch (error) {
-                            toast.error('Fel vid test av Qliro integration', { id: t });
-                          }
-                        }}
-                        className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Testa Qliro
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">🔄 Betalningsflöde</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    Konfigurera hur betalningar hanteras i faktura systemet
-                  </p>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-white">Automatisk bekräftelse</Label>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={settings.payment_auto_confirm || false}
-                          onCheckedChange={(checked) => updateSetting('payment_auto_confirm', checked)}
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {settings.payment_auto_confirm ? 'Aktiverad' : 'Inaktiverad'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">Callback URL</Label>
-                      <Input
-                        value={settings.payment_callback_url || ''}
-                        onChange={(e) => updateSetting('payment_callback_url', e.target.value)}
-                        className="bg-white/10 border-white/20 text-white"
-                        placeholder="https://dintrafikskolahlm.se/api/payments/callback"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-white">Timeout (minuter)</Label>
-                      <Input
-                        type="number"
-                        value={settings.payment_timeout_minutes || 30}
-                        onChange={(e) => updateSetting('payment_timeout_minutes', parseInt(e.target.value) || 30)}
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Email Settings Tab */}
-        <TabsContent value="email">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <CardTitle className="text-white font-extrabold drop-shadow">E-postinställningar</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">
-                Konfigurera hur e-postmeddelanden skickas från systemet
-              </CardDescription>
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 text-sm text-amber-400">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                    Osparade ändringar
-                  </div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setHasUnsavedChanges(false)}
+                className="text-amber-800 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 rounded-lg dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <Disc className="w-4 h-4 mr-2" />
+                    Spara ändringar
+                  </>
                 )}
-                <button onClick={() => setEditEmail((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20">
-                  <Edit className="w-4 h-4 text-white" />
-                </button>
-                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
-                  <Save className="w-4 h-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className={`space-y-6 ${editEmail ? '' : 'opacity-60 pointer-events-none'}`}> 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="use-sendgrid">Använd SendGrid</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aktivera SendGrid för e-postutskick.
-                  </p>
+              </button>
                 </div>
-                <Switch
-                  id="use-sendgrid"
+                    </div>
+        )}
+
+        {/* Main Content */}
+        <div className={`space-y-6 ${hasUnsavedChanges ? 'mt-20' : ''}`}>
+          {/* Flowbite Tabs */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8 px-6" aria-label="Tabs">
+                {[
+                  { id: 'email', label: 'E-post', icon: Mail },
+                  { id: 'school', label: 'Skola', icon: Building },
+                                  { id: 'site', label: 'Webbplats', icon: Globe },
+                    { id: 'payment', label: 'Betalning', icon: CreditCard },
+                    { id: 'setup', label: 'Inställningar', icon: SettingsIcon },
+                    { id: 'useful', label: 'Nyttigt', icon: SettingsIcon },
+                    { id: 'troubleshooting', label: 'Felsökning', icon: AlertTriangle }
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                        activeTab === tab.id
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-600 dark:border-blue-500'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+                </div>
+
+            <div className="p-6">
+              {/* Email Tab */}
+              {activeTab === 'email' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">E-postinställningar</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Konfigurera hur e-postmeddelanden skickas från systemet
+                    </p>
+                      </div>
+
+                  <div className="grid gap-6">
+                    {/* SendGrid Settings */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white">SendGrid</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Använd SendGrid för e-postutskick</p>
+                  </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
                   checked={settings.use_sendgrid}
-                  onCheckedChange={(checked) => {
-                    updateSetting('use_sendgrid', checked);
-                    if (checked) updateSetting('use_smtp', false);
-                  }}
-                />
-              </div>
-
-                             <div className="flex items-center justify-between">
-                 <div className="space-y-0.5">
-                   <Label htmlFor="use-smtp">Använd SMTP</Label>
-                   <p className="text-sm text-muted-foreground">
-                     Aktivera SMTP för e-postutskick.
-                   </p>
-                 </div>
-                 <Switch
-                   id="use-smtp"
-                   checked={settings.use_smtp}
-                   onCheckedChange={(checked) => {
-                     updateSetting('use_smtp', checked);
-                     if (checked) updateSetting('use_sendgrid', false);
-                   }}
-                 />
-               </div>
-
-               <div className="flex items-center justify-between">
-                 <div className="space-y-0.5">
-                   <Label htmlFor="force-internal-only">Tvinga intern meddelande</Label>
-                   <p className="text-sm text-muted-foreground">
-                     Använd endast intern meddelande (för testning).
-                   </p>
-                 </div>
-                 <Switch
-                   id="force-internal-only"
-                   checked={settings.force_internal_only}
-                   onCheckedChange={(checked) => updateSetting('force_internal_only', checked)}
-                 />
+                            onChange={(e) => {
+                              updateSetting('use_sendgrid', e.target.checked);
+                              if (e.target.checked) updateSetting('use_smtp', false);
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
                </div>
 
               {settings.use_sendgrid && (
-                <div className="space-y-4 pt-4 border-t border-white/10">
-                  <div className="space-y-2">
-                    <Label htmlFor="sendgrid-api-key">
-                      <Key className="w-4 h-4 inline mr-2" />
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                       SendGrid API-nyckel
-                    </Label>
-                    <Input
-                      id="sendgrid-api-key"
+                            </label>
+                            <input
                       type="password"
-                      placeholder="SG.xxxxxxxxxxxxxxxxxxxxxx"
                       value={settings.sendgrid_api_key}
                       onChange={(e) => updateSetting('sendgrid_api_key', e.target.value)}
+                              placeholder="SG.xxxxxxxxxxxxxxxxxxxxxx"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
                 </div>
               )}
+                    </div>
+
+                    {/* SMTP Settings */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white">SMTP</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Använd SMTP för e-postutskick</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={settings.use_smtp}
+                            onChange={(e) => {
+                              updateSetting('use_smtp', e.target.checked);
+                              if (e.target.checked) updateSetting('use_sendgrid', false);
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
 
               {settings.use_smtp && (
-                <div className="space-y-4 pt-4 border-t border-white/10">
-                  <div className="space-y-2">
-                    <Label htmlFor="smtp-host">
-                      <Building className="w-4 h-4 inline mr-2" />
-                      SMTP Server
-                    </Label>
-                    <Input
-                      id="smtp-host"
-                      placeholder="mailcluster.loopia.se"
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                              SMTP-server
+                            </label>
+                            <input
+                              type="text"
                       value={settings.smtp_host}
                       onChange={(e) => updateSetting('smtp_host', e.target.value)}
+                              placeholder="mailcluster.loopia.se"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="smtp-port">
-                      <Key className="w-4 h-4 inline mr-2" />
-                      SMTP Port
-                    </Label>
-                    <Input
-                      id="smtp-port"
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                              Port
+                            </label>
+                            <input
                       type="number"
-                      placeholder="587"
                       value={settings.smtp_port}
-                      onChange={(e) => updateSetting('smtp_port', parseInt(e.target.value) || 587)}
+                              onChange={(e) => updateSetting('smtp_port', parseInt(e.target.value))}
+                              placeholder="587"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="smtp-username">
-                      <User className="w-4 h-4 inline mr-2" />
-                      SMTP Användare
-                    </Label>
-                    <Input
-                      id="smtp-username"
-                      placeholder="admin@dintrafikskolahlm.se"
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                              Användarnamn
+                            </label>
+                            <input
+                              type="text"
                       value={settings.smtp_username}
                       onChange={(e) => updateSetting('smtp_username', e.target.value)}
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="smtp-password">
-                      <Key className="w-4 h-4 inline mr-2" />
-                      SMTP Lösenord
-                    </Label>
-                    <Input
-                      id="smtp-password"
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                              Lösenord
+                            </label>
+                            <input
                       type="password"
-                      placeholder="Ditt SMTP lösenord"
                       value={settings.smtp_password}
                       onChange={(e) => updateSetting('smtp_password', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="smtp-secure">SMTP Secure (TLS/SSL)</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Aktivera säker anslutning för SMTP
-                      </p>
-                    </div>
-                    <Switch
-                      id="smtp-secure"
-                      checked={settings.smtp_secure}
-                      onCheckedChange={(checked) => updateSetting('smtp_secure', checked)}
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
                 </div>
               )}
+                    </div>
 
-              <div className="space-y-4 pt-4 border-t border-white/10">
-                <div className="space-y-2">
-                  <Label htmlFor="from-name">
-                    <User className="w-4 h-4 inline mr-2" />
-                    Avsändarnamn
-                  </Label>
-                  <Input
-                    id="from-name"
-                    placeholder="Din Trafikskola Hässleholm"
+                    {/* General Email Settings */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Allmänna e-postinställningar</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Från namn
+                          </label>
+                          <input
+                            type="text"
                     value={settings.from_name}
                     onChange={(e) => updateSetting('from_name', e.target.value)}
+                            placeholder="Din Trafikskola"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="from-email">
-                    <AtSign className="w-4 h-4 inline mr-2" />
-                    Avsändare-post
-                  </Label>
-                  <Input
-                    id="from-email"
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Från e-post
+                          </label>
+                          <input
                     type="email"
-                    placeholder="noreply@dintrafikskolahlm.se"
                     value={settings.from_email}
                     onChange={(e) => updateSetting('from_email', e.target.value)}
+                            placeholder="info@dintrafikskola.se"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="reply-to">
-                    <MessageSquare className="w-4 h-4 inline mr-2" />
-                    Svara till e-post
-                  </Label>
-                  <Input
-                    id="reply-to"
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Svara till
+                          </label>
+                          <input
                     type="email"
-                    placeholder="info@dintrafikskolahlm.se"
                     value={settings.reply_to}
                     onChange={(e) => updateSetting('reply_to', e.target.value)}
+                            placeholder="info@dintrafikskola.se"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="school-email">
-                    <Building className="w-4 h-4 inline mr-2" />
-                    Skolans e-postadress
-                  </Label>
-                  <Input
-                    id="school-email"
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Skolans e-post
+                          </label>
+                          <input
                     type="email"
-                    placeholder="info@dintrafikskolahlm.se"
                     value={settings.school_email}
                     onChange={(e) => updateSetting('school_email', e.target.value)}
+                            placeholder="skolan@dintrafikskola.se"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    Används för kontaktformulär och systemmeddelanden
-                  </p>
                 </div>
-
-                                 {/* Initialize School Email Button */}
-                  {/* moved to Nyttigt tab */}
-
-                 {/* Initialize All Email Settings Button */}
-                  {/* moved to Nyttigt tab */}
-
-                 {/* Add Swish Payment Template Button */}
-                  {/* moved to Nyttigt tab */}
-
-                 {/* Add Enum Value Button */}
-                  {/* moved to Nyttigt tab */}
-
-                 {/* Test Swish Confirmation Button */}
-                  {/* moved to Nyttigt tab */}
-
-                 {/* Update Swish Template Receiver Button */}
-                 {/* moved to Nyttigt tab */}
-
-                 {/* Add School Receiver Type Button */}
-                 {/* moved to Nyttigt tab */}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        
-
-        {/* School Information Tab */}
-        <TabsContent value="school">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <CardTitle>Skolinformation</CardTitle>
-              <CardDescription>
-                Grundläggande information om trafikskolan
-              </CardDescription>
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 text-sm text-amber-400">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                    Osparade ändringar
+                  </div>
+              </div>
                   </div>
                 )}
-                <button onClick={() => setEditSchool((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
-                  <Save className="w-4 h-4" />
-                </button>
+
+              {/* School Tab */}
+              {activeTab === 'school' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Skolinformation</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Grundläggande information om skolan
+                    </p>
               </div>
-            </CardHeader>
-            <CardContent className={`space-y-6 ${editSchool ? '' : 'opacity-60 pointer-events-none'}`}> 
-              <div className="space-y-2">
-                <Label htmlFor="schoolname">
-                  <Building className="w-4 h-4 inline mr-2" />
+
+                  <div className="grid gap-6">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Kontaktinformation</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                   Skolnamn
-                </Label>
-                <Input
-                  id="schoolname"
-                  placeholder="Din Trafikskola Hässleholm"
+                          </label>
+                          <input
+                            type="text"
                   value={settings.schoolname}
                   onChange={(e) => updateSetting('schoolname', e.target.value)}
+                            placeholder="Din Trafikskola Hässleholm"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
-                <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Används i e-postmeddelanden och på webbplatsen
                 </p>
+                        </div>
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Telefonnummer
+                          </label>
+                          <input
+                            type="tel"
+                            value={settings.school_phonenumber}
+                            onChange={(e) => updateSetting('school_phonenumber', e.target.value)}
+                            placeholder="040-123 45 67"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                          />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Används i e-postmeddelanden och kontaktinformation
+                          </p>
+                        </div>
+                      </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="school-email">
-                  <AtSign className="w-4 h-4 inline mr-2" />
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">E-postadress</h4>
+                      <div>
+                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                   Skolans e-postadress
-                </Label>
-                <Input
-                  id="school-email"
+                        </label>
+                        <input
                   type="email"
-                  placeholder="info@dintrafikskolahlm.se"
                   value={settings.school_email}
                   onChange={(e) => updateSetting('school_email', e.target.value)}
+                          placeholder="info@dintrafikskola.se"
+                          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
-                <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Används för kontaktformulär och systemmeddelanden
                 </p>
+                      </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="school-phonenumber">
-                  <Phone className="w-4 h-4 inline mr-2" />
-                  Skolans telefonnummer
-                </Label>
-                <Input
-                  id="school-phonenumber"
-                  placeholder="040-123 45 67"
-                  value={settings.school_phonenumber}
-                  onChange={(e) => updateSetting('school_phonenumber', e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Används i e-postmeddelanden och kontaktinformation
-                </p>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white">Interna meddelanden</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Aktivera interna meddelanden i systemet</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={settings.internal_messages_enabled}
+                            onChange={(e) => updateSetting('internal_messages_enabled', e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
               </div>
-
-              <div className="pt-4 border-t">
-                <div className="space-y-2">
-                  <Button
-                    onClick={initializeSchoolPhonenumber}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <Phone className="w-4 h-4 mr-2" />
-                    Initiera skolans telefonnummer
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Lägger till telefonnummer-inställningen i databasen om den inte finns
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Stäng av för att dölja interna meddelanden och sluta räkna olästa
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Site Settings Tab */}
-        <TabsContent value="site">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <CardTitle>Webbplatsinställningar</CardTitle>
-              <CardDescription>
-                Allmänna inställningar för webbplatsen
-              </CardDescription>
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 text-sm text-amber-400">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                    Osparade ändringar
                   </div>
                 )}
-                <button onClick={() => setEditSite((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
-                  <Save className="w-4 h-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className={`space-y-4 ${editSite ? '' : 'opacity-60 pointer-events-none'}`}> 
-              <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-between">
+
+              {/* Site Tab */}
+              {activeTab === 'site' && (
+                <div className="space-y-6">
                 <div>
-                  <Label htmlFor="internal-messages-enabled" className="text-white">Interna meddelanden</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">Stäng av för att dölja interna meddelanden och sluta räkna olästa</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Webbplatsinställningar</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Allmänna inställningar för webbplatsen
+                    </p>
                 </div>
-                <Switch
-                  id="internal-messages-enabled"
-                  checked={settings.internal_messages_enabled}
-                  onCheckedChange={(checked) => updateSetting('internal_messages_enabled', checked)}
-                />
-              </div>
-              {/* Google Maps API Key */}
-              <div className="space-y-2">
-                <Label htmlFor="google-maps-api-key">
-                  <Key className="w-4 h-4 inline mr-2" />
-                  Google Maps API-nyckel
-                </Label>
-                <Input
-                  id="google-maps-api-key"
-                  type="password"
-                  placeholder="AIza..."
-                  value={settings.google_maps_api_key || ''}
-                  onChange={(e) => updateSetting('google_maps_api_key', e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">Används för kartor och vägbeskrivning på betalnings- och informationssidor.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="site-name">
-                  <Building className="w-4 h-4 inline mr-2" />
+
+                  <div className="grid gap-6">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Grundläggande information</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                   Webbplatsnamn
-                </Label>
-                <Input
-                  id="site-name"
-                  placeholder="Din Trafikskola Hässleholm"
+                          </label>
+                          <input
+                            type="text"
                   value={settings.site_name}
                   onChange={(e) => updateSetting('site_name', e.target.value)}
+                            placeholder="Din Trafikskola Hässleholm"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="public-app-url">
-                  <Globe className="w-4 h-4 inline mr-2" />
-                  Publik webb-URL (https)
-                </Label>
-                <Input
-                  id="public-app-url"
-                  placeholder="https://www.dintrafikskolahlm.se"
-                  value={settings.public_app_url || ''}
-                  onChange={(e) => updateSetting('public_app_url', e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Används för leverantörs-callbacks (Qliro) och e-postlänkar. Måste vara https utan port.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="site-domain">
-                  <Globe className="w-4 h-4 inline mr-2" />
+                        <div>
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                   Webbplatsdomän
-                </Label>
-                <Input
-                  id="site-domain"
-                  placeholder="https://dintrafikskolahlm.se"
+                          </label>
+                          <input
+                            type="text"
                   value={settings.site_domain}
                   onChange={(e) => updateSetting('site_domain', e.target.value)}
+                            placeholder="https://dintrafikskola.se"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
-                <p className="text-sm text-muted-foreground">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Används för att generera länkar i e-postmeddelanden
                 </p>
               </div>
+                        <div className="md:col-span-2">
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Offentlig URL (https)
+                          </label>
+                          <input
+                            type="url"
+                            value={settings.public_app_url}
+                            onChange={(e) => updateSetting('public_app_url', e.target.value)}
+                            placeholder="https://www.dintrafikskola.se"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                          />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Används för leverantörs-callbacks (Qliro) och e-postlänkar. Måste vara https utan port.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Sociala medier</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Facebook-länk</Label>
-                  <Input value={settings.social_facebook || ''} onChange={(e) => updateSetting('social_facebook', e.target.value)} placeholder="https://facebook.com/dinskola" />
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Facebook-länk
+                          </label>
+                          <input
+                            type="url"
+                            value={settings.social_facebook}
+                            onChange={(e) => updateSetting('social_facebook', e.target.value)}
+                            placeholder="https://facebook.com/dinskola"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                          />
                 </div>
                 <div>
-                  <Label>Instagram-länk</Label>
-                  <Input value={settings.social_instagram || ''} onChange={(e) => updateSetting('social_instagram', e.target.value)} placeholder="https://instagram.com/dinskola" />
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Instagram-länk
+                          </label>
+                          <input
+                            type="url"
+                            value={settings.social_instagram}
+                            onChange={(e) => updateSetting('social_instagram', e.target.value)}
+                            placeholder="https://instagram.com/dinskola"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                          />
                 </div>
                 <div>
-                  <Label>TikTok-länk</Label>
-                  <Input value={settings.social_tiktok || ''} onChange={(e) => updateSetting('social_tiktok', e.target.value)} placeholder="https://tiktok.com/@dinskola" />
+                          <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            TikTok-länk
+                          </label>
+                          <input
+                            type="url"
+                            value={settings.social_tiktok}
+                            onChange={(e) => updateSetting('social_tiktok', e.target.value)}
+                            placeholder="https://tiktok.com/@dinskola"
+                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                          />
+                        </div>
                 </div>
               </div>
 
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Google Maps</h4>
+                      <div>
+                        <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                          Google Maps API-nyckel
+                        </label>
+                        <input
+                          type="text"
+                          value={settings.google_maps_api_key}
+                          onChange={(e) => updateSetting('google_maps_api_key', e.target.value)}
+                          placeholder="AIza..."
+                          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Krävs för att visa kartor på betalnings- och informationssidor.
+                        </p>
+                        </div>
+                          </div>
+                        </div>
+                          </div>
+              )}
 
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Useful Tab: collect setup/init/test actions */}
-        <TabsContent value="useful">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-white font-extrabold drop-shadow">Nyttigt</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">Snabbåtgärder för initiering och test</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid md:grid-cols-2 gap-3">
-                <Button onClick={initializeSchoolEmail} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <SettingsIcon className="w-4 h-4 mr-2" /> Initiera skolans e-postinställning
-                </Button>
-                <Button onClick={initializeAllEmailSettings} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <SettingsIcon className="w-4 h-4 mr-2" /> Initiera alla e-postinställningar
-                </Button>
-                <Button onClick={initializeSchoolPhonenumber} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <Phone className="w-4 h-4 mr-2" /> Initiera skolans telefonnummer
-                </Button>
-                <Button onClick={addSwishPaymentTemplate} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <DollarSign className="w-4 h-4 mr-2" /> Lägg till Swish betalningsmall
-                </Button>
-                <Button onClick={addEnumValue} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <SettingsIcon className="w-4 h-4 mr-2" /> Lägg till enum värde
-                </Button>
-                <Button onClick={updateSwishTemplateReceiver} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <AtSign className="w-4 h-4 mr-2" /> Uppdatera Swish mall till skol-e-post
-                </Button>
-                <Button onClick={addSchoolReceiverType} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <AtSign className="w-4 h-4 mr-2" /> Lägg till school receiver type
-                </Button>
-                <Button
-                  onClick={async () => {
-                    const t = toast.loading('Initierar Qliro checkout flow setting...');
-                    try {
-                      const res = await fetch('/api/admin/settings/init-qliro-flow', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera setting');
-                      toast.success('Qliro checkout flow setting initierad!', { id: t });
-                      // Reload settings
-                      fetchSettings();
-                    } catch (error: any) {
-                      toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
-                    }
-                  }}
-                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <CreditCard className="w-4 h-4 mr-2" /> Initiera Qliro Checkout Flow Setting
-                </Button>
-                <Button onClick={testSwishConfirmation} className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <CheckCircle className="w-4 h-4 mr-2" /> Testa Swish bekräftelse
-                </Button>
-                <Button
-                  onClick={async () => {
-                    const appUrl = prompt('Ange APP URL (t.ex. https://dintrafikskolahlm.se)');
-                    const cronSecret = prompt('Ange CRON_SECRET som servern kommer validera');
-                    if (!appUrl || !cronSecret) return;
-                    const t = toast.loading('Sätter upp cron...');
-                    try {
-                      const res = await fetch('/api/admin/system/run-cron-setup', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ appUrl, cronSecret })
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || 'Misslyckades att generera instruktioner');
-                      setCronInfo({
-                        endpoint: data.endpoint,
-                        validated: !!data.validated,
-                        probe: data.probe || { status: 0, body: null },
-                        examples: data.examples,
-                      });
-                      setCronDialogOpen(true);
-                      toast.success(data.validated ? 'Instruktioner klara (validering OK)' : 'Instruktioner klara (validering misslyckades)', { id: t });
-                    } catch (e: any) {
-                      toast.error(e.message || 'Fel vid cron-setup', { id: t });
-                    }
-                  }}
-                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <SettingsIcon className="w-4 h-4 mr-2" /> Sätt upp cron för temp-rensning
-                </Button>
-                {/* Cron instructions dialog */}
-                <Dialog open={cronDialogOpen} onOpenChange={setCronDialogOpen}>
-                  <DialogContent className="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl shadow-2xl max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-white">Cron-instruktioner för temp-rensning</DialogTitle>
-                    </DialogHeader>
-                    {cronInfo ? (
-                      <div className="space-y-4 text-slate-200">
-                        <div className="text-sm">
-                          Endpoint: <code className="bg-black/30 px-1 py-0.5 rounded">{cronInfo.endpoint}</code>
-                          <span className={`ml-2 text-xs ${cronInfo.validated ? 'text-emerald-400' : 'text-amber-400'}`}>
-                            {cronInfo.validated ? 'Validerad' : 'Ej validerad – kontrollera URL/secret'}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">Kör nu (cURL)</div>
-                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.curlNow); toast('Kopierad'); } catch {} }}>
-                              <Copy className="w-4 h-4 mr-1" /> Kopiera
-                            </Button>
-                          </div>
-                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.curlNow}</pre>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">Linux cron (var 5:e minut)</div>
-                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.linuxCron); toast('Kopierad'); } catch {} }}>
-                              <Copy className="w-4 h-4 mr-1" /> Kopiera
-                            </Button>
-                          </div>
-                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.linuxCron}</pre>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">Windows PowerShell (engångskörning)</div>
-                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.windowsPowerShellOneLiner); toast('Kopierad'); } catch {} }}>
-                              <Copy className="w-4 h-4 mr-1" /> Kopiera
-                            </Button>
-                          </div>
-                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.windowsPowerShellOneLiner}</pre>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">Windows Schemalagd uppgift (var 5:e minut)</div>
-                            <Button size="sm" variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(cronInfo.examples.windowsSchtasks); toast('Kopierad'); } catch {} }}>
-                              <Copy className="w-4 h-4 mr-1" /> Kopiera
-                            </Button>
-                          </div>
-                          <pre className="bg-slate-900/60 border border-white/10 rounded p-2 text-xs overflow-auto">{cronInfo.examples.windowsSchtasks}</pre>
-                        </div>
-                    
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setCronDialogOpen(false)}>Stäng</Button>
-                          <Button onClick={async () => {
-                            const all = `# Endpoint\n${cronInfo.endpoint}\n\n# Kör nu (cURL)\n${cronInfo.examples.curlNow}\n\n# Linux cron\n${cronInfo.examples.linuxCron}\n\n# Windows PowerShell\n${cronInfo.examples.windowsPowerShellOneLiner}\n\n# Windows Schemalagd uppgift\n${cronInfo.examples.windowsSchtasks}\n`;
-                            try { await navigator.clipboard.writeText(all); toast('Allt kopierat'); } catch {}
-                          }}>Kopiera allt</Button>
-                        </DialogFooter>
-                      </div>
-                    ) : null}
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payment Settings Tab */}
-        <TabsContent value="payment">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader className="flex flex-row items-start justify-between gap-4">
-              <CardTitle>Betalningsinställningar</CardTitle>
-              <CardDescription>
+              {/* Payment Tab */}
+              {activeTab === 'payment' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Betalningsinställningar</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 Konfigurera betalningsmetoder och API-nycklar
-              </CardDescription>
-              <div className="ml-auto flex items-center gap-2">
-                {hasUnsavedChanges && (
-                  <div className="flex items-center gap-2 text-sm text-amber-400">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                    Osparade ändringar
-                  </div>
-                )}
-                <button onClick={() => setEditPayment((v) => !v)} className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/20 text-white">
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button onClick={saveSettings} disabled={saving || !hasUnsavedChanges} className={`p-2 rounded-lg ${hasUnsavedChanges ? 'bg-green-600/90 hover:bg-green-600' : 'bg-sky-600/90 hover:bg-sky-600'} text-white`}>
-                  <Save className="w-4 h-4" />
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className={`space-y-6 ${editPayment ? '' : 'opacity-60 pointer-events-none'}`}> 
-              {/* Swish Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="swish-enabled">Swish</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Aktivera betalning via Swish
                     </p>
                   </div>
-                  <Switch
-                    id="swish-enabled"
+
+                  <div className="grid gap-6">
+              {/* Swish Settings */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white">Swish</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Aktivera betalning via Swish</p>
+                  </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
                     checked={settings.swish_enabled}
-                    onCheckedChange={(checked) => updateSetting('swish_enabled', checked)}
+                            onChange={(e) => updateSetting('swish_enabled', e.target.checked)}
+                            className="sr-only peer"
                   />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
                 </div>
 
                 {settings.swish_enabled && (
-                  <div className="space-y-2 pl-4">
-                    <Label htmlFor="swish-number">
-                      <Phone className="w-4 h-4 inline mr-2" />
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                       Swish-nummer
-                    </Label>
-                    <Input
-                      id="swish-number"
-                      placeholder="123 456 7890"
+                            </label>
+                            <input
+                              type="tel"
                       value={settings.swish_number}
                       onChange={(e) => updateSetting('swish_number', e.target.value)}
+                              placeholder="1231231231"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
+                          </div>
                   </div>
                 )}
               </div>
 
-              <div className="border-t pt-4" />
-
               {/* Qliro Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="qliro-enabled">Qliro</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Aktivera betalning via Qliro
-                    </p>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white">Qliro</h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Aktivera betalning via Qliro</p>
                   </div>
-                  <Switch
-                    id="qliro-enabled"
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
                     checked={settings.qliro_enabled}
-                    onCheckedChange={(checked) => updateSetting('qliro_enabled', checked)}
+                            onChange={(e) => updateSetting('qliro_enabled', e.target.checked)}
+                            className="sr-only peer"
                   />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
                 </div>
 
                 {settings.qliro_enabled && (
-                  <div className="space-y-4 pl-4">
-                    {/* Environment Selection */}
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center justify-between mb-2">
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <div className="text-white font-semibold">Produktionsmiljö</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-300">Växla mellan utvecklings- och produktionsmiljö</div>
+                              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                API-nyckel
+                              </label>
+                              <input
+                                type="text"
+                                value={settings.qliro_api_key}
+                                onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
+                                placeholder="API-nyckel"
+                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                              />
                         </div>
-                        <Switch
-                          id="qliro-use-prod"
-                          checked={settings.qliro_use_prod_env}
-                          onCheckedChange={(checked) => updateSetting('qliro_use_prod_env', checked)}
+                            <div>
+                              <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                                Merchant ID
+                              </label>
+                              <input
+                                type="text"
+                                value={settings.qliro_merchant_id}
+                                onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
+                                placeholder="Merchant ID"
+                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         />
-                      </div>
-                      <div className="text-sm text-slate-200">
-                        Aktuell miljö: <span className="font-bold">{settings.qliro_use_prod_env ? 'Produktion' : 'Utveckling/Sandbox'}</span>
                       </div>
                     </div>
 
-                    {/* Extended debug toggle */}
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-white font-semibold">Utökad felsökning</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-300">Aktivera extra debug-utskrifter i konsolen för Qliro-flöden</div>
+                              <h5 className="text-sm font-medium text-gray-900 dark:text-white">Sandbox-läge</h5>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Använd testmiljö för Qliro</p>
                         </div>
-                        <Switch id="debug-extended" checked={!!settings.debug_extended_logs} onCheckedChange={(checked) => updateSetting('debug_extended_logs', checked)} />
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={settings.qliro_sandbox}
+                                onChange={(e) => updateSetting('qliro_sandbox', e.target.checked)}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            </label>
                       </div>
                     </div>
+                      )}
+                        </div>
+                              </div>
+                              </div>
+              )}
 
-                    {/* Qliro checkout flow type */}
-                    <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                      <div className="space-y-3">
+              {/* Setup Tab */}
+              {activeTab === 'setup' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Systeminställningar</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Avancerade systeminställningar och felsökningsalternativ
+                    </p>
+                      </div>
+                      
+                  <div className="grid gap-6">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Felsökning</h4>
+                      <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-white font-semibold">Checkout Flow Type</div>
-                          <div className="text-sm text-gray-600 dark:text-gray-300">Välj hur Qliro-checkout ska visas för kunder</div>
+                          <h5 className="text-sm font-medium text-gray-900 dark:text-white">Utökad loggning</h5>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Aktivera detaljerad loggning för felsökning</p>
                         </div>
-                        <Select 
-                          value={settings.qliro_checkout_flow || 'window'} 
-                          onValueChange={(value) => updateSetting('qliro_checkout_flow', value)}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={settings.debug_extended_logs}
+                            onChange={(e) => updateSetting('debug_extended_logs', e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                        </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">E-postinställningar</h4>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-900 dark:text-white">Tvinga interna meddelanden</h5>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Använd endast interna meddelanden (för testning)</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={settings.force_internal_only}
+                              onChange={(e) => updateSetting('force_internal_only', e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                          </label>
+                          </div>
+                          </div>
+                          </div>
+                        </div>
+                      </div>
+              )}
+
+              {/* Useful Tab */}
+              {activeTab === 'useful' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nyttiga verktyg</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Verktyg och funktioner för att hantera systemet
+                    </p>
+                      </div>
+
+                  <div className="grid gap-6">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Systemverktyg</h4>
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => handleNavigation('/dashboard/admin/settings/database-updates')}
+                          className="w-full text-left p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
                         >
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                            <SelectValue placeholder="Välj checkout flow" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="window">
-                              <div className="flex flex-col">
-                                <span className="font-medium">Nytt fönster</span>
-                                <span className="text-sm text-gray-500">Öppnar Qliro i ett nytt webbläsarfönster</span>
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="popup">
-                              <div className="flex flex-col">
-                                <span className="font-medium">Modern popup</span>
-                                <span className="text-sm text-gray-500">Visar Qliro i en modal med steg-för-steg progress</span>
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <div className="flex items-center gap-3">
+                            <SettingsIcon className="w-5 h-5 text-blue-600" />
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-white">Databasuppdateringar</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">Hantera databasändringar och migreringar</div>
+                        </div>
+                        </div>
+                        </button>
+                        <button
+                          onClick={() => handleNavigation('/dashboard/admin/settings/sideditor')}
+                          className="w-full text-left p-3 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 dark:border-red-700 dark:bg-red-900/20 dark:hover:bg-red-900/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Edit className="w-5 h-5 text-red-600" />
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-white">Sideditor</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">Redigera webbplatsinnehåll</div>
+                        </div>
+                        </div>
+                        </button>
                       </div>
                     </div>
-
-                    {/* API URLs Configuration */}
-                    <div className="space-y-4 border-t border-white/10 pt-4">
-                      <h4 className="font-medium text-white">API-konfiguration</h4>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="qliro-dev-api-url">
-                          <Globe className="w-4 h-4 inline mr-2" />
-                          Utvecklings-API URL
-                        </Label>
-                        <Input
-                          id="qliro-dev-api-url"
-                          placeholder="https://playground.qliro.com"
-                          value={settings.qliro_dev_api_url}
-                          onChange={(e) => updateSetting('qliro_dev_api_url', e.target.value)}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="qliro-prod-api-url">
-                          <Globe className="w-4 h-4 inline mr-2" />
-                          Produktions-API URL
-                        </Label>
-                        <Input
-                          id="qliro-prod-api-url"
-                          placeholder="https://api.qliro.com"
-                          value={settings.qliro_prod_api_url}
-                          onChange={(e) => updateSetting('qliro_prod_api_url', e.target.value)}
-                        />
-                      </div>
-                      {/* Computed config URLs helper */}
-                      <div className="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-white font-semibold">Qliro URL-konfiguration</div>
-                          <div className="text-xs text-gray-600 dark:text-gray-300">baserat på Publik webb-URL</div>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-[180px] text-slate-200">Köpvillkor</span>
-                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/kopvillkor'} className="bg-white/10 border-white/20 text-white" />
-                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/kopvillkor'), 'Köpvillkor')}>Kopiera</Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-[180px] text-slate-200">Integritetspolicy</span>
-                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/integritetspolicy'} className="bg-white/10 border-white/20 text-white" />
-                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/integritetspolicy'), 'Integritetspolicy')}>Kopiera</Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-[180px] text-slate-200">Checkout Push</span>
-                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/checkout-push'} className="bg-white/10 border-white/20 text-white" />
-                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/checkout-push'), 'Checkout Push')}>Kopiera</Button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="min-w-[180px] text-slate-200">Order Mgmt Push</span>
-                            <Input readOnly value={(settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/order-management-push'} className="bg-white/10 border-white/20 text-white" />
-                            <Button type="button" variant="outline" size="sm" className="ml-2" onClick={() => copyToClipboard(((settings.public_app_url || '').replace(/\/$/, '') + '/api/payments/qliro/order-management-push'), 'Order Mgmt Push')}>Kopiera</Button>
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-2">Se till att Publik webb-URL är korrekt och börjar med https.</p>
-                      </div>
-                    </div>
-
-                    {/* Credentials */}
-                    <div className="space-y-6 border-t pt-4">
-                      <h4 className="font-medium text-white">Kredentialer</h4>
-
-                      {/* Dev/Sandbox credentials */}
-                      <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 space-y-3">
-                        <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" /> Utvecklings-kredentialer (Sandbox)
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-dev-api-key">
-                            <Key className="w-4 h-4 inline mr-2" />
-                            Dev API-nyckel
-                          </Label>
-                          <Input
-                            id="qliro-dev-api-key"
-                            type="password"
-                            placeholder="Ange din Qliro API-nyckel (dev)"
-                            value={settings.qliro_api_key}
-                            onChange={(e) => updateSetting('qliro_api_key', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-dev-secret">
-                            <Key className="w-4 h-4 inline mr-2" />
-                            Dev API Secret
-                          </Label>
-                          <Input
-                            id="qliro-dev-secret"
-                            type="password"
-                            placeholder="Ange din Qliro API Secret (dev)"
-                            value={settings.qliro_api_secret || settings.qliro_secret || ''}
-                            onChange={(e) => { updateSetting('qliro_api_secret', e.target.value); updateSetting('qliro_secret', e.target.value); }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-dev-merchant-id">
-                            <Building className="w-4 h-4 inline mr-2" />
-                            Dev Merchant ID
-                          </Label>
-                          <Input
-                            id="qliro-dev-merchant-id"
-                            placeholder="Ange ditt Qliro Merchant ID (dev)"
-                            value={settings.qliro_merchant_id}
-                            onChange={(e) => updateSetting('qliro_merchant_id', e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Prod credentials */}
-                      <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 space-y-3">
-                        <div className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                          <span className="inline-flex h-2 w-2 rounded-full bg-rose-400" /> Produktions-kredentialer
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-prod-api-key">
-                            <Key className="w-4 h-4 inline mr-2" />
-                            Prod API-nyckel
-                          </Label>
-                          <Input
-                            id="qliro-prod-api-key"
-                            type="password"
-                            placeholder="Ange din Qliro API-nyckel (prod)"
-                            value={settings.qliro_prod_api_key}
-                            onChange={(e) => updateSetting('qliro_prod_api_key', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-prod-secret">
-                            <Key className="w-4 h-4 inline mr-2" />
-                            Prod API Secret
-                          </Label>
-                          <Input
-                            id="qliro-prod-secret"
-                            type="password"
-                            placeholder="Ange din Qliro API Secret (prod)"
-                            value={settings.qliro_prod_api_secret || ''}
-                            onChange={(e) => updateSetting('qliro_prod_api_secret', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="qliro-prod-merchant-id">
-                            <Building className="w-4 h-4 inline mr-2" />
-                            Prod Merchant ID
-                          </Label>
-                          <Input
-                            id="qliro-prod-merchant-id"
-                            placeholder="Ange ditt Qliro Merchant ID (prod)"
-                            value={settings.qliro_prod_merchant_id}
-                            onChange={(e) => updateSetting('qliro_prod_merchant_id', e.target.value)}
-                          />
-                        </div>
-                        <p className="text-xs text-slate-400">Produktion används när växeln "Produktionsmiljö" är påslagen.</p>
-                      </div>
-                    </div>
-                    
-                    {/* Legacy Sandbox Toggle - kept for compatibility */}
-                    <div className="flex items-center justify-between opacity-50">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="qliro-sandbox">Legacy Sandbox-läge</Label>
-                        <p className="text-sm text-muted-foreground">
-                          (Använd miljöväxlaren ovan istället)
-                        </p>
-                      </div>
-                      <Switch
-                        id="qliro-sandbox"
-                        checked={settings.qliro_sandbox}
-                        onCheckedChange={(checked) => updateSetting('qliro_sandbox', checked)}
-                        disabled
-                      />
                     </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-{/* Qliro Test Dialog */}
-<QliroPaymentDialog
-  isOpen={qliroTestOpen}
-  onClose={() => setQliroTestOpen(false)}
-  purchaseId="test-purchase-id"
-  amount={100}  // Dummy amount for testing
-  checkoutUrl="https://qliro.mock.checkout"  // Dummy URL for testing
-  onConfirm={() => toast.success('Qliro Test Payment Confirmed')}
-/>
 
 {/* Troubleshooting Tab */}
-        <TabsContent value="troubleshooting">
-          <Card className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-white font-extrabold drop-shadow">Felsökning</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">Diagnostik och tester</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="test-user-id" className="text-slate-200">Test Användar-ID</Label>
-                <Input id="test-user-id" value={testUserId} onChange={(e) => setTestUserId(e.target.value)} placeholder="Ange användar-ID för test" className="bg-white/10 border-white/20 text-white placeholder:text-slate-400" />
+              {activeTab === 'troubleshooting' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Felsökning</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                      Verktyg för att felsöka och diagnostisera problem
+                    </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={runTests} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  {testing ? (<><OrbSpinner size="sm" className="mr-2" />Kör test...</>) : 'Kör krediterings-API-test'}
-                </Button>
-                <Button onClick={testQliroPayment} disabled={testing || !testUserId} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <CreditCard className="w-4 h-4 mr-2" /> Test Qliro Payment
-                </Button>
-                <Button onClick={testSendGridEmail} disabled={testing || !testUserId} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <Mail className="w-4 h-4 mr-2" /> Testa SendGrid
-                </Button>
-                <Button onClick={testContactEmail} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär
-                </Button>
-                <Button onClick={testContactEmailDesign} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <Mail className="w-4 h-4 mr-2" /> Testa Kontaktformulär Design
-                </Button>
-                <Button onClick={testExportFunctions} disabled={testing} className="border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
-                  <DollarSign className="w-4 h-4 mr-2" /> Testa Export-funktioner
-                </Button>
-                <Button
-                  onClick={async () => {
-                    const t = toast.loading('Initierar TinyMCE API-nyckel...');
-                    try {
-                      const res = await fetch('/api/admin/settings/add-tinymce-api-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' }
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || 'Misslyckades att initiera TinyMCE API-nyckel');
-                      toast.success(data.message, { id: t });
-                      // Reload settings
-                      fetchSettings();
-                    } catch (error: any) {
-                      toast.error(`Fel: ${error.message || 'Okänt fel'}`, { id: t });
-                    }
-                  }}
-                  className="w-full border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  <Edit className="w-4 h-4 mr-2" /> Initiera TinyMCE API-nyckel
-                </Button>
-              </div>
-              <div className="text-sm text-slate-200 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                <p className="font-semibold">Observera:</p>
-                <ul className="list-disc list-inside space-y-1 mt-2">
-                  <li>Krediterings-testet kontrollerar att API:et fungerar korrekt</li>
-                  <li>SendGrid-testet skickar en e-post till användarens e-postadress</li>
-                  <li>Export-testet kontrollerar att alla export-funktioner fungerar för både lärare och admin</li>
-                  <li>Se konsolen för detaljerade loggmeddelanden</li>
-                  <li>Toast-notifieringar visar testresultat</li>
-                </ul>
-              </div>
-              {testResults.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Test Resultat:</h4>
-                  {testResults.map((result, index) => (
-                    <div key={index} className={`p-4 rounded-xl border ${result.success ? 'border-green-500/50 bg-green-500/10' : 'border-rose-500/50 bg-rose-500/10'}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <strong className="text-white">{result.method} {result.endpoint}</strong>
-                        <span className={`px-2 py-1 rounded text-sm ${result.success ? 'bg-green-600 text-white' : 'bg-rose-600 text-white'}`}>
-                          {result.status} {result.success ? 'OK' : 'Fel'}
-                        </span>
-                      </div>
-                      <pre className="bg-white/5 border border-white/10 p-2 rounded overflow-x-auto text-xs text-slate-200">
-                        {JSON.stringify(result.data, null, 2)}
-                      </pre>
-                      {result.error && (
-                        <p className="mt-2 text-rose-300">Error: {result.error}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {exportTestResults && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Export Test Resultat:</h4>
-                  <pre className="bg-white/5 border border-white/10 p-2 rounded overflow-x-auto text-xs text-slate-200">
-                    {JSON.stringify(exportTestResults, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
 
-      {/* Save Button */}
-      <div className="mt-6 flex justify-end">
-        {hasUnsavedChanges && (
-          <div className="flex items-center gap-2 text-sm text-amber-400 mr-4">
-            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-            Osparade ändringar
+                  <div className="grid gap-6">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-4">Systemdiagnostik</h4>
+                      <div className="space-y-3">
+                        <button
+                  onClick={async () => {
+                            const t = toast.loading('Kontrollerar systemstatus...');
+                            try {
+                              const response = await fetch('/api/admin/invoices');
+                              if (response.ok) {
+                                const data = await response.json();
+                                toast.success(`System OK! ${data.stats.total_invoices} fakturor`, { id: t });
+                              } else {
+                                toast.error('Systemfel upptäckt', { id: t });
+                              }
+                            } catch (error) {
+                              toast.error('Kunde inte kontrollera systemstatus', { id: t });
+                            }
+                          }}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white">Kontrollera systemstatus</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">Verifiera att alla tjänster fungerar korrekt</div>
+              </div>
+                        </button>
+              </div>
+                      </div>
+                    </div>
+                </div>
+              )}
+                </div>
           </div>
-        )}
-        <Button 
-          onClick={saveSettings} 
-          disabled={saving || !hasUnsavedChanges}
-          className={`${hasUnsavedChanges ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
-        >
-          {saving ? (
-            <OrbSpinner size="sm" className="mr-2" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          Spara inställningar
-        </Button>
+        </div>
+      </div>
+
+      {/* Exit Warning Dialog */}
+      {showExitWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Osparade ändringar</h3>
+          </div>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Du har gjort ändringar som inte har sparats. Är du säker på att du vill lämna sidan? Dina ändringar kommer att gå förlorade.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelExit}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={confirmExit}
+                className="flex-1 px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Lämna ändå
+              </button>
         </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
-
-
-

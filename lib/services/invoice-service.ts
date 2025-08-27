@@ -197,4 +197,57 @@ export class InvoiceService {
       return { success: false, error: error.message };
     }
   }
+
+  async getInvoiceStats() {
+    try {
+      const [totalInvoices] = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(invoices);
+
+      const [paidInvoices] = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(invoices)
+        .where(eq(invoices.status, 'paid'));
+
+      const [pendingInvoices] = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(invoices)
+        .where(eq(invoices.status, 'pending'));
+
+      const [overdueInvoices] = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(invoices)
+        .where(eq(invoices.status, 'overdue'));
+
+      const [totalAmount] = await db
+        .select({ sum: sql`SUM(${invoices.amount})` })
+        .from(invoices);
+
+      const [paidAmount] = await db
+        .select({ sum: sql`SUM(${invoices.amount})` })
+        .from(invoices)
+        .where(eq(invoices.status, 'paid'));
+
+      return {
+        total: Number(totalInvoices.count || 0),
+        paid: Number(paidInvoices.count || 0),
+        pending: Number(pendingInvoices.count || 0),
+        overdue: Number(overdueInvoices.count || 0),
+        totalAmount: Number(totalAmount.sum || 0),
+        paidAmount: Number(paidAmount.sum || 0)
+      };
+    } catch (error) {
+      console.error('Error getting invoice stats:', error);
+      return {
+        total: 0,
+        paid: 0,
+        pending: 0,
+        overdue: 0,
+        totalAmount: 0,
+        paidAmount: 0
+      };
+    }
+  }
 }
+
+export const invoiceService = new InvoiceService();

@@ -22,6 +22,7 @@ import {
   Clock8,
   Settings,
   Mail,
+  Globe,
   ChevronDown,
   CreditCard,
   Trash2,
@@ -29,13 +30,11 @@ import {
   Database,
   GraduationCap,
   CreditCardIcon,
-  Globe,
   BarChart3,
   Bell,
   UserCog,
   Package,
   Receipt,
-  Cog,
   Activity
 } from 'lucide-react';
 
@@ -106,9 +105,7 @@ export default function AdminNavbar() {
             </div>
           }
         >
-          <DropdownItem as={Link} href="/dashboard/admin/cms" icon={Globe}>
-            Sidredigerare
-          </DropdownItem>
+
           <DropdownItem as={Link} href="/dashboard/admin/email-templates" icon={Mail}>
             E-postmallar
           </DropdownItem>
@@ -116,9 +113,7 @@ export default function AdminNavbar() {
           <DropdownItem as={Link} href="/dashboard/admin/settings/database-updates" icon={Database}>
             Databashantering
           </DropdownItem>
-          <DropdownItem as={Link} href="/dashboard/admin/setup" icon={Cog}>
-            Setuphjälp
-          </DropdownItem>
+
         </Dropdown>
 
         {/* School Management Dropdown */}
@@ -147,11 +142,8 @@ export default function AdminNavbar() {
             Öppettider
           </DropdownItem>
           <DropdownDivider />
-          <DropdownItem as={Link} href="/dashboard/admin/teori-lesson-types" icon={Package}>
+          <DropdownItem as={Link} href="/dashboard/admin/teorihantering" icon={Activity}>
             Teorihantering
-          </DropdownItem>
-          <DropdownItem as={Link} href="/dashboard/admin/teori-sessions" icon={Activity}>
-            Sessionshantering
           </DropdownItem>
         </Dropdown>
 

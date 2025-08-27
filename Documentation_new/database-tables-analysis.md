@@ -273,7 +273,7 @@ This report analyzes all tables mentioned in the database, checking for their ex
 
 #### **menu_items** - REMOVE
 - **Status**: ❌ MARKED FOR REMOVAL
-- **Schema Location**: `lib/db/schema/cms.ts:21`
+- **Status**: ✅ **REMOVED** - CMS functionality removed
 - **References Found**:
   - **API Usage**: None found in current codebase
   - **Method**: N/A
@@ -289,7 +289,7 @@ This report analyzes all tables mentioned in the database, checking for their ex
 
 #### **page_images** - REMOVE
 - **Status**: ❌ MARKED FOR REMOVAL
-- **Schema Location**: `lib/db/schema/cms.ts:37`
+- **Status**: ✅ **REMOVED** - CMS functionality removed
 - **References Found**:
   - **API Usage**: None found in current codebase
   - **Method**: N/A
@@ -297,7 +297,7 @@ This report analyzes all tables mentioned in the database, checking for their ex
 
 #### **pages** - REMOVE
 - **Status**: ❌ MARKED FOR REMOVAL
-- **Schema Location**: `lib/db/schema/cms.ts:4`
+- **Status**: ✅ **REMOVED** - CMS functionality removed
 - **References Found**:
   - **API Usage**: None found in current codebase
   - **Method**: N/A

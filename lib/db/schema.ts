@@ -12,8 +12,7 @@ export * from './schema/session-bookings';
 // Export invoice schema
 export * from './schema/invoice';
 
-// Export CMS schema
-export * from './schema/cms';
+
 
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['student', 'teacher', 'admin']);

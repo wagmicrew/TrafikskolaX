@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CreditCard, Smartphone, CheckCircle, DollarSign, User } from 'lucide-react'
-import { SwishQR } from '@/components/SwishQR'
+import { ArrowLeft, CreditCard, Smartphone, CheckCircle, DollarSign, User, Phone } from 'lucide-react'
+import SwishQR from '@/components/SwishQR'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { toast } from 'sonner'
@@ -24,6 +24,8 @@ interface BookingData {
   totalPrice: string
   selectedUserId?: string
   selectedUserName?: string
+  durationMinutes?: number
+  transmissionType?: string
 }
 
 interface UserCredits {
@@ -89,7 +91,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     // Get booking data from URL params or sessionStorage
-    const bookingParam = searchParams.get('booking')
+    const bookingParam = searchParams?.get('booking')
     if (bookingParam) {
       try {
         const data = JSON.parse(decodeURIComponent(bookingParam))
@@ -140,16 +142,29 @@ export default function PaymentPage() {
 
     setIsProcessing(true)
     try {
+      // Transform the booking data to match the API expectations
+      const apiBookingData = {
+        sessionId: bookingData.lessonType.id,
+        sessionType: bookingData.lessonType.type,
+        scheduledDate: bookingData.scheduledDate,
+        startTime: bookingData.startTime,
+        endTime: bookingData.endTime,
+        durationMinutes: bookingData.durationMinutes,
+        totalPrice: bookingData.totalPrice,
+        paymentMethod: 'swish',
+        paymentStatus: 'pending',
+        // Add optional fields for guest bookings
+        ...(bookingData.selectedUserId && { studentId: bookingData.selectedUserId }),
+        // Add transmission type if available
+        ...(bookingData.transmissionType && { transmissionType: bookingData.transmissionType })
+      }
+
       const bookingResponse = await fetch('/api/booking/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...bookingData,
-          paymentMethod: 'swish',
-          paymentStatus: 'pending'
-        }),
+        body: JSON.stringify(apiBookingData),
       })
 
       if (!bookingResponse.ok) {
@@ -254,6 +269,7 @@ export default function PaymentPage() {
   }
 
   const isAdmin = user?.role === 'admin' || user?.role === 'teacher'
+  const displayName = bookingData.selectedUserName || (user as any)?.name || 'Du'
   const canUseCredits = userCredits.canUse && userCredits.available >= parseInt(bookingData.totalPrice)
 
   return (
@@ -304,7 +320,7 @@ export default function PaymentPage() {
                   <h3 className="font-semibold text-gray-900 mb-2">Bokad för</h3>
                   <p className="text-gray-700 flex items-center">
                     <User className="w-4 h-4 mr-2" />
-                    {bookingData.selectedUserName || user?.name || 'Du'}
+                    {displayName}
                   </p>
                 </div>
               </div>

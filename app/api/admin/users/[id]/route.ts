@@ -247,7 +247,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       .delete(packagePurchases)
       .where(eq(packagePurchases.userId, id));
 
-    // 8. Finally delete the user
+    // 8. Delete user reports
+    await db
+      .delete(userReports)
+      .where(eq(userReports.userId, id));
+
+    // 9. Finally delete the user
     const deletedUser = await db
       .delete(users)
       .where(eq(users.id, id))

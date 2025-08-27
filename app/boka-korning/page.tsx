@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle, ArrowLeft, Calendar, Clock, User, Car, UserPlus, ChevronDown } from "lucide-react"
+import { CheckCircle, ArrowLeft, Calendar, Clock, User, Car, UserPlus, ChevronDown, Phone } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { OrbSpinner } from "@/components/ui/orb-loader"
@@ -42,6 +42,7 @@ interface SessionType {
   pricePerSupervisor?: number
   maxParticipants?: number
   sessions?: TeoriSession[]
+  hasAvailableSessions?: boolean
 }
 
 interface User {
@@ -87,10 +88,57 @@ export default function BookingPage() {
   // Admin user selection
   const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [effectiveUserDisplay, setEffectiveUserDisplay] = useState<User | null>(null)
+
+  // Update temporary booking when student is selected
+  const updateTemporaryBookingWithStudent = async (student: User) => {
+    if (!bookingData?.bookingId) return
+
+    try {
+      const response = await fetch('/api/booking/update-student', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: bookingData.bookingId,
+          studentId: student.id,
+          sessionType: bookingData.lessonType?.type || 'lesson'
+        }),
+      })
+
+      if (!response.ok) {
+        console.error('Failed to update temporary booking with student info')
+      } else {
+        console.log('Successfully updated temporary booking with student info')
+      }
+    } catch (error) {
+      console.error('Error updating temporary booking:', error)
+    }
+  }
+
+  // Handle student selection - only handles the async API call
+  const handleStudentSelect = async (student: User) => {
+    if (bookingData?.bookingId) {
+      await updateTemporaryBookingWithStudent(student)
+    }
+  }
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [showNewUserForm, setShowNewUserForm] = useState(false)
   
   const isAdmin = user?.role === 'admin'
+
+  // Set effective user display for regular students
+  useEffect(() => {
+    if (user && user.role === 'student' && !selectedUser && !effectiveUserDisplay) {
+      setEffectiveUserDisplay({
+        id: user.userId,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role
+      })
+    }
+  }, [user, selectedUser, effectiveUserDisplay])
 
   // Fetch users when admin logs in
   useEffect(() => {
@@ -213,25 +261,120 @@ export default function BookingPage() {
     }
   }
 
-  const handleBookingComplete = () => {
+  const handleBookingComplete = async () => {
     // Check if admin has selected a user
     if (isAdmin && !selectedUser) {
       alert('Du måste välja en användare att boka för innan du kan slutföra bokningen.')
       return
     }
 
-    // Redirect to payment page with booking data
-    const bookingDataToSend = {
-      ...bookingData,
-      selectedUserId: selectedUser?.id,
-      selectedUserName: selectedUser?.name,
+    // Determine which user information to use for the booking
+    const effectiveUser = selectedUser || (user && user.role === 'student' ? {
+      id: user.userId,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      role: user.role
+    } : null)
+
+    // Update display state for UI
+    setEffectiveUserDisplay(effectiveUser)
+
+    // Ensure we have user information for the booking
+    if (!effectiveUser) {
+      toast.error('Ingen användarinformation tillgänglig för bokningen.')
+      return
     }
 
-    // Store booking data in sessionStorage for the payment page
-    sessionStorage.setItem('pendingBooking', JSON.stringify(bookingDataToSend))
+    if (!bookingData) {
+      toast.error('Ingen bokningsdata tillgänglig.')
+      return
+    }
 
-    // Redirect to payment page
-    window.location.href = `/betalning?booking=${encodeURIComponent(JSON.stringify(bookingDataToSend))}`
+    // Create booking first, then redirect to payment page
+    const bookingDataToSend = {
+      ...bookingData,
+      selectedUserId: effectiveUser?.id,
+      selectedUserName: effectiveUser?.name,
+    }
+
+    // Transform the booking data to match the API expectations
+    const apiBookingData = {
+      sessionId: bookingData.lessonType.id,
+      sessionType: bookingData.lessonType.type,
+      scheduledDate: bookingData.scheduledDate,
+      startTime: bookingData.startTime,
+      endTime: bookingData.endTime,
+      durationMinutes: bookingData.durationMinutes,
+      totalPrice: bookingData.totalPrice,
+      paymentMethod: 'swish',
+      paymentStatus: 'pending',
+      // Add optional fields for admin bookings and transmission type
+      ...(effectiveUser?.id && { studentId: effectiveUser.id }),
+      ...(bookingData.transmissionType && { transmissionType: bookingData.transmissionType })
+    }
+
+    try {
+      setLoading(true)
+
+      // Check if we have an existing temporary booking to confirm
+      if (bookingData.bookingId) {
+        // Confirm existing temporary booking
+        const confirmResponse = await fetch('/api/booking/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bookingId: bookingData.bookingId,
+            studentId: effectiveUser?.id,
+            studentName: effectiveUser?.name,
+            paymentMethod: 'swish'
+          }),
+        })
+
+        if (!confirmResponse.ok) {
+          const errorData = await confirmResponse.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to confirm booking')
+        }
+
+        const confirmResult = await confirmResponse.json()
+
+        // Store booking data in sessionStorage for the payment page
+        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingDataToSend))
+
+        // Redirect to the payment page with the confirmed booking ID
+        window.location.href = `/booking/payment/${bookingData.bookingId}`
+
+      } else {
+        // Fallback: Create new booking if no temporary booking exists
+        const bookingResponse = await fetch('/api/booking/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiBookingData),
+        })
+
+        if (!bookingResponse.ok) {
+          const errorData = await bookingResponse.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to create booking')
+        }
+
+        const bookingResult = await bookingResponse.json()
+
+        // Store booking data in sessionStorage for the payment page
+        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingDataToSend))
+
+        // Redirect to the new payment page with the booking ID
+        window.location.href = `/booking/payment/${bookingResult.booking.id}`
+      }
+
+    } catch (error) {
+      console.error('Error confirming booking:', error)
+      toast.error('Ett fel uppstod när bokningen skulle bekräftas. Försök igen.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleBack = () => {
@@ -261,6 +404,8 @@ export default function BookingPage() {
         return 'Välj datum och tid'
       case 'session-selection':
         return 'Välj teorisession'
+      case 'unavailable-session':
+        return 'Inga sessioner tillgängliga'
       case 'confirmation':
         return 'Bekräfta bokning'
       case 'complete':
@@ -271,7 +416,7 @@ export default function BookingPage() {
   const getStepDescription = () => {
     switch (currentStep) {
       case 'lesson-selection':
-        return 'Börja med att välja vilken typ av körlektion du vill boka'
+        return 'Börja med att välja vilken typ av lektion du vill boka'
       case 'calendar':
         return 'Välj ett datum och en tid som passar dig'
       case 'session-selection':
@@ -428,8 +573,8 @@ export default function BookingPage() {
               {currentStep === 'session-selection' && selectedLessonType && (
                 <div className="space-y-6">
                   {/* Teori Session Selection */}
-                  <div className="bg-white p-6 rounded-lg border border-red-200">
-                    <h3 className="text-lg font-semibold text-red-800 mb-4">
+                  <div className="bg-white p-6 rounded-lg border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-4">
                       Tillgängliga {selectedLessonType.name} sessioner
                     </h3>
                     <div className="space-y-4">
@@ -439,7 +584,7 @@ export default function BookingPage() {
                             key={session.id}
                             className={`p-4 border rounded-lg cursor-pointer transition-all ${
                               session.availableSpots > 0
-                                ? 'border-red-200 hover:border-red-400 hover:shadow-md'
+                                ? 'border-blue-200 hover:border-blue-400 hover:shadow-md bg-blue-50'
                                 : 'border-gray-200 bg-gray-50 cursor-not-allowed'
                             }`}
                             onClick={() => session.availableSpots > 0 && handleSessionSelection(session)}
@@ -447,7 +592,9 @@ export default function BookingPage() {
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
                                 <h4 className="font-medium text-gray-900">{session.title}</h4>
-                                <p className="text-sm text-gray-600 mt-1">{session.description}</p>
+                                {session.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{session.description}</p>
+                                )}
                                 <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                                   <span className="flex items-center gap-1">
                                     <Calendar className="w-4 h-4" />
@@ -460,7 +607,7 @@ export default function BookingPage() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-lg font-bold text-red-600">
+                                <div className="text-lg font-bold text-blue-600">
                                   {session.price} kr
                                 </div>
                                 <div className={`text-sm font-medium ${
@@ -491,8 +638,8 @@ export default function BookingPage() {
                   {/* Unavailable Session Message */}
                   <div className="bg-white p-6 rounded-lg border border-gray-200">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Clock className="w-8 h-8 text-gray-400" />
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Clock className="w-8 h-8 text-blue-400" />
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
                         Inga {selectedLessonType.name} sessioner tillgängliga
@@ -627,7 +774,16 @@ export default function BookingPage() {
                                   return;
                                 }
                                 const user = users.find(u => u.id === userId);
-                                setSelectedUser(user || null);
+                                if (user) {
+                                  // Update UI state immediately
+                                  setSelectedUser(user);
+                                  setEffectiveUserDisplay(user);
+                                  // Handle async API call separately
+                                  handleStudentSelect(user).catch(console.error);
+                                } else {
+                                  setSelectedUser(null);
+                                  setEffectiveUserDisplay(null);
+                                }
                               }}
                               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           disabled={loadingUsers}
@@ -718,10 +874,10 @@ export default function BookingPage() {
                               />
                               <div>
                                 <div className="text-sm font-medium text-green-800">
-                                  Bokar för: {selectedUser.name}
+                                  Bokar för: {effectiveUserDisplay?.name || 'Okänd användare'}
                                 </div>
                                 <div className="text-xs text-green-600">
-                                    {selectedUser.email}
+                                    {effectiveUserDisplay?.email || 'Ingen e-post'}
                                 </div>
                               </div>
                             </div>

@@ -235,13 +235,13 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
           </div>
         )}
 
-        {/* Theory Lessons Group */}
-        {sessionTypesList.filter(s => s.type === 'teori').length > 0 && (
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
-              <p className="text-gray-600">Välj en teorisession direkt</p>
-            </div>
+                 {/* Theory Lessons Group */}
+         {sessionTypesList.filter(s => s.type === 'teori').length > 0 && (
+           <div className="space-y-4">
+             <div className="text-center">
+               <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
+               <p className="text-gray-600">Välj en teorisession och sedan bekräfta bokning</p>
+             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {sessionTypesList.filter(s => s.type === 'teori').map((session) => (
                 <Card

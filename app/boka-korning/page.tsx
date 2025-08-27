@@ -89,6 +89,10 @@ export default function BookingPage() {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [effectiveUserDisplay, setEffectiveUserDisplay] = useState<User | null>(null)
+  
+  // Handledare selection for teori sessions
+  const [selectedHandledare, setSelectedHandledare] = useState<User[]>([])
+  const [showHandledareForm, setShowHandledareForm] = useState(false)
 
   // Update temporary booking when student is selected
   const updateTemporaryBookingWithStudent = async (student: User) => {
@@ -184,12 +188,12 @@ export default function BookingPage() {
 
   const handleLessonSelection = (data: { sessionType: SessionType }) => {
     setSelectedLessonType(data.sessionType)
-    // lesson_types show calendar, teori_lesson_types show sessions if available
+    
+    // For teori and handledar lessons, always go to session selection first
     if (data.sessionType.type === 'teori' || data.sessionType.type === 'handledar') {
-      // Check if sessions are available for teori/handledar lessons
-      if (data.sessionType.hasAvailableSessions) {
-      setCurrentStep('session-selection')
-    } else {
+      if (data.sessionType.hasAvailableSessions && data.sessionType.sessions && data.sessionType.sessions.length > 0) {
+        setCurrentStep('session-selection')
+      } else {
         // Show unavailable message with back button
         setCurrentStep('unavailable-session')
       }
@@ -295,6 +299,7 @@ export default function BookingPage() {
       ...bookingData,
       selectedUserId: effectiveUser?.id,
       selectedUserName: effectiveUser?.name,
+      selectedHandledare: selectedHandledare,
     }
 
     // Transform the booking data to match the API expectations
@@ -328,7 +333,12 @@ export default function BookingPage() {
             bookingId: bookingData.bookingId,
             studentId: effectiveUser?.id,
             studentName: effectiveUser?.name,
-            paymentMethod: 'swish'
+            paymentMethod: 'swish',
+            handledare: selectedHandledare.map(h => ({
+              id: h.id,
+              name: h.name,
+              email: h.email
+            }))
           }),
         })
 
@@ -347,12 +357,21 @@ export default function BookingPage() {
 
       } else {
         // Fallback: Create new booking if no temporary booking exists
+        const apiDataWithHandledare = {
+          ...apiBookingData,
+          handledare: selectedHandledare.map(h => ({
+            id: h.id,
+            name: h.name,
+            email: h.email
+          }))
+        };
+        
         const bookingResponse = await fetch('/api/booking/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(apiBookingData),
+          body: JSON.stringify(apiDataWithHandledare),
         })
 
         if (!bookingResponse.ok) {
@@ -403,7 +422,7 @@ export default function BookingPage() {
       case 'calendar':
         return 'Välj datum och tid'
       case 'session-selection':
-        return 'Välj teorisession'
+        return 'Välj session'
       case 'unavailable-session':
         return 'Inga sessioner tillgängliga'
       case 'confirmation':
@@ -420,7 +439,7 @@ export default function BookingPage() {
       case 'calendar':
         return 'Välj ett datum och en tid som passar dig'
       case 'session-selection':
-        return 'Välj en tillgänglig teorisession från listan'
+        return 'Välj en tillgänglig session från listan'
       case 'unavailable-session':
         return 'Inga sessioner tillgängliga just nu'
       case 'confirmation':
@@ -572,11 +591,14 @@ export default function BookingPage() {
 
               {currentStep === 'session-selection' && selectedLessonType && (
                 <div className="space-y-6">
-                  {/* Teori Session Selection */}
+                  {/* Session Selection */}
                   <div className="bg-white p-6 rounded-lg border border-blue-200">
                     <h3 className="text-lg font-semibold text-blue-800 mb-4">
                       Tillgängliga {selectedLessonType.name} sessioner
                     </h3>
+                    <p className="text-sm text-blue-600 mb-4">
+                      {selectedLessonType.type === 'teori' ? 'Välj en teorisession och sedan bekräfta bokning' : 'Välj en session och sedan bekräfta bokning'}
+                    </p>
                     <div className="space-y-4">
                       {selectedLessonType.sessions && selectedLessonType.sessions.length > 0 ? (
                         selectedLessonType.sessions.map((session) => (
@@ -894,6 +916,117 @@ export default function BookingPage() {
                         )}
                     </div>
                   )}
+
+                  {/* Handledare Selection for Teori Sessions */}
+                  {(selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') && 
+                   selectedLessonType?.allowsSupervisors && (
+                    <div className="mb-6">
+                      <div className="mb-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          Handledare för denna session:
+                        </Label>
+                      </div>
+
+                      {/* Selected Handledare Display */}
+                      {selectedHandledare.length > 0 && (
+                        <div className="space-y-2 mb-3">
+                          {selectedHandledare.map((handledare, index) => (
+                            <div key={handledare.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-center">
+                                <img 
+                                  className="w-8 h-8 me-3 rounded-full border-2 border-blue-300"
+                                  src={handledare.profilePicture || "/images/din-logo-small.png"} 
+                                  alt={handledare.name}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "/images/din-logo-small.png";
+                                  }}
+                                />
+                                <div>
+                                  <div className="text-sm font-medium text-blue-800">
+                                    {handledare.name}
+                                  </div>
+                                  <div className="text-xs text-blue-600">
+                                    {handledare.email}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedHandledare(prev => prev.filter((_, i) => i !== index));
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Ta bort
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add Handledare Button */}
+                      <Button
+                        onClick={() => setShowHandledareForm(true)}
+                        variant="outline"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        + Lägg till handledare
+                      </Button>
+
+                      {/* Handledare Selection Form */}
+                      {showHandledareForm && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="text-sm font-medium text-blue-800 mb-3">Välj handledare</h4>
+                          <div className="space-y-3">
+                            <select
+                              value=""
+                              onChange={(e) => {
+                                const userId = e.target.value;
+                                if (userId) {
+                                  const user = users.find(u => u.id === userId);
+                                  if (user && !selectedHandledare.find(h => h.id === user.id)) {
+                                    setSelectedHandledare(prev => [...prev, user]);
+                                  }
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                            >
+                              <option value="">Välj handledare...</option>
+                              {users
+                                .filter(user => user.role === 'student' && !selectedHandledare.find(h => h.id === user.id))
+                                .map((user) => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} - {user.email}
+                                  </option>
+                                ))
+                              }
+                            </select>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => setShowHandledareForm(false)}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Stäng
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Handledare Requirement Warning */}
+                      {selectedHandledare.length === 0 && (
+                        <div className="mt-2 text-sm text-blue-600 flex items-center">
+                          <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center mr-2">
+                            <span className="text-blue-600 text-xs">i</span>
+                          </span>
+                          Minst 1 handledare krävs för denna session
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                       {/* Booking Actions */}
                       <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
@@ -908,7 +1041,11 @@ export default function BookingPage() {
 
                         <Button
                           onClick={() => handleBookingComplete()}
-                          disabled={isAdmin && !selectedUser}
+                          disabled={
+                            (isAdmin && !selectedUser) || 
+                            ((selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') && 
+                             selectedLessonType?.allowsSupervisors && selectedHandledare.length === 0)
+                          }
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />

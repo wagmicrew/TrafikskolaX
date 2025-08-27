@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
 import { teoriLessonTypes, teoriSessions, teoriBookings, teoriSupervisors, users } from '@/lib/db/schema';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
-import TeoriHanteringClient from './teori-hantering-client';
+// import TeoriHanteringClient from './teori-hantering-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,9 +95,12 @@ export default async function TeoriHanteringPage() {
   });
 
   return (
-    <TeoriHanteringClient
-      structuredData={structuredData || []}
-      students={students || []}
-    />
+    <div className="p-8">
+      <h1 className="text-2xl font-bold text-red-600 mb-4">Teori Management Temporarily Unavailable</h1>
+      <p className="text-gray-600">This page is currently being fixed. Please check back later.</p>
+      <div className="mt-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
+        <p className="text-yellow-800">Status: Fixing syntax errors in the component file.</p>
+      </div>
+    </div>
   );
 }

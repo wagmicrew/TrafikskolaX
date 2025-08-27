@@ -14,6 +14,7 @@ import { GearSelection } from "@/components/booking/GearSelection"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input as TextInput } from "@/components/ui/input"
 import { Dropdown, DropdownItem, Select, Label, Card as FBCard } from "flowbite-react"
 import DynamicHandledareForm from "@/components/booking/DynamicHandledareForm"
 import StudentSelectionForm from "@/components/booking/StudentSelectionForm"
@@ -250,6 +251,15 @@ export default function BookingPage() {
     personalNumber: ''
   })
 
+  // Email validation state
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [existingUserEmail, setExistingUserEmail] = useState('')
+  const [loginCredentials, setLoginCredentials] = useState({
+    email: '',
+    password: ''
+  })
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+
   // Dynamic handledare form state
   const [handledareList, setHandledareList] = useState<Array<{
     id?: string
@@ -351,15 +361,147 @@ export default function BookingPage() {
     }
   }
 
-  // Calculate price based on user role
-  const calculatePrice = (lessonType: SessionType): number => {
+  // Calculate price based on user role and handledare count for handledare sessions
+  const calculatePrice = (lessonType: SessionType, handledareCount: number = 0): number => {
+    let basePrice: number
+
+    // Get base price based on user role
     if (user?.role === 'student' && lessonType.priceStudent) {
-      return lessonType.priceStudent
+      basePrice = lessonType.priceStudent
+    } else if (lessonType.salePrice && lessonType.salePrice < lessonType.price) {
+      basePrice = lessonType.salePrice
+    } else {
+      basePrice = lessonType.price
     }
-    if (lessonType.salePrice && lessonType.salePrice < lessonType.price) {
-      return lessonType.salePrice
+
+    // For handledare sessions, add price per supervisor
+    if (lessonType.type === 'handledar' && lessonType.pricePerSupervisor && handledareCount > 0) {
+      const supervisorCost = lessonType.pricePerSupervisor * handledareCount
+      return basePrice + supervisorCost
     }
-    return lessonType.price
+
+    return basePrice
+  }
+
+  // Calculate dynamic price for current booking (used for real-time updates)
+  const calculateDynamicPrice = (): number => {
+    if (!selectedLessonType) return 0
+
+    if (selectedLessonType.type === 'handledar') {
+      return calculatePrice(selectedLessonType, handledareList.length)
+    } else if (selectedSession) {
+      return selectedSession.price
+    } else {
+      return calculatePrice(selectedLessonType)
+    }
+  }
+
+  // Update booking data price when handledare count changes
+  const updateBookingDataPrice = () => {
+    if (bookingData && selectedLessonType?.type === 'handledar') {
+      const newPrice = calculateDynamicPrice()
+      setBookingData(prev => prev ? {
+        ...prev,
+        totalPrice: newPrice
+      } : null)
+    }
+  }
+
+  // Update price whenever handledare list changes
+  useEffect(() => {
+    if (selectedLessonType?.type === 'handledar') {
+      updateBookingDataPrice()
+    }
+  }, [handledareList.length, selectedLessonType])
+
+  // Check if email exists in the system
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.exists
+      }
+      return false
+    } catch (error) {
+      console.error('Error checking email:', error)
+      return false
+    }
+  }
+
+  // Handle email input change with validation
+  const handleEmailChange = async (email: string) => {
+    setGuestInfo(prev => ({ ...prev, email }))
+
+    // Only check if email is valid and not empty
+    if (email && email.includes('@') && email.includes('.')) {
+      const exists = await checkEmailExists(email)
+      if (exists) {
+        setExistingUserEmail(email)
+        setShowLoginPrompt(true)
+        setLoginCredentials(prev => ({ ...prev, email }))
+      }
+    }
+  }
+
+  // Handle login during booking flow
+  const handleLoginDuringBooking = async () => {
+    if (!loginCredentials.email || !loginCredentials.password) {
+      toast.error('Vänligen fyll i både e-post och lösenord')
+      return
+    }
+
+    setIsLoggingIn(true)
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginCredentials.email,
+          password: loginCredentials.password,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+
+        // Store the auth token
+        try {
+          localStorage.setItem('auth-token', data.token)
+        } catch (error) {
+          console.error('Failed to store auth token:', error)
+        }
+
+        // Close login prompt
+        setShowLoginPrompt(false)
+        setLoginCredentials({ email: '', password: '' })
+
+        // Continue with the booking flow
+        toast.success('Inloggning lyckades! Fortsätter med bokningen...')
+
+        // The useAuth hook should pick up the new login state
+        // and the booking flow will continue automatically
+
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Inloggning misslyckades')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      toast.error('Ett fel uppstod vid inloggning')
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
   const handleLessonSelection = (data: { sessionType: SessionType }) => {
@@ -367,19 +509,16 @@ export default function BookingPage() {
     setCurrentPage(1) // Reset pagination when selecting a new lesson type
 
     // For teori lessons, check if sessions are available
-    if (data.sessionType.type === 'teori') {
+    if (data.sessionType.type === 'teori' || data.sessionType.type === 'handledar') {
       if (data.sessionType.hasAvailableSessions && data.sessionType.sessions && data.sessionType.sessions.length > 0) {
         setCurrentStep('session-selection')
       } else {
         // Show unavailable message with contact form option
         setCurrentStep('unavailable-session')
       }
-    } else if (data.sessionType.type === 'handledar') {
-      // Handledar sessions go directly to session selection (they handle their own availability)
-      setCurrentStep('session-selection')
     } else {
-      // Regular driving lessons go to calendar
-      setCurrentStep('calendar')
+      // Regular driving lessons go to gear selection first
+      setCurrentStep('gear-selection')
     }
   }
 
@@ -393,7 +532,7 @@ export default function BookingPage() {
         selectedTime: data.selectedTime,
         instructor: null,
         vehicle: null,
-        totalPrice: calculatePrice(selectedLessonType),
+        totalPrice: calculateDynamicPrice(),
         isStudent: isAdmin ? (selectedUser?.role === 'student') : (user?.role === 'student'),
         isHandledarutbildning: selectedLessonType.type === 'handledar',
         transmissionType: transmissionType,
@@ -408,50 +547,19 @@ export default function BookingPage() {
       }
       setBookingData(bookingData)
 
-      // Determine next step based on lesson type and user type
-      if (selectedLessonType?.type === 'lesson') {
-        // Driving lessons need gear selection
-        setCurrentStep('gear-selection')
-      } else if (!user) {
-        // Guest user - collect personal information
-        setCurrentStep('guest-info')
-      } else if (user.role === 'student') {
-        // Student - go directly to confirmation
-        setCurrentStep('confirmation')
-      } else if (isAdmin && selectedUser?.role === 'student') {
-        // Admin booking for student - go directly to confirmation
-        setCurrentStep('confirmation')
-      } else {
-        // Admin/teacher booking for themselves or others - go to confirmation
-        setCurrentStep('confirmation')
+      // Auto-advance to next step after slot selection
+      const nextStep = getNextStep()
+      if (nextStep && nextStep !== currentStep) {
+        setCurrentStep(nextStep)
       }
     }
   }
 
   const handleGearSelection = (data: { transmissionType: "manual" | "automatic" }) => {
-    if (bookingData) {
-      const updatedBookingData = {
-        ...bookingData,
-        transmissionType: data.transmissionType
-      }
-      setBookingData(updatedBookingData)
-      setTransmissionType(data.transmissionType)
+    setTransmissionType(data.transmissionType)
 
-      // After gear selection, determine next step based on user type
-      if (!user) {
-        // Guest user - collect personal information
-        setCurrentStep('guest-info')
-      } else if (user.role === 'student') {
-        // Student - go directly to confirmation
-        setCurrentStep('confirmation')
-      } else if (isAdmin && selectedUser?.role === 'student') {
-        // Admin booking for student - go directly to confirmation
-        setCurrentStep('confirmation')
-      } else {
-        // Admin/teacher booking for themselves or others - go to confirmation
-        setCurrentStep('confirmation')
-      }
-    }
+    // After gear selection, go directly to calendar for driving lessons
+    setCurrentStep('calendar')
   }
 
   // Helper function to calculate end time
@@ -472,7 +580,7 @@ export default function BookingPage() {
         selectedTime: session.startTime,
         instructor: null,
         vehicle: null,
-        totalPrice: session.price,
+        totalPrice: selectedLessonType.type === 'handledar' ? calculatePrice(selectedLessonType, handledareList.length) : session.price,
         isStudent: isAdmin ? (selectedUser?.role === 'student') : (user?.role === 'student'),
         isHandledarutbildning: selectedLessonType.type === 'handledar',
         transmissionType: transmissionType,
@@ -506,78 +614,110 @@ export default function BookingPage() {
   }
 
   const handleBookingComplete = async () => {
-    // Check if admin has selected a user (required for handledare sessions)
-    if (isAdmin && selectedLessonType?.type === 'handledar' && !selectedUser) {
-      toast.error('Du måste välja en elev för handledarutbildning.')
-      return
-    }
+    setLoading(true);
 
-    // Check if admin has selected a user for teori sessions (optional but recommended)
-    if (isAdmin && selectedLessonType?.type === 'teori' && !selectedUser && !user) {
-      toast.error('Du måste välja en elev eller vara inloggad som elev.')
-      return
-    }
+    let bookingUser = null;
+    let createdUserId = null;
 
-    // Determine which user information to use for the booking
-    const effectiveUser = selectedUser || (user && user.role === 'student' ? {
-      id: user.userId,
-      name: `${user.firstName} ${user.lastName}`,
-      email: user.email,
-      role: user.role
-    } : null)
+    try {
 
-    // Update display state for UI
-    setEffectiveUserDisplay(effectiveUser)
+      // Handle different user types
+      if (user && user.role === 'admin') {
+        // Admin booking - must have selected student
+        if (!selectedStudent) {
+          toast.error('Du måste välja en elev för denna bokning.')
+          return
+        }
+        bookingUser = selectedStudent;
+      } else if (user && user.role === 'student') {
+        // Student booking - use logged in student
+        bookingUser = {
+          id: user.userId,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role
+        };
+      } else if (!user) {
+        // Guest booking - create new user account
+        if (!guestInfo.name || !guestInfo.email || !guestInfo.phone || !guestInfo.personalNumber) {
+          toast.error('Vänligen fyll i alla obligatoriska fält för gästbokning.')
+          return
+        }
 
-    // For guest users, ensure we have guest information
-    if (!user && (!bookingData?.guestName || !bookingData?.guestEmail || !bookingData?.guestPhone || !bookingData?.guestPersonalNumber)) {
-      toast.error('Vänligen fyll i alla obligatoriska fält för gästbokning.')
-      return
-    }
+        // Create guest user account
+        try {
+          const response = await fetch('/api/users/create-guest-student', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: guestInfo.name,
+              email: guestInfo.email,
+              phone: guestInfo.phone,
+              personalNumber: guestInfo.personalNumber,
+              createdByUserId: null // Guest registration
+            }),
+          });
 
-    // For handledare sessions, ensure we have handledare information
-    if (selectedLessonType?.type === 'handledar' && (!bookingData?.handledare || bookingData.handledare.length === 0)) {
-      toast.error('Vänligen ange minst en handledare för denna handledarutbildning.')
-      return
-    }
+          if (!response.ok) {
+            const errorData = await response.json();
+            toast.error(errorData.error || 'Kunde inte skapa konto. Försök igen senare.')
+            return
+          }
 
-    // Validate handledare information completeness
-    if (handledareList && handledareList.length > 0) {
-      const incompleteHandledare = handledareList.find(h =>
-        !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
-      );
-      if (incompleteHandledare) {
-        toast.error('Vänligen fyll i alla obligatoriska fält för alla handledare.')
+          const userData = await response.json();
+          createdUserId = userData.user.id;
+          bookingUser = {
+            id: userData.user.id,
+            name: userData.user.firstName + ' ' + userData.user.lastName,
+            email: userData.user.email,
+            role: userData.user.role
+          };
+
+          toast.success('Konto skapat! Ett lösenord har skickats till din e-postadress.');
+        } catch (error) {
+          console.error('Error creating guest user:', error);
+          toast.error('Kunde inte skapa konto. Försök igen senare.');
+          return
+        }
+      }
+
+      // Update display state for UI
+      setEffectiveUserDisplay(bookingUser)
+
+      // Validate handledare information completeness
+      if (handledareList && handledareList.length > 0) {
+        const incompleteHandledare = handledareList.find(h =>
+          !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
+        );
+        if (incompleteHandledare) {
+          toast.error('Vänligen fyll i alla obligatoriska fält för alla handledare.')
+          return
+        }
+      }
+
+      // Validate minimum handledare for handledar sessions
+      if (selectedLessonType?.type === 'handledar' && handledareList.length === 0) {
+        toast.error('Minst 1 handledare krävs för handledarutbildning.')
         return
       }
-    }
 
-    // Validate student selection for non-student users
-    if (user && user.role !== 'student' && !selectedStudent) {
-      toast.error('Vänligen välj en elev för denna bokning.')
-      return
-    }
+      if (!bookingData) {
+        toast.error('Ingen bokningsdata tillgänglig.')
+        return
+      }
 
-    // Validate minimum handledare for handledar sessions
-    if (selectedLessonType?.type === 'handledar' && handledareList.length === 0) {
-      toast.error('Minst 1 handledare krävs för handledarutbildning.')
-      return
-    }
-
-    if (!bookingData) {
-      toast.error('Ingen bokningsdata tillgänglig.')
-      return
-    }
-
-    // Create booking first, then redirect to payment page
-    const bookingDataToSend = {
-      ...bookingData,
-      selectedUserId: selectedStudent?.id || effectiveUser?.id,
-      selectedUserName: selectedStudent?.name || effectiveUser?.name,
-      selectedHandledare: selectedHandledare,
-      handledare: handledareList,
-      selectedStudent: selectedStudent,
-    }
+      // Create booking first, then redirect to payment page
+      const bookingDataToSend = {
+        ...bookingData,
+        selectedUserId: bookingUser?.id,
+        selectedUserName: bookingUser?.name,
+        selectedHandledare: selectedHandledare,
+        handledare: handledareList,
+        selectedStudent: bookingUser,
+        createdUserId: createdUserId, // For guest accounts
+      }
 
     // Transform the booking data to match the API expectations
     const apiBookingData = {
@@ -590,14 +730,17 @@ export default function BookingPage() {
       totalPrice: bookingData.totalPrice,
       paymentMethod: 'swish',
       paymentStatus: 'pending',
-      // Add optional fields for admin bookings and transmission type
-      ...(selectedStudent?.id && { studentId: selectedStudent.id }),
+      // Add user information based on booking type
+      ...(bookingUser?.id && { studentId: bookingUser.id }),
       ...(bookingData.transmissionType && { transmissionType: bookingData.transmissionType }),
-      // Add guest information if applicable
-      ...(bookingData.guestName && { guestName: bookingData.guestName }),
-      ...(bookingData.guestEmail && { guestEmail: bookingData.guestEmail }),
-      ...(bookingData.guestPhone && { guestPhone: bookingData.guestPhone }),
-      ...(bookingData.guestPersonalNumber && { guestPersonalNumber: bookingData.guestPersonalNumber }),
+      // Add guest information if applicable (for new accounts)
+      ...(createdUserId && {
+        guestName: guestInfo.name,
+        guestEmail: guestInfo.email,
+        guestPhone: guestInfo.phone,
+        guestPersonalNumber: guestInfo.personalNumber,
+        createdUserId: createdUserId
+      }),
       // Add handledare information if applicable
       ...(handledareList && handledareList.length > 0 && { handledare: handledareList })
     }
@@ -615,16 +758,18 @@ export default function BookingPage() {
           },
           body: JSON.stringify({
             bookingId: bookingData.bookingId,
-            studentId: selectedStudent?.id || effectiveUser?.id,
-            studentName: selectedStudent?.name || effectiveUser?.name,
+            studentId: bookingUser?.id,
+            studentName: bookingUser?.name,
             paymentMethod: 'swish',
             handledare: handledareList,
-            // Add guest and handledare information
-            ...(bookingData.guestName && { guestName: bookingData.guestName }),
-            ...(bookingData.guestEmail && { guestEmail: bookingData.guestEmail }),
-            ...(bookingData.guestPhone && { guestPhone: bookingData.guestPhone }),
-            ...(bookingData.guestPersonalNumber && { guestPersonalNumber: bookingData.guestPersonalNumber }),
-            ...(bookingData.handledare && { handledare: bookingData.handledare })
+            // Add guest information for new accounts
+            ...(createdUserId && {
+              guestName: guestInfo.name,
+              guestEmail: guestInfo.email,
+              guestPhone: guestInfo.phone,
+              guestPersonalNumber: guestInfo.personalNumber,
+              createdUserId: createdUserId
+            })
           }),
         })
 
@@ -671,10 +816,83 @@ export default function BookingPage() {
       }
 
     } catch (error) {
+      console.error('Error creating booking:', error)
+      throw new Error(error.message || 'Failed to create booking')
+    }
+
+    } catch (error) {
       console.error('Error confirming booking:', error)
       toast.error('Ett fel uppstod när bokningen skulle bekräftas. Försök igen.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getNextStep = () => {
+    switch (currentStep) {
+      case 'lesson-selection':
+        if (selectedLessonType?.type === 'lesson') {
+          return 'gear-selection'
+        } else if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
+          return selectedLessonType.hasAvailableSessions ? 'session-selection' : 'unavailable-session'
+        }
+        return 'lesson-selection'
+      case 'gear-selection':
+        return 'calendar'
+      case 'calendar':
+        if (!user) {
+          return 'guest-info'
+        } else if (user.role === 'student' || (isAdmin && selectedUser?.role === 'student')) {
+          return 'confirmation'
+        } else {
+          return 'confirmation'
+        }
+      case 'session-selection':
+        if (!user) {
+          return selectedLessonType?.type === 'handledar' ? 'guest-info' : 'guest-info'
+        } else if (user.role === 'student' || (isAdmin && selectedUser?.role === 'student')) {
+          return 'confirmation'
+        } else {
+          return 'confirmation'
+        }
+      case 'guest-info':
+        return selectedLessonType?.type === 'handledar' ? 'handledare-info' : 'confirmation'
+      case 'handledare-info':
+        return 'confirmation'
+      case 'confirmation':
+        return 'complete'
+      default:
+        return 'lesson-selection'
+    }
+  }
+
+  const handleContinue = () => {
+    const nextStep = getNextStep()
+    if (nextStep && nextStep !== currentStep) {
+      setCurrentStep(nextStep)
+    }
+  }
+
+  const canContinue = () => {
+    switch (currentStep) {
+      case 'lesson-selection':
+        return !!selectedLessonType
+      case 'gear-selection':
+        return !!transmissionType
+      case 'calendar':
+        return !!bookingData?.selectedDate && !!bookingData?.selectedTime
+      case 'session-selection':
+        return !!selectedSession
+      case 'guest-info':
+        return !!(guestInfo.name && guestInfo.email && guestInfo.phone && guestInfo.personalNumber)
+      case 'handledare-info':
+        return handledareList.length > 0 && handledareList.every(h =>
+          h.name.trim() && h.email.trim() && h.phone.trim() && h.personalNumber.trim()
+        )
+      case 'confirmation':
+        return true // Always allow continuing from confirmation (they can go back if needed)
+      default:
+        return false
     }
   }
 
@@ -743,6 +961,32 @@ export default function BookingPage() {
         setGuestInfo({ name: '', email: '', phone: '', personalNumber: '' })
         setHandledareInfo([])
         break
+    }
+  }
+
+  const getStepsConfig = () => {
+    if (selectedLessonType?.type === 'lesson') {
+      // Flow for driving lessons: Selection → Gear → Calendar → Confirmation
+      return [
+        { title: 'Välj lektion', description: 'Välj typ av körlektion', status: currentStep === 'lesson-selection' ? 'current' : 'completed' },
+        { title: 'Välj växellåda', description: 'Manuell eller automat', status: currentStep === 'gear-selection' ? 'current' : (['calendar', 'confirmation', 'complete'].includes(currentStep) ? 'completed' : 'pending') },
+        { title: 'Välj tid', description: 'Datum och tidpunkt', status: currentStep === 'calendar' ? 'current' : (['confirmation', 'complete'].includes(currentStep) ? 'completed' : 'pending') },
+        { title: 'Bekräfta', description: 'Slutför bokningen', status: currentStep === 'confirmation' ? 'current' : (currentStep === 'complete' ? 'completed' : 'pending') }
+      ]
+    } else if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
+      // Flow for theory sessions: Selection → Session → Confirmation
+      return [
+        { title: 'Välj lektion', description: 'Välj typ av teorilektion', status: currentStep === 'lesson-selection' ? 'current' : 'completed' },
+        { title: 'Välj session', description: 'Tillgängliga tider', status: currentStep === 'session-selection' ? 'current' : (['confirmation', 'complete'].includes(currentStep) ? 'completed' : 'pending') },
+        { title: 'Bekräfta', description: 'Slutför bokningen', status: currentStep === 'confirmation' ? 'current' : (currentStep === 'complete' ? 'completed' : 'pending') }
+      ]
+    } else {
+      // Default flow
+      return [
+        { title: 'Välj typ', description: 'Välj lektionstyp', status: currentStep === 'lesson-selection' ? 'current' : 'completed' },
+        { title: 'Detaljer', description: 'Ange uppgifter', status: ['calendar', 'gear-selection', 'session-selection'].includes(currentStep) ? 'current' : (['confirmation', 'complete'].includes(currentStep) ? 'completed' : 'pending') },
+        { title: 'Bekräfta', description: 'Slutför bokningen', status: currentStep === 'confirmation' ? 'current' : (currentStep === 'complete' ? 'completed' : 'pending') }
+      ]
     }
   }
 
@@ -816,75 +1060,7 @@ export default function BookingPage() {
             
 
             
-            {/* Progress Steps */}
-            <div className="flex justify-center items-center space-x-4 mb-6">
-              <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['lesson-selection', 'calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  1
-                </div>
-                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Välj lektion</span>
-              </div>
 
-              <div className={`h-1 w-8 ${
-                ['calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
-                  ? 'bg-blue-700'
-                  : 'bg-gray-400'
-              }`} />
-
-              <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['calendar', 'session-selection', 'unavailable-session', 'guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  2
-                </div>
-                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">
-                  {(selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar')
-                    ? (currentStep === 'unavailable-session' ? 'Ej tillgänglig' : 'Välj session')
-                    : 'Välj tid'}
-                </span>
-              </div>
-
-              <div className={`h-1 w-8 ${
-                ['guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
-                  ? 'bg-blue-700'
-                  : 'bg-gray-400'
-              }`} />
-
-              <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  ['guest-info', 'handledare-info', 'confirmation', 'complete'].includes(currentStep)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  3
-                </div>
-                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">
-                  {currentStep === 'guest-info' ? 'Uppgifter' : 
-                   currentStep === 'handledare-info' ? 'Handledare' : 'Bekräfta'}
-                </span>
-              </div>
-
-              <div className={`h-1 w-8 ${
-                currentStep === 'complete' ? 'bg-green-700' : 'bg-gray-400'
-              }`} />
-
-              <div className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentStep === 'complete'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  <CheckCircle className="w-4 h-4" />
-                </div>
-                <span className="ml-2 text-sm text-gray-900 font-medium font-['Inter','system-ui','-apple-system','sans-serif']">Klar</span>
-              </div>
-            </div>
           </div>
 
           {/* Main Content Card */}
@@ -919,41 +1095,158 @@ export default function BookingPage() {
                 )}
               </div>
             </CardHeader>
-            
+
+            {/* Custom Stepper (Flowbite-inspired design) */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="max-w-4xl mx-auto">
+                <div className="flex items-center justify-center space-x-2 md:space-x-4">
+                  {getStepsConfig().map((step, index) => (
+                    <div key={index} className="flex items-center flex-1 max-w-xs">
+                      {/* Step Circle */}
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
+                          step.status === 'completed'
+                            ? 'bg-green-600 text-white shadow-md'
+                            : step.status === 'current'
+                              ? 'bg-blue-600 text-white shadow-md ring-4 ring-blue-200'
+                              : 'bg-gray-300 text-gray-600'
+                        }`}>
+                          {step.status === 'completed' ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : (
+                            <span>{index + 1}</span>
+                          )}
+                        </div>
+                        {/* Step Content */}
+                        <div className="mt-3 text-center max-w-24">
+                          <div className={`text-sm font-semibold ${
+                            step.status === 'current'
+                              ? 'text-blue-600'
+                              : step.status === 'completed'
+                                ? 'text-green-600'
+                                : 'text-gray-500'
+                          }`}>
+                            {step.title}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 leading-tight">
+                            {step.description}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Connector Line */}
+                      {index < getStepsConfig().length - 1 && (
+                        <div className={`flex-1 h-0.5 mx-2 md:mx-4 transition-colors duration-200 ${
+                          step.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'
+                        }`} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <CardContent className="p-6">
               {currentStep === 'lesson-selection' && (
                 <LessonSelection onComplete={handleLessonSelection} />
               )}
               
               {currentStep === 'calendar' && selectedLessonType && (
-                <WeekCalendar
-                  lessonType={selectedLessonType}
-                  transmissionType={transmissionType}
-                  totalPrice={calculatePrice(selectedLessonType)}
-                  onComplete={handleCalendarSelection}
-                  onBack={handleBack}
-                />
+                <div className="space-y-6">
+                  <WeekCalendar
+                    lessonType={selectedLessonType}
+                    transmissionType={transmissionType}
+                    totalPrice={calculatePrice(selectedLessonType)}
+                    onComplete={handleCalendarSelection}
+                    onBack={handleBack}
+                  />
+
+                  {/* Navigation buttons for calendar step */}
+                  <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Tillbaka
+                    </Button>
+
+                    <Button
+                      onClick={handleContinue}
+                      disabled={!canContinue()}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Fortsätt
+                      <CheckCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
 
-              {currentStep === 'gear-selection' && selectedLessonType && bookingData && (
-                <GearSelection
-                  selectedDate={bookingData.selectedDate}
-                  selectedTime={bookingData.selectedTime}
-                  lessonTypeName={selectedLessonType.name}
-                  onComplete={handleGearSelection}
-                  onBack={handleBack}
-                />
+              {currentStep === 'gear-selection' && selectedLessonType && (
+                <div className="space-y-6">
+                  <GearSelection
+                    lessonTypeName={selectedLessonType.name}
+                    onComplete={handleGearSelection}
+                    onBack={handleBack}
+                  />
+
+                  {/* Navigation buttons for gear selection step */}
+                  <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Tillbaka
+                    </Button>
+
+                    <Button
+                      onClick={handleContinue}
+                      disabled={!canContinue()}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Fortsätt
+                      <CheckCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {currentStep === 'session-selection' && selectedLessonType && (
-                <SessionSelection
-                  sessionType={selectedLessonType}
-                  onComplete={(data) => {
-                    setSelectedSession(data.session)
-                    setCurrentStep('confirmation')
-                  }}
-                  onBack={handleBack}
-                />
+                <div className="space-y-6">
+                  <SessionSelection
+                    sessionType={selectedLessonType}
+                    onComplete={(data) => {
+                      setSelectedSession(data.session)
+                      // Don't auto-advance, let user click continue when ready
+                    }}
+                    onBack={handleBack}
+                  />
+
+                  {/* Navigation buttons for session selection step */}
+                  <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                    <Button
+                      variant="outline"
+                      onClick={handleBack}
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Tillbaka
+                    </Button>
+
+                    <Button
+                      onClick={handleContinue}
+                      disabled={!canContinue()}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Fortsätt
+                      <CheckCircle className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {currentStep === 'confirmation' && selectedLessonType && selectedSession && (
@@ -986,6 +1279,25 @@ export default function BookingPage() {
                             <div className="flex justify-between">
                               <span className="text-gray-600">Extra handledare:</span>
                               <span className="font-medium text-blue-600">+{selectedLessonType.pricePerSupervisor} kr/st</span>
+                            </div>
+                          )}
+                          {selectedLessonType.type === 'handledar' && (
+                            <div className="border-t border-gray-300 pt-3 mt-3 space-y-2">
+                              <div className="text-sm text-gray-600 font-medium">Prisuppdelning:</div>
+                              <div className="flex justify-between text-sm">
+                                <span>Baspris (kurs):</span>
+                                <span>{selectedSession.price} kr</span>
+                              </div>
+                              {handledareList.length > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span>Handledare ({handledareList.length} st × {selectedLessonType.pricePerSupervisor} kr):</span>
+                                  <span>{handledareList.length * selectedLessonType.pricePerSupervisor} kr</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t border-gray-300 pt-2 mt-1">
+                                <span className="text-gray-900 font-semibold">Total kostnad:</span>
+                                <span className="font-bold text-lg text-red-600">{calculateDynamicPrice()} kr</span>
+                              </div>
                             </div>
                           )}
                           <div className="flex justify-between">
@@ -1242,19 +1554,20 @@ export default function BookingPage() {
                       </div>
                     </div>
                     
-                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                       <Button
-                        onClick={handleBack}
                         variant="outline"
-                        className="flex-1"
+                        onClick={handleBack}
+                        className="flex items-center gap-2"
                       >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        <ArrowLeft className="w-4 h-4" />
                         Tillbaka
                       </Button>
-                      
+
                       <Button
                         onClick={() => {
-                          if (guestInfo.name && guestInfo.email && guestInfo.phone && guestInfo.personalNumber) {
+                          if (canContinue()) {
+                            // Update booking data with guest info
                             setBookingData(prev => prev ? {
                               ...prev,
                               guestName: guestInfo.name,
@@ -1262,27 +1575,16 @@ export default function BookingPage() {
                               guestPhone: guestInfo.phone,
                               guestPersonalNumber: guestInfo.personalNumber
                             } : null)
-                            
-                            // Check if this is a handledare session that requires additional info
-                            if (selectedLessonType?.type === 'handledar') {
-                              // Initialize with at least one handledare for handledare sessions
-                              setHandledareInfo([{
-                                name: '',
-                                email: '',
-                                phone: '',
-                                personalNumber: ''
-                              }])
-                              setCurrentStep('handledare-info')
-                            } else {
-                              setCurrentStep('confirmation')
-                            }
+                            handleContinue()
                           } else {
                             toast.error('Vänligen fyll i alla obligatoriska fält')
                           }
                         }}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={!canContinue()}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         Fortsätt
+                        <CheckCircle className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -1424,13 +1726,13 @@ export default function BookingPage() {
                       </Button>
                     )}
 
-                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200">
                       <Button
-                        onClick={() => setCurrentStep('guest-info')}
                         variant="outline"
-                        className="flex-1"
+                        onClick={handleBack}
+                        className="flex items-center gap-2"
                       >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        <ArrowLeft className="w-4 h-4" />
                         Tillbaka
                       </Button>
 
@@ -1443,22 +1745,22 @@ export default function BookingPage() {
                             return;
                           }
 
-                          if (handledareInfo.length > 0 && handledareInfo.every(h =>
-                            h.name && h.email && h.phone && h.personalNumber
-                          )) {
+                          if (canContinue()) {
+                            // Update booking data with handledare info
                             setBookingData(prev => prev ? {
                               ...prev,
                               handledare: handledareInfo
                             } : null)
-                            setCurrentStep('confirmation')
+                            handleContinue()
                           } else {
                             toast.error('Vänligen fyll i alla obligatoriska fält för alla handledare')
                           }
                         }}
-                        disabled={!selectedSession || (1 + handledareInfo.length) > selectedSession.availableSpots}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={!canContinue() || !selectedSession || (1 + handledareInfo.length) > selectedSession.availableSpots}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        Fortsätt till bekräftelse
+                        Fortsätt
+                        <CheckCircle className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -1615,8 +1917,13 @@ export default function BookingPage() {
                           <Label className="text-sm font-medium text-gray-700">Pris</Label>
                           <div className="mt-1 p-3 bg-green-50 border border-green-200 rounded-lg">
                             <span className="text-lg font-bold text-green-800">
-                              {bookingData.totalPrice} kr
+                              {calculateDynamicPrice()} kr
                             </span>
+                            {selectedLessonType?.type === 'handledar' && handledareList.length > 0 && (
+                              <div className="text-sm text-green-600 mt-1">
+                                Inkl. {handledareList.length} handledare
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2082,16 +2389,61 @@ export default function BookingPage() {
                         </div>
                       )}
 
-                      {/* Student Selection Button */}
-                      {user && user.role !== 'student' && !showStudentForm && !selectedStudent && (
-                      <Button
-                          onClick={() => setShowStudentForm(true)}
-                        variant="outline"
-                          className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      >
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Välj elev
-                      </Button>
+                      {/* Student Selection for Admin */}
+                      {user && user.role === 'admin' && !selectedStudent && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">Välj elev för bokningen *</Label>
+                          <Select
+                            value={selectedStudent?.id || ""}
+                            onValueChange={(value) => {
+                              const student = users.find(u => u.id === value);
+                              if (student) {
+                                setSelectedStudent({
+                                  id: student.id,
+                                  name: student.name,
+                                  email: student.email,
+                                  role: student.role
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-full z-50">
+                              <SelectValue placeholder="Välj elev..." />
+                            </SelectTrigger>
+                            <SelectContent className="z-50">
+                              {users
+                                .filter(u => u.role === 'student')
+                                .map((student) => (
+                                <SelectItem key={student.id} value={student.id}>
+                                  {student.name} - {student.email}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {/* Selected Student Display */}
+                      {selectedStudent && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-green-600" />
+                              <div>
+                                <p className="font-medium text-green-800">Vald elev: {selectedStudent.name}</p>
+                                <p className="text-sm text-green-600">{selectedStudent.email}</p>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={() => setSelectedStudent(null)}
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
                       )}
 
                       {/* Dynamic Handledare Form */}
@@ -2190,7 +2542,63 @@ export default function BookingPage() {
                           </div>
                     </div>
                   )}
-                  
+
+                      {/* Guest User Information */}
+                      {!user && (
+                        <div className="space-y-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                          <Label className="text-sm font-medium text-gray-700">Ange dina uppgifter (skapar nytt konto)</Label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="guestName" className="block mb-2 text-sm font-medium text-gray-700">Namn *</Label>
+                              <TextInput
+                                id="guestName"
+                                type="text"
+                                value={guestInfo.name}
+                                onChange={(e) => setGuestInfo(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="Ditt fullständiga namn"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="guestEmail" className="block mb-2 text-sm font-medium text-gray-700">E-post *</Label>
+                              <TextInput
+                                id="guestEmail"
+                                type="email"
+                                value={guestInfo.email}
+                                onChange={(e) => handleEmailChange(e.target.value)}
+                                placeholder="din@email.se"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="guestPhone" className="block mb-2 text-sm font-medium text-gray-700">Telefon *</Label>
+                              <TextInput
+                                id="guestPhone"
+                                type="tel"
+                                value={guestInfo.phone}
+                                onChange={(e) => setGuestInfo(prev => ({ ...prev, phone: e.target.value }))}
+                                placeholder="07XXXXXXXX"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="guestPersonalNumber" className="block mb-2 text-sm font-medium text-gray-700">Personnummer *</Label>
+                              <TextInput
+                                id="guestPersonalNumber"
+                                type="text"
+                                value={guestInfo.personalNumber}
+                                onChange={(e) => setGuestInfo(prev => ({ ...prev, personalNumber: e.target.value }))}
+                                placeholder="ÅÅÅÅMMDD-XXXX"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            Ett nytt konto kommer att skapas och ett lösenord skickas till din e-postadress.
+                          </p>
+                        </div>
+                      )}
+
                       {/* Booking Actions */}
                       <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
                         <Button
@@ -2206,6 +2614,8 @@ export default function BookingPage() {
                           onClick={() => handleBookingComplete()}
                           disabled={
                             loading ||
+                            // For admin users: require student selection
+                            (user && user.role === 'admin' && !selectedStudent) ||
                             // For handledare sessions: require student + at least one complete handledare
                             (selectedLessonType?.type === 'handledar' && (
                               (!selectedStudent && !user) ||
@@ -2214,8 +2624,8 @@ export default function BookingPage() {
                                 !h.name.trim() || !h.email.trim() || !h.phone.trim() || !h.personalNumber.trim()
                               )
                             )) ||
-                            // For non-student users: require student selection
-                            (user && user.role !== 'student' && !selectedStudent)
+                            // For guest users: require guest information
+                            (!user && (!guestInfo.name || !guestInfo.email || !guestInfo.phone || !guestInfo.personalNumber))
                           }
                           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                         >
@@ -2302,7 +2712,98 @@ export default function BookingPage() {
               )}
             </CardContent>
           </Card>
-          
+
+          {/* Login Modal for Existing Users */}
+          {showLoginPrompt && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <User className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Välkommen tillbaka!
+                  </h3>
+                  <p className="text-gray-600">
+                    Vi hittade ett konto med e-postadressen <strong>{existingUserEmail}</strong>.
+                    Logga in för att fortsätta med din bokning.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="loginEmail" className="block mb-2 text-sm font-medium text-gray-700">
+                      E-post
+                    </Label>
+                    <TextInput
+                      id="loginEmail"
+                      type="email"
+                      value={loginCredentials.email}
+                      onChange={(e) => setLoginCredentials(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="din@email.se"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="loginPassword" className="block mb-2 text-sm font-medium text-gray-700">
+                      Lösenord
+                    </Label>
+                    <TextInput
+                      id="loginPassword"
+                      type="password"
+                      value={loginCredentials.password}
+                      onChange={(e) => setLoginCredentials(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Ditt lösenord"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={() => {
+                        setShowLoginPrompt(false)
+                        setLoginCredentials({ email: '', password: '' })
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                      disabled={isLoggingIn}
+                    >
+                      Fortsätt som gäst
+                    </Button>
+
+                    <Button
+                      onClick={handleLoginDuringBooking}
+                      disabled={isLoggingIn || !loginCredentials.email || !loginCredentials.password}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isLoggingIn ? (
+                        <>
+                          <OrbSpinner size="sm" className="mr-2" />
+                          Loggar in...
+                        </>
+                      ) : (
+                        'Logga in'
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="text-center pt-4 border-t border-gray-200">
+                    <p className="text-sm text-gray-600">
+                      Glömt ditt lösenord?{' '}
+                      <a
+                        href="/reset-password"
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Återställ här
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* User Menu */}
                         {currentStep === 'complete' && bookingData && (
             <div className="mt-8 flex justify-center">

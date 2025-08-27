@@ -7,41 +7,25 @@ import { Label } from "@/components/ui/label"
 import { ArrowLeft, Settings } from "lucide-react"
 
 interface GearSelectionProps {
-  selectedDate: Date
-  selectedTime: string
   lessonTypeName: string
   onComplete: (data: { transmissionType: "manual" | "automatic" }) => void
   onBack: () => void
 }
 
 export function GearSelection({
-  selectedDate,
-  selectedTime,
   lessonTypeName,
   onComplete,
   onBack
 }: GearSelectionProps) {
   const [selectedGear, setSelectedGear] = useState<"manual" | "automatic" | null>(null)
 
-  const formatDateTime = (date: Date, time: string) => {
-    const formattedDate = date.toLocaleDateString('sv-SE', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-    return `${formattedDate} ${time}`
-  }
-
   const handleGearSelect = (gear: "manual" | "automatic") => {
     setSelectedGear(gear)
+    // Auto-advance to next step
+    onComplete({ transmissionType: gear })
   }
 
-  const handleContinue = () => {
-    if (selectedGear) {
-      onComplete({ transmissionType: selectedGear })
-    }
-  }
+
 
   return (
     <div className="space-y-6">
@@ -56,7 +40,7 @@ export function GearSelection({
         </div>
       </div>
 
-      {/* Booking Summary */}
+      {/* Lesson Type Info */}
       <Card className="bg-gray-50 border-gray-200">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
@@ -64,7 +48,7 @@ export function GearSelection({
             <div>
               <p className="font-medium text-gray-900">{lessonTypeName}</p>
               <p className="text-sm text-gray-600">
-                {formatDateTime(selectedDate, selectedTime)}
+                Välj önskad växellåda för din körlektion
               </p>
             </div>
           </div>
@@ -122,16 +106,7 @@ export function GearSelection({
         </Card>
       </div>
 
-      {/* Continue Button */}
-      <div className="flex justify-end pt-4">
-        <Button
-          onClick={handleContinue}
-          disabled={!selectedGear}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
-        >
-          Fortsätt till bekräftelse
-        </Button>
-      </div>
+
     </div>
   )
 }

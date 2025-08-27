@@ -11,7 +11,7 @@ import {
   ListGroupItem
 } from "flowbite-react"
 import { Badge as UIBadge } from "@/components/ui/badge"
-import { Car, Clock, Award, CheckCircle, Phone, MapPin, Mail, Star, Users, Calendar } from "lucide-react"
+import { Car, Clock, Award, CheckCircle, MapPin, Mail, Star, Users, Calendar, Phone } from "lucide-react"
 import { ContactForm } from "@/components/contact-form"
 
 export default function HomePage() {
@@ -50,7 +50,7 @@ export default function HomePage() {
                   onClick={() => setShowContactForm(true)}
                   aria-label="Öppna kontaktformulär för att veta mer om Din Trafikskola Hässleholm"
                 >
-                  <Phone className="w-5 h-5 mr-2" />
+                  <Mail className="w-5 h-5 mr-2" />
                   Jag vill veta mer
                 </FlowbiteButton>
 
@@ -354,7 +354,6 @@ export default function HomePage() {
                     <span className="text-sm">Östergatan 3a, 281 30 Hässleholm</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-gray-700">
-                    <Phone className="w-4 h-4 text-red-600" />
                     <span className="text-sm">0760-389192</span>
                   </div>
                   <div className="flex items-center justify-center gap-2 text-gray-700">

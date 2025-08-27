@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Clock, Bell } from "lucide-react"
+import { Clock, Bell, ArrowLeft } from "lucide-react"
 import { OrbSpinner } from "@/components/ui/orb-loader"
 import { toast } from "sonner"
+import { Banner } from "flowbite-react"
 
 interface SessionType {
   id: string
@@ -33,9 +34,19 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   const [selectedSession, setSelectedSession] = useState<SessionType | null>(null)
   const [loading, setLoading] = useState(true)
   const [requestingNotification, setRequestingNotification] = useState<string | null>(null)
+  const [impersonating, setImpersonating] = useState(false)
+  const [restoringAdmin, setRestoringAdmin] = useState(false)
 
   useEffect(() => {
     fetchSessionTypes()
+  }, [])
+  
+  useEffect(() => {
+    // Check if user is being impersonated
+    fetch('/api/auth/impersonation-status')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setImpersonating(Boolean(data?.impersonating)))
+      .catch(() => setImpersonating(false))
   }, [])
 
   const fetchSessionTypes = async () => {
@@ -136,6 +147,33 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
     }, 300)
   }
 
+  const handleReturnToAdmin = async () => {
+    setRestoringAdmin(true);
+    try {
+      const res = await fetch('/api/auth/impersonate', { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (data?.token) {
+        try { localStorage.setItem('auth-token', data.token); } catch {}
+        document.cookie = `auth-token=${data.token}; path=/; max-age=604800`;
+      } else {
+        // Fallback: if we saved admin backup in localStorage at impersonation time
+        const backup = localStorage.getItem('admin-session-token');
+        if (backup) {
+          try { localStorage.setItem('auth-token', backup); } catch {}
+          document.cookie = `auth-token=${backup}; path=/; max-age=604800`;
+        }
+      }
+      
+      // Redirect to admin dashboard
+      window.location.href = '/dashboard/admin';
+    } catch (error) {
+      console.error('Error returning to admin:', error);
+      toast.error('Det gick inte att återgå till admin. Försök igen.');
+      setRestoringAdmin(false);
+    }
+  };
+
   const handleNotificationRequest = async (session: SessionType) => {
     setRequestingNotification(session.id)
     try {
@@ -175,10 +213,42 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-5xl mx-auto p-4 space-y-8">
+      {impersonating && (
+        <Banner className="mb-4 sticky top-0 z-50 bg-white text-gray-800 border border-gray-200 shadow-sm rounded-lg">
+          <div className="flex w-full justify-between items-center py-2 px-3">
+            <div className="flex items-center">
+              <span className="font-medium text-sm">Du använder en tillfällig användarsession (Impersonation)</span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-all"
+              onClick={handleReturnToAdmin}
+              disabled={restoringAdmin}
+            >
+              {restoringAdmin ? (
+                <span className="flex items-center gap-1 text-xs">
+                  <span className="animate-spin h-3 w-3 border-2 border-blue-700 border-t-transparent rounded-full"></span>
+                  Återgår...
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs font-medium">
+                  <ArrowLeft className="h-3 w-3" />
+                  Återgå till admin
+                </span>
+              )}
+            </Button>
+          </div>
+        </Banner>
+      )}
+      
+      {/* Header */}
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Välj typ av lektion</h2>
-        <p className="text-gray-700">Välj mellan körlektioner och teorilektioner</p>
+        <h2 className="text-2xl font-bold tracking-tight">Välj Lektionstyp</h2>
+        <p className="text-muted-foreground mt-2">
+          Välj den typ av lektion du vill boka
+        </p>
       </div>
 
             {/* Group by lesson type */}
@@ -211,8 +281,8 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                         <p className="text-xs text-blue-600 font-medium">
                           {session.type === 'lesson'
                             ? 'Välj tid efter bokning'
-                            : session.availableSessions > 0
-                              ? `${session.availableSessions} tillgängliga sessioner`
+                            : (session.availableSessions ?? 0) > 0
+                              ? `${session.availableSessions ?? 0} tillgängliga sessioner`
                               : 'Inga tillgängliga sessioner'
                           }
                         </p>
@@ -261,10 +331,10 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                       )}
 
                       {/* Available sessions info */}
-                      {session.hasAvailableSessions && session.availableSessions && (
+                      {session.hasAvailableSessions && (session.availableSessions ?? 0) > 0 && (
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <div className="text-sm text-green-600 font-medium mb-2">
-                            ✅ {session.availableSessions} sessioner tillgängliga
+                            ✅ {session.availableSessions ?? 0} sessioner tillgängliga
                           </div>
                           <p className="text-xs text-gray-600">Klicka för att välja session</p>
                         </div>

@@ -49,7 +49,7 @@ interface UsersTableProps {
   onDeleteUser: (userId: string) => void;
 }
 
-export function UsersTable({
+function UsersTable({
   users,
   selectedUsers,
   onSelectUser,
@@ -212,4 +212,6 @@ export function UsersTable({
       </Table>
     </div>
   );
-}
+};
+
+export { UsersTable };

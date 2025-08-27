@@ -201,6 +201,39 @@ export function WeekCalendar({
     setCurrentWeek(startOfWeek(prevWeek, { weekStartsOn: 1 }))
   }
 
+  const findNextAvailableSlot = () => {
+    // Find the next available slot starting from today
+    const today = new Date()
+    const maxDaysToCheck = 30 // Check up to 30 days ahead
+
+    for (let daysAhead = 0; daysAhead <= maxDaysToCheck; daysAhead++) {
+      const checkDate = addDays(today, daysAhead)
+      const dateKey = format(checkDate, 'yyyy-MM-dd')
+
+      if (availableSlots[dateKey]) {
+        const availableSlot = availableSlots[dateKey].find(slot => slot.available && slot.clickable)
+        if (availableSlot) {
+          // Select this date and time
+          setSelectedDate(checkDate)
+          setSelectedTime(availableSlot.time.slice(0, 5))
+          toast.success(`Nästa tillgängliga tid vald: ${format(checkDate, 'EEEE d MMMM', { locale: sv })} kl ${availableSlot.time.slice(0, 5)}`)
+
+          // Scroll to the time slots section
+          setTimeout(() => {
+            const timeSlotsElement = document.querySelector('[data-time-slots]')
+            if (timeSlotsElement) {
+              timeSlotsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+          }, 100)
+
+          return
+        }
+      }
+    }
+
+    toast.error('Inga tillgängliga tider hittades inom de närmaste 30 dagarna.')
+  }
+
   const canProceed = selectedDate && selectedTime
 
   return (
@@ -210,6 +243,28 @@ export function WeekCalendar({
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj datum och tid</h2>
             <p className="text-gray-600">Välj en ledig tid för din körlektion</p>
+
+            {/* Quick Select Button */}
+            <div className="mt-4">
+              <Button
+                onClick={findNextAvailableSlot}
+                variant="outline"
+                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <OrbSpinner size="sm" className="mr-2" />
+                    Söker...
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Välj nästa tillgängliga tid
+                  </>
+                )}
+              </Button>
+            </div>
             
             {/* Status Legend */}
             <div className="flex justify-center items-center gap-6 mt-4 p-3 bg-gray-50 rounded-lg">
@@ -308,7 +363,7 @@ export function WeekCalendar({
 
           {/* Time slots */}
           {selectedDate && (
-            <div className="border-t pt-6">
+            <div className="border-t pt-6" data-time-slots>
               <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 Tillgängliga tider för {format(selectedDate, 'EEEE d MMMM', { locale: sv })}

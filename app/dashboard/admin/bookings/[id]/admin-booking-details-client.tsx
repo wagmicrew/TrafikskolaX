@@ -30,8 +30,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import AdminFeedbackForm from '@/components/admin/AdminFeedbackForm';
-import AdminFeedbackList from '@/components/admin/AdminFeedbackList';
+import AdminFeedbackForm from '@/components/Admin/AdminFeedbackForm';
+import AdminFeedbackList from '@/components/Admin/AdminFeedbackList';
 
 type Booking = {
   id: string;

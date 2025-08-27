@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { OrbLoader } from '@/components/ui/orb-loader';
-import { ViewToggle } from '@/components/admin/view-toggle';
-import { UsersTable } from '@/components/admin/users-table';
+import { ViewToggle } from '@/components/Admin/view-toggle';
+import { UsersTable } from '@/components/Admin/users-table';
 import {
   User as UserIcon,
   Mail,

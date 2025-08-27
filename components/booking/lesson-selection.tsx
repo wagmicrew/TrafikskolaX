@@ -209,9 +209,11 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                       )}
                       <div className="mt-3 pt-3 border-t border-gray-200">
                         <p className="text-xs text-blue-600 font-medium">
-                          {session.availableSessions > 0
-                            ? `${session.availableSessions} tillgängliga sessioner`
-                            : 'Inga tillgängliga sessioner'
+                          {session.type === 'lesson'
+                            ? 'Välj tid efter bokning'
+                            : session.availableSessions > 0
+                              ? `${session.availableSessions} tillgängliga sessioner`
+                              : 'Inga tillgängliga sessioner'
                           }
                         </p>
                       </div>

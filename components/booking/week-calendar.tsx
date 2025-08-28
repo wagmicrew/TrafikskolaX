@@ -201,37 +201,66 @@ export function WeekCalendar({
     setCurrentWeek(startOfWeek(prevWeek, { weekStartsOn: 1 }))
   }
 
-  const findNextAvailableSlot = () => {
-    // Find the next available slot starting from today
-    const today = new Date()
-    const maxDaysToCheck = 30 // Check up to 30 days ahead
+  const findNextAvailableSlot = async () => {
+    setCheckingSlots(true)
+    try {
+      // Find the next available slot starting from today
+      const today = new Date()
+      const maxDaysToCheck = 30 // Check up to 30 days ahead
+      
+      // Generate all dates to check
+      const datesToCheck = Array.from({ length: maxDaysToCheck + 1 }, (_, i) => addDays(today, i))
+      const dateKeys = datesToCheck.map(d => format(d, 'yyyy-MM-dd'))
 
-    for (let daysAhead = 0; daysAhead <= maxDaysToCheck; daysAhead++) {
-      const checkDate = addDays(today, daysAhead)
-      const dateKey = format(checkDate, 'yyyy-MM-dd')
+      // Fetch slots for all dates at once
+      const response = await fetch(`/api/booking/visible-slots?dates=${encodeURIComponent(dateKeys.join(','))}`)
+      const data = await response.json()
 
-      if (availableSlots[dateKey]) {
-        const availableSlot = availableSlots[dateKey].find(slot => slot.available && slot.clickable)
-        if (availableSlot) {
-          // Select this date and time
-          setSelectedDate(checkDate)
-          setSelectedTime(availableSlot.time.slice(0, 5))
-          toast.success(`Nästa tillgängliga tid vald: ${format(checkDate, 'EEEE d MMMM', { locale: sv })} kl ${availableSlot.time.slice(0, 5)}`)
+      if (data.success) {
+        // Check each date in order for available slots
+        for (let daysAhead = 0; daysAhead <= maxDaysToCheck; daysAhead++) {
+          const checkDate = addDays(today, daysAhead)
+          const dateKey = format(checkDate, 'yyyy-MM-dd')
 
-          // Scroll to the time slots section
-          setTimeout(() => {
-            const timeSlotsElement = document.querySelector('[data-time-slots]')
-            if (timeSlotsElement) {
-              timeSlotsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          if (data.slots[dateKey]) {
+            const availableSlot = data.slots[dateKey].find((slot: any) => slot.available && slot.clickable)
+            if (availableSlot) {
+              // Update the week view to show this date if needed
+              const slotWeekStart = startOfWeek(checkDate, { weekStartsOn: 1 })
+              if (format(slotWeekStart, 'yyyy-MM-dd') !== format(currentWeek, 'yyyy-MM-dd')) {
+                setCurrentWeek(slotWeekStart)
+                // Update available slots with the new week data
+                setAvailableSlots(data.slots)
+              }
+
+              // Select this date and time
+              setSelectedDate(checkDate)
+              setSelectedTime(availableSlot.time.slice(0, 5))
+              toast.success(`Nästa tillgängliga tid vald: ${format(checkDate, 'EEEE d MMMM', { locale: sv })} kl ${availableSlot.time.slice(0, 5)}`)
+
+              // Scroll to the time slots section
+              setTimeout(() => {
+                const timeSlotsElement = document.querySelector('[data-time-slots]')
+                if (timeSlotsElement) {
+                  timeSlotsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              }, 100)
+
+              return
             }
-          }, 100)
-
-          return
+          }
         }
-      }
-    }
 
-    toast.error('Inga tillgängliga tider hittades inom de närmaste 30 dagarna.')
+        toast.error('Inga tillgängliga tider hittades inom de närmaste 30 dagarna.')
+      } else {
+        toast.error('Kunde inte söka efter tillgängliga tider.')
+      }
+    } catch (error) {
+      console.error('Error finding next available slot:', error)
+      toast.error('Ett fel uppstod vid sökning efter tillgängliga tider.')
+    } finally {
+      setCheckingSlots(false)
+    }
   }
 
   const canProceed = selectedDate && selectedTime
@@ -250,9 +279,9 @@ export function WeekCalendar({
                 onClick={findNextAvailableSlot}
                 variant="outline"
                 className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800"
-                disabled={loading}
+                disabled={loading || checkingSlots}
               >
-                {loading ? (
+                {(loading || checkingSlots) ? (
                   <>
                     <OrbSpinner size="sm" className="mr-2" />
                     Söker...

@@ -16,13 +16,13 @@ export function BookingSteps({ currentStep, steps }: BookingStepsProps) {
   const activeIndex = Math.max(0, steps.findIndex(s => s.number === currentStep))
   return (
     <nav className="relative px-4 sm:px-6 lg:px-8" aria-label="Bokningssteg">
-      <ol className="flex justify-between items-center max-w-3xl mx-auto">
+      <ol className="flex justify-center items-center max-w-4xl mx-auto space-x-8 sm:space-x-12">
         {steps.map((step, index) => {
           const isComplete = index < activeIndex
           const isActive = index === activeIndex
           const displayStepNumber = index + 1
           return (
-            <li key={step.number} className="flex-1 relative">
+            <li key={step.number} className="flex flex-col items-center relative">
               <div className="flex flex-col items-center">
                 <div
                   aria-current={isActive ? 'step' : undefined}
@@ -35,15 +35,14 @@ export function BookingSteps({ currentStep, steps }: BookingStepsProps) {
                     displayStepNumber
                   )}
                 </div>
-                <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-semibold text-center px-1 tracking-tight ${isComplete || isActive ? 'text-gray-900' : 'text-gray-600'}`}>
+                <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs md:text-sm font-semibold text-center px-1 tracking-tight whitespace-nowrap ${isComplete || isActive ? 'text-gray-900' : 'text-gray-600'}`}>
                   {step.title}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
                   aria-hidden="true"
-                  className={`absolute top-4 sm:top-5 left-1/2 w-full h-0.5 transition-all duration-300 -z-10 ${isComplete ? 'bg-green-600' : 'bg-gray-300'}`}
-                  style={{ left: '50%', width: 'calc(100% - 20px)' }}
+                  className={`absolute top-4 sm:top-5 left-full w-8 sm:w-12 h-0.5 transition-all duration-300 -z-10 ${isComplete ? 'bg-green-600' : 'bg-gray-300'}`}
                 />
               )}
             </li>

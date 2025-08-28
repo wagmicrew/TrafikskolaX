@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
 
     const conditions = [eq(teoriSessions.isActive, true)] as any[]
     if (lessonTypeId) conditions.push(eq(teoriSessions.lessonTypeId, lessonTypeId))
-    if (available) conditions.push(sql`${teoriSessions.date} >= CURRENT_DATE`)
+    if (available) {
+      conditions.push(sql`${teoriSessions.date} >= CURRENT_DATE`)
+      conditions.push(sql`${teoriSessions.currentParticipants} < ${teoriSessions.maxParticipants}`)
+    }
 
     const sessions = await db
       .select({

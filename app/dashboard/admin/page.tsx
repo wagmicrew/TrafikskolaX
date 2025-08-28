@@ -161,96 +161,96 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
       {/* Statistics Cards - Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
           <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <div className="flex items-center justify-between p-6">
+            <div className="flex items-center justify-between p-4 md:p-6">
               <div>
-                <p className="text-blue-100 font-semibold text-sm uppercase tracking-wider">Totalt Användare</p>
-                <p className="text-4xl font-black text-white mt-1">{stats.totalUsers}</p>
+                <p className="text-blue-100 font-semibold text-xs md:text-sm uppercase tracking-wider">Totalt Användare</p>
+                <p className="text-2xl md:text-4xl font-black text-white mt-1">{stats.totalUsers}</p>
               </div>
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <HiUserGroup className="h-8 w-8 text-white" />
+              <div className="p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <HiUserGroup className="h-6 w-6 md:h-8 md:w-8 text-white" />
               </div>
             </div>
           </Card>
 
           <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <div className="flex items-center justify-between p-6">
+            <div className="flex items-center justify-between p-4 md:p-6">
               <div>
-                <p className="text-green-100 font-semibold text-sm uppercase tracking-wider">Totalt Bokningar</p>
-                <p className="text-4xl font-black text-white mt-1">{stats.totalBookings}</p>
+                <p className="text-green-100 font-semibold text-xs md:text-sm uppercase tracking-wider">Totalt Bokningar</p>
+                <p className="text-2xl md:text-4xl font-black text-white mt-1">{stats.totalBookings}</p>
               </div>
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <FaCalendar className="h-8 w-8 text-white" />
+              <div className="p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaCalendar className="h-6 w-6 md:h-8 md:w-8 text-white" />
               </div>
             </div>
           </Card>
 
           <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-            <div className="flex items-center justify-between p-6">
+            <div className="flex items-center justify-between p-4 md:p-6">
               <div>
-                <p className="text-yellow-100 font-semibold text-sm uppercase tracking-wider">Väntande</p>
-                <p className="text-4xl font-black text-white mt-1">{stats.pendingBookings}</p>
+                <p className="text-yellow-100 font-semibold text-xs md:text-sm uppercase tracking-wider">Väntande</p>
+                <p className="text-2xl md:text-4xl font-black text-white mt-1">{stats.pendingBookings}</p>
               </div>
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <FaExclamationTriangle className="h-8 w-8 text-white" />
+              <div className="p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaExclamationTriangle className="h-6 w-6 md:h-8 md:w-8 text-white" />
               </div>
             </div>
           </Card>
 
           <Card className="shadow-xl hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <div className="flex items-center justify-between p-6">
+            <div className="flex items-center justify-between p-4 md:p-6">
               <div>
-                <p className="text-purple-100 font-semibold text-sm uppercase tracking-wider">Genomförda</p>
-                <p className="text-4xl font-black text-white mt-1">{stats.completedBookings}</p>
+                <p className="text-purple-100 font-semibold text-xs md:text-sm uppercase tracking-wider">Genomförda</p>
+                <p className="text-2xl md:text-4xl font-black text-white mt-1">{stats.completedBookings}</p>
               </div>
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <FaCheckCircle className="h-8 w-8 text-white" />
+              <div className="p-3 md:p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <FaCheckCircle className="h-6 w-6 md:h-8 md:w-8 text-white" />
               </div>
             </div>
           </Card>
         </div>
 
         {/* Quick Actions - Centered and Popping */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8 tracking-tight">
-            <FaRocket className="inline-block w-8 h-8 mr-3 text-red-500" />
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-6 md:mb-8 tracking-tight">
+            <FaRocket className="inline-block w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 text-red-500" />
             Snabbåtgärder
           </h2>
 
           <div className="flex justify-center">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 max-w-4xl">
               <Button
                 onClick={() => router.push('/dashboard/admin/bookings')}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
               >
-                <FaCalendar className="h-6 w-6" />
-                <span className="text-sm">Hantera Bokningar</span>
+                <FaCalendar className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm">Hantera Bokningar</span>
               </Button>
 
               <Button
                 onClick={() => router.push('/dashboard/admin/users')}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
               >
-                <FaUsers className="h-6 w-6" />
-                <span className="text-sm">Hantera Användare</span>
+                <FaUsers className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm">Hantera Användare</span>
               </Button>
 
               <Button
                 onClick={() => router.push('/dashboard/admin/settings')}
-                className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+                className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2 bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
               >
-                <FaCog className="h-6 w-6" />
-                <span className="text-sm">Inställningar</span>
+                <FaCog className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-xs md:text-sm">Inställningar</span>
               </Button>
 
               {internalMessagesEnabled && (
                 <Button
                   onClick={() => router.push('/dashboard/meddelande')}
-                  className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
+                  className="h-16 md:h-20 flex flex-col items-center justify-center space-y-1 md:space-y-2 bg-gradient-to-r from-red-800 to-red-900 hover:from-red-900 hover:to-red-950 text-white font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-0"
                 >
-                  <FaEnvelope className="h-6 w-6" />
-                  <span className="text-sm">Meddelanden</span>
+                  <FaEnvelope className="h-5 w-5 md:h-6 md:w-6" />
+                  <span className="text-xs md:text-sm">Meddelanden</span>
                 </Button>
               )}
             </div>
@@ -259,40 +259,40 @@ export default function AdminDashboard() {
 
         {/* Admin Tools - Bento Grid */}
         <div>
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-8 tracking-tight">
-            <FaTools className="inline-block w-8 h-8 mr-3 text-yellow-500" />
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-6 md:mb-8 tracking-tight">
+            <FaTools className="inline-block w-6 h-6 md:w-8 md:h-8 mr-2 md:mr-3 text-yellow-500" />
             Admin Verktyg
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {adminLinks.map((link, index) => {
               const IconComponent = link.icon;
               return (
                 <Link key={link.href} href={link.href}>
                   <Card className="h-full shadow-lg hover:shadow-2xl transition-all duration-300 border-0 bg-white dark:bg-gray-800 hover:transform hover:scale-105 cursor-pointer group">
-                    <div className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className={`p-3 rounded-xl ${link.color} text-white shadow-lg`}>
-                          <IconComponent className="h-6 w-6" />
+                    <div className="p-4 md:p-6">
+                      <div className="flex items-center justify-between mb-3 md:mb-4">
+                        <div className={`p-2 md:p-3 rounded-xl ${link.color} text-white shadow-lg`}>
+                          <IconComponent className="h-5 w-5 md:h-6 md:w-6" />
                         </div>
                         {link.count !== undefined && (
-                          <Badge color="dark" className="bg-gray-900 text-white font-bold px-3 py-1 shadow-md">
+                          <Badge color="dark" className="bg-gray-900 text-white font-bold px-2 md:px-3 py-1 shadow-md text-xs md:text-sm">
                             {link.count}
                           </Badge>
                         )}
                       </div>
 
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
                         {link.title}
                       </h3>
 
-                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">
+                      <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed mb-3 md:mb-4">
                         {link.description}
                       </p>
 
-                      <div className="flex items-center text-red-600 dark:text-red-400 font-semibold text-sm group-hover:text-red-700 dark:group-hover:text-red-300">
+                      <div className="flex items-center text-red-600 dark:text-red-400 font-semibold text-xs md:text-sm group-hover:text-red-700 dark:group-hover:text-red-300">
                         Öppna verktyg
-                        <HiOutlineArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        <HiOutlineArrowRight className="ml-1 h-3 w-3 md:h-4 md:w-4 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </Card>
@@ -303,11 +303,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Export Schedule Component */}
-        <div className="mt-12">
+        <div className="mt-8 md:mt-12">
           <Card className="shadow-lg border-0 bg-white dark:bg-gray-800">
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                <FaWrench className="inline w-6 h-6 mr-2 text-yellow-500" />
+            <div className="p-4 md:p-6">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">
+                <FaWrench className="inline w-5 h-5 md:w-6 md:h-6 mr-2 text-yellow-500" />
                 Exportera Schema
               </h3>
               <ExportSchedule userId={user?.userId} role="admin" />

@@ -148,22 +148,11 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <Button
-          onClick={onBack}
-          variant="ghost"
-          className="text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Tillbaka
-        </Button>
-        <div className="text-center flex-1">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Välj teorisession</h2>
-          <p className="text-gray-800 font-medium leading-relaxed">
-            Välj en tillgänglig session för {sessionType.name}
-          </p>
-        </div>
-        <div className="w-20"></div> {/* Spacer for centering */}
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Välj session</h2>
+        <p className="text-gray-800 font-medium leading-relaxed">
+          Välj en tillgänglig session för {sessionType.name}
+        </p>
       </div>
 
       {sessions.length === 0 ? (
@@ -258,15 +247,6 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
         </div>
       )}
 
-      <div className="flex justify-center pt-6">
-        <Button
-          onClick={onBack}
-          variant="outline"
-          className="font-semibold px-6 py-3 rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200"
-        >
-          Tillbaka
-        </Button>
-      </div>
     </div>
   )
 }

@@ -706,7 +706,7 @@ export function BookingConfirmation({
         <Toaster position="top-right" richColors />
         <FBCard className="w-full max-w-2xl mx-auto bg-white shadow-lg border border-gray-100">
           <div className="p-8">
-            <div className="text-center space-y-6">
+            <div className="text-center mb-6">
               <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Bekräfta bokning</h2>
               <p className="text-lg text-gray-700 font-medium leading-relaxed">
                 Kontrollera dina bokningsdetaljer nedan

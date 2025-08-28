@@ -251,7 +251,7 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
           size="lg"
         >
           <ModalHeader>
-            <h3 className="text-lg font-semibold text-gray-900">Bekräfta avbokning</h3>
+            Bekräfta avbokning
           </ModalHeader>
           <ModalBody>
             <p className="text-gray-600 mb-4">
@@ -324,11 +324,14 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                     {booking.status === 'confirmed' ? 'Bekräftad' :
                      booking.status === 'pending' ? 'Väntande' :
                      booking.status === 'on_hold' ? 'Pausad' :
-                     booking.status === 'cancelled' ? 'Avbokad' : booking.status}
+                     booking.status === 'cancelled' ? 'Avbokad' : 
+                     booking.status === 'completed' ? 'Genomförd' : 'Okänd status'}
                   </Badge>
                   <Badge color={getPaymentStatusColor(booking.paymentStatus)} size="lg">
                     {booking.paymentStatus === 'paid' ? 'Betald' :
-                     booking.paymentStatus === 'unpaid' ? 'Ej betald' : booking.paymentStatus}
+                     booking.paymentStatus === 'unpaid' ? 'Ej betald' :
+                     booking.paymentStatus === 'pending' ? 'Väntande betalning' :
+                     booking.paymentStatus === 'failed' ? 'Betalning misslyckades' : 'Okänd betalningsstatus'}
                   </Badge>
                 </div>
 
@@ -391,34 +394,50 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                 </CardContent>
               </Card>
 
-              {/* Teacher Information */}
-              {booking.teacherFirstName && (
-                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              {/* Payment Details */}
+              {booking.paymentStatus === 'unpaid' && (
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200">
                   <CardHeader>
-                    <CardTitle className="text-green-900 flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      Körlärarinformation
+                    <CardTitle className="text-blue-900 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5" />
+                      Betalningsdetaljer
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 text-green-600" />
-                      <p className="font-semibold text-gray-900">{booking.teacherFirstName} {booking.teacherLastName}</p>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Coins className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Belopp att betala</p>
+                        <p className="text-2xl font-bold text-blue-900">{Number(booking.totalPrice).toLocaleString('sv-SE')} SEK</p>
+                      </div>
                     </div>
 
-                    {booking.teacherEmail && (
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-5 h-5 text-green-600" />
-                        <p className="text-sm text-gray-700">{booking.teacherEmail}</p>
+                    <div className="flex items-start gap-3">
+                      <QrCode className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Swish-nummer</p>
+                        <p className="text-lg font-mono text-gray-800">123 456 78 90</p>
+                        <p className="text-sm text-gray-600">Meddelande: Bokning {booking.id.slice(0, 8)}</p>
                       </div>
-                    )}
+                    </div>
 
-                    {booking.teacherPhone && (
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 text-green-600" />
-                        <p className="text-sm text-gray-700">{booking.teacherPhone}</p>
-                      </div>
-                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <Button
+                        onClick={() => window.open(`/betalhubben/${booking.id}`, '_blank')}
+                        className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Öppna i Betalhubben
+                      </Button>
+                      
+                      <Button
+                        onClick={() => toast('Qliro-betalning kommer snart')}
+                        className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Betala med Qliro
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -456,11 +475,31 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
                     </div>
                   )}
 
+                  {/* Payment Hub Link */}
+                  <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <CreditCard className="text-blue-600" />
+                        Betala din bokning
+                      </h3>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Klicka här för att betala din bokning säkert via vår betalportal.
+                    </p>
+                    <Link
+                      href={`/betalhubben/${booking.id}`}
+                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 font-semibold"
+                    >
+                      <CreditCard />
+                      Gå till betalning
+                    </Link>
+                  </div>
+
                   {/* Swish Payment Information */}
                   <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 mb-4">
                     <h3 className="text-lg font-extrabold mb-4 flex items-center gap-2">
                       <FaQrcode className="text-sky-300" />
-                      Betala med Swish
+                      Eller betala med Swish
                     </h3>
 
                     <div className="text-center mb-4">
@@ -543,31 +582,42 @@ const BookingDetailClient: React.FC<BookingDetailClientProps> = ({ booking, user
       </Card>
 
         {/* Planned Steps and Feedback */}
-        <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-2xl p-8">
-          <h2 className="text-2xl font-extrabold mb-4">Planerade steg & feedback</h2>
-          {isLoadingPlannedSteps ? (
-            <p className="text-slate-300">Laddar planerade steg...</p>
-          ) : plannedSteps.length > 0 ? (
-            <div className="space-y-4">
-              {plannedSteps.map(step => (
-                <div key={step.id} className="p-4 border border-white/10 rounded-lg bg-white/5">
-                  <h3 className="font-extrabold text-lg">{step.stepIdentifier}</h3>
-                  {step.feedbackText && (
-                    <p className="text-slate-200 mt-2">{step.feedbackText}</p>
-                  )}
-                  {step.valuation !== null && step.valuation !== undefined && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="font-semibold">Värdering:</span>
-                      <span className="text-sky-300 font-bold">{step.valuation}/10</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-slate-300">Inga planerade steg eller feedback för denna lektion ännu.</p>
-          )}
-        </div>
+        <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-t-lg">
+            <CardTitle className="text-2xl font-bold flex items-center gap-2">
+              <BookOpen className="w-6 h-6" />
+              Planerade steg & feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {isLoadingPlannedSteps ? (
+              <p className="text-indigo-600 font-medium">Laddar planerade steg...</p>
+            ) : plannedSteps.length > 0 ? (
+              <div className="space-y-4">
+                {plannedSteps.map(step => (
+                  <div key={step.id} className="p-5 border-2 border-indigo-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <h3 className="font-bold text-xl text-indigo-900 mb-3">{step.stepIdentifier}</h3>
+                    {step.feedbackText && (
+                      <p className="text-gray-800 leading-relaxed font-medium mb-3">{step.feedbackText}</p>
+                    )}
+                    {step.valuation !== null && step.valuation !== undefined && (
+                      <div className="flex items-center gap-2 p-3 bg-indigo-100 rounded-lg">
+                        <span className="font-bold text-indigo-900">Värdering:</span>
+                        <span className="text-indigo-700 font-black text-lg">{step.valuation}/10</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+                <p className="text-indigo-600 font-medium text-lg">Inga planerade steg eller feedback för denna lektion ännu.</p>
+                <p className="text-indigo-500 text-sm mt-2">Feedback kommer att visas här efter lektionen.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center mt-6">

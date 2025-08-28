@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { eq, gte, and, sql } from 'drizzle-orm';
-
-// Define the legacy Teori tables (these would need to be added to schema.ts)
-const teoriLessonTypes = 'teori_lesson_types';
-const teoriSessions = 'teori_sessions';
-const teoriBookings = 'teori_bookings';
+import { eq, gte, and, sql, count } from 'drizzle-orm';
+import { teoriLessonTypes, teoriSessions, teoriBookings } from '@/lib/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,35 +9,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const scope = searchParams.get('scope') || 'future';
-    const typeId = searchParams.get('typeId');
+    const lessonTypeId = searchParams.get('lessonTypeId'); // Fix: Use correct parameter name
     const today = new Date().toISOString().split('T')[0];
 
-    // Fetch Teori lesson types
-    let lessonTypesQuery = `
-      SELECT
-        id,
-        name,
-        description,
-        allows_supervisors,
-        price,
-        price_per_supervisor,
-        duration_minutes,
-        max_participants,
-        is_active,
-        sort_order
-      FROM ${teoriLessonTypes}
-      WHERE is_active = true
-    `;
-
-    if (typeId) {
-      lessonTypesQuery += ` AND id = '${typeId}'`;
+    // Fetch Teori lesson types using Drizzle ORM
+    const lessonTypeConditions = [eq(teoriLessonTypes.isActive, true)];
+    if (lessonTypeId) {
+      lessonTypeConditions.push(eq(teoriLessonTypes.id, lessonTypeId));
     }
-
-    lessonTypesQuery += ` ORDER BY sort_order, name`;
 
     let lessonTypes;
     try {
-      lessonTypes = await db.execute(sql.raw(lessonTypesQuery));
+      lessonTypes = await db
+        .select()
+        .from(teoriLessonTypes)
+        .where(and(...lessonTypeConditions))
+        .orderBy(teoriLessonTypes.sortOrder, teoriLessonTypes.name);
     } catch (error) {
       console.error('Error querying Teori lesson types:', error);
       return NextResponse.json({
@@ -50,58 +33,78 @@ export async function GET(request: NextRequest) {
         totalAvailable: 0,
         lessonTypes: [],
         error: 'Teori tables not yet initialized. Please run the migration first.',
-        needsSetup: true
+
       }, { status: 200 });
     }
 
-    // Fetch Teori sessions with booking counts
-    let sessionsQuery = `
-      SELECT
-        ts.id,
-        ts.lesson_type_id,
-        ts.title,
-        ts.description,
-        ts.date,
-        ts.start_time,
-        ts.end_time,
-        ts.max_participants,
-        ts.current_participants,
-        ts.teacher_id,
-        ts.is_active,
-        tlt.name as lesson_type_name,
-        tlt.description as lesson_type_description,
-        tlt.allows_supervisors,
-        tlt.price,
-        tlt.price_per_supervisor,
-        tlt.duration_minutes,
-        COUNT(tb.id) as booked_count
-      FROM ${teoriSessions} ts
-      JOIN ${teoriLessonTypes} tlt ON ts.lesson_type_id = tlt.id
-      LEFT JOIN ${teoriBookings} tb ON ts.id = tb.session_id AND tb.status != 'cancelled'
-      WHERE ts.is_active = true
-      AND tlt.is_active = true
-    `;
-
-    // Apply scope filter
-    if (scope === 'future') {
-      sessionsQuery += ` AND ts.date >= '${today}'`;
+    // Fetch sessions with proper booking counts and future date filtering
+    const sessionConditions = [
+      eq(teoriSessions.isActive, true),
+      gte(teoriSessions.date, today) // Only future sessions
+    ];
+    
+    // Add lesson type filtering if specified
+    if (lessonTypeId) {
+      sessionConditions.push(eq(teoriSessions.lessonTypeId, lessonTypeId));
     }
-
-    if (typeId) {
-      sessionsQuery += ` AND ts.lesson_type_id = '${typeId}'`;
-    }
-
-    sessionsQuery += `
-      GROUP BY ts.id, ts.lesson_type_id, ts.title, ts.description, ts.date,
-               ts.start_time, ts.end_time, ts.max_participants, ts.current_participants,
-               ts.teacher_id, ts.is_active, tlt.name, tlt.description, tlt.allows_supervisors,
-               tlt.price, tlt.price_per_supervisor, tlt.duration_minutes
-      ORDER BY ts.date, ts.start_time
-    `;
 
     let sessions;
     try {
-      sessions = await db.execute(sql.raw(sessionsQuery));
+      const sessionsQuery = db
+        .select({
+          id: teoriSessions.id,
+          title: teoriSessions.title,
+          description: teoriSessions.description,
+          date: teoriSessions.date,
+          startTime: teoriSessions.startTime,
+          endTime: teoriSessions.endTime,
+          maxParticipants: teoriSessions.maxParticipants,
+          currentParticipants: teoriSessions.currentParticipants,
+          isActive: teoriSessions.isActive,
+          createdAt: teoriSessions.createdAt,
+          updatedAt: teoriSessions.updatedAt,
+          lessonTypeId: teoriSessions.lessonTypeId,
+          lessonType: {
+            id: teoriLessonTypes.id,
+            name: teoriLessonTypes.name,
+            allowsSupervisors: teoriLessonTypes.allowsSupervisors,
+            price: teoriLessonTypes.price,
+            pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
+            durationMinutes: teoriLessonTypes.durationMinutes,
+          },
+          bookedCount: count(teoriBookings.id)
+        })
+        .from(teoriSessions)
+        .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+        .leftJoin(teoriBookings, and(
+          eq(teoriSessions.id, teoriBookings.sessionId),
+          sql`${teoriBookings.status} != 'cancelled'`
+        ))
+        .where(and(...sessionConditions))
+        .groupBy(
+          teoriSessions.id,
+          teoriSessions.title,
+          teoriSessions.description,
+          teoriSessions.date,
+          teoriSessions.startTime,
+          teoriSessions.endTime,
+          teoriSessions.maxParticipants,
+          teoriSessions.currentParticipants,
+          teoriSessions.isActive,
+          teoriSessions.createdAt,
+          teoriSessions.updatedAt,
+          teoriSessions.lessonTypeId,
+          teoriLessonTypes.id,
+          teoriLessonTypes.name,
+          teoriLessonTypes.description,
+          teoriLessonTypes.allowsSupervisors,
+          teoriLessonTypes.price,
+          teoriLessonTypes.pricePerSupervisor,
+          teoriLessonTypes.durationMinutes
+        )
+        .orderBy(teoriSessions.date, teoriSessions.startTime);
+
+      sessions = await sessionsQuery;
     } catch (error) {
       console.error('Error querying Teori sessions:', error);
       return NextResponse.json({
@@ -115,47 +118,52 @@ export async function GET(request: NextRequest) {
     }
 
     // Process sessions to include availability information
-    const processedSessions = (sessions.rows || []).map((session: any) => ({
+    const processedSessions = sessions.map((session: any) => ({
       ...session,
-      availableSpots: session.max_participants - (session.current_participants || 0) - (session.booked_count || 0),
-      is_available: (session.max_participants - (session.current_participants || 0) - (session.booked_count || 0)) > 0,
-      type: 'teori',
-      formattedDateTime: formatDateTime(session.date, session.start_time, session.end_time),
-      price: parseFloat(session.price || 0),
-      durationMinutes: session.duration_minutes || 60,
-      allowsSupervisors: session.allows_supervisors || false,
-      pricePerSupervisor: session.price_per_supervisor ? parseFloat(session.price_per_supervisor) : null,
+      availableSpots: (session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0),
+      is_available: ((session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0)) > 0,
+      type: session.allowsSupervisors ? 'handledar' : 'teori',
+      formattedDateTime: formatDateTime(session.date, session.startTime, session.endTime),
+      price: parseFloat(session.price || '0'),
+      durationMinutes: session.durationMinutes || 60,
+      allowsSupervisors: session.allowsSupervisors || false,
+      pricePerSupervisor: session.pricePerSupervisor ? parseFloat(session.pricePerSupervisor) : null,
     }));
 
     // Filter available sessions
     const availableSessions = processedSessions.filter((session: any) => session.is_available);
 
-    // Group by lesson type for better presentation (include all lesson types)
-    const sessionsByType = lessonTypes.rows.map((lessonType: any) => {
-      const typeId = lessonType.id;
-      const lessonTypeSessions = availableSessions.filter((session: any) => session.lesson_type_id === typeId);
+    // Group by lesson type for better presentation (only include lesson types with sessions)
+    const sessionsByType = lessonTypes
+      .map((lessonType: any) => {
+        const typeId = lessonType.id;
+        // For handledar sessions (allowsSupervisors=true), include ALL sessions, not just available ones
+        const lessonTypeSessions = lessonType.allowsSupervisors 
+          ? processedSessions.filter((session: any) => session.lessonTypeId === typeId)
+          : availableSessions.filter((session: any) => session.lessonTypeId === typeId);
 
-      return {
-        lessonType: {
-          id: typeId,
-          name: lessonType.name,
-          description: lessonType.description,
-          allowsSupervisors: lessonType.allows_supervisors,
-          price: lessonType.price,
-          pricePerSupervisor: lessonType.price_per_supervisor,
-          durationMinutes: lessonType.duration_minutes,
-          type: 'teori',
-        },
-        sessions: lessonTypeSessions,
-        hasAvailableSessions: lessonTypeSessions.length > 0
-      };
-    });
+        return {
+          lessonType: {
+            id: typeId,
+            name: lessonType.name,
+            description: lessonType.description,
+            allowsSupervisors: lessonType.allowsSupervisors,
+            price: lessonType.price,
+            pricePerSupervisor: lessonType.pricePerSupervisor,
+            durationMinutes: lessonType.durationMinutes,
+            type: lessonType.allowsSupervisors ? 'handledar' : 'teori',
+          },
+          sessions: lessonTypeSessions,
+          hasAvailableSessions: lessonTypeSessions.length > 0
+        };
+      })
+      .filter((group: any) => group.sessions.length > 0); // Only include lesson types that have sessions
 
     return NextResponse.json({
       sessions: availableSessions,
       sessionsByType: sessionsByType,
       totalAvailable: availableSessions.length,
-      lessonTypes: lessonTypes.rows
+      lessonTypes: lessonTypes
     });
 
   } catch (error) {

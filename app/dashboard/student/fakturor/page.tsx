@@ -214,7 +214,7 @@ export default function StudentInvoicesPage() {
                 <div className="flex items-center gap-2 text-yellow-900">
                   <AlertTriangle className="w-5 h-5" />
                   <span className="font-semibold">
-                    Du har {pendingInvoicesCount} obetald{a} {pendingInvoicesCount === 1 ? 'faktura' : 'fakturor'} som väntar på betalning.
+                    Du har {pendingInvoicesCount} obetald{pendingInvoicesCount === 1 ? '' : 'a'} {pendingInvoicesCount === 1 ? 'faktura' : 'fakturor'} som väntar på betalning.
                   </span>
                 </div>
               </div>

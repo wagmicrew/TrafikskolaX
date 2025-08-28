@@ -201,48 +201,77 @@ export function WeekCalendar({
     setCurrentWeek(startOfWeek(prevWeek, { weekStartsOn: 1 }))
   }
 
-  const findNextAvailableSlot = () => {
-    // Find the next available slot starting from today
-    const today = new Date()
-    const maxDaysToCheck = 30 // Check up to 30 days ahead
+  const findNextAvailableSlot = async () => {
+    setCheckingSlots(true)
+    try {
+      // Find the next available slot starting from today
+      const today = new Date()
+      const maxDaysToCheck = 30 // Check up to 30 days ahead
+      
+      // Generate all dates to check
+      const datesToCheck = Array.from({ length: maxDaysToCheck + 1 }, (_, i) => addDays(today, i))
+      const dateKeys = datesToCheck.map(d => format(d, 'yyyy-MM-dd'))
 
-    for (let daysAhead = 0; daysAhead <= maxDaysToCheck; daysAhead++) {
-      const checkDate = addDays(today, daysAhead)
-      const dateKey = format(checkDate, 'yyyy-MM-dd')
+      // Fetch slots for all dates at once
+      const response = await fetch(`/api/booking/visible-slots?dates=${encodeURIComponent(dateKeys.join(','))}`)
+      const data = await response.json()
 
-      if (availableSlots[dateKey]) {
-        const availableSlot = availableSlots[dateKey].find(slot => slot.available && slot.clickable)
-        if (availableSlot) {
-          // Select this date and time
-          setSelectedDate(checkDate)
-          setSelectedTime(availableSlot.time.slice(0, 5))
-          toast.success(`Nästa tillgängliga tid vald: ${format(checkDate, 'EEEE d MMMM', { locale: sv })} kl ${availableSlot.time.slice(0, 5)}`)
+      if (data.success) {
+        // Check each date in order for available slots
+        for (let daysAhead = 0; daysAhead <= maxDaysToCheck; daysAhead++) {
+          const checkDate = addDays(today, daysAhead)
+          const dateKey = format(checkDate, 'yyyy-MM-dd')
 
-          // Scroll to the time slots section
-          setTimeout(() => {
-            const timeSlotsElement = document.querySelector('[data-time-slots]')
-            if (timeSlotsElement) {
-              timeSlotsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          if (data.slots[dateKey]) {
+            const availableSlot = data.slots[dateKey].find((slot: any) => slot.available && slot.clickable)
+            if (availableSlot) {
+              // Update the week view to show this date if needed
+              const slotWeekStart = startOfWeek(checkDate, { weekStartsOn: 1 })
+              if (format(slotWeekStart, 'yyyy-MM-dd') !== format(currentWeek, 'yyyy-MM-dd')) {
+                setCurrentWeek(slotWeekStart)
+                // Update available slots with the new week data
+                setAvailableSlots(data.slots)
+              }
+
+              // Select this date and time
+              setSelectedDate(checkDate)
+              setSelectedTime(availableSlot.time.slice(0, 5))
+              toast.success(`Nästa tillgängliga tid vald: ${format(checkDate, 'EEEE d MMMM', { locale: sv })} kl ${availableSlot.time.slice(0, 5)}`)
+
+              // Scroll to the time slots section
+              setTimeout(() => {
+                const timeSlotsElement = document.querySelector('[data-time-slots]')
+                if (timeSlotsElement) {
+                  timeSlotsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              }, 100)
+
+              return
             }
-          }, 100)
-
-          return
+          }
         }
-      }
-    }
 
-    toast.error('Inga tillgängliga tider hittades inom de närmaste 30 dagarna.')
+        toast.error('Inga tillgängliga tider hittades inom de närmaste 30 dagarna.')
+      } else {
+        toast.error('Kunde inte söka efter tillgängliga tider.')
+      }
+    } catch (error) {
+      console.error('Error finding next available slot:', error)
+      toast.error('Ett fel uppstod vid sökning efter tillgängliga tider.')
+    } finally {
+      setCheckingSlots(false)
+    }
   }
 
   const canProceed = selectedDate && selectedTime
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-6xl mx-auto p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       <Card>
         <CardContent className="p-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Välj datum och tid</h2>
-            <p className="text-gray-600">Välj en ledig tid för din körlektion</p>
+          <div className="text-center px-2">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Välj datum och tid</h2>
+            <p className="text-gray-600 text-sm sm:text-base">Välj en tillgänglig tid för din {lessonType?.name || 'lektion'}</p>
 
             {/* Quick Select Button */}
             <div className="mt-4">
@@ -250,9 +279,9 @@ export function WeekCalendar({
                 onClick={findNextAvailableSlot}
                 variant="outline"
                 className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700 hover:text-green-800"
-                disabled={loading}
+                disabled={loading || checkingSlots}
               >
-                {loading ? (
+                {(loading || checkingSlots) ? (
                   <>
                     <OrbSpinner size="sm" className="mr-2" />
                     Söker...
@@ -267,7 +296,7 @@ export function WeekCalendar({
             </div>
             
             {/* Status Legend */}
-            <div className="flex justify-center items-center gap-6 mt-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6 mt-4 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-gray-700">Tillgänglig</span>
@@ -277,7 +306,7 @@ export function WeekCalendar({
                 <span className="text-sm text-gray-700">Tillfälligt bokad</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
                 <span className="text-sm text-gray-700">Bokad/Otillgänglig</span>
               </div>
             </div>
@@ -322,11 +351,11 @@ export function WeekCalendar({
                 <div
                   key={day.dateKey}
                   className={`
-                    p-3 rounded-lg text-center transition-all border-2
+                    p-2 sm:p-3 rounded-lg text-center transition-all border-2
                     ${isSelected 
-                      ? 'bg-red-600 text-white border-red-600 cursor-pointer' 
+                      ? 'bg-blue-600 text-white border-blue-600 cursor-pointer' 
                       : hasAvailableSlots
-                        ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-red-300 shadow-sm cursor-pointer'
+                        ? 'bg-white hover:bg-gray-50 border-gray-200 hover:border-blue-300 shadow-sm cursor-pointer'
                         : isCurrentlyLoading
                           ? 'bg-gray-50 border-gray-200 cursor-wait'
                           : 'bg-gray-100 opacity-50 cursor-not-allowed border-gray-200'
@@ -335,7 +364,7 @@ export function WeekCalendar({
                   onClick={() => hasAvailableSlots && handleDateSelect(day.date)}
                 >
                   <div className="text-xs font-medium mb-1">{day.dayName}</div>
-                  <div className="text-lg font-bold">{day.dayNumber}</div>
+                  <div className="text-base sm:text-lg font-bold">{day.dayNumber}</div>
                   <div className="text-xs">{day.month}</div>
                   {isCurrentlyLoading && (
                     <div className="text-xs mt-1 px-2 py-1 rounded-full bg-blue-100 text-blue-700">
@@ -345,7 +374,7 @@ export function WeekCalendar({
                   {!isCurrentlyLoading && hasAvailableSlots && (
                     <div className={`text-xs mt-1 px-2 py-1 rounded-full ${
                       isSelected 
-                        ? 'bg-red-500 text-white' 
+                        ? 'bg-blue-500 text-white' 
                         : 'bg-green-100 text-green-700'
                     }`}>
                       {availableCount} {availableCount === 1 ? 'tid' : 'tider'}
@@ -364,7 +393,7 @@ export function WeekCalendar({
           {/* Time slots */}
           {selectedDate && (
             <div className="border-t pt-6" data-time-slots>
-              <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 Tillgängliga tider för {format(selectedDate, 'EEEE d MMMM', { locale: sv })}
               </h4>
@@ -375,7 +404,7 @@ export function WeekCalendar({
                   </div>
                 </div>
                 ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1 sm:gap-2">
                   {(availableSlots[format(selectedDate, 'yyyy-MM-dd')] || [])
                     .map((slot) => {
                       const raw = slot.time as string
@@ -388,8 +417,8 @@ export function WeekCalendar({
                       let statusBarColor = ""
                       
                       if (selectedTime === hhmm) {
-                        buttonClasses += "bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-lg"
-                        statusBarColor = "bg-red-800"
+                        buttonClasses += "bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-600 shadow-lg"
+                        statusBarColor = "bg-blue-800"
                       } else if (slot.gradient === 'green') {
                         buttonClasses += slot.clickable 
                           ? "bg-white border-2 border-green-500 hover:border-green-600 hover:bg-green-50 text-green-700 shadow-sm hover:shadow-md cursor-pointer"
@@ -399,8 +428,8 @@ export function WeekCalendar({
                         buttonClasses += "bg-orange-50 border-2 border-orange-400 text-orange-700 shadow-sm cursor-not-allowed"
                         statusBarColor = "bg-orange-500"
                       } else if (slot.gradient === 'red') {
-                        buttonClasses += "bg-red-50 border-2 border-red-400 text-red-700 shadow-sm cursor-not-allowed"
-                        statusBarColor = "bg-red-500"
+                        buttonClasses += "bg-gray-50 border-2 border-gray-400 text-gray-700 shadow-sm cursor-not-allowed"
+                        statusBarColor = "bg-gray-500"
                       }
                       
                       return (
@@ -424,7 +453,7 @@ export function WeekCalendar({
                           <div className="absolute bottom-1 left-0 right-0">
                             <div className={`text-[9px] font-semibold text-center px-1 py-0.5 mx-1 rounded-sm ${
                               selectedTime === hhmm 
-                                ? 'bg-red-800 text-white' 
+                                ? 'bg-blue-800 text-white' 
                                 : slot.gradient === 'green' 
                                   ? 'bg-green-100 text-green-800' 
                                   : slot.gradient === 'orange'

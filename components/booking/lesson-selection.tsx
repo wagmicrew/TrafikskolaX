@@ -213,40 +213,12 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-4 space-y-8">
-      {impersonating && (
-        <Banner className="mb-4 sticky top-0 z-50 bg-white text-gray-800 border border-gray-200 shadow-sm rounded-lg">
-          <div className="flex w-full justify-between items-center py-2 px-3">
-            <div className="flex items-center">
-              <span className="font-medium text-sm">Du använder en tillfällig användarsession (Impersonation)</span>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition-all"
-              onClick={handleReturnToAdmin}
-              disabled={restoringAdmin}
-            >
-              {restoringAdmin ? (
-                <span className="flex items-center gap-1 text-xs">
-                  <span className="animate-spin h-3 w-3 border-2 border-blue-700 border-t-transparent rounded-full"></span>
-                  Återgår...
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-xs font-medium">
-                  <ArrowLeft className="h-3 w-3" />
-                  Återgå till admin
-                </span>
-              )}
-            </Button>
-          </div>
-        </Banner>
-      )}
+    <div className="w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
       
       {/* Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight">Välj Lektionstyp</h2>
-        <p className="text-muted-foreground mt-2">
+      <div className="text-center px-2">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Välj Lektionstyp</h2>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
           Välj den typ av lektion du vill boka
         </p>
       </div>
@@ -256,11 +228,11 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         {/* Regular Driving Lessons Group */}
         {sessionTypesList.filter(s => s.type === 'lesson').length > 0 && (
           <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Körlektioner</h3>
-              <p className="text-gray-600">Praktiska körlektioner med instruktör</p>
+            <div className="text-center px-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Körlektioner</h3>
+              <p className="text-gray-600 text-sm sm:text-base">Praktiska körlektioner med instruktör</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {sessionTypesList.filter(s => s.type === 'lesson').map((session) => (
                 <Card
                   key={`${session.type}-${session.id}`}
@@ -298,11 +270,11 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
                  {/* Theory Lessons Group - Unified (includes both teori and handledar sessions) */}
         {sessionTypesList.filter(s => s.type === 'teori' || s.type === 'handledar').length > 0 && (
           <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
-              <p className="text-gray-600">Teoretiska lektioner och handledarutbildning</p>
+            <div className="text-center px-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Teorilektioner</h3>
+              <p className="text-gray-600 text-sm sm:text-base">Teoretiska lektioner och handledarutbildning</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {sessionTypesList.filter(s => s.type === 'teori' || s.type === 'handledar').map((session) => (
                 <Card
                   key={`${session.type}-${session.id}`}

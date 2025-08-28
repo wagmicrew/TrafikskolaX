@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Clock, Calendar, Users, ArrowLeft } from "lucide-react"
+import { Calendar, Clock, Users, ArrowLeft } from "lucide-react"
+import { OrbSpinner } from "@/components/ui/orb-loader"
+import { toast } from "sonner"
 
 interface SessionType {
   id: string
@@ -148,7 +150,9 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <div className="flex justify-center mb-4">
+          <OrbSpinner size="md" />
+        </div>
         <p className="text-gray-600">Laddar tillgängliga sessioner...</p>
       </div>
     )
@@ -211,10 +215,10 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
               key={session.id}
               className={`cursor-pointer transition-all hover:shadow-lg relative ${
                 selectedSession?.id === session.id 
-                  ? "ring-2 ring-red-600 border-red-600 bg-red-50" 
+                  ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50" 
                   : isFull 
                     ? "opacity-60 cursor-not-allowed border-gray-300" 
-                    : "hover:border-red-300"
+                    : "hover:border-blue-300"
               }`}
               onClick={() => !isFull && handleSessionSelect(session)}
             >

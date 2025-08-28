@@ -320,6 +320,14 @@ export default function PaymentHubPage() {
   };
 
   const handleSwishPayment = () => {
+    if (invoice) {
+      setSwishPaymentData({
+        amount: invoice.amount,
+        message: `Faktura ${invoice.invoice_number} - ${invoice.amount} SEK`,
+        swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231',
+        purchaseId: invoice.id
+      });
+    }
     setShowSwishDialog(true);
   };
 
@@ -334,19 +342,35 @@ export default function PaymentHubPage() {
           invoiceId: invoice?.id,
           amount: invoice?.amount,
           description: invoice?.description || `Faktura ${invoice?.invoice_number}`,
-          reference: `invoice_${invoice?.id}`
+          reference: `invoice_${invoice?.id}`,
+          customerEmail: invoice?.customer_email,
+          customerPhone: invoice?.customer_phone,
+          customerName: invoice?.customer_name
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setQliroData({
+        
+        // Use flow manager to handle checkout display
+        const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
+        await QliroFlowManager.openQliroCheckout({
+          orderId: String(data.checkoutId),
+          amount: invoice?.amount || 0,
+          description: invoice?.description || `Faktura ${invoice?.invoice_number}`,
           checkoutUrl: data.checkoutUrl,
-          purchaseId: data.purchaseId
+          onCompleted: () => {
+            toast.success('Betalning genomförd! Sidan laddas om...');
+            setTimeout(() => window.location.reload(), 1500);
+          },
+          onError: (error) => {
+            console.error('Qliro payment error:', error);
+            toast.error(`Betalningsfel: ${error.message || 'Ett fel uppstod'}`);
+          }
         });
-        setShowQliroDialog(true);
       } else {
-        toast.error('Kunde inte skapa Qliro-betalning');
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Kunde inte skapa Qliro-betalning');
       }
     } catch (error) {
       console.error('Error creating Qliro payment:', error);
@@ -490,16 +514,10 @@ export default function PaymentHubPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center space-y-6">
-          <div className="relative">
-            <OrbSpinner size="large" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <TrueFocusText
-                texts={["Betalhubben"]}
-                interval={2000}
-              />
-            </div>
+          <div className="flex justify-center">
+            <OrbSpinner size="lg" />
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-semibold text-gray-900">Laddar Betalhubben...</h2>
@@ -1144,9 +1162,29 @@ export default function PaymentHubPage() {
           onClose={() => setShowSwishDialog(false)}
           booking={{ id: `invoice_${invoice?.id}`, totalPrice: invoice?.amount || 0 }}
           customMessage={`Faktura ${invoice?.invoice_number} - ${invoice?.amount} ${invoice?.currency}`}
-          onConfirm={() => {
+          mode="package"
+          onConfirm={async () => {
+            try {
+              // Notify admin about Swish payment for invoice
+              const response = await fetch('/api/invoices/notify-swish-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  invoiceId: invoice?.id,
+                  swishMessage: `Faktura ${invoice?.invoice_number} - ${invoice?.amount} ${invoice?.currency}`
+                })
+              });
+              
+              if (response.ok) {
+                toast.success('Tack! Skolan har meddelats om din Swish-betalning.');
+              } else {
+                toast.error('Kunde inte meddela skolan. Kontakta oss direkt.');
+              }
+            } catch (error) {
+              console.error('Failed to notify admin:', error);
+              toast.error('Kunde inte meddela skolan. Kontakta oss direkt.');
+            }
             setShowSwishDialog(false);
-            setTimeout(() => window.location.reload(), 1500);
           }}
         />
       )}

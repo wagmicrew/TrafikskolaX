@@ -218,8 +218,21 @@ export default function TeoriHanteringClient({
   const loadData = async () => {
     try {
       setLoading(true);
-      // Reload the page to get fresh structured data
-      window.location.reload();
+      // Fetch fresh data from the server
+      const response = await fetch('/dashboard/admin/teorihantering', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      if (response.ok) {
+        // Reload the page to get fresh structured data
+        window.location.reload();
+      } else {
+        throw new Error('Failed to refresh data');
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Kunde inte ladda data', {
@@ -906,34 +919,42 @@ export default function TeoriHanteringClient({
                     <Badge color="gray">Inaktiv</Badge>
                   </div>
                   <div className="mt-4 flex gap-2 justify-end">
-                    <Tooltip content="Redigera teorilektionstyp">
-                      <Button
-                        size="xs"
-                        color="light"
-                        theme={{ base: "rounded-lg focus:ring-4" }}
-                        onClick={() => {
-                          setEditingType(type);
-                          handleEditType(type);
-                        }}
-                      >
-                        <Edit3 className="w-3 h-3 mr-1" />
-                        Redigera
-                      </Button>
-                    </Tooltip>
-                    <Tooltip content="Ta bort teorilektionstyp">
-                      <Button
-                        size="xs"
-                        color="red"
-                        theme={{ base: "rounded-lg focus:ring-4" }}
-                        onClick={() => {
-                          setDeleteTarget({ type: 'type', item: type });
-                          setIsDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        Ta bort
-                      </Button>
-                    </Tooltip>
+                    <Button
+                      size="xs"
+                      color="light"
+                      theme={{ base: "rounded-lg focus:ring-4" }}
+                      onClick={() => {
+                        setEditingType(type);
+                        handleEditType(type);
+                      }}
+                    >
+                      <Edit3 className="w-3 h-3 mr-1" />
+                      Redigera
+                    </Button>
+                    <Button
+                      size="xs"
+                      color="blue"
+                      theme={{ base: "rounded-lg focus:ring-4" }}
+                      onClick={() => {
+                        setSessionFormData(prev => ({ ...prev, lessonTypeId: type.id }));
+                        setIsCreateSessionOpen(true);
+                      }}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Session
+                    </Button>
+                    <Button
+                      size="xs"
+                      color="red"
+                      theme={{ base: "rounded-lg focus:ring-4" }}
+                      onClick={() => {
+                        setDeleteTarget({ type: 'type', item: type });
+                        setIsDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Ta bort
+                    </Button>
                   </div>
                 </Card>
               ))
@@ -1393,6 +1414,109 @@ export default function TeoriHanteringClient({
           </div>
         </div>
       </Modal>
+
+      {/* Create Lesson Type Dialog */}
+      <Modal show={isCreateTypeOpen} onClose={() => !saving && setIsCreateTypeOpen(false)} size="lg" theme={{root: {base: "fixed top-0 right-0 left-0 z-50 h-modal h-screen overflow-y-auto overflow-x-hidden md:inset-0 md:h-full bg-gray-900/50 flex justify-center items-center"}}}>
+        <div className="relative p-0 w-full max-h-full h-full md:h-auto">
+          <div className="relative bg-white text-gray-800 rounded-lg shadow-md max-h-full overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-green-600" />
+                Skapa Teorilektionstyp
+              </h3>
+            </div>
+            <div className="p-6 space-y-6 overflow-y-auto">
+              <form ref={createTypeFormRef} onSubmit={handleCreateType} className="space-y-6">
+                <div>
+                  <Label htmlFor="create-type-name" className="block mb-2 text-sm font-medium text-gray-700">
+                    Namn *
+                  </Label>
+                  <Input
+                    id="create-type-name"
+                    value={typeFormData.name}
+                    onChange={(e) => updateTypeForm('name', e.target.value)}
+                    placeholder="t.ex. Handledarutbildning"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="create-type-description" className="block mb-2 text-sm font-medium text-gray-700">
+                    Beskrivning
+                  </Label>
+                  <Textarea
+                    id="create-type-description"
+                    value={typeFormData.description}
+                    onChange={(e) => updateTypeForm('description', e.target.value)}
+                    placeholder="Beskrivning av denna teorilektionstyp..."
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="create-type-sortOrder" className="block mb-2 text-sm font-medium text-gray-700">
+                    Sorteringsordning
+                  </Label>
+                  <Input
+                    id="create-type-sortOrder"
+                    type="number"
+                    value={typeFormData.sortOrder}
+                    onChange={(e) => updateTypeForm('sortOrder', e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3 p-4 rounded-lg bg-gray-50 border border-gray-200">
+                  <Switch
+                    id="create-type-allowsSupervisors"
+                    checked={typeFormData.allowsSupervisors}
+                    onCheckedChange={(checked) => updateTypeForm('allowsSupervisors', checked)}
+                  />
+                  <div>
+                    <Label htmlFor="create-type-allowsSupervisors" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Tillåt handledare/supervisorer
+                    </Label>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Aktivera för att tillåta supervisors att delta i lektionen
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button
+                    type="button"
+                    color="gray"
+                    onClick={() => {
+                      setIsCreateTypeOpen(false);
+                      resetTypeForm();
+                    }}
+                  >
+                    Avbryt
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={saving}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Skapar...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Skapa Teorilektionstyp
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       {/* Add Participant Dialog */}
       <Modal show={isAddParticipantOpen} onClose={() => !saving && setIsAddParticipantOpen(false)} size="xl" theme={{root: {base: "fixed top-0 right-0 left-0 z-50 h-modal h-screen overflow-y-auto overflow-x-hidden md:inset-0 md:h-full bg-gray-900/50 flex justify-center items-center"}}}>
         <div className="relative p-0 w-full max-h-full h-full md:h-auto">

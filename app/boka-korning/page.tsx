@@ -439,12 +439,6 @@ export default function BookingPage() {
         <div className="text-center space-y-6">
           <div className="relative">
             <OrbSpinner size="lg" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <TrueFocusText
-                texts={["Boka Körning"]}
-                interval={2000}
-              />
-            </div>
           </div>
           <div className="space-y-2">
             <h2 className="text-xl font-semibold text-gray-900">Laddar bokningssystemet...</h2>

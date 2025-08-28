@@ -29,9 +29,9 @@ export default function HomePage() {
           <div className="px-4 mx-auto max-w-screen-xl text-center py-24 lg:py-56">
             <div className="bg-transparent text-white border-0 shadow-none">
               {/* Heading */}
-              <h1 className="mb-6 text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl">
+              <h1 className="mb-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight text-white drop-shadow-2xl">
                 Välkommen till{" "}
-                <span className="text-yellow-400 whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
+                <span className="text-yellow-400 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl whitespace-nowrap">Din&nbsp;Trafikskola&nbsp;Hässleholm</span>
               </h1>
 
               {/* Subheading */}
@@ -70,14 +70,14 @@ export default function HomePage() {
               <div className="mt-12">
                 <Alert
                   color="light"
-                  className="bg-white/10 backdrop-blur-lg border border-white/30 text-white max-w-md mx-auto"
+                  className="bg-white/10 backdrop-blur-lg border border-white/30 text-white max-w-lg mx-auto"
                   icon={() => <Phone className="w-6 h-6 text-yellow-300" />}
                 >
                   <div className="text-center">
                     <p className="text-white/95 text-xl md:text-2xl font-semibold mb-2">Ring oss direkt:</p>
                     <a
                       href="tel:0760389192"
-                      className="block text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-yellow-300 hover:text-yellow-200 transition-colors duration-200 drop-shadow-xl"
+                      className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-yellow-300 hover:text-yellow-200 transition-colors duration-200 drop-shadow-xl whitespace-nowrap"
                       aria-label="Ring Din Trafikskola Hässleholm på telefonnummer 0760-389192"
                     >
                       0760-389192

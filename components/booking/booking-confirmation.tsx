@@ -113,6 +113,20 @@ export function BookingConfirmation({
   const [qliroAvailable, setQliroAvailable] = useState<boolean>(true)
   const [qliroStatusMessage, setQliroStatusMessage] = useState<string>('')
   const [qliroStatusLoading, setQliroStatusLoading] = useState<boolean>(true)
+  
+  // Inline auth state
+  const [showLoginCard, setShowLoginCard] = useState(false)
+  const [showRegisterCard, setShowRegisterCard] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [registerFirstName, setRegisterFirstName] = useState('')
+  const [registerLastName, setRegisterLastName] = useState('')
+  const [registerEmail, setRegisterEmail] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
+  const [registerPersonalNumber, setRegisterPersonalNumber] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [guestPersonalNumber, setGuestPersonalNumber] = useState('')
 
   const { user: authUser } = useAuth()
 
@@ -146,6 +160,82 @@ export function BookingConfirmation({
   const finalTotalPrice = bookingData.totalPrice + (extraSupervisors * pricePerSupervisor)
   const showUnpaidWarning = isStudent && unpaidBookings >= 2 && 
                           (selectedPaymentMethod === 'pay_at_location' || !selectedPaymentMethod)
+
+  // Inline auth handlers
+  const handleLogin = async () => {
+    if (!loginEmail || !loginPassword) return
+    
+    setIsLoggingIn(true)
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        toast.success('Inloggad!')
+        // Reload to get updated auth state
+        window.location.reload()
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Inloggning misslyckades')
+      }
+    } catch (error) {
+      toast.error('Ett fel uppstod vid inloggning')
+    } finally {
+      setIsLoggingIn(false)
+    }
+  }
+
+  const handleRegister = async () => {
+    if (!registerFirstName || !registerLastName || !registerEmail || !registerPhone || !registerPersonalNumber) return
+    
+    setIsRegistering(true)
+    try {
+      // Generate secure password
+      const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+      
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: registerFirstName,
+          lastName: registerLastName,
+          email: registerEmail,
+          phone: registerPhone,
+          personalNumber: registerPersonalNumber,
+          password: tempPassword,
+          role: 'student',
+          sendWelcomeEmail: true
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        toast.success('Konto skapat! Inloggningsuppgifter skickas till din e-post.')
+        
+        // Auto-login the new user
+        const loginResponse = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: registerEmail, password: tempPassword })
+        })
+        
+        if (loginResponse.ok) {
+          window.location.reload()
+        }
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Registrering misslyckades')
+      }
+    } catch (error) {
+      toast.error('Ett fel uppstod vid registrering')
+    } finally {
+      setIsRegistering(false)
+    }
+  }
 
   // Helper functions
   const showNotification = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -931,121 +1021,218 @@ export function BookingConfirmation({
 
             {/* Guest Information for non-logged-in users */}
             {!authUser && !isAdminOrTeacher && !isHandledarSession && (
-              <div className="bg-amber-50 p-6 rounded-xl mb-6 border border-amber-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">Dina kontaktuppgifter</h3>
-                  <div className="flex gap-2 text-sm">
-                    <button onClick={() => window.location.href = '/registrering'} className="px-3 py-1 rounded border border-purple-300 text-purple-700 bg-white hover:bg-purple-50">Skapa elev</button>
-                    <button onClick={() => window.location.href = '/login'} className="px-3 py-1 rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">Logga in</button>
-                  </div>
+              <div className="bg-white p-6 rounded-xl mb-6 border border-gray-200">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Dina kontaktuppgifter</h3>
+                  <p className="text-sm text-gray-600">
+                    Vi behöver dina kontaktuppgifter för att skapa ett konto och skicka bokningsbekräftelse.
+                  </p>
                 </div>
-                <p className="text-sm text-gray-700 mb-5 font-medium">
-                  Vi behöver dina kontaktuppgifter för att skapa ett konto och skicka bokningsbekräftelse.
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <FloatingLabel
-                      variant="filled"
-                      label="Namn *"
-                      id="guest-name"
-                      type="text"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="För- och efternamn"
-                    />
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <FloatingLabel
-                        variant="filled"
-                        label="E-post *"
-                        id="guest-email"
-                        type="email"
-                        value={guestEmail}
-                        onChange={(e) => handleEmailChange(e.target.value, true)}
-                        placeholder="exempel@email.com"
-                        className={`${
-                          emailValidationStatus === 'checking' ? 'border-yellow-400' :
-                          emailValidationStatus === 'exists' ? 'border-red-400' :
-                          emailValidationStatus === 'available' ? 'border-green-400' : ''
-                        }`}
-                      />
-                      {emailValidationStatus === 'checking' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
-                          <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-                        </div>
-                      )}
-                      {emailValidationStatus === 'available' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </div>
-                      )}
-                      {emailValidationStatus === 'exists' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 z-10">
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        </div>
-                      )}
+                
+                {/* Inline Auth Options */}
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Login Card */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 backdrop-blur-sm border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-blue-900">1. Logga in</h4>
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
                     </div>
-                    {emailValidationStatus === 'available' && (
-                      <p className="text-xs text-green-600 mt-1">E-postadressen är tillgänglig</p>
-                    )}
-                    {emailValidationStatus === 'exists' && (
-                      <p className="text-xs text-red-600 mt-1">E-postadressen är redan registrerad</p>
-                    )}
+                    <p className="text-sm text-blue-700 mb-3">Har du redan ett konto?</p>
+                    <button 
+                      onClick={() => setShowLoginCard(!showLoginCard)}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      {showLoginCard ? 'Dölj inloggning' : 'Logga in här'}
+                    </button>
                   </div>
-                  <div>
-                    <FBLabel htmlFor="guest-phone" className="text-sm font-medium text-gray-700">Telefon *</FBLabel>
-                    <TextInput
-                      id="guest-phone"
-                      type="tel"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="070-123 45 67"
-                      className="mt-1"
-                    />
+                  
+                  {/* Register Card */}
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 backdrop-blur-sm border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-purple-900">2. Skapa konto</h4>
+                      <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                    </div>
+                    <p className="text-sm text-purple-700 mb-3">Ny hos oss? Skapa konto direkt</p>
+                    <button 
+                      onClick={() => setShowRegisterCard(!showRegisterCard)}
+                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                    >
+                      {showRegisterCard ? 'Dölj registrering' : 'Skapa konto här'}
+                    </button>
                   </div>
                 </div>
+
+                {/* Login Form Card */}
+                {showLoginCard && (
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-4">Logga in på ditt konto</h4>
+                    <div className="space-y-4">
+                      <input
+                        type="email"
+                        placeholder="E-post"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Lösenord"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={handleLogin}
+                        disabled={!loginEmail || !loginPassword || isLoggingIn}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isLoggingIn ? 'Loggar in...' : 'Logga in'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Register Form Card */}
+                {showRegisterCard && (
+                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 className="font-semibold text-purple-900 mb-4">Skapa nytt konto</h4>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Förnamn"
+                          value={registerFirstName}
+                          onChange={(e) => setRegisterFirstName(e.target.value)}
+                          className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Efternamn"
+                          value={registerLastName}
+                          onChange={(e) => setRegisterLastName(e.target.value)}
+                          className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                      </div>
+                      <input
+                        type="email"
+                        placeholder="E-post"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Telefon"
+                        value={registerPhone}
+                        onChange={(e) => setRegisterPhone(e.target.value)}
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Personnummer (ÅÅÅÅMMDD-XXXX)"
+                        value={registerPersonalNumber}
+                        onChange={(e) => {
+                          let value = e.target.value.replace(/\D/g, '');
+                          if (value.length > 12) value = value.slice(0, 12);
+                          if (value.length >= 8) {
+                            value = value.slice(0, 8) + '-' + value.slice(8);
+                          }
+                          setRegisterPersonalNumber(value);
+                        }}
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={handleRegister}
+                        disabled={!registerFirstName || !registerLastName || !registerEmail || !registerPhone || !registerPersonalNumber || isRegistering}
+                        className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isRegistering ? 'Skapar konto...' : 'Skapa konto'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Guest booking form - only show if not logged in and no auth cards are shown */}
+                {!showLoginCard && !showRegisterCard && (
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-4">Eller fortsätt som gäst</h4>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Förnamn"
+                          value={guestName.split(' ')[0] || ''}
+                          onChange={(e) => {
+                            const lastName = guestName.split(' ').slice(1).join(' ')
+                            setGuestName(e.target.value + (lastName ? ' ' + lastName : ''))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Efternamn"
+                          value={guestName.split(' ').slice(1).join(' ') || ''}
+                          onChange={(e) => {
+                            const firstName = guestName.split(' ')[0] || ''
+                            setGuestName(firstName + (e.target.value ? ' ' + e.target.value : ''))
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            placeholder="E-post"
+                            value={guestEmail}
+                            onChange={(e) => handleEmailChange(e.target.value, true)}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                              emailValidationStatus === 'checking' ? 'border-yellow-400' :
+                              emailValidationStatus === 'exists' ? 'border-red-400' :
+                              emailValidationStatus === 'available' ? 'border-green-400' : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        {emailValidationStatus === 'available' && (
+                          <p className="text-xs text-green-600 mt-1">E-postadressen är tillgänglig</p>
+                        )}
+                        {emailValidationStatus === 'exists' && (
+                          <p className="text-xs text-red-600 mt-1">E-postadressen är redan registrerad</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="tel"
+                          placeholder="Telefon"
+                          value={guestPhone}
+                          onChange={(e) => setGuestPhone(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Personnummer (ÅÅÅÅMMDD-XXXX)"
+                          value={guestPersonalNumber}
+                          onChange={(e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.length > 12) value = value.slice(0, 12);
+                            if (value.length >= 8) {
+                              value = value.slice(0, 8) + '-' + value.slice(8);
+                            }
+                            setGuestPersonalNumber(value);
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-4 p-3 bg-blue-100 rounded-md">
                   <p className="text-sm text-blue-800">
                     <strong>OBS!</strong> Ett konto kommer att skapas med dessa uppgifter. 
                     Inloggningsuppgifter skickas till din e-post tillsammans med bokningsbekräftelsen.
                   </p>
-                </div>
-                
-                {/* CTA for guest users to create account */}
-                <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <UserPlus className="w-4 h-4 text-purple-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-gray-800 mb-1">
-                        Skapa ditt konto först
-                      </h4>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Få tillgång till dina bokningar, krediter och enklare betalningar genom att skapa ett konto.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <button
-                          onClick={() => window.location.href = '/registrering'}
-                          className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                        >
-                          Skapa konto
-                        </button>
-                        <button
-                          onClick={() => window.location.href = '/login'}
-                          className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-300 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                        >
-                          Logga in
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Eller fortsätt som gäst - du kan alltid skapa konto senare.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -1318,7 +1505,7 @@ export function BookingConfirmation({
                 (!isAdminOrTeacher && !selectedPaymentMethod && !alreadyPaid) ||
                 (!authUser && !isAdminOrTeacher && (!guestName || !guestEmail || !guestPhone))
               }
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4 mt-6"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-50 mb-4 mt-6"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">

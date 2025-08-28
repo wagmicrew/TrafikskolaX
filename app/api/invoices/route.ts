@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     // Get user from auth token
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token = cookieStore.get('auth-token');
 
     if (!token) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
 
-    const invoices = await invoiceService.getInvoicesByCustomer(payload.userId, status);
+    const invoices = await invoiceService.getAllInvoices({ customerId: payload.userId, status });
 
     return NextResponse.json({ invoices });
   } catch (error) {

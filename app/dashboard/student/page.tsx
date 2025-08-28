@@ -116,10 +116,13 @@ export default function Studentsidan() {
 
   if (isLoading || dataLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Laddar elevdashboard...</p>
+      <div className="fixed inset-0 z-50 bg-gray-50/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="text-center bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+          <OrbSpinner />
+          <TrueFocusText 
+            texts={["Startar Kundportalen"]} 
+            className="mt-4 text-gray-600" 
+          />
         </div>
       </div>
     );
@@ -156,8 +159,9 @@ export default function Studentsidan() {
       user={mappedUser}
       bookings={dashboardData.bookings}
       credits={dashboardData.credits}
+      packages={[]}
       userPackages={dashboardData.userPackages}
-      feedback={dashboardData.feedback}
+      invoices={dashboardData.invoices}
       stats={dashboardData.stats}
     />
   );

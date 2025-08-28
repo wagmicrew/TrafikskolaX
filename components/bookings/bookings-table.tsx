@@ -28,6 +28,7 @@ interface Booking {
   paidAmount: number;
   createdAt: string;
   updatedAt: string;
+  betalhubben?: string;
 }
 
 interface BookingsTableProps {

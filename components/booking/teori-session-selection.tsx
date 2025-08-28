@@ -16,6 +16,8 @@ interface TeoriSession {
   endTime: string
   maxParticipants: number
   currentParticipants: number
+  bookedCount?: number // Added for accurate booking counts
+  price?: string // Added for session-specific pricing
   lessonType: {
     id: string
     name: string
@@ -60,10 +62,15 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
   const fetchTeoriSessions = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/teori/sessions?lessonTypeId=${sessionType.id}&available=true`)
+      // Use the unified sessions endpoint that handles both teori and handledar sessions
+      const response = await fetch(`/api/sessions?scope=future&typeId=${sessionType.id}`)
       if (response.ok) {
         const data = await response.json()
-        setSessions(data.sessions || [])
+        // Find the specific lesson type's sessions from sessionsByType
+        const lessonTypeGroup = data.sessionsByType?.find((group: any) => 
+          group.lessonType.id === sessionType.id
+        )
+        setSessions(lessonTypeGroup?.sessions || [])
       } else {
         console.error('Failed to fetch teori sessions')
         setSessions([])
@@ -186,25 +193,51 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {sessions.map((session) => {
-            const isAvailable = session.currentParticipants < session.maxParticipants
+            // Calculate availability using bookedCount for accurate capacity
+            const availableSpots = (session.maxParticipants || 0) - (session.bookedCount || 0);
+            const isFullyBooked = availableSpots <= 0;
+            const hasEnoughSpots = availableSpots >= 2;
+            
+            // Determine session status and styling
+            let statusColor = '';
+            let statusText = '';
+            let isClickable = false;
+            
+            if (isFullyBooked) {
+              statusColor = 'red';
+              statusText = 'Fullbokad';
+              isClickable = false;
+            } else if (hasEnoughSpots) {
+              statusColor = 'green';
+              statusText = 'Tillgänglig';
+              isClickable = true;
+            } else {
+              statusColor = 'yellow';
+              statusText = 'Begränsat antal platser';
+              isClickable = true;
+            }
             
             return (
               <Card
                 key={session.id}
-                className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative ${
+                className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 relative bg-white border ${
                   selectedSession?.id === session.id 
-                    ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50" 
-                    : isAvailable 
-                      ? "hover:border-blue-300 border-gray-200" 
+                    ? "ring-2 ring-blue-600 border-blue-600" 
+                    : isClickable
+                      ? "hover:border-blue-300 border-gray-200 hover:bg-blue-50/30" 
                       : "opacity-60 cursor-not-allowed border-gray-200"
                 }`}
-                onClick={() => isAvailable && handleSessionSelect(session)}
+                onClick={() => isClickable && handleSessionSelect(session)}
               >
-                {!isAvailable && (
-                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    Fullbokad
-                  </div>
-                )}
+                {/* Status badge */}
+                <div className={`absolute top-2 right-2 text-white text-xs px-2 py-1 rounded-full font-medium ${
+                  statusColor === 'red' ? 'bg-red-500' :
+                  statusColor === 'green' ? 'bg-green-500' :
+                  'bg-yellow-500'
+                }`}>
+                  {statusText}
+                </div>
+                
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <h3 className="font-bold text-lg text-gray-900 tracking-tight">{session.title}</h3>
@@ -213,30 +246,45 @@ export function TeoriSessionSelection({ sessionType, onComplete, onBack }: Teori
                       <p className="text-sm text-gray-600 leading-relaxed">{session.description}</p>
                     )}
                     
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-700">
-                        <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="font-medium">{formatDate(session.date)}</span>
+                    <div className="space-y-3">
+                      {/* Date and Time */}
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex items-center text-sm text-gray-700">
+                          <Calendar className="w-4 h-4 mr-2 text-blue-600" />
+                          <span className="font-medium">{formatDate(session.date)}</span>
+                        </div>
+                        
+                        <div className="flex items-center text-sm text-gray-700">
+                          <Clock className="w-4 h-4 mr-2 text-blue-600" />
+                          <span className="font-medium">
+                            {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                          </span>
+                        </div>
                       </div>
                       
-                      <div className="flex items-center text-sm text-gray-700">
-                        <Clock className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="font-medium">
-                          {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                        </span>
+                      {/* Availability info */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-700">
+                          <Users className="w-4 h-4 mr-2 text-blue-600" />
+                          <span className="font-medium">
+                            {availableSpots} lediga / {session.maxParticipants} total
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {session.bookedCount || 0} bokade
+                        </div>
                       </div>
                       
-                      <div className="flex items-center text-sm text-gray-700">
-                        <Users className="w-4 h-4 mr-2 text-blue-600" />
-                        <span className="font-medium">
-                          {session.currentParticipants}/{session.maxParticipants} deltagare
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-2 border-t border-gray-200">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {formatPrice(session.lessonType.price)} kr
+                      {/* Price for all sessions */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <div className="text-xl font-bold text-blue-600">
+                          {formatPrice(session.lessonType.price)} kr
+                        </div>
+                        {session.lessonType.allowsSupervisors && session.lessonType.pricePerSupervisor && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            + {formatPrice(session.lessonType.pricePerSupervisor || '0')} kr per handledare
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

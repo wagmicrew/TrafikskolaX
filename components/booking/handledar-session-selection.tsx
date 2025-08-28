@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, Users, MapPin } from 'lucide-react';
+import { Calendar, Clock, Users, ArrowLeft } from 'lucide-react';
+import { OrbSpinner } from '@/components/ui/orb-loader';
 
 interface HandledarSession {
   id: string;
@@ -103,7 +104,9 @@ export function HandledarSessionSelection({ onComplete, onBack, sessionType }: H
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <div className="flex justify-center mb-4">
+          <OrbSpinner size="md" />
+        </div>
         <p className="text-gray-600">Laddar tillgängliga handledarkurser...</p>
       </div>
     );

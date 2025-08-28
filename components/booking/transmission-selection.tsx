@@ -32,15 +32,15 @@ export function TransmissionSelection({ onComplete, onBack }: TransmissionSelect
         <Card
           className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
             selectedTransmission === "manual" 
-              ? "ring-2 ring-red-600 border-red-600 bg-red-50" 
-              : "hover:border-red-300"
+              ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50" 
+              : "hover:border-blue-300"
           }`}
           onClick={() => handleTransmissionSelect("manual")}
         >
           <CardContent className="p-6">
             <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
-                <Settings className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                <Settings className="w-8 h-8 text-blue-600" />
               </div>
               <h3 className="font-semibold text-xl text-gray-800">Manuell</h3>
               <p className="text-sm text-gray-600">
@@ -58,8 +58,8 @@ export function TransmissionSelection({ onComplete, onBack }: TransmissionSelect
         <Card
           className={`cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
             selectedTransmission === "automatic" 
-              ? "ring-2 ring-red-600 border-red-600 bg-red-50" 
-              : "hover:border-red-300"
+              ? "ring-2 ring-blue-600 border-blue-600 bg-blue-50" 
+              : "hover:border-blue-300"
           }`}
           onClick={() => handleTransmissionSelect("automatic")}
         >

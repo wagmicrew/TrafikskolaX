@@ -264,6 +264,43 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
           </Card>
         </div>
 
+        {/* Credits Section */}
+        {credits.length > 0 && (
+          <div className="mb-8">
+            <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl text-gray-900 flex items-center">
+                  <Coins className="w-6 h-6 mr-2 text-purple-600" />
+                  Dina krediter
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Använd dina krediter för att boka lektioner
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {credits.map((credit) => (
+                    <div key={credit.id} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-gray-900">{credit.packageName}</h4>
+                        <Badge className="bg-purple-100 text-purple-800">
+                          {credit.creditsRemaining} krediter
+                        </Badge>
+                      </div>
+                      <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+                        <Link href="/boka">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Boka nu
+                        </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
@@ -273,8 +310,8 @@ const StudentDashboardClient: React.FC<StudentDashboardClientProps> = ({
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Boka lektion</h3>
               <p className="text-sm text-gray-600 mb-4">Boka ny körlektion online</p>
-              <Button asChild className="w-full">
-                <Link href="/dashboard/student/bokningar">Boka nu</Link>
+              <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+                <Link href="/boka">Boka nu</Link>
               </Button>
             </CardContent>
           </Card>

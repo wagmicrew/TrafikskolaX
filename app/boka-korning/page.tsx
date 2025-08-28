@@ -25,7 +25,7 @@ import { WeekCalendar } from '@/components/booking/week-calendar';
 import { BookingConfirmation } from '@/components/booking/booking-confirmation';
 import { GearSelection } from '@/components/booking/GearSelection';
 import { SessionSelection } from '@/components/booking/session-selection';
-import { TrueFocusText } from '@/components/ui/true-focus-text';
+import { BookingSteps } from '@/components/booking/booking-steps';
 import { OrbSpinner } from '@/components/ui/orb-loader';
 import Link from 'next/link';
 
@@ -397,6 +397,42 @@ export default function BookingPage() {
     }
   };
 
+  const getDynamicSteps = () => {
+    const baseSteps = [
+      { number: 1, title: 'Välj lektion' }
+    ];
+
+    if (selectedLessonType) {
+      if (selectedLessonType.type === 'teori' || selectedLessonType.type === 'handledar') {
+        baseSteps.push({ number: 2, title: 'Välj session' });
+        baseSteps.push({ number: 3, title: 'Bekräfta' });
+      } else {
+        baseSteps.push({ number: 2, title: 'Växellåda' });
+        baseSteps.push({ number: 3, title: 'Datum & tid' });
+        baseSteps.push({ number: 4, title: 'Bekräfta' });
+      }
+    }
+
+    return baseSteps;
+  };
+
+  const getCurrentStepNumber = () => {
+    switch (currentStep) {
+      case 'lesson-selection':
+        return 1;
+      case 'gear-selection':
+        return 2;
+      case 'calendar':
+        return selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar' ? 2 : 3;
+      case 'session-selection':
+        return 2;
+      case 'confirmation':
+        return selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar' ? 3 : 4;
+      default:
+        return 1;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-red-100 flex items-center justify-center p-4">
@@ -421,44 +457,7 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-rose-50 to-red-100">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="outline" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Tillbaka
-                </Button>
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center">
-                  <Car className="w-4 h-4 text-white" />
-                </div>
-                <TrueFocusText
-                  texts={["Boka Körning"]}
-                  interval={3000}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {selectedLessonType && (
-                <Badge variant="secondary" className="bg-red-100 text-red-800">
-                  {selectedLessonType.name}
-                </Badge>
-              )}
-              {paymentTimeLeft !== null && paymentTimerActive && (
-                <div className="flex items-center gap-2 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                  <Timer className="w-4 h-4" />
-                  {formatTimeLeft(paymentTimeLeft)}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Payment Timer Alert */}
         {paymentTimerActive && paymentTimeLeft !== null && (
@@ -488,6 +487,16 @@ export default function BookingPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Steps Indicator */}
+        <Card className="mb-8 bg-white shadow-lg">
+          <CardContent className="p-6">
+            <BookingSteps 
+              currentStep={getCurrentStepNumber()} 
+              steps={getDynamicSteps()} 
+            />
+          </CardContent>
+        </Card>
 
         {/* Step Title */}
         <Card className="mb-8 bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-2xl">

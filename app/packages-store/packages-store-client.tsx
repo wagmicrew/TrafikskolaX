@@ -2,15 +2,17 @@
 
 import React, { useState, ReactElement } from 'react';
 import {
-  FaShoppingCart,
-  FaCheck,
-  FaStar,
-  FaGift,
-  FaPercent,
-  FaCreditCard,
-  FaMobileAlt,
-  FaSpinner
-} from 'react-icons/fa';
+  ShoppingCart,
+  Check,
+  Star,
+  Gift,
+  Percent,
+  CreditCard,
+  Smartphone,
+  Loader2,
+  QrCode,
+  CheckCircle
+} from 'lucide-react';
 
 interface Package {
   id: string;
@@ -127,92 +129,40 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
   };
 
   const handlePurchase = async (packageId: string): Promise<void> => {
-    // Check if trying to purchase with Qliro when it's unavailable
-    if (paymentMethod === 'qliro' && !qliroAvailable) {
-      toast.error(qliroStatusMessage || 'Qliro är för närvarande inte tillgänglig. Välj Swish istället.');
-      return;
-    }
-
     setLoading(true);
     try {
-      // First, create the package purchase record
-      const response = await fetch('/api/packages/purchase', {
+      // First, create invoice and get Betalhubben URL
+      const invoiceResponse = await fetch('/api/packages/create-invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           packageId,
-          paymentMethod,
         }),
       });
 
-      const data = await response.json();
+      const invoiceData = await invoiceResponse.json();
 
-      if (response.ok) {
-        if (paymentMethod === 'swish') {
-          // Set up Swish payment dialog
-          const pkg = packages.find((p: Package) => p.id === packageId);
-          if (!pkg) {
-            throw new Error('Paketet kunde inte hittas');
-          }
-          
-          const effectivePrice = getEffectivePrice(pkg);
-          
-          setSwishPaymentData({
-            amount: effectivePrice,
-            message: `Paket ${pkg.name} - Order ${data.purchaseId}`,
-            purchaseId: data.purchaseId,
-            swishNumber: process.env.NEXT_PUBLIC_SWISH_NUMBER || '1231231231'
-          });
-          
-          setShowSwishDialog(true);
-          
-        } else if (paymentMethod === 'qliro') {
-          // Set up Qliro payment using new flow manager
-          const pkg = packages.find((p: Package) => p.id === packageId);
-          if (!pkg) {
-            throw new Error('Paketet kunde inte hittas');
-          }
-          
-          const effectivePrice = getEffectivePrice(pkg);
-          
-          console.log('[PACKAGES DEBUG] Starting Qliro payment for package:', packageId);
-          console.log('[PACKAGES DEBUG] Purchase data:', {
-            purchaseId: data.purchaseId,
-            checkoutId: data.checkoutId,
-            amount: effectivePrice
-          });
-          
-          // Step 3, 4, 5: Use flow manager to handle checkout display
-          const { QliroFlowManager } = await import('@/lib/payment/qliro-flow-manager');
-          await QliroFlowManager.openQliroCheckout({
-            orderId: String(data.checkoutId),
-            amount: effectivePrice,
-            description: `Paket ${pkg.name}`,
-            checkoutUrl: data.checkoutUrl,
-            onCompleted: () => {
-              console.log('[PACKAGES DEBUG] Payment completed, redirecting...');
-              try {
-                window.location.href = `/qliro/return?ref=${encodeURIComponent(`package_${data.purchaseId}`)}&status=paid`;
-              } catch (e) {
-                console.error('[PACKAGES DEBUG] Failed to redirect:', e);
-                // Fallback: reload page to show updated purchase status
-                window.location.reload();
-              }
-            },
-            onError: (error) => {
-              console.error('[PACKAGES DEBUG] Payment error:', error);
-              toast.error(`Betalningsfel: ${error.message || 'Ett fel uppstod'}`);
-            }
-          });
-        }
+      if (invoiceResponse.ok) {
+        // Open Betalhubben with the created invoice
+        const betalhubbenUrl = invoiceData.betalhubbenUrl;
+        toast.success('Faktura skapad! Öppnar Betalhubben...');
+        
+        // Open Betalhubben in new tab/window
+        window.open(betalhubbenUrl, '_blank');
+        
+        // Optionally redirect current page to show success
+        setTimeout(() => {
+          window.location.href = `/dashboard/student/fakturor`;
+        }, 2000);
+        
       } else {
-        toast.error(data.error || 'Något gick fel vid skapande av köp');
+        toast.error(invoiceData.error || 'Kunde inte skapa faktura');
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid behandling av din betalning';
+      console.error('Purchase error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod vid skapande av köp';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -301,7 +251,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
       </div>
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">
-          <FaShoppingCart className="inline-block mr-3 text-gray-500" />
+          <ShoppingCart className="inline-block mr-3 text-gray-500" />
           Paketbutik
         </h1>
         <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto mb-6">
@@ -326,7 +276,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
                 variant={paymentMethod === 'swish' ? 'default' : 'outline'}
                 className="p-4 rounded-xl flex flex-col items-center justify-center gap-2"
               >
-                <FaMobileAlt className="text-2xl" />
+                <Smartphone className="text-2xl" />
                 <span className="font-medium">Swish</span>
               </Button>
               
@@ -338,8 +288,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
                 title={!qliroAvailable ? qliroStatusMessage : 'Välj Qliro som betalningsmetod'}
               >
                 <div className="flex items-center gap-1">
-                  <FaCreditCard className="text-2xl" />
-                  {qliroStatusLoading && <FaSpinner className="text-sm animate-spin" />}
+                  <CreditCard className="text-2xl" />
+                  {qliroStatusLoading && <Loader2 className="text-sm animate-spin" />}
                 </div>
                 <span className="font-medium">Qliro</span>
                 {!qliroAvailable && (
@@ -377,7 +327,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
               {isPopular && (
                 <div className="absolute top-4 right-4 z-10">
                   <div className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                    <FaStar className="text-amber-600" />
+                    <Star className="text-amber-600" />
                     Populär
                   </div>
                 </div>
@@ -387,7 +337,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
               {savings > 0 && (
                 <div className="absolute top-4 left-4 z-10">
                   <div className="bg-green-100 text-green-700 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                    <FaPercent />
+                    <Percent />
                     Spara {savings}%
                   </div>
                 </div>
@@ -423,7 +373,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
                   <ul className="space-y-2">
                     {pkg.features.map((feature: string, index: number) => (
                       <li key={index} className="flex items-center gap-2 text-sm">
-                        <FaCheck className="text-green-500 flex-shrink-0" />
+                        <Check className="text-green-500 flex-shrink-0" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -432,17 +382,8 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
 
                 {/* Payment Method Indicator */}
                 <div className="mb-6 flex items-center justify-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                  {paymentMethod === 'swish' ? (
-                    <>
-                      <FaMobileAlt className="text-blue-500" />
-                      <span className="font-medium text-gray-700">Betalas med Swish</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaCreditCard className="text-indigo-600" />
-                      <span className="font-medium text-gray-700">Betalas med Qliro</span>
-                    </>
-                  )}
+                  <ShoppingCart className="text-blue-500" />
+                  <span className="font-medium text-gray-700">Klicka 'Köp' för att skapa faktura och öppna Betalhubben</span>
                 </div>
 
                 {/* Purchase Button */}
@@ -453,13 +394,13 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
                 >
                   {loading ? (
                     <>
-                      <FaSpinner className="animate-spin" />
-                      Bearbetar...
+                      <Loader2 className="animate-spin" />
+                      Skapar faktura...
                     </>
                   ) : (
                     <>
-                      <FaShoppingCart />
-                      Köp nu
+                      <ShoppingCart />
+                      Köp
                     </>
                   )}
                 </Button>
@@ -472,7 +413,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
       {/* Empty State */}
       {packages.length === 0 && (
         <div className="text-center py-16">
-          <FaGift className="text-5xl text-gray-400 mx-auto mb-3" />
+          <Gift className="text-5xl text-gray-400 mx-auto mb-3" />
           <h3 className="text-xl font-bold text-gray-900 mb-1">Inga paket tillgängliga</h3>
           <p className="text-gray-600">Kom tillbaka senare för fler erbjudanden.</p>
         </div>
@@ -493,7 +434,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           
           <div className="text-center">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaCheck className="text-2xl text-blue-600" />
+              <Check className="text-2xl text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Flexibilitet</h3>
             <p className="text-gray-600">Använd dina credits när det passar dig bäst.</p>
@@ -501,7 +442,7 @@ const PackagesStoreClient = ({ user, packages, hasActiveCredits = false }: Packa
           
           <div className="text-center">
             <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaStar className="text-2xl text-purple-600" />
+              <Star className="text-2xl text-purple-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Kvalitet</h3>
             <p className="text-gray-600">Samma höga kvalitet på alla våra lektioner.</p>

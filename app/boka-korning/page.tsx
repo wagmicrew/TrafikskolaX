@@ -26,7 +26,11 @@ import { BookingConfirmation } from '@/components/booking/booking-confirmation';
 import { GearSelection } from '@/components/booking/GearSelection';
 import { SessionSelection } from '@/components/booking/session-selection';
 import { BookingSteps } from '@/components/booking/booking-steps';
+import { StudentSelection } from '@/components/booking/student-selection';
+import { GuestRegistration } from '@/components/booking/guest-registration';
+import { SupervisorInfo } from '@/components/booking/supervisor-info';
 import { OrbSpinner } from '@/components/ui/orb-loader';
+import { TempBookingStorage } from '@/lib/temp-booking';
 import Link from 'next/link';
 
 interface SessionType {
@@ -39,10 +43,38 @@ interface SessionType {
   priceStudent?: number;
   isActive: boolean;
   allowsSupervisors?: boolean;
+  requiresPersonalId?: boolean;
   pricePerSupervisor?: number;
   maxParticipants?: number;
   sessions?: TeoriSession[];
   hasAvailableSessions?: boolean;
+}
+
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  personalNumber?: string;
+  phone?: string;
+}
+
+interface GuestData {
+  firstName: string;
+  lastName: string;
+  personalNumber: string;
+  email: string;
+  phone: string;
+}
+
+interface Supervisor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  personalNumber: string;
+  email: string;
+  phone: string;
+  relationship: string;
 }
 
 interface TeoriSession {
@@ -79,7 +111,7 @@ interface BookingData {
   selectedSession?: TeoriSession;
 }
 
-type BookingStep = 'lesson-selection' | 'calendar' | 'gear-selection' | 'session-selection' | 'confirmation' | 'payment-timer';
+type BookingStep = 'lesson-selection' | 'calendar' | 'gear-selection' | 'session-selection' | 'student-selection' | 'guest-registration' | 'supervisor-info' | 'confirmation' | 'payment-timer';
 
 export default function BookingPage() {
   const { user, isLoading } = useAuth();
@@ -93,10 +125,44 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Handledarutbildning state
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [guestData, setGuestData] = useState<GuestData | null>(null);
+  const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
+  const [showNewStudentForm, setShowNewStudentForm] = useState(false);
+
   // Payment timer state
   const [paymentTimeLeft, setPaymentTimeLeft] = useState<number | null>(null);
   const [paymentTimerActive, setPaymentTimerActive] = useState(false);
   const [invoiceId, setInvoiceId] = useState<string | null>(null);
+
+  // Check for temporary booking data on mount
+  useEffect(() => {
+    const tempBooking = TempBookingStorage.get();
+    if (tempBooking) {
+      // Restore booking state from temporary storage
+      setBookingData(tempBooking.bookingData);
+      setSelectedSession(tempBooking.selectedSession);
+      setSelectedLessonType(tempBooking.bookingData.lessonType);
+      setGuestData(tempBooking.guestData || null);
+      setSupervisors(tempBooking.supervisors || []);
+
+      // Determine which step to show based on the restored data
+      if (tempBooking.bookingData.isHandledarutbildning) {
+        if (!user && !tempBooking.guestData) {
+          setCurrentStep('guest-registration');
+        } else if (user?.role === 'admin' && !tempBooking.bookingData.studentId) {
+          setCurrentStep('student-selection');
+        } else if (!tempBooking.supervisors || tempBooking.supervisors.length === 0) {
+          setCurrentStep('supervisor-info');
+        } else {
+          setCurrentStep('confirmation');
+        }
+      } else {
+        setCurrentStep('confirmation');
+      }
+    }
+  }, [user]);
 
   // Calculate dynamic price
   const calculatePrice = (lessonType: SessionType): number => {
@@ -131,6 +197,120 @@ export default function BookingPage() {
     } else {
       setCurrentStep('gear-selection');
     }
+  };
+
+  // Handle student selection for admin handledarutbildning booking
+  const handleStudentSelection = (student: Student | null) => {
+    setSelectedStudent(student);
+    if (student) {
+      // Update booking data with selected student
+      if (bookingData) {
+        const updatedBookingData = {
+          ...bookingData,
+          studentId: student.id,
+          studentName: `${student.firstName} ${student.lastName}`,
+          studentEmail: student.email,
+          studentPhone: student.phone,
+          studentPersonalNumber: student.personalNumber
+        };
+        setBookingData(updatedBookingData);
+        TempBookingStorage.updateBookingData(updatedBookingData);
+      }
+      setCurrentStep('supervisor-info');
+    }
+  };
+
+  // Handle adding new student
+  const handleAddNewStudent = () => {
+    setShowNewStudentForm(true);
+    setCurrentStep('guest-registration');
+  };
+
+  // Handle creating new student
+  const handleCreateNewStudent = async (studentData: Omit<Student, 'id'>) => {
+    try {
+      const response = await fetch('/api/admin/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(studentData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const newStudent: Student = {
+          id: result.student.id,
+          firstName: studentData.firstName,
+          lastName: studentData.lastName,
+          email: studentData.email,
+          personalNumber: studentData.personalNumber,
+          phone: studentData.phone
+        };
+
+        // Select the newly created student
+        handleStudentSelection(newStudent);
+
+        // Refresh the students list
+        // This would normally be done by updating the StudentSelection component
+        // but for now we'll just proceed
+      } else {
+        throw new Error('Failed to create student');
+      }
+    } catch (error) {
+      console.error('Error creating student:', error);
+      throw error;
+    }
+  };
+
+  // Handle guest registration
+  const handleGuestRegistration = (data: GuestData) => {
+    setGuestData(data);
+
+    if (bookingData) {
+      const updatedBookingData = {
+        ...bookingData,
+        guestName: `${data.firstName} ${data.lastName}`,
+        guestEmail: data.email,
+        guestPhone: data.phone,
+        guestPersonalNumber: data.personalNumber
+      };
+      setBookingData(updatedBookingData);
+      TempBookingStorage.updateGuestData(data);
+      TempBookingStorage.updateBookingData(updatedBookingData);
+    }
+
+    setCurrentStep('supervisor-info');
+  };
+
+  // Handle supervisor information
+  const handleSupervisorUpdate = (supervisorsList: Supervisor[]) => {
+    // Check participant limits
+    if (selectedSession) {
+      const totalParticipants = 1 + supervisorsList.length; // 1 student + supervisors
+      if (totalParticipants > selectedSession.maxParticipants) {
+        toast.error(`För många deltagare! Max ${selectedSession.maxParticipants} deltagare tillåtet.`);
+        return;
+      }
+    }
+
+    setSupervisors(supervisorsList);
+    TempBookingStorage.updateSupervisors(supervisorsList);
+
+    // Update booking price if supervisors changed
+    if (bookingData && bookingData.isHandledarutbildning) {
+      const extraSupervisors = Math.max(0, supervisorsList.length - 1);
+      const extraSupervisorCost = selectedSession?.pricePerSupervisor || 0;
+      const additionalCost = extraSupervisors * extraSupervisorCost;
+      const newTotalPrice = (selectedSession?.price || 0) + additionalCost;
+
+      const updatedBookingData = {
+        ...bookingData,
+        totalPrice: newTotalPrice
+      };
+      setBookingData(updatedBookingData);
+      TempBookingStorage.updateBookingData(updatedBookingData);
+    }
+
+    setCurrentStep('confirmation');
   };
 
   // Handle calendar selection
@@ -170,25 +350,79 @@ export default function BookingPage() {
   const handleSessionSelection = (session: TeoriSession) => {
     if (selectedLessonType) {
       setSelectedSession(session);
+      // Detect if this is a handledarutbildning based on lesson type settings
+      const isHandledarutbildning = session.allows_supervisors || selectedLessonType.type === 'handledar';
+
+      // Calculate price including extra supervisors
+      let totalPrice = session.price || 0;
+      if (isHandledarutbildning && supervisors.length > 1) {
+        const extraSupervisors = supervisors.length - 1;
+        const extraSupervisorCost = session.pricePerSupervisor || 0;
+        totalPrice += extraSupervisors * extraSupervisorCost;
+      }
+
+      // Ensure we have a valid Date object
+      let sessionDate: Date;
+      if (session.date instanceof Date) {
+        sessionDate = session.date;
+      } else if (typeof session.date === 'string') {
+        sessionDate = new Date(session.date + 'T00:00:00'); // Ensure it's parsed as local date
+      } else {
+        sessionDate = new Date(session.date);
+      }
+
+      if (isNaN(sessionDate.getTime())) {
+        console.error('Invalid date from session:', session.date, typeof session.date);
+        toast.error('Ogiltigt datum från sessionen');
+        return;
+      }
+
       const bookingData: BookingData = {
         lessonType: selectedLessonType,
-        selectedDate: new Date(session.date),
+        selectedDate: sessionDate,
         selectedTime: session.startTime,
         instructor: null,
         vehicle: null,
-        totalPrice: selectedLessonType.type === 'handledar' ? calculatePrice(selectedLessonType) : session.price,
+        totalPrice: totalPrice,
         isStudent: user?.role === 'student',
-        isHandledarutbildning: selectedLessonType.type === 'handledar',
+        isHandledarutbildning: isHandledarutbildning,
         transmissionType: transmissionType,
         scheduledDate: session.date,
         startTime: session.startTime,
         endTime: session.endTime,
-        durationMinutes: selectedLessonType.durationMinutes,
+        durationMinutes: session.durationMinutes || selectedLessonType.durationMinutes,
         selectedSession: session,
         tempBookingId: session.id,
       };
       setBookingData(bookingData);
-      setCurrentStep('confirmation');
+
+      // Save to temporary storage
+      TempBookingStorage.save(bookingData, session, null, []);
+
+      // Determine next step based on handledarutbildning requirements
+      if (isHandledarutbildning) {
+        if (!user) {
+          // Guest user - need registration
+          setCurrentStep('guest-registration');
+        } else if (user.role === 'admin') {
+          // Admin user - can select existing student or add new
+          setCurrentStep('student-selection');
+        } else {
+          // Regular logged-in user - add as student, go to supervisor info
+          const userAsStudent = {
+            id: user.id,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email,
+            personalNumber: (user as any).personalNumber,
+            phone: user.phone
+          };
+          handleStudentSelection(userAsStudent);
+        }
+      } else {
+        // Regular teori session - go directly to confirmation
+        setCurrentStep('confirmation');
+      }
     }
   };
 
@@ -337,8 +571,29 @@ export default function BookingPage() {
       case 'session-selection':
         setCurrentStep('lesson-selection');
         break;
+      case 'student-selection':
+        setCurrentStep('session-selection');
+        break;
+      case 'guest-registration':
+        if (user?.role === 'admin') {
+          setCurrentStep('student-selection');
+        } else {
+          setCurrentStep('session-selection');
+        }
+        break;
+      case 'supervisor-info':
+        if (user?.role === 'admin') {
+          setCurrentStep('student-selection');
+        } else if (!user) {
+          setCurrentStep('guest-registration');
+        } else {
+          setCurrentStep('session-selection');
+        }
+        break;
       case 'confirmation':
-        if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
+        if (bookingData?.isHandledarutbildning && supervisors.length === 0) {
+          setCurrentStep('supervisor-info');
+        } else if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
           setCurrentStep('session-selection');
         } else {
           setCurrentStep('calendar');
@@ -362,6 +617,12 @@ export default function BookingPage() {
         return !!bookingData?.selectedDate && !!bookingData?.selectedTime;
       case 'session-selection':
         return !!selectedSession;
+      case 'student-selection':
+        return !!selectedStudent;
+      case 'guest-registration':
+        return !!guestData;
+      case 'supervisor-info':
+        return supervisors.length > 0;
       case 'confirmation':
         return true;
       default:
@@ -388,6 +649,12 @@ export default function BookingPage() {
         return 'Välj växellåda';
       case 'session-selection':
         return 'Välj session';
+      case 'student-selection':
+        return 'Välj elev';
+      case 'guest-registration':
+        return 'Registrera elev';
+      case 'supervisor-info':
+        return 'Handledarinformation';
       case 'confirmation':
         return 'Bekräfta bokning';
       case 'payment-timer':
@@ -405,7 +672,19 @@ export default function BookingPage() {
     if (selectedLessonType) {
       if (selectedLessonType.type === 'teori' || selectedLessonType.type === 'handledar') {
         baseSteps.push({ number: 2, title: 'Välj session' });
-        baseSteps.push({ number: 3, title: 'Bekräfta' });
+
+        // Add steps for handledarutbildning
+        if (bookingData?.isHandledarutbildning) {
+          if (!user) {
+            baseSteps.push({ number: 3, title: 'Registrera' });
+          } else if (user?.role === 'admin') {
+            baseSteps.push({ number: 3, title: 'Välj elev' });
+          }
+          baseSteps.push({ number: 4, title: 'Handledare' });
+          baseSteps.push({ number: 5, title: 'Bekräfta' });
+        } else {
+          baseSteps.push({ number: 3, title: 'Bekräfta' });
+        }
       } else {
         baseSteps.push({ number: 2, title: 'Växellåda' });
         baseSteps.push({ number: 3, title: 'Datum & tid' });
@@ -426,8 +705,20 @@ export default function BookingPage() {
         return selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar' ? 2 : 3;
       case 'session-selection':
         return 2;
+      case 'student-selection':
+        return 3;
+      case 'guest-registration':
+        return 3;
+      case 'supervisor-info':
+        return bookingData?.isHandledarutbildning ? 4 : 3;
       case 'confirmation':
-        return selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar' ? 3 : 4;
+        if (bookingData?.isHandledarutbildning) {
+          return 5;
+        } else if (selectedLessonType?.type === 'teori' || selectedLessonType?.type === 'handledar') {
+          return 3;
+        } else {
+          return 4;
+        }
       default:
         return 1;
     }
@@ -576,13 +867,15 @@ export default function BookingPage() {
                       title: data.session.title,
                       description: (data.session as any).description || '',
                       date: (data.session as any).date,
-                      startTime: (data.session as any).start_time,
-                      endTime: (data.session as any).end_time,
-                      maxParticipants: (data.session as any).max_participants,
-                      currentParticipants: (data.session as any).current_participants,
-                      price: (data.session as any).price,
-                      availableSpots: (data.session as any).available_spots ?? ((data.session as any).max_participants - (((data.session as any).booked_count) || 0)),
-                      formattedDateTime: (data.session as any).formatted_date_time || '',
+                      startTime: (data.session as any).startTime,
+                      endTime: (data.session as any).endTime,
+                      maxParticipants: (data.session as any).maxParticipants,
+                      currentParticipants: (data.session as any).currentParticipants,
+                      // Use lesson type price (session-specific pricing needs DB migration)
+                      price: (data.session as any).price || 0,
+                      availableSpots: (data.session as any).availableSpots ?? ((data.session as any).maxParticipants - ((data.session as any).currentParticipants || 0) - (((data.session as any).bookedCount) || 0)),
+                      formattedDateTime: (data.session as any).formattedDateTime || '',
+                      allows_supervisors: (data.session as any).allowsSupervisors || false,
                     };
                     setSelectedSession(normalized);
                     handleSessionSelection(normalized);
@@ -598,6 +891,78 @@ export default function BookingPage() {
                   <Button
                     onClick={() => handleSessionSelection(selectedSession!)}
                     disabled={!selectedSession}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Fortsätt
+                    <CheckCircle className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 'student-selection' && (
+              <div className="space-y-6">
+                <StudentSelection
+                  onSelectStudent={handleStudentSelection}
+                  onAddNewStudent={handleAddNewStudent}
+                  onCreateNewStudent={handleCreateNewStudent}
+                  selectedStudent={selectedStudent}
+                />
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <Button variant="outline" onClick={handleBack}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Tillbaka
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (selectedStudent) {
+                        handleStudentSelection(selectedStudent);
+                      }
+                    }}
+                    disabled={!selectedStudent}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Fortsätt
+                    <CheckCircle className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 'guest-registration' && (
+              <div className="space-y-6">
+                <GuestRegistration
+                  onSubmit={handleGuestRegistration}
+                  onBack={handleBack}
+                  existingEmail={bookingData?.guestEmail}
+                />
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <Button variant="outline" onClick={handleBack}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Tillbaka
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 'supervisor-info' && (
+              <div className="space-y-6">
+                <SupervisorInfo
+                  supervisors={supervisors}
+                  onUpdateSupervisors={handleSupervisorUpdate}
+                  maxSupervisors={1}
+                />
+
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <Button variant="outline" onClick={handleBack}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Tillbaka
+                  </Button>
+                  <Button
+                    onClick={() => handleSupervisorUpdate(supervisors)}
+                    disabled={supervisors.length === 0}
                     className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     Fortsätt
@@ -630,7 +995,9 @@ export default function BookingPage() {
                       guestName,
                       guestEmail,
                       guestPhone,
+                      guestPersonalNumber: guestData?.personalNumber,
                       teoriSessionId: bookingData.selectedSession?.id,
+                      supervisors: supervisors,
                     } as any;
 
                     const bookingResponse = await fetch('/api/booking/create', {

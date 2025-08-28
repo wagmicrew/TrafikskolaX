@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
             price: teoriLessonTypes.price,
             pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
             durationMinutes: teoriLessonTypes.durationMinutes,
+            maxParticipants: teoriLessonTypes.maxParticipants,
           },
           bookedCount: count(teoriBookings.id)
         })
@@ -100,7 +101,8 @@ export async function GET(request: NextRequest) {
           teoriLessonTypes.allowsSupervisors,
           teoriLessonTypes.price,
           teoriLessonTypes.pricePerSupervisor,
-          teoriLessonTypes.durationMinutes
+          teoriLessonTypes.durationMinutes,
+          teoriLessonTypes.maxParticipants
         )
         .orderBy(teoriSessions.date, teoriSessions.startTime);
 
@@ -124,6 +126,7 @@ export async function GET(request: NextRequest) {
       is_available: ((session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0)) > 0,
       type: session.allowsSupervisors ? 'handledar' : 'teori',
       formattedDateTime: formatDateTime(session.date, session.startTime, session.endTime),
+      // Use lesson type price (session-specific pricing would need DB migration)
       price: parseFloat(session.price || '0'),
       durationMinutes: session.durationMinutes || 60,
       allowsSupervisors: session.allowsSupervisors || false,
@@ -151,6 +154,7 @@ export async function GET(request: NextRequest) {
             price: lessonType.price,
             pricePerSupervisor: lessonType.pricePerSupervisor,
             durationMinutes: lessonType.durationMinutes,
+            maxParticipants: lessonType.maxParticipants,
             type: lessonType.allowsSupervisors ? 'handledar' : 'teori',
           },
           sessions: lessonTypeSessions,

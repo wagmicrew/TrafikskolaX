@@ -4,10 +4,8 @@ import { relations } from 'drizzle-orm';
 // Export email template schema
 export * from './schema/email-templates';
 
-// Export session management schema
-export * from './schema/session-types';
-export * from './schema/sessions';
-export * from './schema/session-bookings';
+// Teori system tables (recommended by documentation)
+export * from './schema/teori';
 
 // Export invoice schema
 export * from './schema/invoice';
@@ -200,7 +198,7 @@ export const packageContents = pgTable('package_contents', {
   id: uuid('id').defaultRandom().primaryKey(),
   packageId: uuid('package_id').notNull().references(() => packages.id, { onDelete: 'cascade' }),
   lessonTypeId: uuid('lesson_type_id').references(() => lessonTypes.id, { onDelete: 'cascade' }),
-  handledarSessionId: uuid('handledar_session_id').references(() => handledarSessions.id, { onDelete: 'cascade' }),
+
   credits: integer('credits').default(0),
   contentType: varchar('content_type', { length: 50 }).notNull().default('lesson'), // 'lesson', 'handledar', 'text'
   freeText: text('free_text'),
@@ -213,7 +211,7 @@ export const userCredits = pgTable('user_credits', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   lessonTypeId: uuid('lesson_type_id').references(() => lessonTypes.id),
-  handledarSessionId: uuid('handledar_session_id').references(() => handledarSessions.id),
+
   creditsRemaining: integer('credits_remaining').notNull().default(0),
   creditsTotal: integer('credits_total').notNull().default(0),
   packageId: uuid('package_id').references(() => packages.id),
@@ -354,7 +352,7 @@ export const siteSettings = pgTable('site_settings', {
 export const qliroOrders = pgTable('qliro_orders', {
   id: uuid('id').defaultRandom().primaryKey(),
   bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'cascade' }),
-  handledarBookingId: uuid('handledar_booking_id').references(() => handledarBookings.id, { onDelete: 'cascade' }),
+
   packagePurchaseId: uuid('package_purchase_id').references(() => packagePurchases.id, { onDelete: 'cascade' }),
   // Optional link to Teori booking (kept without FK here to avoid declaration order issues)
   teoriBookingId: uuid('teori_booking_id'),
@@ -390,123 +388,13 @@ export const teoriLessonTypes = pgTable('teori_lesson_types', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Session type enum for unified Teori/Handledar sessions
-export const sessionTypeEnum = pgEnum('session_type_enum', ['teori', 'handledar']);
 
-// Teori sessions table (unified for both teori and handledar sessions)
-export const teoriSessions = pgTable('teori_sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  lessonTypeId: uuid('lesson_type_id').notNull().references(() => teoriLessonTypes.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  date: date('date').notNull(),
-  startTime: time('start_time').notNull(),
-  endTime: time('end_time').notNull(),
-  maxParticipants: integer('max_participants').default(1),
-  currentParticipants: integer('current_participants').default(0),
-  teacherId: uuid('teacher_id').references(() => users.id),
-  sessionType: sessionTypeEnum('session_type').default('teori'),
-  price: decimal('price', { precision: 10, scale: 2 }),
-  referenceId: uuid('reference_id'), // For linking to original handledar_sessions if needed
-  isActive: boolean('is_active').default(true),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
 
-// Teori bookings table (unified for both teori and handledar bookings)
-export const teoriBookings = pgTable('teori_bookings', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  sessionId: uuid('session_id').notNull().references(() => teoriSessions.id, { onDelete: 'cascade' }),
-  studentId: uuid('student_id').notNull().references(() => users.id),
-  status: varchar('status', { length: 50 }).default('pending'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
-  paymentMethod: varchar('payment_method', { length: 50 }),
-  swishUuid: varchar('swish_uuid', { length: 255 }),
-  bookedBy: uuid('booked_by').references(() => users.id),
-  reminderSent: boolean('reminder_sent').default(false),
-  // Handledar-specific fields for unified handling
-  participantName: varchar('participant_name', { length: 255 }),
-  participantEmail: varchar('participant_email', { length: 255 }),
-  participantPhone: varchar('participant_phone', { length: 50 }),
-  participantPersonalNumber: varchar('participant_personal_number', { length: 20 }),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
 
-// Teori supervisors table (for types that allow supervisors)
-export const teoriSupervisors = pgTable('teori_supervisors', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  teoriBookingId: uuid('teori_booking_id').notNull().references(() => teoriBookings.id, { onDelete: 'cascade' }),
-  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
-  supervisorEmail: varchar('supervisor_email', { length: 255 }),
-  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
-  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 20 }),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
-// Handledar sessions table
-export const handledarSessions = pgTable('handledar_sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  date: date('date').notNull(),
-  startTime: time('start_time').notNull(),
-  endTime: time('end_time').notNull(),
-  maxParticipants: integer('max_participants').default(2),
-  currentParticipants: integer('current_participants').default(0),
-  pricePerParticipant: decimal('price_per_participant', { precision: 10, scale: 2 }).notNull(),
-  teacherId: uuid('teacher_id').references(() => users.id),
-  isActive: boolean('is_active').default(true),
-  sessionType: varchar('session_type', { length: 50 }).default('handledarutbildning'), // 'handledarutbildning' or 'riskettan'
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
 
-// Handledar bookings table
-export const handledarBookings = pgTable('handledar_bookings', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  sessionId: uuid('session_id').notNull().references(() => handledarSessions.id, { onDelete: 'cascade' }),
-  studentId: uuid('student_id').references(() => users.id),
-  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
-  supervisorEmail: varchar('supervisor_email', { length: 255 }),
-  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
-  status: varchar('status', { length: 50 }).default('pending'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  basePrice: decimal('base_price', { precision: 10, scale: 2 }).default('500.00'),
-  supervisorCount: integer('supervisor_count').default(1),
-  pricePerSupervisor: decimal('price_per_supervisor', { precision: 10, scale: 2 }).default('500.00'),
-  paymentStatus: varchar('payment_status', { length: 50 }).default('pending'),
-  paymentMethod: varchar('payment_method', { length: 50 }),
-  swishUuid: varchar('swish_uuid', { length: 255 }),
-  bookedBy: uuid('booked_by').references(() => users.id),
-  reminderSent: boolean('reminder_sent').default(false),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
 
-// Supervisor details table for multiple supervisors per booking
-export const supervisorDetails = pgTable('supervisor_details', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  handledarBookingId: uuid('handledar_booking_id').notNull().references(() => handledarBookings.id, { onDelete: 'cascade' }),
-  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
-  supervisorEmail: varchar('supervisor_email', { length: 255 }),
-  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
-  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 20 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
-// Regular booking supervisor details table
-export const bookingSupervisorDetails = pgTable('booking_supervisor_details', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  bookingId: uuid('booking_id').notNull().references(() => bookings.id, { onDelete: 'cascade' }),
-  supervisorName: varchar('supervisor_name', { length: 255 }).notNull(),
-  supervisorEmail: varchar('supervisor_email', { length: 255 }),
-  supervisorPhone: varchar('supervisor_phone', { length: 50 }),
-  supervisorPersonalNumber: varchar('supervisor_personal_number', { length: 255 }), // Encrypted, so longer field
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
 
 // Slot overrides table
 export const slotOverrides = pgTable('slot_overrides', {
@@ -538,73 +426,7 @@ export const packagePurchases = pgTable('package_purchases', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Handledar sessions relations
-export const handledarSessionsRelations = relations(handledarSessions, ({ one, many }) => ({
-  teacher: one(users, {
-    fields: [handledarSessions.teacherId],
-    references: [users.id],
-  }),
-  bookings: many(handledarBookings),
-}));
 
-// Teori lesson types relations
-export const teoriLessonTypesRelations = relations(teoriLessonTypes, ({ many }) => ({
-  sessions: many(teoriSessions),
-}));
-
-// Teori sessions relations
-export const teoriSessionsRelations = relations(teoriSessions, ({ one, many }) => ({
-  lessonType: one(teoriLessonTypes, {
-    fields: [teoriSessions.lessonTypeId],
-    references: [teoriLessonTypes.id],
-  }),
-  teacher: one(users, {
-    fields: [teoriSessions.teacherId],
-    references: [users.id],
-  }),
-  bookings: many(teoriBookings),
-}));
-
-// Teori bookings relations
-export const teoriBookingsRelations = relations(teoriBookings, ({ one, many }) => ({
-  session: one(teoriSessions, {
-    fields: [teoriBookings.sessionId],
-    references: [teoriSessions.id],
-  }),
-  student: one(users, {
-    fields: [teoriBookings.studentId],
-    references: [users.id],
-  }),
-  bookedBy: one(users, {
-    fields: [teoriBookings.bookedBy],
-    references: [users.id],
-  }),
-  supervisors: many(teoriSupervisors),
-}));
-
-// Teori supervisors relations
-export const teoriSupervisorsRelations = relations(teoriSupervisors, ({ one }) => ({
-  booking: one(teoriBookings, {
-    fields: [teoriSupervisors.teoriBookingId],
-    references: [teoriBookings.id],
-  }),
-}));
-
-// Handledar bookings relations
-export const handledarBookingsRelations = relations(handledarBookings, ({ one }) => ({
-  session: one(handledarSessions, {
-    fields: [handledarBookings.sessionId],
-    references: [handledarSessions.id],
-  }),
-  student: one(users, {
-    fields: [handledarBookings.studentId],
-    references: [users.id],
-  }),
-  bookedBy: one(users, {
-    fields: [handledarBookings.bookedBy],
-    references: [users.id],
-  }),
-}));
 
 // Package relations
 export const packagesRelations = relations(packages, ({ many }) => ({
@@ -622,10 +444,7 @@ export const packageContentsRelations = relations(packageContents, ({ one }) => 
     fields: [packageContents.lessonTypeId],
     references: [lessonTypes.id],
   }),
-  handledarSession: one(handledarSessions, {
-    fields: [packageContents.handledarSessionId],
-    references: [handledarSessions.id],
-  }),
+
 }));
 
 // Package purchases relations

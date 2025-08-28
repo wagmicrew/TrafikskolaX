@@ -266,7 +266,14 @@ export function BookingConfirmation({
   }
 
   const pad2 = (n: number) => String(n).padStart(2, '0')
-  const formatLocalYmd = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  const formatLocalYmd = (d: Date | string) => {
+    const date = d instanceof Date ? d : new Date(d);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date in formatLocalYmd:', d);
+      return 'Ogiltigt datum';
+    }
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
 
   const handleUseExistingAccount = () => {
     setShowEmailConflictDialog(false)
@@ -1237,102 +1244,7 @@ export function BookingConfirmation({
               </div>
             )}
 
-            {/* Supervisor Information for Handledar Sessions */}
-            {(requiresPersonalId) && (
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Handledare information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <FBLabel htmlFor="supervisor-ssn" className="text-sm font-medium text-gray-700">Personnummer (ÅÅÅÅMMDD-XXXX)</FBLabel>
-                    <TextInput
-                      id="supervisor-ssn"
-                      type="text"
-                      inputMode="numeric"
-                      value={supervisorSSN}
-                      onChange={(e) => {
-                        const raw = String(e.target.value || '')
-                        const digits = raw.replace(/[^0-9]/g, '').slice(0, 12)
-                        const formatted = digits.length <= 8 ? digits : `${digits.slice(0,8)}-${digits.slice(8,12)}`
-                        setSupervisorSSN(formatted)
-                      }}
-                      placeholder="ÅÅÅÅMMDD-XXXX"
-                      className="mt-1 font-mono"
-                    />
-                    <p className="text-xs text-gray-600 mt-1 font-mono">
-                      Visas som: {(() => {
-                        const digits = supervisorSSN.replace(/[^0-9]/g, '')
-                        const head = digits.slice(0,8)
-                        const tail = digits.slice(8,12)
-                        const sep = digits.length > 8 ? '-' : ''
-                        const masked = tail ? '••••' : ''
-                        return `${head}${sep}${masked}`
-                      })()}
-                    </p>
-                    <p className="text-xs text-gray-500">Sista fyra maskeras (••••). Lagring sker krypterat.</p>
-                  </div>
-                  <div>
-                    <FBLabel htmlFor="supervisor-name" className="text-sm font-medium text-gray-700">Namn *</FBLabel>
-                    <TextInput
-                      id="supervisor-name"
-                      type="text"
-                      value={supervisorName}
-                      onChange={(e) => setSupervisorName(e.target.value)}
-                      placeholder="För- och efternamn"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <FBLabel htmlFor="supervisor-email" className="text-sm font-medium text-gray-700">E-post *</FBLabel>
-                    <div className="relative">
-                      <TextInput
-                        id="supervisor-email"
-                        type="email"
-                        value={supervisorEmail}
-                        onChange={(e) => handleEmailChange(e.target.value, false)}
-                        placeholder="exempel@email.com"
-                        className={`mt-1 ${
-                          emailValidationStatus === 'checking' ? 'border-yellow-400' :
-                          emailValidationStatus === 'exists' ? 'border-red-400' :
-                          emailValidationStatus === 'available' ? 'border-green-400' : ''
-                        }`}
-                      />
-                      {emailValidationStatus === 'checking' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-                        </div>
-                      )}
-                      {emailValidationStatus === 'available' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </div>
-                      )}
-                      {emailValidationStatus === 'exists' && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                        </div>
-                      )}
-                    </div>
-                    {emailValidationStatus === 'available' && (
-                      <p className="text-xs text-green-600 mt-1">E-postadressen är tillgänglig</p>
-                    )}
-                    {emailValidationStatus === 'exists' && (
-                      <p className="text-xs text-red-600 mt-1">E-postadressen är redan registrerad</p>
-                    )}
-                  </div>
-                  <div>
-                    <FBLabel htmlFor="supervisor-phone" className="text-sm font-medium text-gray-700">Telefon *</FBLabel>
-                    <TextInput
-                      id="supervisor-phone"
-                      type="tel"
-                      value={supervisorPhone}
-                      onChange={(e) => setSupervisorPhone(e.target.value)}
-                      placeholder="070-123 45 67"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+
             
 
             {/* Payment Methods */}

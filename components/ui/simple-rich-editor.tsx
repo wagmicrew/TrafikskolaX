@@ -164,7 +164,7 @@ const FlowbiteWysiwygEditor = forwardRef<FlowbiteWysiwygEditorRef, FlowbiteWysiw
         }),
         Image,
       ],
-      content: value || '<p><br></p>',
+      content: value && value.trim() ? value : '<p><br></p>',
       onUpdate: ({ editor }) => {
         const html = editor.getHTML();
         onChange?.(html);
@@ -279,8 +279,70 @@ const FlowbiteWysiwygEditor = forwardRef<FlowbiteWysiwygEditorRef, FlowbiteWysiw
 
   // Update editor content when value prop changes
   useEffect(() => {
-    if (editorInstanceRef.current && value !== editorInstanceRef.current.getHTML()) {
-      editorInstanceRef.current.commands.setContent(value || '<p><br></p>');
+    console.log('Editor useEffect triggered, value:', value?.substring(0, 100) + '...');
+
+    if (editorInstanceRef.current && value !== undefined) {
+      console.log('Editor instance exists, proceeding with content update');
+
+      // Force content update regardless of comparison
+      console.log('Setting content directly...');
+      try {
+        // Try to set content immediately without delay
+        if (editorInstanceRef.current) {
+          editorInstanceRef.current.commands.setContent(value || '<p><br></p>');
+          console.log('✅ Editor content set successfully');
+
+          // Verify content was set (with lenient comparison)
+          const newContent = editorInstanceRef.current.getHTML();
+
+          // Debug: Check DOM content
+          if (editorRef.current) {
+            const contentDiv = editorRef.current.querySelector('[contenteditable]');
+            if (contentDiv) {
+              console.log('🔍 DOM Content editable div:', contentDiv);
+              console.log('🔍 DOM Inner HTML:', contentDiv.innerHTML);
+              console.log('🔍 DOM Text content:', contentDiv.textContent);
+              console.log('🔍 DOM Child nodes:', contentDiv.childNodes.length);
+            }
+          }
+
+          // Normalize both strings for comparison (remove extra whitespace)
+          const normalizeHtml = (html: string) => {
+            return html
+              .replace(/\s+/g, ' ')  // Replace multiple whitespace with single space
+              .replace(/>\s+</g, '><')  // Remove whitespace between tags
+              .trim();
+          };
+
+          const normalizedExpected = normalizeHtml(value || '<p><br></p>');
+          const normalizedActual = normalizeHtml(newContent);
+
+          console.log('📊 Verification - Expected (normalized):', normalizedExpected.substring(0, 100) + '...');
+          console.log('📊 Verification - Actual (normalized):', normalizedActual.substring(0, 100) + '...');
+
+          // Check if essential content is present (not just exact match)
+          if (normalizedActual.includes('<h1>') || normalizedActual.includes('<p>') || normalizedActual.length > 10) {
+            console.log('✅ Content appears to be set correctly (contains expected elements)');
+
+            // Force a visual update by triggering a re-render
+            if (editorInstanceRef.current) {
+              setTimeout(() => {
+                if (editorInstanceRef.current) {
+                  // Force editor to refresh its view
+                  editorInstanceRef.current.view.updateState(editorInstanceRef.current.view.state);
+                  console.log('🔄 Forced editor view update');
+                }
+              }, 10);
+            }
+          } else {
+            console.log('❌ Content may not have been set properly');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error setting editor content:', error);
+      }
+    } else {
+      console.log('Editor instance not ready or value undefined');
     }
   }, [value]);
 

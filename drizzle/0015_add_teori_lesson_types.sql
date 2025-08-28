@@ -74,12 +74,22 @@ CREATE INDEX IF NOT EXISTS idx_teori_bookings_student_id ON teori_bookings(stude
 CREATE INDEX IF NOT EXISTS idx_teori_bookings_status ON teori_bookings(status);
 CREATE INDEX IF NOT EXISTS idx_teori_supervisors_booking_id ON teori_supervisors(teori_booking_id);
 
--- Add some default Teori lesson types
+-- Add some default Teori lesson types with proper prices
 INSERT INTO teori_lesson_types (name, description, allows_supervisors, price, price_per_supervisor, duration_minutes, max_participants, is_active, sort_order) VALUES
-('Risktväan Teori', 'Teorilektion för risktvåan - endast studenter', FALSE, 500.00, NULL, 60, 1, TRUE, 1),
-('Grundkurs Teori', 'Grundläggande teorilektion för studenter', FALSE, 500.00, NULL, 60, 1, TRUE, 2),
-('Avancerad Teori', 'Avancerad teorilektion med möjlighet för handledare', TRUE, 600.00, 400.00, 90, 1, TRUE, 3),
-('Handledar Teori', 'Teorilektion med obligatorisk handledare/supervisor', TRUE, 700.00, 500.00, 90, 1, TRUE, 4)
+('Risktväan Teori', 'Teorilektion för risktvåan - endast studenter', FALSE, 550.00, NULL, 60, 1, TRUE, 1),
+('Grundkurs Teori', 'Grundläggande teorilektion för studenter', FALSE, 550.00, NULL, 60, 1, TRUE, 2),
+('Avancerad Teori', 'Avancerad teorilektion med möjlighet för handledare', TRUE, 650.00, 400.00, 90, 2, TRUE, 3),
+('Handledarutbildning', 'Handledarutbildning för B-körkort', TRUE, 750.00, 450.00, 90, 2, TRUE, 4)
+ON CONFLICT DO NOTHING;
+
+-- Add some sample teori sessions with proper prices
+INSERT INTO teori_sessions (lesson_type_id, title, description, date, start_time, end_time, max_participants, current_participants, price, session_type, is_active) VALUES
+((SELECT id FROM teori_lesson_types WHERE name = 'Risktväan Teori' LIMIT 1), 'Risktväan Teori - Förmiddag', 'Grundläggande teorilektion för risktvåan', '2025-02-01', '09:00:00', '10:00:00', 1, 0, 550.00, 'teori', TRUE),
+((SELECT id FROM teori_lesson_types WHERE name = 'Risktväan Teori' LIMIT 1), 'Risktväan Teori - Eftermiddag', 'Grundläggande teorilektion för risktvåan', '2025-02-01', '14:00:00', '15:00:00', 1, 0, 550.00, 'teori', TRUE),
+((SELECT id FROM teori_lesson_types WHERE name = 'Handledarutbildning' LIMIT 1), 'Handledarutbildning - Förmiddag', 'Handledarutbildning för B-körkort', '2025-02-02', '09:00:00', '12:00:00', 2, 0, 750.00, 'handledar', TRUE),
+((SELECT id FROM teori_lesson_types WHERE name = 'Handledarutbildning' LIMIT 1), 'Handledarutbildning - Eftermiddag', 'Handledarutbildning för B-körkort', '2025-02-02', '13:00:00', '16:00:00', 2, 0, 750.00, 'handledar', TRUE),
+((SELECT id FROM teori_lesson_types WHERE name = 'Avancerad Teori' LIMIT 1), 'Avancerad Teori - Förmiddag', 'Avancerad teorilektion med möjlighet för handledare', '2025-02-03', '09:00:00', '10:30:00', 2, 0, 650.00, 'teori', TRUE),
+((SELECT id FROM teori_lesson_types WHERE name = 'Avancerad Teori' LIMIT 1), 'Avancerad Teori - Eftermiddag', 'Avancerad teorilektion med möjlighet för handledare', '2025-02-03', '14:00:00', '15:30:00', 2, 0, 650.00, 'teori', TRUE)
 ON CONFLICT DO NOTHING;
 
 -- Add updated_at trigger for teori_lesson_types

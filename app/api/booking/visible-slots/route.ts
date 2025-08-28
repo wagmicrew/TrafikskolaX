@@ -255,10 +255,7 @@ export async function GET(request: NextRequest) {
       const dateObj = new Date(dateStr);
       const dayOfWeek = dateObj.getDay();
       const daySlots = slotSettingsByDay[dayOfWeek] || [];
-      const dayBookings = (bookingsByDate[dateStr] || []).filter((b) => {
-        const name = (b.lessonTypeName || '').toLowerCase();
-        return !name.includes('handledar');
-      });
+      const dayBookings = bookingsByDate[dateStr] || [];
       const dayBlocked = blockedByDate[dateStr] || [];
       const dayExtras = extrasByDate[dateStr] || [];
 

@@ -75,6 +75,7 @@ const RECEIVER_TYPES = [
 ];
 
 export default function EmailTemplateBuilder() {
+  const [editorContent, setEditorContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [templates, setTemplates] = useState<Array<{ id: string; triggerType: string; subject: string; isActive: boolean }>>([]);
@@ -99,6 +100,15 @@ export default function EmailTemplateBuilder() {
   useEffect(() => {
     loadTemplates();
   }, []);
+
+  // Watch for form value changes and update editor content
+  useEffect(() => {
+    const htmlContent = form.watch('htmlContent');
+    if (htmlContent !== editorContent) {
+      console.log('Form htmlContent changed, updating editorContent:', htmlContent?.substring(0, 100) + '...');
+      setEditorContent(htmlContent || '');
+    }
+  }, [form.watch('htmlContent'), editorContent]);
 
   // Filter templates based on search and category
   const filteredTemplates = templates.filter(template => {
@@ -133,6 +143,13 @@ export default function EmailTemplateBuilder() {
       const response = await fetch(`/api/admin/email-templates/${template.id}`);
       if (response.ok) {
         const templateData = await response.json();
+        console.log('Loaded template data:', {
+          id: templateData.id,
+          subject: templateData.subject,
+          htmlContentLength: templateData.htmlContent?.length || 0,
+          htmlContentPreview: templateData.htmlContent?.substring(0, 100) + '...'
+        });
+
         form.reset({
           id: templateData.id,
           triggerType: templateData.triggerType,
@@ -141,6 +158,14 @@ export default function EmailTemplateBuilder() {
           isActive: templateData.isActive,
           receivers: templateData.receivers || ['student']
         });
+
+        // Set editor content directly for immediate display
+        setEditorContent(templateData.htmlContent || '');
+
+        // Verify the form value was set
+        console.log('Form htmlContent after reset:', form.getValues('htmlContent')?.substring(0, 100) + '...');
+        console.log('Editor content set to:', templateData.htmlContent?.substring(0, 100) + '...');
+
         toast.success(`Mall "${template.subject}" öppnad i redigeraren`);
       }
     } catch (error) {
@@ -192,8 +217,15 @@ export default function EmailTemplateBuilder() {
   }, [form]);
 
   const insertVariable = (variable: string) => {
-    if (editorRef.current) {
-      editorRef.current.insertText(variable);
+    if (editorRef.current && editorRef.current.insertText) {
+      try {
+        editorRef.current.insertText(variable);
+      } catch (error) {
+        console.error('Editor not ready:', error);
+        toast.error('Redigeraren är inte klar än. Försök igen om ett ögonblick.');
+      }
+    } else {
+      toast.error('Redigeraren är inte tillgänglig. Kontrollera att redigeraren är laddad.');
     }
   };
 
@@ -205,6 +237,7 @@ export default function EmailTemplateBuilder() {
       isActive: true,
       receivers: ['student']
     });
+    setEditorContent('');
     setSelectedTemplate('');
     toast.success('Ny mall skapad - välj en utlösare och börja skriva');
   };
@@ -505,6 +538,68 @@ export default function EmailTemplateBuilder() {
                   </div>
                 </div>
 
+                {/* Content Editor */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                      <Code className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <Label className="text-lg font-semibold text-slate-700 dark:text-slate-300">
+                      Innehåll *
+                    </Label>
+                  </div>
+                  <div className="border-2 border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl bg-white">
+                    <FlowbiteWysiwygEditor
+                      ref={editorRef}
+                      value={editorContent}
+                      onChange={(value: string) => {
+                        setEditorContent(value);
+                        form.setValue('htmlContent', value);
+                      }}
+                      placeholder="Skriv e-postinnehållet här..."
+                      height={600}
+                      className="min-h-[600px]"
+                    />
+                    {/* Debug info */}
+                    <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
+                      <strong>Debug:</strong> htmlContent length: {form.watch('htmlContent')?.length || 0}
+                      <br />
+                      <strong>Editor Content length:</strong> {editorContent?.length || 0}
+                      <br />
+                      <strong>Preview:</strong> {form.watch('htmlContent')?.substring(0, 50)}...
+                      <br />
+                      <strong>Editor Preview:</strong> {editorContent?.substring(0, 50)}...
+                    </div>
+                  </div>
+                  {form.formState.errors.htmlContent && (
+                    <p className="text-sm text-red-600 font-medium">
+                      {form.formState.errors.htmlContent.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Variables Helper */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Tillgängliga variabler
+                  </Label>
+                  <div className="flex flex-wrap gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                    {COMMON_VARIABLES.map((variable) => (
+                      <button
+                        key={variable}
+                        type="button"
+                        onClick={() => insertVariable(variable)}
+                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-200 hover:border-blue-300 font-mono transition-all duration-200 shadow-sm"
+                      >
+                        {variable}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Klicka på en variabel för att infoga den i innehållet
+                  </p>
+                </div>
+
                 {/* Recipients */}
                 <div className="space-y-4">
                   <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -533,28 +628,6 @@ export default function EmailTemplateBuilder() {
                   )}
                 </div>
 
-                {/* Variables Helper */}
-                <div className="space-y-4">
-                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Tillgängliga variabler
-                  </Label>
-                  <div className="flex flex-wrap gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                    {COMMON_VARIABLES.map((variable) => (
-                      <button
-                        key={variable}
-                        type="button"
-                        onClick={() => insertVariable(variable)}
-                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-200 hover:border-blue-300 font-mono transition-all duration-200 shadow-sm"
-                      >
-                        {variable}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Klicka på en variabel för att infoga den i innehållet
-                  </p>
-                </div>
-
                 {/* Status */}
                 <div className="flex items-center justify-between p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                   <div className="flex items-center space-x-3">
@@ -572,33 +645,6 @@ export default function EmailTemplateBuilder() {
                   </div>
                 </div>
 
-                {/* Content Editor */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 border border-blue-200">
-                      <Code className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <Label className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                      Innehåll *
-                    </Label>
-                  </div>
-                  <div className="border-2 border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl bg-white">
-                    <FlowbiteWysiwygEditor
-                      ref={editorRef}
-                      value={form.watch('htmlContent')}
-                      onChange={(value: string) => form.setValue('htmlContent', value)}
-                      placeholder="Skriv e-postinnehållet här..."
-                      height={600}
-                      className="min-h-[600px]"
-                    />
-                  </div>
-                  {form.formState.errors.htmlContent && (
-                    <p className="text-sm text-red-600 font-medium">
-                      {form.formState.errors.htmlContent.message}
-                    </p>
-                  )}
-                </div>
-
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <Button
@@ -606,6 +652,7 @@ export default function EmailTemplateBuilder() {
                     variant="outline"
                     onClick={() => {
                       setSelectedTemplate('');
+                      setEditorContent('');
                       form.reset();
                     }}
                     className="px-8 py-3 rounded-lg"

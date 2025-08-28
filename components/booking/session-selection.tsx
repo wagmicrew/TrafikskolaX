@@ -91,8 +91,19 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
           // Map and enhance session data
           const enhancedSessions = sessionsData.map((session: any) => ({
             ...session,
-            available_spots: session.max_participants - (session.booked_count || 0),
-            formatted_date_time: formatDateTime(session.date, session.start_time, session.end_time)
+            available_spots: (session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0),
+            formatted_date_time: formatDateTime(session.date, session.startTime, session.endTime),
+            // Use lesson type prices (session-specific pricing needs DB migration)
+            price: session.price || 0,
+            price_per_supervisor: session.pricePerSupervisor || null,
+            allows_supervisors: session.allowsSupervisors || false,
+            duration_minutes: session.durationMinutes || 60,
+            // Normalize field names for consistency
+            max_participants: session.maxParticipants,
+            current_participants: session.currentParticipants,
+            booked_count: session.bookedCount,
+            start_time: session.startTime,
+            end_time: session.endTime
           }));
 
           console.log('Setting Teori/Handledar sessions:', enhancedSessions);
@@ -113,16 +124,36 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
   }
 
   const formatDateTime = (dateStr: string, startTime: string, endTime: string) => {
-    const date = new Date(dateStr);
-    const formattedDate = date.toLocaleDateString('sv-SE', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    const start = startTime ? startTime.substring(0, 5) : 'TBD';
-    const end = endTime ? endTime.substring(0, 5) : 'TBD';
-    return `${formattedDate} ${start} - ${end}`;
+    try {
+      let date: Date;
+      if (dateStr instanceof Date) {
+        date = dateStr;
+      } else if (typeof dateStr === 'string') {
+        // Ensure proper date parsing by adding time component if missing
+        const dateWithTime = dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00';
+        date = new Date(dateWithTime);
+      } else {
+        date = new Date(dateStr);
+      }
+
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date in formatDateTime:', dateStr);
+        return `Ogiltigt datum ${startTime || ''} - ${endTime || ''}`.trim();
+      }
+
+      const formattedDate = date.toLocaleDateString('sv-SE', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const start = startTime ? startTime.substring(0, 5) : 'TBD';
+      const end = endTime ? endTime.substring(0, 5) : 'TBD';
+      return `${formattedDate} ${start} - ${end}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, dateStr);
+      return `Felaktigt datum ${startTime || ''} - ${endTime || ''}`.trim();
+    }
   }
 
   const formatPrice = (amount: number) => {
@@ -137,7 +168,7 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
   }
 
   const getAvailableSpots = (session: TeoriSession) => {
-    return session.available_spots || (session.max_participants - (session.booked_count || 0))
+    return session.available_spots || (session.max_participants - (session.booked_count || 0) - (session.current_participants || 0))
   }
 
   const getAvailabilityColor = (session: TeoriSession) => {

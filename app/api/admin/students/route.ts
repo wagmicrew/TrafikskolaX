@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         lastName: users.lastName,
         email: users.email,
         phone: users.phone,
+        personalNumber: users.personalNumber,
         inskriven: users.inskriven,
       })
       .from(users)
@@ -51,5 +52,54 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching students:', error);
     return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 });
+  }
+}
+
+// Handle POST - Create new student
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requireAuthAPI();
+    if (!auth.success) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    if (auth.user.role !== 'admin' && auth.user.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { firstName, lastName, email, phone, personalNumber } = await request.json();
+
+    if (!firstName || !lastName || !email) {
+      return NextResponse.json({ error: 'Förnamn, efternamn och e-post krävs' }, { status: 400 });
+    }
+
+    // Check if email already exists
+    const existingUser = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
+    if (existingUser.length > 0) {
+      return NextResponse.json({ error: 'E-postadressen är redan registrerad' }, { status: 400 });
+    }
+
+    // Create new student
+    const [newStudent] = await db.insert(users).values({
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      phone: phone || null,
+      personalNumber: personalNumber || null,
+      role: 'student',
+      isActive: true,
+      inskriven: false
+    }).returning();
+
+    return NextResponse.json({
+      student: {
+        id: newStudent.id,
+        firstName: newStudent.firstName,
+        lastName: newStudent.lastName,
+        email: newStudent.email,
+        phone: newStudent.phone,
+        personalNumber: newStudent.personalNumber
+      }
+    });
+  } catch (error) {
+    console.error('Error creating student:', error);
+    return NextResponse.json({ error: 'Failed to create student' }, { status: 500 });
   }
 }

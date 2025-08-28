@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, handledarSessions, handledarBookings, bookingSupervisorDetails, siteSettings, teacherAvailability, blockedSlots, extraSlots } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, siteSettings, teacherAvailability, blockedSlots, extraSlots, teoriSessions, teoriBookings, teoriSupervisors } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';
@@ -17,15 +17,141 @@ import crypto from 'crypto';
 
 // Encryption function for personal IDs
 function encryptPersonalId(personalId: string): string {
-  const algorithm = 'aes-256-gcm';
-  const key = process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long'; // Should be 32 characters
+  const algorithm = 'aes-256-cbc';
+  const key = (process.env.ENCRYPTION_KEY || 'fallback-key-32-characters-long').substring(0, 32);
   const iv = crypto.randomBytes(16);
 
-  const cipher = crypto.createCipher(algorithm, key);
+  const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(personalId, 'utf8', 'hex');
   encrypted += cipher.final('hex');
 
-  return encrypted;
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+// Handle teori session bookings
+async function handleTeoriSessionBooking(body: any, isTeoriSession: boolean, teoriSessionId: string, studentId: string | undefined, totalPrice: number, supervisors: any[], guestName?: string, guestEmail?: string, guestPhone?: string) {
+  const { paymentMethod = 'pending', paymentStatus = 'pending', alreadyPaid = false } = body;
+
+  try {
+    // Get current user if logged in
+    const cookieStore = cookies();
+    let currentUserId: string | undefined;
+    let currentUserRole: string | undefined;
+
+    const token = cookieStore.get('token');
+    if (token) {
+      const payload = await verifyToken(token.value);
+      if (payload && (payload as any).userId) {
+        currentUserId = (payload as any).userId as string;
+
+        // Get current user's role
+        const currentUser = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, currentUserId));
+
+        if (currentUser.length > 0) {
+          currentUserRole = currentUser[0].role;
+        }
+      }
+    }
+
+    // Determine the student ID to use
+    let finalStudentId = studentId;
+    let participantName = guestName;
+    let participantEmail = guestEmail;
+    let participantPhone = guestPhone;
+    let participantPersonalNumber = body.guestPersonalNumber;
+
+    if (!finalStudentId && guestEmail) {
+      // Check if guest user exists
+      const existingGuest = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, guestEmail.toLowerCase()))
+        .limit(1);
+
+      if (existingGuest.length > 0) {
+        finalStudentId = existingGuest[0].id;
+        participantName = existingGuest[0].firstName + ' ' + existingGuest[0].lastName;
+        participantEmail = existingGuest[0].email;
+        participantPhone = existingGuest[0].phone;
+        participantPersonalNumber = (existingGuest[0] as any).personalNumber;
+      }
+    }
+
+    // Create teori booking
+    const [teoriBooking] = await db
+      .insert(teoriBookings)
+      .values({
+        sessionId: teoriSessionId,
+        studentId: finalStudentId!,
+        status: 'pending',
+        price: totalPrice.toString(),
+        paymentStatus: alreadyPaid ? 'paid' : paymentStatus,
+        paymentMethod: paymentMethod,
+        bookedBy: currentUserId,
+        participantName,
+        participantEmail,
+        participantPhone,
+        participantPersonalNumber: participantPersonalNumber ? encryptPersonalId(participantPersonalNumber) : undefined,
+      })
+      .returning();
+
+    // Add supervisors if provided
+    if (supervisors && supervisors.length > 0) {
+      const supervisorInserts = supervisors.map((supervisor: any) => ({
+        teoriBookingId: teoriBooking.id,
+        supervisorName: supervisor.firstName + ' ' + supervisor.lastName,
+        supervisorEmail: supervisor.email,
+        supervisorPhone: supervisor.phone,
+        supervisorPersonalNumber: supervisor.personalNumber ? encryptPersonalId(supervisor.personalNumber) : undefined,
+        price: supervisor.price || '0',
+      }));
+
+      await db.insert(teoriSupervisors).values(supervisorInserts);
+    }
+
+    // Create invoice for the booking
+    if (!alreadyPaid && paymentMethod !== 'paid') {
+      try {
+        const invoiceResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: teoriBooking.id,
+            amount: totalPrice,
+            description: `Teori-bokning: ${body.selectedSession?.title || 'Teori session'}`,
+            dueDate: new Date(Date.now() + 120 * 60 * 1000).toISOString(), // 120 minutes from now
+          }),
+        });
+
+        if (invoiceResponse.ok) {
+          const invoiceResult = await invoiceResponse.json();
+          return NextResponse.json({
+            booking: teoriBooking,
+            invoice: invoiceResult.invoice,
+            message: 'Teori-bokning och faktura skapade framgångsrikt'
+          });
+        }
+      } catch (invoiceError) {
+        console.error('Error creating invoice for teori booking:', invoiceError);
+        // Continue without invoice for now
+      }
+    }
+
+    return NextResponse.json({
+      booking: teoriBooking,
+      message: 'Teori-bokning skapad framgångsrikt'
+    });
+
+  } catch (error) {
+    console.error('Error creating teori booking:', error);
+    return NextResponse.json(
+      { error: 'Failed to create teori booking' },
+      { status: 500 }
+    );
+  }
 }
 
 // Helper function to get SendGrid API key from database
@@ -63,6 +189,7 @@ export async function POST(request: NextRequest) {
     const {
       sessionType,
       sessionId,
+      teoriSessionId,
       studentId,
       alreadyPaid,
       scheduledDate,
@@ -82,9 +209,18 @@ export async function POST(request: NextRequest) {
       supervisorDetails,
       // New handledare format
       handledare,
+      supervisors,
       // Student selection
       selectedStudent,
     } = body;
+
+    // Check if this is a teori session booking
+    const isTeoriSession = !!teoriSessionId;
+
+    // Handle teori session bookings
+    if (isTeoriSession) {
+      return await handleTeoriSessionBooking(body, isTeoriSession, teoriSessionId, studentId, totalPrice, supervisors, guestName, guestEmail, guestPhone);
+    }
 
     // Validate required fields - different validation for handledar vs regular lessons
     if (sessionType === 'handledar') {

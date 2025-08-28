@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { CreditCard } from 'lucide-react';
 import {
   Download,
   Eye,
@@ -287,6 +289,19 @@ export default function CustomerInvoicesPage() {
                           <Download className="w-4 h-4 mr-1" />
                           PDF
                         </Button>
+
+                        {invoice.status === 'pending' && (
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Link href={`/dashboard/invoices/${invoice.id}/pay`}>
+                              <CreditCard className="w-4 h-4 mr-1" />
+                              Betala
+                            </Link>
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

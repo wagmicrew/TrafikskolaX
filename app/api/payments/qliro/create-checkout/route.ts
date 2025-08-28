@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 import { qliroService } from '@/lib/payment/qliro-service';
 import { db } from '@/lib/db';
-import { bookings, handledarBookings, packagePurchases, users } from '@/lib/db/schema';
+import { bookings, handledarBookings, packagePurchases, users, invoices } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logging/logger';
 import { cache } from '@/lib/redis/client';
@@ -105,6 +105,23 @@ export async function POST(request: NextRequest) {
                 customerLastName = customerLastName || u[0].lastName || undefined;
               }
             }
+          } else if (reference.startsWith('invoice_')) {
+            const id = reference.replace('invoice_', '');
+            const rows = await db
+              .select({ userId: invoices.userId, customerEmail: invoices.customerEmail, customerPhone: invoices.customerPhone })
+              .from(invoices)
+              .where(eq(invoices.id, id))
+              .limit(1);
+            const inv = rows[0] as { userId?: string; customerEmail?: string; customerPhone?: string } | undefined;
+            if (inv?.userId) {
+              const u = await db.select().from(users).where(eq(users.id, inv.userId)).limit(1);
+              if (u[0]) {
+                customerEmail = customerEmail || u[0].email || undefined;
+                customerPhone = customerPhone || (u[0].phone || '').toString();
+                customerFirstName = customerFirstName || u[0].firstName || undefined;
+                customerLastName = customerLastName || u[0].lastName || undefined;
+              }
+            }
           }
         }
       }
@@ -116,6 +133,7 @@ export async function POST(request: NextRequest) {
     let bookingId: string | undefined;
     let handledarBookingId: string | undefined;
     let packagePurchaseId: string | undefined;
+    let invoiceId: string | undefined;
 
     if (typeof reference === 'string') {
       if (reference.startsWith('booking_')) {
@@ -124,6 +142,8 @@ export async function POST(request: NextRequest) {
         handledarBookingId = reference.replace('handledar_', '');
       } else if (reference.startsWith('package_') || reference.startsWith('order_')) {
         packagePurchaseId = reference.replace(/^package_/, '').replace(/^order_/, '');
+      } else if (reference.startsWith('invoice_')) {
+        invoiceId = reference.replace('invoice_', '');
       }
     }
 
@@ -136,6 +156,7 @@ export async function POST(request: NextRequest) {
       bookingId,
       handledarBookingId,
       packagePurchaseId,
+      invoiceId,
       customerEmail,
       customerPhone,
       customerFirstName,

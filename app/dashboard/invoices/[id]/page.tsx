@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRouter as useNextRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Download,
@@ -228,10 +229,13 @@ export default function CustomerInvoiceDetailPage() {
 
             {invoice.status === 'pending' && (
               <Button
+                asChild
                 className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
               >
-                <CreditCard className="w-4 h-4" />
-                Betala nu
+                <Link href={`/betalhubben/${invoice.id}`}>
+                  <CreditCard className="w-4 h-4" />
+                  Öppna Betalhubben
+                </Link>
               </Button>
             )}
           </div>

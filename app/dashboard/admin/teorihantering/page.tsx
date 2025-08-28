@@ -1,8 +1,8 @@
 import { requireAuth } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { teoriLessonTypes, teoriSessions, teoriBookings, teoriSupervisors, users } from '@/lib/db/schema';
-import { eq, desc, and, gte, sql } from 'drizzle-orm';
-// import TeoriHanteringClient from './teori-hantering-client';
+import { teoriLessonTypes, teoriSessions, teoriBookings, users } from '@/lib/db/schema';
+import { eq, desc, sql } from 'drizzle-orm';
+import TeoriHanteringClient from './teori-hantering-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +26,7 @@ export default async function TeoriHanteringPage() {
       date: teoriSessions.date,
       startTime: teoriSessions.startTime,
       endTime: teoriSessions.endTime,
+      price: teoriSessions.price,
       maxParticipants: teoriSessions.maxParticipants,
       currentParticipants: teoriSessions.currentParticipants,
       isActive: teoriSessions.isActive,
@@ -74,15 +75,32 @@ export default async function TeoriHanteringPage() {
     .where(eq(users.role, 'student'))
     .orderBy(users.firstName, users.lastName);
 
+  // Helper: compute duration in minutes from HH:MM[:SS] strings
+  const toMinutes = (t: string | null | undefined) => {
+    if (!t) return 0;
+    const parts = String(t).split(':');
+    const h = parseInt(parts[0] || '0', 10);
+    const m = parseInt(parts[1] || '0', 10);
+    return h * 60 + m;
+  };
+
   // Structure data hierarchically: lessonTypes -> sessions -> bookings with null safety
   const structuredData = lessonTypes.map(lessonType => {
     const typeSessions = sessionsData.filter(session => session.lessonTypeId === lessonType.id);
 
     const sessionsWithBookings = typeSessions.map(session => {
       const sessionBookings = bookingsData.filter(booking => booking.sessionId === session.id);
+      const duration = toMinutes(session.endTime as unknown as string) - toMinutes(session.startTime as unknown as string);
+      const safeDuration = Number.isFinite(duration) && duration > 0
+        ? duration
+        : (Number(lessonType.durationMinutes) || 60);
 
       return {
         ...session,
+        // Ensure fields expected by client exist
+        price: (session.price ?? session.lessonTypePrice) as unknown as string,
+        pricePerSupervisor: (session as any).pricePerSupervisor ?? session.lessonTypePricePerSupervisor ?? null,
+        durationMinutes: safeDuration,
         bookings: sessionBookings || []
       };
     });
@@ -95,12 +113,6 @@ export default async function TeoriHanteringPage() {
   });
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-red-600 mb-4">Teori Management Temporarily Unavailable</h1>
-      <p className="text-gray-600">This page is currently being fixed. Please check back later.</p>
-      <div className="mt-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
-        <p className="text-yellow-800">Status: Fixing syntax errors in the component file.</p>
-      </div>
-    </div>
+    <TeoriHanteringClient structuredData={structuredData as any} students={students as any} />
   );
 }

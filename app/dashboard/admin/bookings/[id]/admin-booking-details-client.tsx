@@ -28,6 +28,7 @@ import {
   BookOpen,
   ListChecks
 } from 'lucide-react';
+import { Tabs } from 'flowbite-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import AdminFeedbackForm from '@/components/Admin/AdminFeedbackForm';
@@ -523,9 +524,12 @@ function FeedbackSection({ bookingId }: { bookingId: string }) {
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Booking Information */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {/* Tabbed Content */}
+        <Tabs aria-label="Booking details tabs" style="underline">
+          <Tabs.Item active title="Översikt" icon={FileText}>
+            <div className="space-y-6">
+              {/* Booking Information */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <CalendarIcon className="w-5 h-5" />
@@ -921,28 +925,31 @@ function FeedbackSection({ bookingId }: { bookingId: string }) {
                   <strong>Tips:</strong> Bekräfta betalning endast efter att du har verifierat att pengarna har kommit in. Neka order tar bort bokningen och släpper tiden.
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Information */}
-        <div className="mt-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
-          <div className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
-            {settings.schoolPhone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>Frågor? Ring {settings.schoolPhone}</span>
               </div>
-            )}
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span>Boknings-ID: {booking.id}</span>
             </div>
-          </div>
 
-          {/* Feedback Section */}
-          <FeedbackSection bookingId={booking.id} />
-        </div>
+              {/* Footer Information */}
+              <div className="mt-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm">
+                <div className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  {settings.schoolPhone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      <span>Frågor? Ring {settings.schoolPhone}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span>Boknings-ID: {booking.id}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Tabs.Item>
+
+          <Tabs.Item title="Feedback" icon={BookOpen}>
+            <FeedbackSection bookingId={booking.id} />
+          </Tabs.Item>
+        </Tabs>
       </div>
     </div>
   );

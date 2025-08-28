@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 import { useToast } from '@/hooks/use-toast';
-import { ViewToggle } from '@/components/admin/view-toggle';
-import { BookingsTable } from '@/components/admin/bookings-table';
+import { ViewToggle } from '@/components/Admin/view-toggle';
+import { BookingsTable } from '@/components/Admin/bookings-table';
 import {
   Calendar,
   Clock,
@@ -369,7 +369,7 @@ export default function BookingsClient({
   return (
     <div className="space-y-6">
       {/* View Banner */}
-      <div className="sticky top-0 z-40">
+      <div>
         <Banner>
           <div className="flex w-full items-center justify-between gap-4 px-4 py-3">
             <div className="text-sm text-gray-800 dark:text-gray-100">

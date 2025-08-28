@@ -36,7 +36,7 @@ export default function ImpersonationBanner() {
         }
       }
     } catch {}
-    window.location.href = '/dashboard/admin';
+    window.location.href = '/dashboard/admin/users';
   };
 
   return (

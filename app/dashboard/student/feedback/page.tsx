@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import StudentFeedbackClient from './student-feedback-client';
 import StudentHeader from '../StudentHeader';
-import { FaCommentDots } from 'react-icons/fa';
+import { MessageSquare } from 'lucide-react';
 
 export default function StudentFeedbackPage() {
   const { user, isLoading } = useAuth();
@@ -43,8 +43,11 @@ export default function StudentFeedbackPage() {
 
   if (isLoading || dataLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Laddar feedback...</p>
+        </div>
       </div>
     );
   }
@@ -55,8 +58,11 @@ export default function StudentFeedbackPage() {
 
   if (!feedbackData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Kunde inte ladda feedback data</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg">Kunde inte ladda feedback-data</p>
+          <p className="text-gray-500 text-sm mt-2">Försök uppdatera sidan</p>
+        </div>
       </div>
     );
   }
@@ -71,15 +77,20 @@ export default function StudentFeedbackPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
-      <div className="px-6 pt-8">
-        <StudentHeader title="Feedback" icon={<FaCommentDots className="text-sky-300" />} />
-      </div>
-      <StudentFeedbackClient
-        user={transformedUser}
-        feedback={feedbackData.feedback}
-        total={feedbackData.total}
+    <div className="min-h-screen bg-gray-50">
+      <StudentHeader
+        title="Lärarfeedback"
+        icon={<MessageSquare className="w-5 h-5 text-blue-600" />}
+        userName={user.firstName}
       />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <StudentFeedbackClient
+          user={transformedUser}
+          feedback={feedbackData.feedback}
+          total={feedbackData.total}
+        />
+      </div>
     </div>
   );
 }

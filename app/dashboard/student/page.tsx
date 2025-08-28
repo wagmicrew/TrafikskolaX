@@ -45,6 +45,10 @@ export default function Studentsidan() {
       const feedbackRes = await fetch('/api/student/feedback');
       const feedbackData = await feedbackRes.json();
 
+      // Fetch invoices
+      const invoicesRes = await fetch('/api/invoices');
+      const invoicesData = await invoicesRes.json();
+
       const rawBookings = bookingsData.bookings || [];
       
       // Transform API data to match BookingsTable interface
@@ -80,16 +84,27 @@ export default function Studentsidan() {
       }).length;
       const totalCredits = creditsData.credits?.reduce((sum: number, c: any) => sum + c.creditsRemaining, 0) || 0;
 
+      // Calculate invoice statistics
+      const invoices = invoicesData.invoices || [];
+      const pendingInvoices = invoices.filter((inv: any) => inv.status === 'pending').length;
+      const paidInvoices = invoices.filter((inv: any) => inv.status === 'paid').length;
+      const totalInvoiceAmount = invoices.reduce((sum: number, inv: any) => sum + (inv.amount || 0), 0);
+
       setDashboardData({
         bookings: sortedBookings,
         credits: creditsData.credits || [],
         userPackages: packagesData.packages || [],
         feedback: feedbackData.feedback || [],
+        invoices: invoices,
         stats: {
           totalBookings,
           completedBookings,
           upcomingBookings,
-          totalCredits
+          totalCredits,
+          totalInvoices: invoices.length,
+          pendingInvoices,
+          paidInvoices,
+          totalInvoiceAmount
         }
       });
     } catch (error) {
@@ -101,8 +116,11 @@ export default function Studentsidan() {
 
   if (isLoading || dataLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Laddar elevdashboard...</p>
+        </div>
       </div>
     );
   }
@@ -113,8 +131,11 @@ export default function Studentsidan() {
 
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Kunde inte ladda dashboard data</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg">Kunde inte ladda dashboard-data</p>
+          <p className="text-gray-500 text-sm mt-2">Försök uppdatera sidan</p>
+        </div>
       </div>
     );
   }

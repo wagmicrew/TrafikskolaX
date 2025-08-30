@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import EmailTemplateBuilder from '@/components/Admin/EmailTemplateBuilder';
+import { EmailTemplateManager } from '@/components/email/EmailTemplateManager';
 
 export default function EmailTemplatesPage() {
-  return <EmailTemplateBuilder />;
+  return <EmailTemplateManager />;
 }

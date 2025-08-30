@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessions } from '@/lib/db/schema/sessions';
-import { sessionBookings } from '@/lib/db/schema/session-bookings';
-import { sessionTypes } from '@/lib/db/schema/session-types';
+import { teoriSessions, teoriBookings, teoriLessonTypes } from '@/lib/db/schema/teori';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -36,12 +34,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Get session and session type info
     const sessionInfo = await db
       .select({
-        session: sessions,
-        sessionType: sessionTypes
+        session: teoriSessions,
+        sessionType: teoriLessonTypes
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id))
-      .where(eq(sessions.id, id))
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+      .where(eq(teoriSessions.id, id))
       .limit(1);
 
     if (!sessionInfo.length) {
@@ -56,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Calculate price
-    let price = parseFloat(sessionType.basePrice);
+    let price = parseFloat(sessionType.price);
     let supervisorPrice = 0;
 
     if (sessionType.allowsSupervisors && supervisorCount > 1) {
@@ -73,19 +71,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Create booking
     const newBooking = await db
-      .insert(sessionBookings)
+      .insert(teoriBookings)
       .values({
         sessionId: id,
         studentId: studentId || null,
         supervisorName,
         supervisorEmail,
         supervisorPhone,
-        supervisorPersonalNumber: encryptedPersonalId,
-        supervisorCount: parseInt(supervisorCount) || 1,
+        participantPersonalNumber: encryptedPersonalId,
         status: 'pending',
         price,
-        basePrice: parseFloat(sessionType.basePrice),
-        pricePerSupervisor: sessionType.pricePerSupervisor || 0,
         paymentStatus: 'pending',
         bookedBy: authUser.id,
       })
@@ -93,11 +88,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Update session participant count
     await db
-      .update(sessions)
+      .update(teoriSessions)
       .set({
-        currentParticipants: sql`${sessions.currentParticipants} + 1`
+        currentParticipants: sql`${teoriSessions.currentParticipants} + 1`
       })
-      .where(eq(sessions.id, id));
+      .where(eq(teoriSessions.id, id));
 
     // Send email if requested
     if (sendPaymentEmail && supervisorEmail) {

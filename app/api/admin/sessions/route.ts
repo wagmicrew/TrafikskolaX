@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessions } from '@/lib/db/schema/sessions';
-import { sessionTypes } from '@/lib/db/schema/session-types';
+import { teoriSessions, teoriLessonTypes } from '@/lib/db/schema/teori';
 import { desc, eq, and, gte, lte } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -24,53 +23,53 @@ export async function GET(request: NextRequest) {
 
     let query = db
       .select({
-        id: sessions.id,
-        sessionTypeId: sessions.sessionTypeId,
-        title: sessions.title,
-        description: sessions.description,
-        date: sessions.date,
-        startTime: sessions.startTime,
-        endTime: sessions.endTime,
-        maxParticipants: sessions.maxParticipants,
-        currentParticipants: sessions.currentParticipants,
-        teacherId: sessions.teacherId,
-        isActive: sessions.isActive,
-        createdAt: sessions.createdAt,
-        updatedAt: sessions.updatedAt,
-        sessionType: {
-          id: sessionTypes.id,
-          name: sessionTypes.name,
-          type: sessionTypes.type,
-          basePrice: sessionTypes.basePrice,
-          pricePerSupervisor: sessionTypes.pricePerSupervisor,
-          allowsSupervisors: sessionTypes.allowsSupervisors,
-          requiresPersonalId: sessionTypes.requiresPersonalId,
+        id: teoriSessions.id,
+        sessionTypeId: teoriSessions.lessonTypeId,
+        title: teoriSessions.title,
+        description: teoriSessions.description,
+        date: teoriSessions.date,
+        startTime: teoriSessions.startTime,
+        endTime: teoriSessions.endTime,
+        maxParticipants: teoriSessions.maxParticipants,
+        currentParticipants: teoriSessions.currentParticipants,
+        teacherId: teoriSessions.teacherId,
+        isActive: teoriSessions.isActive,
+        createdAt: teoriSessions.createdAt,
+        updatedAt: teoriSessions.updatedAt,
+        lessonType: {
+          id: teoriLessonTypes.id,
+          name: teoriLessonTypes.name,
+          description: teoriLessonTypes.description,
+          price: teoriLessonTypes.price,
+          pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
+          allowsSupervisors: teoriLessonTypes.allowsSupervisors,
+          durationMinutes: teoriLessonTypes.durationMinutes,
         }
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id));
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id));
 
     // Apply scope filter
     if (scope === 'future') {
-      query = query.where(gte(sessions.date, today));
+      query = query.where(gte(teoriSessions.date, today));
     } else if (scope === 'past') {
-      query = query.where(lte(sessions.date, today));
+      query = query.where(lte(teoriSessions.date, today));
     }
 
     const sessionList = await query
-      .orderBy(desc(sessions.date), desc(sessions.startTime))
+      .orderBy(desc(teoriSessions.date), desc(teoriSessions.startTime))
       .limit(pageSize)
       .offset(offset);
 
     // Get total count for pagination
     const countQuery = db
-      .select({ count: sessions.id })
-      .from(sessions);
+      .select({ count: teoriSessions.id })
+      .from(teoriSessions);
 
     if (scope === 'future') {
-      countQuery.where(gte(sessions.date, today));
+      countQuery.where(gte(teoriSessions.date, today));
     } else if (scope === 'past') {
-      countQuery.where(lte(sessions.date, today));
+      countQuery.where(lte(teoriSessions.date, today));
     }
 
     const totalCount = await countQuery;
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
     const { sessionTypeId, title, description, date, startTime, endTime, maxParticipants, isActive } = body;
 
     const newSession = await db
-      .insert(sessions)
+      .insert(teoriSessions)
       .values({
         sessionTypeId,
         title,
@@ -116,32 +115,32 @@ export async function POST(request: NextRequest) {
     // Get the complete session with type info
     const sessionWithType = await db
       .select({
-        id: sessions.id,
-        sessionTypeId: sessions.sessionTypeId,
-        title: sessions.title,
-        description: sessions.description,
-        date: sessions.date,
-        startTime: sessions.startTime,
-        endTime: sessions.endTime,
-        maxParticipants: sessions.maxParticipants,
-        currentParticipants: sessions.currentParticipants,
-        teacherId: sessions.teacherId,
-        isActive: sessions.isActive,
-        createdAt: sessions.createdAt,
-        updatedAt: sessions.updatedAt,
-        sessionType: {
-          id: sessionTypes.id,
-          name: sessionTypes.name,
-          type: sessionTypes.type,
-          basePrice: sessionTypes.basePrice,
-          pricePerSupervisor: sessionTypes.pricePerSupervisor,
-          allowsSupervisors: sessionTypes.allowsSupervisors,
-          requiresPersonalId: sessionTypes.requiresPersonalId,
+        id: teoriSessions.id,
+        sessionTypeId: teoriSessions.lessonTypeId,
+        title: teoriSessions.title,
+        description: teoriSessions.description,
+        date: teoriSessions.date,
+        startTime: teoriSessions.startTime,
+        endTime: teoriSessions.endTime,
+        maxParticipants: teoriSessions.maxParticipants,
+        currentParticipants: teoriSessions.currentParticipants,
+        teacherId: teoriSessions.teacherId,
+        isActive: teoriSessions.isActive,
+        createdAt: teoriSessions.createdAt,
+        updatedAt: teoriSessions.updatedAt,
+        lessonType: {
+          id: teoriLessonTypes.id,
+          name: teoriLessonTypes.name,
+          description: teoriLessonTypes.description,
+          price: teoriLessonTypes.price,
+          pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
+          allowsSupervisors: teoriLessonTypes.allowsSupervisors,
+          durationMinutes: teoriLessonTypes.durationMinutes,
         }
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id))
-      .where(eq(sessions.id, newSession[0].id))
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+      .where(eq(teoriSessions.id, newSession[0].id))
       .limit(1);
 
     return NextResponse.json({

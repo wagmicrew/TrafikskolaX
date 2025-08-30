@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessions } from '@/lib/db/schema/sessions';
-import { sessionTypes } from '@/lib/db/schema/session-types';
+import { teoriSessions, teoriLessonTypes } from '@/lib/db/schema/teori';
 import { gte, eq, desc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -18,30 +17,30 @@ export async function GET() {
 
     const futureSessions = await db
       .select({
-        id: sessions.id,
-        sessionTypeId: sessions.sessionTypeId,
-        title: sessions.title,
-        description: sessions.description,
-        date: sessions.date,
-        startTime: sessions.startTime,
-        endTime: sessions.endTime,
-        maxParticipants: sessions.maxParticipants,
-        currentParticipants: sessions.currentParticipants,
-        teacherId: sessions.teacherId,
-        isActive: sessions.isActive,
-        createdAt: sessions.createdAt,
-        sessionType: {
-          id: sessionTypes.id,
-          name: sessionTypes.name,
-          type: sessionTypes.type,
-          basePrice: sessionTypes.basePrice,
-          allowsSupervisors: sessionTypes.allowsSupervisors,
+        id: teoriSessions.id,
+        sessionTypeId: teoriSessions.lessonTypeId,
+        title: teoriSessions.title,
+        description: teoriSessions.description,
+        date: teoriSessions.date,
+        startTime: teoriSessions.startTime,
+        endTime: teoriSessions.endTime,
+        maxParticipants: teoriSessions.maxParticipants,
+        currentParticipants: teoriSessions.currentParticipants,
+        teacherId: teoriSessions.teacherId,
+        isActive: teoriSessions.isActive,
+        createdAt: teoriSessions.createdAt,
+        lessonType: {
+          id: teoriLessonTypes.id,
+          name: teoriLessonTypes.name,
+          description: teoriLessonTypes.description,
+          price: teoriLessonTypes.price,
+          allowsSupervisors: teoriLessonTypes.allowsSupervisors,
         }
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id))
-      .where(gte(sessions.date, today))
-      .orderBy(sessions.date, sessions.startTime);
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+      .where(gte(teoriSessions.date, today))
+      .orderBy(teoriSessions.date, teoriSessions.startTime);
 
     return NextResponse.json({ sessions: futureSessions });
   } catch (error) {

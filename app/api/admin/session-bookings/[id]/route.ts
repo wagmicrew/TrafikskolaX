@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessionBookings } from '@/lib/db/schema/session-bookings';
-import { sessions } from '@/lib/db/schema/sessions';
+import { teoriBookings, teoriSessions } from '@/lib/db/schema/teori';
 import { eq, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -22,8 +21,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Move booking to different session
       const booking = await db
         .select()
-        .from(sessionBookings)
-        .where(eq(sessionBookings.id, id))
+        .from(teoriBookings)
+        .where(eq(teoriBookings.id, id))
         .limit(1);
 
       if (!booking.length) {
@@ -33,8 +32,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Check if target session exists and has space
       const targetSession = await db
         .select()
-        .from(sessions)
-        .where(eq(sessions.id, targetSessionId))
+        .from(teoriSessions)
+        .where(eq(teoriSessions.id, targetSessionId))
         .limit(1);
 
       if (!targetSession.length) {
@@ -47,24 +46,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Update booking
       await db
-        .update(sessionBookings)
+        .update(teoriBookings)
         .set({ sessionId: targetSessionId })
-        .where(eq(sessionBookings.id, id));
+        .where(eq(teoriBookings.id, id));
 
       // Update participant counts
       await db
-        .update(sessions)
+        .update(teoriSessions)
         .set({
-          currentParticipants: sql`${sessions.currentParticipants} - 1`
+          currentParticipants: sql`${teoriSessions.currentParticipants} - 1`
         })
-        .where(eq(sessions.id, booking[0].sessionId));
+        .where(eq(teoriSessions.id, booking[0].sessionId));
 
       await db
-        .update(sessions)
+        .update(teoriSessions)
         .set({
-          currentParticipants: sql`${sessions.currentParticipants} + 1`
+          currentParticipants: sql`${teoriSessions.currentParticipants} + 1`
         })
-        .where(eq(sessions.id, targetSessionId));
+        .where(eq(teoriSessions.id, targetSessionId));
 
       return NextResponse.json({ message: 'Booking moved successfully' });
     }
@@ -87,8 +86,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const booking = await db
       .select()
-      .from(sessionBookings)
-      .where(eq(sessionBookings.id, id))
+      .from(teoriBookings)
+      .where(eq(teoriBookings.id, id))
       .limit(1);
 
     if (!booking.length) {
@@ -97,16 +96,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Delete booking
     await db
-      .delete(sessionBookings)
-      .where(eq(sessionBookings.id, id));
+      .delete(teoriBookings)
+      .where(eq(teoriBookings.id, id));
 
     // Update session participant count
     await db
-      .update(sessions)
+      .update(teoriSessions)
       .set({
-        currentParticipants: sql`${sessions.currentParticipants} - 1`
+        currentParticipants: sql`${teoriSessions.currentParticipants} - 1`
       })
-      .where(eq(sessions.id, booking[0].sessionId));
+      .where(eq(teoriSessions.id, booking[0].sessionId));
 
     return NextResponse.json({ message: 'Booking deleted successfully' });
   } catch (error) {

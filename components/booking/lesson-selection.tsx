@@ -79,35 +79,45 @@ export function LessonSelection({ onComplete }: LessonSelectionProps) {
         console.error("Error fetching driving lessons from lesson_types:", lessonError)
       }
 
-      // 2. ALL Theoretical lessons from teori_lesson_types table (UNIFIED)
-      // API: /api/teori-sessions → teori_lesson_types table
-      // This now includes both regular Teori and migrated Handledar sessions
+      // 2. Public Teori sessions grouped by lesson type (UNIFIED)
+      // API: /api/teori/sessions?available=true → flat sessions with embedded lessonType
       try {
-        const teoriResponse = await fetch('/api/teori-sessions?scope=future')
+        const teoriResponse = await fetch('/api/teori/sessions?available=true')
         if (teoriResponse.ok) {
           const teoriData = await teoriResponse.json()
 
-          // Group ALL theoretical sessions by lesson type
-          if (teoriData.sessionsByType && teoriData.sessionsByType.length > 0) {
-            const theoreticalSessions = teoriData.sessionsByType.map((group: any) => ({
-              ...group.lessonType,
-              type: group.lessonType.allowsSupervisors ? 'handledar' : 'teori',
-              name: group.lessonType.name,
-              description: group.lessonType.description,
-              price: group.lessonType.price,
-              durationMinutes: group.lessonType.durationMinutes || 60,
-              availableSessions: group.sessions.length,
-              sessions: group.sessions,
-              hasAvailableSessions: group.hasAvailableSessions,
-              allowsSupervisors: group.lessonType.allowsSupervisors,
-              pricePerSupervisor: group.lessonType.pricePerSupervisor,
-              requiresPersonalId: group.lessonType.allowsSupervisors // Handledar sessions require personal ID
+          if (teoriData?.sessions && Array.isArray(teoriData.sessions)) {
+            const groups = new Map<string, { lessonType: any; sessions: any[] }>()
+
+            for (const s of teoriData.sessions) {
+              const lt = s.lessonType || {}
+              const key = lt.id || 'unknown'
+              if (!groups.has(key)) {
+                groups.set(key, { lessonType: lt, sessions: [] })
+              }
+              groups.get(key)!.sessions.push(s)
+            }
+
+            const theoreticalSessions = Array.from(groups.values()).map(({ lessonType: lt, sessions }) => ({
+              ...lt,
+              type: lt.allowsSupervisors ? 'handledar' as const : 'teori' as const,
+              name: lt.name,
+              description: lt.description,
+              price: typeof lt.price === 'string' ? parseFloat(lt.price) : lt.price,
+              durationMinutes: lt.durationMinutes || 60,
+              availableSessions: sessions.length,
+              sessions,
+              hasAvailableSessions: sessions.length > 0,
+              allowsSupervisors: lt.allowsSupervisors,
+              pricePerSupervisor: typeof lt.pricePerSupervisor === 'string' ? parseFloat(lt.pricePerSupervisor) : lt.pricePerSupervisor,
+              requiresPersonalId: lt.allowsSupervisors
             }))
-            allSessions.push(...theoreticalSessions);
+
+            allSessions.push(...theoreticalSessions)
           }
         }
       } catch (teoriError) {
-        console.error("Error fetching theoretical sessions from teori_lesson_types:", teoriError)
+        console.error("Error fetching public theoretical sessions:", teoriError)
       }
 
       setSessionTypesList(allSessions)

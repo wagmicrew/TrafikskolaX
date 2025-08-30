@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessions } from '@/lib/db/schema/sessions';
-import { sessionTypes } from '@/lib/db/schema/session-types';
+import { teoriSessions, teoriLessonTypes } from '@/lib/db/schema/teori';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -18,32 +17,32 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const session = await db
       .select({
-        id: sessions.id,
-        sessionTypeId: sessions.sessionTypeId,
-        title: sessions.title,
-        description: sessions.description,
-        date: sessions.date,
-        startTime: sessions.startTime,
-        endTime: sessions.endTime,
-        maxParticipants: sessions.maxParticipants,
-        currentParticipants: sessions.currentParticipants,
-        teacherId: sessions.teacherId,
-        isActive: sessions.isActive,
-        createdAt: sessions.createdAt,
-        updatedAt: sessions.updatedAt,
-        sessionType: {
-          id: sessionTypes.id,
-          name: sessionTypes.name,
-          type: sessionTypes.type,
-          basePrice: sessionTypes.basePrice,
-          pricePerSupervisor: sessionTypes.pricePerSupervisor,
-          allowsSupervisors: sessionTypes.allowsSupervisors,
-          requiresPersonalId: sessionTypes.requiresPersonalId,
+        id: teoriSessions.id,
+        sessionTypeId: teoriSessions.lessonTypeId,
+        title: teoriSessions.title,
+        description: teoriSessions.description,
+        date: teoriSessions.date,
+        startTime: teoriSessions.startTime,
+        endTime: teoriSessions.endTime,
+        maxParticipants: teoriSessions.maxParticipants,
+        currentParticipants: teoriSessions.currentParticipants,
+        teacherId: teoriSessions.teacherId,
+        isActive: teoriSessions.isActive,
+        createdAt: teoriSessions.createdAt,
+        updatedAt: teoriSessions.updatedAt,
+        lessonType: {
+          id: teoriLessonTypes.id,
+          name: teoriLessonTypes.name,
+          description: teoriLessonTypes.description,
+          price: teoriLessonTypes.price,
+          pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
+          allowsSupervisors: teoriLessonTypes.allowsSupervisors,
+          durationMinutes: teoriLessonTypes.durationMinutes,
         }
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id))
-      .where(eq(sessions.id, id))
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+      .where(eq(teoriSessions.id, id))
       .limit(1);
 
     if (!session.length) {
@@ -69,7 +68,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { sessionTypeId, title, description, date, startTime, endTime, maxParticipants, isActive } = body;
 
     const updatedSession = await db
-      .update(sessions)
+      .update(teoriSessions)
       .set({
         sessionTypeId,
         title,
@@ -80,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         maxParticipants: parseInt(maxParticipants) || 1,
         isActive: Boolean(isActive),
       })
-      .where(eq(sessions.id, id))
+      .where(eq(teoriSessions.id, id))
       .returning();
 
     if (!updatedSession.length) {
@@ -90,32 +89,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Get the complete session with type info
     const sessionWithType = await db
       .select({
-        id: sessions.id,
-        sessionTypeId: sessions.sessionTypeId,
-        title: sessions.title,
-        description: sessions.description,
-        date: sessions.date,
-        startTime: sessions.startTime,
-        endTime: sessions.endTime,
-        maxParticipants: sessions.maxParticipants,
-        currentParticipants: sessions.currentParticipants,
-        teacherId: sessions.teacherId,
-        isActive: sessions.isActive,
-        createdAt: sessions.createdAt,
-        updatedAt: sessions.updatedAt,
-        sessionType: {
-          id: sessionTypes.id,
-          name: sessionTypes.name,
-          type: sessionTypes.type,
-          basePrice: sessionTypes.basePrice,
-          pricePerSupervisor: sessionTypes.pricePerSupervisor,
-          allowsSupervisors: sessionTypes.allowsSupervisors,
-          requiresPersonalId: sessionTypes.requiresPersonalId,
+        id: teoriSessions.id,
+        sessionTypeId: teoriSessions.lessonTypeId,
+        title: teoriSessions.title,
+        description: teoriSessions.description,
+        date: teoriSessions.date,
+        startTime: teoriSessions.startTime,
+        endTime: teoriSessions.endTime,
+        maxParticipants: teoriSessions.maxParticipants,
+        currentParticipants: teoriSessions.currentParticipants,
+        teacherId: teoriSessions.teacherId,
+        isActive: teoriSessions.isActive,
+        createdAt: teoriSessions.createdAt,
+        updatedAt: teoriSessions.updatedAt,
+        lessonType: {
+          id: teoriLessonTypes.id,
+          name: teoriLessonTypes.name,
+          description: teoriLessonTypes.description,
+          price: teoriLessonTypes.price,
+          pricePerSupervisor: teoriLessonTypes.pricePerSupervisor,
+          allowsSupervisors: teoriLessonTypes.allowsSupervisors,
+          durationMinutes: teoriLessonTypes.durationMinutes,
         }
       })
-      .from(sessions)
-      .leftJoin(sessionTypes, eq(sessions.sessionTypeId, sessionTypes.id))
-      .where(eq(sessions.id, id))
+      .from(teoriSessions)
+      .leftJoin(teoriLessonTypes, eq(teoriSessions.lessonTypeId, teoriLessonTypes.id))
+      .where(eq(teoriSessions.id, id))
       .limit(1);
 
     return NextResponse.json({
@@ -138,8 +137,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
 
     const deletedSession = await db
-      .delete(sessions)
-      .where(eq(sessions.id, id))
+      .delete(teoriSessions)
+      .where(eq(teoriSessions.id, id))
       .returning();
 
     if (!deletedSession.length) {

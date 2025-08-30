@@ -87,8 +87,11 @@ interface TeoriSession {
   maxParticipants: number;
   currentParticipants: number;
   price: number;
+  pricePerSupervisor?: number;
+  durationMinutes?: number;
   availableSpots: number;
   formattedDateTime: string;
+  allows_supervisors?: boolean;
 }
 
 interface BookingData {
@@ -109,6 +112,10 @@ interface BookingData {
   durationMinutes: number;
   bookingId?: string;
   selectedSession?: TeoriSession;
+  guestEmail?: string;
+  guestPhone?: string;
+  guestName?: string;
+  studentId?: string;
 }
 
 type BookingStep = 'lesson-selection' | 'calendar' | 'gear-selection' | 'session-selection' | 'student-selection' | 'guest-registration' | 'supervisor-info' | 'confirmation' | 'payment-timer';
@@ -310,6 +317,7 @@ export default function BookingPage() {
       TempBookingStorage.updateBookingData(updatedBookingData);
     }
 
+    // Go directly to confirmation (which will handle booking creation)
     setCurrentStep('confirmation');
   };
 
@@ -363,12 +371,13 @@ export default function BookingPage() {
 
       // Ensure we have a valid Date object
       let sessionDate: Date;
-      if (session.date instanceof Date) {
-        sessionDate = session.date;
-      } else if (typeof session.date === 'string') {
-        sessionDate = new Date(session.date + 'T00:00:00'); // Ensure it's parsed as local date
+      const dateValue = session.date;
+      if (typeof dateValue === 'string') {
+        sessionDate = new Date(dateValue + 'T00:00:00');
+      } else if (dateValue && typeof dateValue === 'object' && 'getTime' in dateValue) {
+        sessionDate = dateValue as Date;
       } else {
-        sessionDate = new Date(session.date);
+        sessionDate = new Date(String(dateValue));
       }
 
       if (isNaN(sessionDate.getTime())) {
@@ -410,11 +419,11 @@ export default function BookingPage() {
         } else {
           // Regular logged-in user - add as student, go to supervisor info
           const userAsStudent = {
-            id: user.id,
+            id: user.userId,
             firstName: user.firstName || '',
             lastName: user.lastName || '',
             email: user.email,
-            personalNumber: (user as any).personalNumber,
+            personalNumber: user.personalNumber,
             phone: user.phone
           };
           handleStudentSelection(userAsStudent);
@@ -436,6 +445,14 @@ export default function BookingPage() {
         return;
       }
 
+      // Transform supervisors to handledare format for API
+      const handledare = supervisors.map(supervisor => ({
+        name: `${supervisor.firstName} ${supervisor.lastName}`,
+        email: supervisor.email,
+        phone: supervisor.phone,
+        personalNumber: supervisor.personalNumber
+      }));
+
       // Create booking first
       const apiBookingData = {
         sessionId: bookingData.lessonType.id,
@@ -448,6 +465,28 @@ export default function BookingPage() {
         paymentMethod: 'pending',
         paymentStatus: 'pending',
         transmissionType: bookingData.transmissionType,
+        // Include handledare data if this is a handledarutbildning
+        ...(bookingData.isHandledarutbildning && {
+          handledare,
+          handledareCount: supervisors.length
+        }),
+        // Include supervisor data for teori sessions with supervisors
+        ...(selectedSession?.allows_supervisors && {
+          supervisors: supervisors.map(s => ({
+            firstName: s.firstName,
+            lastName: s.lastName,
+            email: s.email,
+            phone: s.phone,
+            personalNumber: s.personalNumber,
+            relationship: s.relationship
+          }))
+        }),
+        teoriSessionId: bookingData.selectedSession?.id,
+        studentId: bookingData.studentId,
+        guestName: bookingData.guestName,
+        guestEmail: bookingData.guestEmail,
+        guestPhone: bookingData.guestPhone,
+        guestPersonalNumber: guestData?.personalNumber,
       };
 
       const bookingResponse = await fetch('/api/booking/create', {
@@ -493,7 +532,7 @@ export default function BookingPage() {
 
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error('Ett fel uppstod när bokningen skulle skapas. Försök igen.');
+      toast.error('Ett fel uppstod när bokningen skulle slutföras. Försök igen.');
     } finally {
       setLoading(false);
     }
@@ -952,7 +991,7 @@ export default function BookingPage() {
                 <SupervisorInfo
                   supervisors={supervisors}
                   onUpdateSupervisors={handleSupervisorUpdate}
-                  maxSupervisors={1}
+                  maxSupervisors={10}
                 />
 
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200">
@@ -975,7 +1014,6 @@ export default function BookingPage() {
             {currentStep === 'confirmation' && selectedLessonType && bookingData && (
               <BookingConfirmation
                 bookingData={bookingData as any}
-                user={user}
                 onBack={handleBack}
                 onComplete={async ({ paymentMethod, studentId, alreadyPaid, guestName, guestEmail, guestPhone, totalPrice }) => {
                   try {
@@ -997,8 +1035,30 @@ export default function BookingPage() {
                       guestPhone,
                       guestPersonalNumber: guestData?.personalNumber,
                       teoriSessionId: bookingData.selectedSession?.id,
-                      supervisors: supervisors,
+                      // Include handledare data if this is a handledarutbildning
+                      ...(bookingData.isHandledarutbildning && {
+                        handledare: supervisors.map(s => ({
+                          name: `${s.firstName} ${s.lastName}`,
+                          email: s.email,
+                          phone: s.phone,
+                          personalNumber: s.personalNumber
+                        })),
+                        handledareCount: supervisors.length
+                      }),
+                      // Include supervisor data for teori sessions with supervisors
+                      ...(selectedSession?.allows_supervisors && {
+                        supervisors: supervisors.map(s => ({
+                          firstName: s.firstName,
+                          lastName: s.lastName,
+                          email: s.email,
+                          phone: s.phone,
+                          personalNumber: s.personalNumber,
+                          relationship: s.relationship
+                        }))
+                      }),
                     } as any;
+
+                    console.log('Creating booking with data:', apiBookingData);
 
                     const bookingResponse = await fetch('/api/booking/create', {
                       method: 'POST',
@@ -1008,10 +1068,12 @@ export default function BookingPage() {
 
                     if (!bookingResponse.ok) {
                       const errorData = await bookingResponse.json().catch(() => ({}));
+                      console.error('Booking creation failed:', errorData);
                       throw new Error(errorData.error || 'Failed to create booking');
                     }
 
                     const bookingResult = await bookingResponse.json();
+                    console.log('Booking created successfully:', bookingResult);
 
                     if (!alreadyPaid) {
                       const invoiceResponse = await fetch('/api/invoices', {

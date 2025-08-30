@@ -64,8 +64,8 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
       let apiUrl = '';
 
       // Determine which API to use based on session type
-      if (sessionType.type === 'teori') {
-        apiUrl = `/api/teori-sessions?scope=future&typeId=${sessionType.id}`;
+      if (sessionType.type === 'teori' || sessionType.type === 'handledar') {
+        apiUrl = `/api/teori/sessions?available=true&lessonTypeId=${sessionType.id}`;
       } else {
         apiUrl = `/api/sessions?scope=future&typeId=${sessionType.id}`;
       }
@@ -74,40 +74,40 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
       if (response.ok) {
         const data = await response.json();
 
-        // Check if Teori system needs setup
-        if (data.needsSetup) {
-          console.log('Teori system needs setup:', data.error);
-          setSessions([]);
-          return;
-        }
-
         if (sessionType.type === 'teori' || sessionType.type === 'handledar') {
-          // For Teori/Handledar sessions, extract sessions from the specific lesson type group
-          console.log('Teori/Handledar session data:', data);
-          const lessonTypeGroup = data.sessionsByType?.find((group: any) => group.lessonType.id === sessionType.id);
-          console.log('Lesson type group:', lessonTypeGroup);
-          const sessionsData = lessonTypeGroup?.sessions || [];
+          // Public teori API returns flat sessions with embedded lessonType
+          const sessionsData = Array.isArray(data.sessions) ? data.sessions : []
 
-          // Map and enhance session data
           const enhancedSessions = sessionsData.map((session: any) => ({
-            ...session,
-            available_spots: (session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0),
-            formatted_date_time: formatDateTime(session.date, session.startTime, session.endTime),
-            // Use lesson type prices (session-specific pricing needs DB migration)
-            price: session.price || 0,
-            price_per_supervisor: session.pricePerSupervisor || null,
-            allows_supervisors: session.allowsSupervisors || false,
-            duration_minutes: session.durationMinutes || 60,
-            // Normalize field names for consistency
+            id: session.id,
+            lesson_type_id: session.lessonType?.id,
+            title: session.title,
+            description: session.description ?? null,
+            date: session.date,
+            start_time: session.startTime,
+            end_time: session.endTime,
             max_participants: session.maxParticipants,
             current_participants: session.currentParticipants,
-            booked_count: session.bookedCount,
-            start_time: session.startTime,
-            end_time: session.endTime
-          }));
+            teacher_id: null,
+            is_active: session.isActive,
+            lesson_type_name: session.lessonType?.name,
+            lesson_type_description: session.lessonType?.description ?? null,
+            allows_supervisors: !!session.lessonType?.allowsSupervisors,
+            price: (() => {
+              const v = session.lessonType?.price ?? 0
+              return typeof v === 'string' ? parseFloat(v) : Number(v)
+            })(),
+            price_per_supervisor: (() => {
+              const v = session.lessonType?.pricePerSupervisor ?? null
+              return v == null ? null : (typeof v === 'string' ? parseFloat(v) : Number(v))
+            })(),
+            duration_minutes: session.lessonType?.durationMinutes ?? 60,
+            booked_count: session.bookedCount ?? 0,
+            available_spots: (session.maxParticipants || 0) - (session.currentParticipants || 0) - (session.bookedCount || 0),
+            formatted_date_time: formatDateTime(session.date, session.startTime, session.endTime),
+          }))
 
-          console.log('Setting Teori/Handledar sessions:', enhancedSessions);
-          setSessions(enhancedSessions);
+          setSessions(enhancedSessions)
         } else {
           console.log('Setting unified sessions:', data.sessions || []);
           setSessions(data.sessions || []);
@@ -123,7 +123,7 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
     }
   }
 
-  const formatDateTime = (dateStr: string, startTime: string, endTime: string) => {
+  const formatDateTime = (dateStr: string | Date, startTime: string, endTime: string) => {
     try {
       let date: Date;
       if (dateStr instanceof Date) {
@@ -133,7 +133,7 @@ export function SessionSelection({ sessionType, onComplete, onBack }: SessionSel
         const dateWithTime = dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00';
         date = new Date(dateWithTime);
       } else {
-        date = new Date(dateStr);
+        date = new Date(String(dateStr));
       }
 
       if (isNaN(date.getTime())) {

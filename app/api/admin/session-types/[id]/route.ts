@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessionTypes } from '@/lib/db/schema/session-types';
+import { teoriLessonTypes } from '@/lib/db/schema/teori';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -17,8 +17,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const sessionType = await db
       .select()
-      .from(sessionTypes)
-      .where(eq(sessionTypes.id, id))
+      .from(teoriLessonTypes)
+      .where(eq(teoriLessonTypes.id, id))
       .limit(1);
 
     if (!sessionType.length) {
@@ -44,22 +44,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { name, description, type, creditType, basePrice, pricePerSupervisor, durationMinutes, maxParticipants, allowsSupervisors, requiresPersonalId, sortOrder, isActive } = body;
 
     const updatedType = await db
-      .update(sessionTypes)
+      .update(teoriLessonTypes)
       .set({
         name,
         description,
-        type,
-        creditType,
-        basePrice: parseFloat(basePrice),
+        allowsSupervisors: Boolean(allowsSupervisors),
+        price: parseFloat(basePrice),
         pricePerSupervisor: pricePerSupervisor ? parseFloat(pricePerSupervisor) : null,
         durationMinutes,
         maxParticipants,
-        allowsSupervisors: Boolean(allowsSupervisors),
-        requiresPersonalId: Boolean(requiresPersonalId),
-        sortOrder: parseInt(sortOrder) || 0,
         isActive: Boolean(isActive),
+        sortOrder: parseInt(sortOrder) || 0,
       })
-      .where(eq(sessionTypes.id, id))
+      .where(eq(teoriLessonTypes.id, id))
       .returning();
 
     if (!updatedType.length) {
@@ -86,8 +83,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const { id } = await params;
 
     const deletedType = await db
-      .delete(sessionTypes)
-      .where(eq(sessionTypes.id, id))
+      .delete(teoriLessonTypes)
+      .where(eq(teoriLessonTypes.id, id))
       .returning();
 
     if (!deletedType.length) {

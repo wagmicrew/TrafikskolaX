@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { bookings, users, lessonTypes, userCredits, internalMessages, siteSettings, teacherAvailability, blockedSlots, extraSlots, teoriSessions, teoriBookings, teoriSupervisors } from '@/lib/db/schema';
+import { bookings, users, lessonTypes, userCredits, internalMessages, siteSettings, teacherAvailability, blockedSlots, extraSlots, teoriSessions, teoriBookings, teoriSupervisors, handledarSessions, handledarBookings, bookingSupervisorDetails } from '@/lib/db/schema';
 import { verifyToken } from '@/lib/auth/jwt'
 import { cookies } from 'next/headers';
 import { eq, and, sql, or, ne, isNull } from 'drizzle-orm';
@@ -13,6 +13,8 @@ import { sv } from 'date-fns/locale';
 import { doesAnyBookingOverlapWithSlot, doTimeRangesOverlap } from '@/lib/utils/time-overlap';
 import { normalizeDateKey } from '@/lib/utils/date';
 import { bookingInvoiceService } from '@/lib/services/booking-invoice-service';
+import { createGuestUser } from '@/lib/auth/guest';
+import { sendBookingNotification } from '@/lib/email/booking-notifications';
 import crypto from 'crypto';
 
 // Encryption function for personal IDs
@@ -102,7 +104,7 @@ async function handleTeoriSessionBooking(body: any, isTeoriSession: boolean, teo
     if (supervisors && supervisors.length > 0) {
       const supervisorInserts = supervisors.map((supervisor: any) => ({
         teoriBookingId: teoriBooking.id,
-        supervisorName: supervisor.firstName + ' ' + supervisor.lastName,
+        supervisorName: supervisor.name, // Use name field from handledare format
         supervisorEmail: supervisor.email,
         supervisorPhone: supervisor.phone,
         supervisorPersonalNumber: supervisor.personalNumber ? encryptPersonalId(supervisor.personalNumber) : undefined,
@@ -264,8 +266,8 @@ export async function POST(request: NextRequest) {
     let currentUserRole = null;
 
     // Check if user is logged in
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token');
+    const cookieStore = cookies();
+    const token = cookieStore.get('token');
     
     if (token) {
       try {

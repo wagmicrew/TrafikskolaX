@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuthAPI } from '@/lib/auth/server-auth';
 import { db } from '@/lib/db';
-import { sessionBookings } from '@/lib/db/schema/session-bookings';
+import { teoriBookings } from '@/lib/db/schema/teori';
 import { users } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 
@@ -18,17 +18,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const participants = await db
       .select({
-        id: sessionBookings.id,
-        sessionId: sessionBookings.sessionId,
-        studentId: sessionBookings.studentId,
-        supervisorName: sessionBookings.supervisorName,
-        supervisorEmail: sessionBookings.supervisorEmail,
-        supervisorPhone: sessionBookings.supervisorPhone,
-        supervisorCount: sessionBookings.supervisorCount,
-        status: sessionBookings.status,
-        price: sessionBookings.price,
-        paymentStatus: sessionBookings.paymentStatus,
-        createdAt: sessionBookings.createdAt,
+        id: teoriBookings.id,
+        sessionId: teoriBookings.sessionId,
+        studentId: teoriBookings.studentId,
+        supervisorName: teoriBookings.participantName,
+        supervisorEmail: teoriBookings.participantEmail,
+        supervisorPhone: teoriBookings.participantPhone,
+        supervisorCount: teoriBookings.id,
+        status: teoriBookings.status,
+        price: teoriBookings.price,
+        paymentStatus: teoriBookings.paymentStatus,
+        createdAt: teoriBookings.createdAt,
         student: {
           id: users.id,
           firstName: users.firstName,
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           role: users.role,
         }
       })
-      .from(sessionBookings)
-      .leftJoin(users, eq(sessionBookings.studentId, users.id))
-      .where(eq(sessionBookings.sessionId, id))
-      .orderBy(desc(sessionBookings.createdAt));
+      .from(teoriBookings)
+      .leftJoin(users, eq(teoriBookings.studentId, users.id))
+      .where(eq(teoriBookings.sessionId, id))
+      .orderBy(desc(teoriBookings.createdAt));
 
     return NextResponse.json({ participants });
   } catch (error) {

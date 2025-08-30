@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -205,6 +205,7 @@ export function DrivingCalendar({ lessonType, onSlotSelect }: DrivingCalendarPro
                 {selectedDate
                   ? `Tillgängliga tider för ${format(selectedDate, 'd MMM', { locale: sv })}`
                   : 'Välj ett datum för att se tider'
+                }
               </span>
             </CardTitle>
           </CardHeader>
